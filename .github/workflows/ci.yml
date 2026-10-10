@@ -64,4 +64,6 @@ jobs:
       - name: Secret Scan
         uses: gitleaks/gitleaks-action@v2
         env:
+          GITLEAKS_CONFIG: .github/gitleaks.toml
+          GITLEAKS_VERSION: 8.24.3
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,29 @@
+title = "Maa-PCR exact source metadata exceptions"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Frozen R38 safety baseline digest"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests[/\\]test_player_lag_r32\.py$''']
+regexes = ['''^fb967f075c3f724c37d86132d8591aa16aebae65a82d7354965c5c596e9f6d97$''']
+
+[[rules.allowlists]]
+description = "Attributed upstream source digest"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^vendor[/\\]autopcr_sync[/\\]SOURCE_MANIFEST\.json$''']
+regexes = ['''^44ad1d14607fc96b36d03c2dab6ba5c685edb0f38b681fd2a11eb4a6f547fbdb$''']
+
+# Public protocol constant: https://github.com/cc004/autopcr/blob/f091e2ef68a95717538af5633401734fd7df3078/autopcr/constants.py#L64
+[[rules.allowlists]]
+description = "Pinned public protocol constant, not a player credential"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^vendor[/\\]autopcr_sync[/\\]autopcr_sync[/\\]core[/\\]readonly\.py$''']
+regexes = ['''^ab00a0a6dd915a052a2ef7fd649083e5$''']
