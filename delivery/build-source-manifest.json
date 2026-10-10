@@ -1,0 +1,4202 @@
+{
+  "schema_version": 1,
+  "purpose": "GUI build input source binding",
+  "bit_for_bit_rebuild_claimed": false,
+  "files": [
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/ClassNames.cs",
+      "size": 2625,
+      "sha256": "a3f514456a0ef9bb312a6145440a2c6de91a24402614e7d5df5ded9e0c9c98a3"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/ColorDocument.Avalonia.csproj",
+      "size": 966,
+      "sha256": "6dfa4494c8de93a74a2e4ec4264457e0b055311ee0fde8473bf4d057bada7153"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElement.cs",
+      "size": 3945,
+      "sha256": "dd5e1027bbed00a66a9866616f92691e3cc67d84f11515e4e82915a21e4457ae"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/AlertBlockElement.cs",
+      "size": 11066,
+      "sha256": "709d12f5373b40ef36344c8ed73edef924c7d5b29eb1fcbd95711614b13d6f9f"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/BlockquoteElement.cs",
+      "size": 2525,
+      "sha256": "3c72e6e1a6d96f7301fca47e907f002dce6568f9b85d8736dbfd8126707c67be"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/CTextBlockElement.cs",
+      "size": 4227,
+      "sha256": "5b8974393268b9f6ab0ccfc132b9b055865a4d6c161863ed8b576760334a5db1"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/DeferredBlockElement.cs",
+      "size": 4904,
+      "sha256": "461e55d5b3ee9225d2c34c74deec35d96736d8b6ec297877fb7441c9a5b22ec1"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/DocumentRootElement.cs",
+      "size": 7101,
+      "sha256": "0daf84cef5cfe67baff5dccf014ba739b0b8ee4e49cc3ad6736d8f28e3a678bf"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/HeaderElement.cs",
+      "size": 1302,
+      "sha256": "8c56011c06c69578542ced4f6acc005003b5f93600d0ecc10a4428a6b5b89cb6"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/LargeRawTextElement.cs",
+      "size": 2091,
+      "sha256": "8c8cf6497c54c63d59172f499897815e1882e64f0ffa1cb2431b9340b1eff7bd"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/ListBlockElement.cs",
+      "size": 5467,
+      "sha256": "342dc9ce733f2921e553a8eb188a589878ea4b4a720a19d31beae182b269c23f"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/ListItemElement.cs",
+      "size": 2251,
+      "sha256": "0daea4dc423722a3918726ec7900c318cad6dbd91319e603cc7dd5bcbef0f09f"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/NoteBlockElement.cs",
+      "size": 1586,
+      "sha256": "4c42f1318423fcc558c72a1fa57b09a16737e154552a8f9ac309c8a2a8e7cca7"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/PlainCodeBlockElement.cs",
+      "size": 3487,
+      "sha256": "f3255cb40234ef9a9e809b0d4e420676483d163796d6a04f412f610d939f5c49"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/TableBlockElement.cs",
+      "size": 20830,
+      "sha256": "a1e96c83b65480a909d9977af3cf0df4922184f9cfcb1c125a4d62d4b394c622"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/TableCellElement.cs",
+      "size": 3676,
+      "sha256": "a38936ec92c07b440e7ea0234aeed965a1412b9e0d980a3e2a021e227ce60ccc"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/TextBlockElement.cs",
+      "size": 2199,
+      "sha256": "b67a2b7386fe3a4efb375fe930b9a75ee37ad3fa98389eb8f340c45146d7a9a4"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/TextMarkerStyle.cs",
+      "size": 1572,
+      "sha256": "dd14ff9f77245f3c42c1e3238fe8941887d447ad517bda0b4c9b5aa363b79c23"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/DocumentElements/UnBlockElement.cs",
+      "size": 1041,
+      "sha256": "04707b06bc29eb7b662547d7016d05247b5598739375ec892f523a846651e4c0"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/EnumerableExt.cs",
+      "size": 2146,
+      "sha256": "94a0e56ccd1bc10e05af6937ba2992d778fd0536e22920abe98795009da6c001"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/IDocumentHeading.cs",
+      "size": 143,
+      "sha256": "14ef65ef69eb618dce53d17ec125ec69da51faf84abaaece8132cae008e97ff0"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/NumberToOrder.cs",
+      "size": 1665,
+      "sha256": "acb762a344b519a3cea2d9aa4b68e90e118cd596ce2dd749af61619bf0bb3e10"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/RegionUtil.cs",
+      "size": 1946,
+      "sha256": "cb7c036725ca521e24d44f6e10a9d0ab5149e18aef91e86d088f3dbd681f8a87"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/SelectionList.cs",
+      "size": 1985,
+      "sha256": "f5340e31aceedb6db8876aba7cd1b830998d4ecab8ee62beb1e2e4f85789ce61"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/SelectionUtil.cs",
+      "size": 5551,
+      "sha256": "f3ce5a0c68c5c05fcdd832cd8af53f5887d43339e481d273d28760ae0e1eeb65"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorDocument.Avalonia/packages.lock.json",
+      "size": 11738,
+      "sha256": "6f81754c70b20ecab524e463f8b7043b11829c08a3010cfd35c3482b226f30b7"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CBold.cs",
+      "size": 375,
+      "sha256": "1016a60e55391e47daeb23bd958d2740bfd28987e798f29d76050b6ff28fa23e"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CCode.cs",
+      "size": 1398,
+      "sha256": "156c85e3acd5c0198c8246163883d572a1147a97cb1345be8fba662b092e292a"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CHyperlink.cs",
+      "size": 4671,
+      "sha256": "7566ef5e1c91abf3861c77b36103723eed421ada6bcd5b0c0ea6944ae10def98"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CImage.cs",
+      "size": 7197,
+      "sha256": "adf4eddd0517aab959daa77ac99b4c3b57072af0fda1fb51f69c87f6995b38ef"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CInline.cs",
+      "size": 10805,
+      "sha256": "fd4f1f21e20f9d2740c1cc1e9f1ab2403f1e9b4d9e6c4bb8c6343c77ee884b5d"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CInlineUIContainer.cs",
+      "size": 1634,
+      "sha256": "3bf1187202c593e78230f554d910b99eae8cec29701a0333919dbd8928f43419"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CItalic.cs",
+      "size": 383,
+      "sha256": "bac09e715540b65ef4770122fb3805fdcf27588bd552d941134355e2fed7a5d4"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CLineBreak.cs",
+      "size": 921,
+      "sha256": "be05ceca997da959eb96cd2ebdef3462521f9e00a5dfcadf5cc93bf44001e829"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CRun.cs",
+      "size": 6706,
+      "sha256": "fdfec58bbba192e2c728ae03ab05d956b481c237a0900053a19d5d6f82ceba3c"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CSpan.cs",
+      "size": 9237,
+      "sha256": "89387bf88b3e5ea1c04e1f72e5b0f36c66e4a1cb7b691aca276f111a82291374"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CStrikethrough.cs",
+      "size": 367,
+      "sha256": "c0a7289d98cb0553333a3dcf7758968b04266edd706bb9284f8deee8b6e38db2"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CTextBlock.cs",
+      "size": 37916,
+      "sha256": "c15a1c4cd2d219e2d692797c6b21ddd7489ff671ad89ca2cf6bbfb74549be54e"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CTextBlockAutomationPeer.cs",
+      "size": 728,
+      "sha256": "cfb466ca0b88fcdeaa4f134cbf5f38f65ea5c5bf82e2609b43bc96772950b8fb"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CTextUnderlineStyle.cs",
+      "size": 117,
+      "sha256": "1579dfdbb4a8df4f4c4510b2fa26c841b88144b27b45833833bfc122f0678c73"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/CUnderline.cs",
+      "size": 347,
+      "sha256": "b876fbd2c5f2f25b4b42a6d1ee1aa85a86bf064d56d1519f4614f0ccb8f6fc29"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/ColorTextBlock.Avalonia.csproj",
+      "size": 1044,
+      "sha256": "abd430473bdd981cc379c53c8201e371f8d9321b326143c434c0a5958f39101c"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Fonts/FontFamilyCollector.cs",
+      "size": 867,
+      "sha256": "90f245809f51560fc48a989afd3e68d57ab981118bbd1aa962b27f0c2109eb8d"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Geometies/CGeometry.cs",
+      "size": 2128,
+      "sha256": "47b905d710a049292ccffbeee80283308eb66e38fd58a6acb17f0dab29e0088c"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Geometies/DecoratorGeometry.cs",
+      "size": 8259,
+      "sha256": "3013ad598565c5977f1485ee56625328fa80154919ee1c95dcd3f604d53bb568"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Geometies/DummyGeometryForControl.cs",
+      "size": 1616,
+      "sha256": "c2fec2dcd8918a278dd83b3a5437b0ada0c4bf6d35960970cfc530d89808a491"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Geometies/ImageGeometry.cs",
+      "size": 2364,
+      "sha256": "9ca0f5feab3d1ba5a4e4bb503af9f853737746330c2ce5761b8c9d41dab43052"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Geometies/LineBreakMarkGeometry.cs",
+      "size": 1541,
+      "sha256": "6d5dee2803a79f6548de525af7f453d1c10185240600666cacde67b586edd882"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Geometies/TextGeometry.cs",
+      "size": 1460,
+      "sha256": "1d90d6312a326eb3878190de9f9b591d5bbcef18998dd2d1277927b3073e2ade"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Geometies/TextLineGeometry.cs",
+      "size": 4267,
+      "sha256": "1d51f510c62e64263caedea32fdcb6e4b7812dac68de2d88a693f57efb7e16c5"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/StringToRunConverter.cs",
+      "size": 687,
+      "sha256": "6219881285e8cde5df4953756cd618e02d81a5146bb66504740562814f886e31"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/TextPointer.cs",
+      "size": 5384,
+      "sha256": "3ad423ea7e497dd813e6aa8ec3dfbb83e76929ef92e6dd5deda20259827b4b91"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/TextVerticalAlignment.cs",
+      "size": 916,
+      "sha256": "6a51fadbc77b75605b1d2aa67b872ab19dc5136d6bc4d1c800c44b864ef27858"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/Utils/ImageOpenCommand.cs",
+      "size": 11987,
+      "sha256": "00e22730ef1dd0fb1fe881e3c05f6c95f9da7ca8013cc52ab1c72302fa4c33d5"
+    },
+    {
+      "path": "gui/MFAAvalonia/ColorTextBlock.Avalonia/packages.lock.json",
+      "size": 11555,
+      "sha256": "affb31566ec748096998fb02572e5bc2f140cccb3592bfe625f55edb6f8c16f4"
+    },
+    {
+      "path": "gui/MFAAvalonia/Directory.Build.props",
+      "size": 324,
+      "sha256": "28724aa5878877598a7daa1cd6b752957e2cfe84085c0bfb996266230b7324d5"
+    },
+    {
+      "path": "gui/MFAAvalonia/LICENSE",
+      "size": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "path": "gui/MFAAvalonia/LazyStaticGenerator/Generators/LazyStaticGenerator.cs",
+      "size": 5641,
+      "sha256": "7d8a27a6f4e94236e450b15a18ee3b33508eb7cf22771267988147358668ab48"
+    },
+    {
+      "path": "gui/MFAAvalonia/LazyStaticGenerator/Generators/MaaPropertyGenerator.cs",
+      "size": 5000,
+      "sha256": "d648dc0fcf4937c14cd582e46f8ba44c5e806bcaf1bb3f42ed5132dbb8283d89"
+    },
+    {
+      "path": "gui/MFAAvalonia/LazyStaticGenerator/LazyStaticGenerator.csproj",
+      "size": 956,
+      "sha256": "1ee46abe8c49e25d50d99eb65c9d71c9ab15b2cad495519d220579a4709484d1"
+    },
+    {
+      "path": "gui/MFAAvalonia/LazyStaticGenerator/packages.lock.json",
+      "size": 4941,
+      "sha256": "f4200566cb337e625f0a596d7fbf4f34652f8420bea0cad49a3e12948821dec4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj",
+      "size": 5242,
+      "sha256": "6d1e0418a4621000aa1106ad0c14702507efb8d05a1046a2a0090589c4f308ec"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia.Desktop/Program.cs",
+      "size": 10949,
+      "sha256": "486613a3202d479349914706fb627dd0f4fe81b9fa6cd0a21f2365355eff3228"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia.Desktop/app.manifest",
+      "size": 913,
+      "sha256": "f7af554c08d2d01e50d5c0a45f18aaa40cb3e9e33247c357bef8ad290397b4a2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia.Desktop/packages.lock.json",
+      "size": 42815,
+      "sha256": "b3d5c057d837e97733d837a69bfe4ae6dab2790abb99616455882e4b7774b5f2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/App.axaml",
+      "size": 10816,
+      "sha256": "e8244f4b4894d514ddbc615377f181ab0e6f30ab95a403473f48d72d5138af32"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/App.axaml.cs",
+      "size": 45039,
+      "sha256": "75cc64a16df69f5024b2c5768e83456091213d70c599062d1d75de3c4db7dd72"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/AppRuntime.cs",
+      "size": 15693,
+      "sha256": "5ce11c7f349548f5a8e413727db554ad7f76b55af9ab5b7bc9023388afc843c3"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Localization/MFAResxLangPlugin.cs",
+      "size": 8306,
+      "sha256": "da749c99f2415be02a28a0e8989fbef88eb810618455de1ac9aac55164c401fd"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Localization/Strings.Designer.cs",
+      "size": 103416,
+      "sha256": "3e8fee0b5a7e3086c7f57aa2ec603c8e0b8e907d746c7847913ffc1b4aee3e64"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Localization/Strings.en-US.resx",
+      "size": 97519,
+      "sha256": "57fd00fe259a681eb112b206b60b0cfa56e01f29e6004fc06042852a2ee49b07"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Localization/Strings.ja-JP.resx",
+      "size": 104150,
+      "sha256": "e850997ac0b3720d253e63cca99ffcfaf7e782c44a615f98088e2670e69be2b8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Localization/Strings.resx",
+      "size": 95406,
+      "sha256": "e823e224c08f3620dcc45ac351dc41a1f056d16b089f2895bc8c42cd90cab309"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Localization/Strings.zh-Hant.resx",
+      "size": 94328,
+      "sha256": "d43f1dea468862ae6f291ff7543894d070aca9bdcb651add0f977e86fee73489"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Sound/SystemNotification.wav",
+      "size": 19448,
+      "sha256": "7ba9b7cd4bce718e846c875e312074cdd1c7cfc33ed38aaa75227954037e37d4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Style/Geometry.axaml",
+      "size": 87672,
+      "sha256": "8716922671f6cbe6df9b03d9ab446bce97a82698c1a2f9c79899a5c363b61173"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Style/InstanceTabsTheme.axaml",
+      "size": 16384,
+      "sha256": "70d9349c4bc07754340c2105da351220ad887dbd789841bd01c7708f5349ba0b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Style/MdXaml.axaml",
+      "size": 1265,
+      "sha256": "6d49527122cfeea12b5e022e2da2a23d49fe39160ec5622226cca9987f955c53"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Style/MdXamlDocStyle.axaml",
+      "size": 20566,
+      "sha256": "9154152122a60aa28b869c302cd8a3c4a596de8943dde794fb8492afd654c205"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Style/MdXamlStyles.axaml",
+      "size": 22043,
+      "sha256": "19de9b411d7e42d30c2315f612d6d5d0c851b88fc12fcf3aada46964bba4c31b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Theme/DarkTheme.axaml",
+      "size": 574,
+      "sha256": "8a8c72b9460f6b87fb65dfb22418f994bc5d405215c1b6d1d3e3cae0aa85ad17"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Theme/LightTheme.axaml",
+      "size": 574,
+      "sha256": "f65f58d13624ebdbd8af6272aad4f0bed6c84d7a7dc586af4010551e5cf62356"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/logo.ico",
+      "size": 21238,
+      "sha256": "5e5a351b2a69acdfc411c4087b931f9f799fa105fdfb0ec0f68242a64ffa6966"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Configuration/ConfigurationKeys.cs",
+      "size": 14231,
+      "sha256": "b7b0b6af073221b1d1435585433268a5dc4dec260dc80c8a8d97fe4a70f1911f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Configuration/ConfigurationManager.cs",
+      "size": 13090,
+      "sha256": "bc41cee23366ea3c6f3dc12c9c1bc5d34c282702f8c0c4b87a5ff1a3d42ca313"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Configuration/GlobalConfiguration.cs",
+      "size": 7220,
+      "sha256": "84d97367133267960e89fdf1ff1ec0b36a435e7f1600e45fd8bf2f3f453e30e1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Configuration/InstanceConfiguration.cs",
+      "size": 15935,
+      "sha256": "6660bf1e7d2e33c10d99608f0ac28b02af4f1fc3bc69df6b61f8fa692d317218"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Configuration/MFAConfiguration.cs",
+      "size": 7781,
+      "sha256": "0c8b0c29877bbfa7819f0ccc84bf847727aebda4039c5e438fca56559a2fb2f4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Controls/DragTabItem.cs",
+      "size": 9519,
+      "sha256": "5b9da56d61e043224e217db3608c1cdaf3dabc748e9079be758f3021354afbb4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Controls/Events/DragTabDragCompletedEventArgs.cs",
+      "size": 665,
+      "sha256": "90f0ac52125a3ea93048645b12dd73715cc1ad6e57b44354b27fc8c9230086fb"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Controls/Events/DragTabDragDeltaEventArgs.cs",
+      "size": 1107,
+      "sha256": "78be9b985e4fb1956a36ac78e2f8ca81d8e8faae94f347b6b7b1c45960ab7116"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Controls/Events/DragTabDragStartedEventArgs.cs",
+      "size": 653,
+      "sha256": "9eacb7aaea836f7251c12bf48d408627f5510dcff58b896ac4af940f3e61448e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Controls/Events/DragTabItemEventArgs.cs",
+      "size": 676,
+      "sha256": "23c122b5fb38b32d4d1cfaa26b14db0268b1b9574d8347e5bd0a8a244a88b561"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Controls/InstanceTabsControl.cs",
+      "size": 24513,
+      "sha256": "7eec8ef3f80ec447323b618f9e3293fe117b9b735bc83f79eedaca39ba0dd035"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Controls/InstanceTabsPanel.cs",
+      "size": 13194,
+      "sha256": "bbdb6702d663c1f3ad7bf7608c7303d7cba1ae7eed38192a8ad0a5b80a456448"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Controls/LeftPressedThumb.cs",
+      "size": 4353,
+      "sha256": "4df1558be3f97a17d0ca4dcfd04adc55bead4ef091dc020e04260deb8c2356f4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/DependencySetup_依赖库安装_linux.sh",
+      "size": 6005,
+      "sha256": "c6425e3f67bcca0b4c2f4b52fa0b11b9dd96a64afb1c3c11d323de92e928b0bb"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/DependencySetup_依赖库安装_mac.sh",
+      "size": 7786,
+      "sha256": "438bf7dc2de6503f0958b6cf275857a7c98f4586ca8404b69c21ae0720206585"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/DependencySetup_依赖库安装_win.bat",
+      "size": 9516,
+      "sha256": "1ea60e3081407325010c1fac9c28ba013f40bbb1660cb6b0e1a1d16041b68262"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/AutoCompleteBehavior.cs",
+      "size": 4526,
+      "sha256": "37eba1d20820dc76c50950e0abdfb01b817f4c6c5df048ced56e992a7baffb76"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/CheckBoxExtensions.cs",
+      "size": 3228,
+      "sha256": "999145da69da4145e670c1f0205589c49aa15bd804ff7e18820a2e0d29293151"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/DragDropExtensions.cs",
+      "size": 29854,
+      "sha256": "4cc2bec1a637a86aa2a05e471bffbcb610ad05546b65c12c72bd9a936add0561"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/GlobalStartManager.cs",
+      "size": 6549,
+      "sha256": "c50813459be2489b2257604045c03459ce3c4491d8ebe38884304ba71c38f23b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/IconProperties.cs",
+      "size": 2463,
+      "sha256": "bc24d6c3915a09f1515c3799757f83c65c42725cd6011c55a1fabf2cc4770c7a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MFAExtensions.cs",
+      "size": 39360,
+      "sha256": "57422caf3af4e12243678066f12e215cdeb88e9ff63881f09665f309616bc1ef"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/AgentHelper.cs",
+      "size": 51973,
+      "sha256": "16043845adc59992c20e4fe866e49c67b5c1190a207b7703e216e80b51a0ab6a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/ControllerTargetInfo.cs",
+      "size": 273,
+      "sha256": "784ce4123465439d2acb4cc0a4cfc91c6a724d18a3ab7f0ba3ce21c4a9882fea"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/ActionParamHelper.cs",
+      "size": 3433,
+      "sha256": "fc513831c7f381435b6913c6f97c07967c3c0c4a43fbe56ea59ce13d004dd650"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/ComputerOperationAction.cs",
+      "size": 2852,
+      "sha256": "d3b861f17133af4ebd4621b9a53ea5cb3e995ce9d17c919feb1e0bcf9242b7d3"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/CountdownAction.cs",
+      "size": 1318,
+      "sha256": "428c94ddef561d8e09b75844bc969414102341975192ad496605560956f3b33c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/CustomProgramAction.cs",
+      "size": 2205,
+      "sha256": "0b298bc49e50c2b9b54b8abc95e54957a871ad26ac093723a0d6c566ef801afa"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/HeiLiuAction.cs",
+      "size": 52502,
+      "sha256": "37f5918d88250700ebc2d64366ca74603ef1149facff86890f804ec8bfe9580f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/JieGardenAction.cs",
+      "size": 39050,
+      "sha256": "a946a21d45018eeee272fa191794334e4dca9e0bf29ed5a192b0940ae22718cf"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/KillProcessAction.cs",
+      "size": 2742,
+      "sha256": "8db5ec65cd817fd8f0c6622dc31a8229c3162fcc1e6b63539ba784b3a7e4a97a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/MaaErrorHandleException.cs",
+      "size": 119,
+      "sha256": "8a67a337927754f4113fd161ab2484e177902db4cca8171d2e0e143a62c92fce"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/MaaStopException.cs",
+      "size": 117,
+      "sha256": "fcda5b8e7346968cac2c62fda5c0f8e419fb834f50478ea69381a003d47476e8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/MemoryLeakTestAction.cs",
+      "size": 6871,
+      "sha256": "cc627bd3e799565f6a8a0cf1710aaec54515cada146c99aff2159fa2c33dbb82"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/SwitchInstanceAction.cs",
+      "size": 5394,
+      "sha256": "925d6521bae9f8ac2cf9293175d28ccb87cb869f989970e5ca47b8bcd1279f86"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/SystemNotificationAction.cs",
+      "size": 1367,
+      "sha256": "67435c0a574b4a188822703534ed7872cb0d8a51fa9eec5613e175b4488a381e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/TimedWaitAction.cs",
+      "size": 2065,
+      "sha256": "2f5b0b36556ea1b13d1b927b89b9bd59645005898bb41acfeb5407773758c52e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/Custom/WebhookAction.cs",
+      "size": 2532,
+      "sha256": "ebd4e08e567cfc9d1bd7db639259a265f6d27dec6ec71d45b6262226698a4c0c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/CustomClassLoader.cs",
+      "size": 10279,
+      "sha256": "76c9bba8106e9a2b612a11b6409fcc4c28efe9d227fc413bd3e686b478ceb812"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/FocusHandler.cs",
+      "size": 24496,
+      "sha256": "efe81946cb0e74a5aa05fa1a5842b8f0a70d0aed5057a1f3104d3d8a548716d6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaControllerTypes.cs",
+      "size": 2265,
+      "sha256": "fcd1b1743ac1280e97c921e9a0662274479e73600cc48a3784e46f8226faeca7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaExtensions.cs",
+      "size": 13945,
+      "sha256": "c336ea54604b01fe6f10850ea3efc4e28858b82d17aaefa464f52dfacd5fc69a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaInterface.cs",
+      "size": 73255,
+      "sha256": "1014a4a8b0800a31c1525346a9191ade054e29a05b2d7bd57f9c9d5aae7b4559"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaInterfaceActivationHelper.cs",
+      "size": 3011,
+      "sha256": "e20b6eb83766a49beae4721adf717552909765a70086ea172c0c4db74be7edf1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaInterfaceAdvancedOption.cs",
+      "size": 14387,
+      "sha256": "b6dc93b73fef188638db69d4504059c69dfbaf297c9146c6b0fe422e8383576b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaNode.cs",
+      "size": 7255,
+      "sha256": "9a560b8458af225c73cdcda8b0fc97b48579b48cb3bab044e8253a915609c4d4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaProcessor.cs",
+      "size": 211860,
+      "sha256": "43f38f55a9ee741703e8746fa9a907ff7d2dde0761297e770a70a38ffc054b7f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaProcessorConfig.cs",
+      "size": 2923,
+      "sha256": "d29537b7df7e686f48ff6caf3b965ffd84985ff99af65440cbbc50c12e263b6e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaProcessorManager.cs",
+      "size": 58711,
+      "sha256": "b570eff79f6c38c9431c944965b03622ff504a7e4d4a28ab7813d9620eac3e51"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaToken.cs",
+      "size": 1102,
+      "sha256": "dcc8b021647810a78bb805c6485608b65fb20be8ac54b701ab92e3eb809a6849"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/PathFinder.cs",
+      "size": 6054,
+      "sha256": "d86020b930dcbf8c11b0d230d1db33b69e72bd8283cd30dfe4a28a8e98ae5af4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/PlatformAgentFactory.cs",
+      "size": 2064,
+      "sha256": "5f77ce74a4305c2b309b5687611d576b508fb4020858089c85497886fc0500b8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/PlatformControllerFactory.cs",
+      "size": 399,
+      "sha256": "83e828059387b7cec50219fcac04c23eda0ba255f06f39d298c33c871dac7ce1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/ProcessHelper.cs",
+      "size": 22271,
+      "sha256": "dfbb3ae84a1e3069d70c50523aaaa2ebbaafb29ea47bdb1bd4c087114425ba18"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/ScriptRunner.cs",
+      "size": 5481,
+      "sha256": "f37c14f4100b4ee71ae9291a8e6eefefaf6112e2d783a722b1e8aa28efd5cb83"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/TaskLoader.cs",
+      "size": 43165,
+      "sha256": "f033b71be4d9e3760b01ce474f7f344a925c2038e960ea76c5181871eb2e7c84"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MarkdownExtension.cs",
+      "size": 946,
+      "sha256": "b0eebdbb23eb498b5d5c4cef0f9f1ee059a4a2b77d88fc7de9c0ff50c8e58a3b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/ResourceBinding.cs",
+      "size": 9860,
+      "sha256": "29413fef04a21ccddf50d70d5917567067c6c62fe65d18c76eac2fd068bdd8d2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/ScrollViewerExtensions.cs",
+      "size": 18120,
+      "sha256": "d4777a3abf9da0bfbdd395e5d9cb919e0dfc62c211c831f25f94e1efc8138497"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/ServiceProviderExtension.cs",
+      "size": 1323,
+      "sha256": "878f5830abe4aa974d820af07618012797871fe6fa77c8396e91481754eef30c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/AdminHelper.cs",
+      "size": 8778,
+      "sha256": "819197a083f045ca278e69c40c71c70deca03f15d9d2f0cd1c9498c8df0da63f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/AppPaths.cs",
+      "size": 6313,
+      "sha256": "acedaf14aeaab19018949b8405e82e671a08c09b1ed9f2a999401bde641e50b2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/AutoInitDictionary.cs",
+      "size": 520,
+      "sha256": "7a79c2422d58d07be85d3ff45bd088dd5fad2505d3e5acb5ffe8e4a93a5e5bc9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/AvaloniaMemoryCracker.cs",
+      "size": 29218,
+      "sha256": "eae591a114e4943bd3aaf0fc996f3a12a3ed5b41bad974a7b876c1efbc476fb7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/BrushHelper.cs",
+      "size": 4382,
+      "sha256": "8c052938080a63038779126160a140d53d5f91261f37bf5c6c49055a5fda8854"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/AnnouncementTitleConverter.cs",
+      "size": 1784,
+      "sha256": "0d9eb59080e89e5c2af1fd52581c50dfe3ab5d299ccd0c929eb1e17dac7948b5"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/BoolToDoubleConverter.cs",
+      "size": 684,
+      "sha256": "c7bf1db3c95971792cc48fd80281ddc8cdfdc4a99acc34e4c8a0f460015fcfcd"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/BoolToGridLengthConverter.cs",
+      "size": 745,
+      "sha256": "1473bd8a57610d1dcbbb806969e89a2081d8ca398e6c720d2b6587e2c363e9c1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/BooleanAndConverter.cs",
+      "size": 1003,
+      "sha256": "d4f1ede6aa3aa01152fa4867fdb0196b2b7947ce943cde5d5079e7578f0037e2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/CustomIsEnabledConverter.cs",
+      "size": 676,
+      "sha256": "b7f750af4697187166a25391a1e12440d962bf2a16331b88a4c650dd61953cbf"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/DeviceDisplayConverter.cs",
+      "size": 4075,
+      "sha256": "ac5cab8a9db4da0a0bf48f920485231f2b432550fb341c64da265342f406a73e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/DynamicWidthConverter.cs",
+      "size": 960,
+      "sha256": "a00167432b676be81e58f39117dea56fb9ef26c5a303550c241b97ceac5885f6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/GenericSingleOrListConverter.cs",
+      "size": 3673,
+      "sha256": "15bca974e109f7ba1b7416c84636cb230125ad9e7798e1d65b4dacf82194ca68"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/MaaInterfaceSelectAdvancedConverter.cs",
+      "size": 2782,
+      "sha256": "2afed0bc4795932d4739a9c71292ca1cb066ee3c5eaa4e500420688eeebd574d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/MaaInterfaceSelectOptionConverter.cs",
+      "size": 6525,
+      "sha256": "55f6dcb143e20ce421b47b847c48bf3a8f838753473248f4173dbbe6624a3bd4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/MaaWelcomeConverter.cs",
+      "size": 2668,
+      "sha256": "6b2889f7823be316dab5115e3af0fc009c23b975cb1c89e634814dc9505f00f7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/MaxWidthConverter.cs",
+      "size": 775,
+      "sha256": "91d0af9923bfe0e88e5a73041e9e078b450e60a4b40538e9242e513f6b54e758"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/ReplaceConverter.cs",
+      "size": 1432,
+      "sha256": "10164d8e5f5be143901aa7f5e955cc82afdbee55ff04143f7c3c215469375f92"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/SingleOrNestedListConverter.cs",
+      "size": 2489,
+      "sha256": "0bbfd086ea2cfa12f4be26f630632603ef701a10e84e2121d57ca23708d5f876"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/StringOrBoolOrObjectConverter.cs",
+      "size": 1909,
+      "sha256": "f48ab5cb79a79f19c298588e63b7420506196f12c806c6c078e7b78e726078ee"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/StringOrObjectConverter.cs",
+      "size": 1662,
+      "sha256": "0ad9418e2849066a0ca5a1293267405985e5f03f29cbe4f83bac49689e5953ae"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/TitleConverter.cs",
+      "size": 2051,
+      "sha256": "bbc020117dec5252cdce21243b028fee09a53f38a52461a40fa3faf40b3a6e42"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/TrayToolTipConverter.cs",
+      "size": 1529,
+      "sha256": "1d92e96dcdb3a57912da88d3bf6fdfa80680baf620da52addd3535cb173308ea"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/UIntOrObjectConverter.cs",
+      "size": 3335,
+      "sha256": "4d0e973b8c04dc18e12a6c7e7758c82b6c1adf3e02692b94b58705db7aebe5a9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/UniversalEnumConverter.cs",
+      "size": 1911,
+      "sha256": "8de48f0c5fc70913dabeb59813a51f6e5f42a07e52d193b19fd32bbed757a388"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/UniversalEqualityConverter.cs",
+      "size": 1716,
+      "sha256": "1aef05f8a870c089e0250c4a96015d973370e6a76d92c00ec78f61564f1d21f7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/CustomPathResolver.cs",
+      "size": 9497,
+      "sha256": "24ca6cd64d8ed749e16934d0cbe8426eee7b787e29d1b326423a1ce9fc02a42d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/DirectoryMerger.cs",
+      "size": 13728,
+      "sha256": "9861d2a5a87a0107827007f6ce4b0e111898e5c780e7f7182c7a2b4fd4168d14"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/DispatcherHelper.cs",
+      "size": 1593,
+      "sha256": "9bf95d8311314003099b754a52670ceddd0cad5fc2c28b26953fcd94daa9dfcf"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/DisposableObservableCollection.cs",
+      "size": 2462,
+      "sha256": "f14898ff620fe00831a26ff008fb71eef8fa47a79c3f57aa7720ab955777aa34"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/EmulatorHelper.cs",
+      "size": 25024,
+      "sha256": "46603163ed5005fc4c3debc702e773608581fbe22f70c21bf7323093def8e27d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ExternalNotificationHelper.cs",
+      "size": 35459,
+      "sha256": "587fd3b207a01ba0f0ba05d82eb9912807e3fae87b1ef5d3341da4c53443bb39"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/FileLogExporter.cs",
+      "size": 24859,
+      "sha256": "402d43a5767e5a29cba65765da72c74deb8ecb240f56258429f36c6864655d52"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/FontService.cs",
+      "size": 9710,
+      "sha256": "f76c02bb3022e0c63e36f852fc8e2ba3260479d5397ba78fed8165d8645ad4b8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/GlobalHotkeyService.cs",
+      "size": 13586,
+      "sha256": "54197bd7c430d08c75c3ce1c27e31ed5c8dbde5f790b22f185a28dc1ccac15b8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/HotkeyIpc/HotkeyIpcClient.cs",
+      "size": 11851,
+      "sha256": "4a76809d61cc80b97dca1c3dee93866bea4626e1c6b9a8d5f066e754742c8867"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/HotkeyIpc/HotkeyIpcServer.cs",
+      "size": 11414,
+      "sha256": "2d98152111ccd7d8ae23aaf99e34c133f1e4f06ce173d55e1f2974f50d4a12c2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/HotkeyIpc/HotkeyMessage.cs",
+      "size": 4796,
+      "sha256": "7b74f4033cb7e25e4ea562980fff698ed8cdbf56f47e9850f22a0f368da92fb7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/HotkeyIpc/HotkeyPrimaryElection.cs",
+      "size": 6655,
+      "sha256": "706a034bc0905e2e5c19a6c51a0f133f1370040da4e44723aa2fd90b6c2ebdae"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/IconHelper.cs",
+      "size": 3368,
+      "sha256": "766b0370da5aa8eaba6bd9fbb4fb0494eb668152a5dc65ef315a7725d120de77"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/InstanceConfigShareService.cs",
+      "size": 6104,
+      "sha256": "1bfebd14ee7802546309e6e3b9a5a0a38253f0a20b2c2a5c4caeec03c2082fcb"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/Instances.cs",
+      "size": 41648,
+      "sha256": "d0232260d840862a61a509b469abfd9978f45f39e398c48c6d73ce640ecea42d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/JsonHelper.cs",
+      "size": 6791,
+      "sha256": "733d146198eb54e46cab467367447b5623c9a4f64cc23f377e437877429a9e24"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/LangKeys.cs",
+      "size": 54333,
+      "sha256": "e959e2c3f46a230d7c9b6f03c58588a0e1270fcc3fd23a7c2e268667bb970f45"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/LangKeys.tt",
+      "size": 1347,
+      "sha256": "26a3a0f7dfd49c20b6b3d432c0b6f70edc447d6f23f8591482aa848d251a84c2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/LanguageHelper.cs",
+      "size": 12606,
+      "sha256": "14cc2c24c1db70646fa9e23f0f6d740e22acbb428e9123af955ad2bf8855c826"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/LoggerHelper.cs",
+      "size": 7727,
+      "sha256": "0a88825f01d97ed7ebc29b403d52377a8c2746f17d2d9fef1aaa00d08c87f279"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/MFALinkCommand.cs",
+      "size": 1130,
+      "sha256": "42818af74faa04de17ae6ce2469d46e71b6919d5d1b063241bf68b59a50cdfe4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/MFAUrls.cs",
+      "size": 628,
+      "sha256": "0aca47bfe2621f47f793658555a4147e59644b70b47ad0fa8a39c3e054259986"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/MobileInstanceCoordinator.cs",
+      "size": 775,
+      "sha256": "6002fe34f14c83d2f84ecd9383eeb6d53586a1e489f201d0efc19fb959c81331"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/MobileLocalization.cs",
+      "size": 1291,
+      "sha256": "09300b8d5b82a9e834244c1a2687ed1688d4f0836efc587f81d11950503adf4c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/MobileRunConfiguration.cs",
+      "size": 1137,
+      "sha256": "2760d5963ace4787a0e2b528f04c4b168ee470a20ad1c3c9d3e04b30659e631c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/MobileVirtualDisplay.cs",
+      "size": 1125,
+      "sha256": "d19c104026ef9fae81ac8717b6827ac253ff4870fbd8eae42c1743296474a428"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/PendingUpdateDeletionHelper.cs",
+      "size": 5751,
+      "sha256": "4e1c63e0218dfb25d43522ae6e396cb14db8159bcb64028b5225c4468bce7ca5"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/PlatformApplicationRestart.cs",
+      "size": 365,
+      "sha256": "94d823ee6a72879d48873ebbdac9f5dd7d1bbc44b317ca81d22c351b2e19f74b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/PlatformRunProgress.cs",
+      "size": 778,
+      "sha256": "7bcd40d2add8b414155a83309b690ba3ebf5f03aa4fbb7a7932d47f153099b33"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/PlatformTimerScheduler.cs",
+      "size": 916,
+      "sha256": "30e6a61db6b21d702d8017171d958282ef0743d17303d386ba907206be7b7cd3"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ServiceRegistry.cs",
+      "size": 285,
+      "sha256": "dc11492122deb715912580ef4ce8684304e0b37854140350713571d1938baf9c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/SimpleEncryptionHelper.cs",
+      "size": 9059,
+      "sha256": "794565c9685992958bd7b715cbf5509949a31d0427f139d4f4681fab192e27f9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/SystemSleepHelper.cs",
+      "size": 1859,
+      "sha256": "f81637036f3b77e6219c66b19975096bfed4e2fedc08f2376703f2964104fbdb"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/TaskDiagnostics.cs",
+      "size": 29358,
+      "sha256": "3a1ac510e06c2de6135f99c104aef84d3b6b78af9e46d323fee2e05602718175"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/TaskManager.cs",
+      "size": 7187,
+      "sha256": "4aefbbcb5092944d399c6a6bbc8574db9487e2e94d4ac3cb75f0eea4452caec1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/TaskOptionGenerator.cs",
+      "size": 78201,
+      "sha256": "217ae46685383baa42f59a742f6ca8373ab634f69dec73df1e670453bc5bc823"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/TelemetryService.cs",
+      "size": 60355,
+      "sha256": "b341657451bbf8e03990d58885166f9433b247f4dac2083008dc3b77d78f28d3"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ThemeHelper.cs",
+      "size": 612,
+      "sha256": "ceb8bc3856f8036f7bb11f4a1c81577959fa30895103bc55b396ea9942b6da46"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ToastHelper.cs",
+      "size": 1705,
+      "sha256": "ec3f11fa9c4455683788ebc616b054ec6421d3769bf3840d3d9e5d92514b2b7d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ToastNotification.cs",
+      "size": 13854,
+      "sha256": "13f6dda71e1cd6738c01c6c3268d7507fefb1d520642c34b0b22945600464f9a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/TouchInjectionHelper.cs",
+      "size": 11290,
+      "sha256": "05d8bf8fdc300c217842cb3e694f3d09de3088fdfd11f99d8ce84ba629aa9264"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/TrayIconManager.cs",
+      "size": 7256,
+      "sha256": "099e5c1474292c2062b43f57b1d752418c24aaa2e55ea7604739affe01f5f20d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/UniversalExtractor.cs",
+      "size": 15591,
+      "sha256": "ede08acf146396825e02047fceaaf9322ffa4c3f45ca0c3acf2e6b5bd76ce316"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/AnnouncementType.cs",
+      "size": 112,
+      "sha256": "dfbf7448d11bdd9db1c42aafab1d47ce6eeb74abae10dd11068614a39099d558"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/CustomValue.cs",
+      "size": 734,
+      "sha256": "aa3a4f13e39ad2891c0a8f1fcfa5c7aef7c28e64fd3125324be77b124ec831e4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/DashboardCardLayout.cs",
+      "size": 905,
+      "sha256": "969dc86924ec2d2c9faf353c37d5907b57797ac15f9badd901cd49ef79ad72a9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/DragItemViewModel.cs",
+      "size": 14436,
+      "sha256": "dab779e6657a8ae274af6c324cf590b57a77599684df03a5697ad139804f9f4a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/EmptyDevicePlaceholder.cs",
+      "size": 377,
+      "sha256": "415056dfc21eb2bd586a3bd0e9349094a90400e18fb9a9c67c008c0dad76d194"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/MFAHotKey.cs",
+      "size": 2146,
+      "sha256": "5883632bfd327100f05177dcc90f3a230ad9d607daaffa2a8a1a6a640a5bd3e1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/MFATask.cs",
+      "size": 5524,
+      "sha256": "e25d1c6ac3914750d7af19a597b2ec6bebfd0394f411b830d99f8a58f82222d4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/ObservableQueue.cs",
+      "size": 1806,
+      "sha256": "2ed1ce77dc160ee798bb558b96d4a1e145efe1cac4b839bc97a4655221c13f10"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/TimerScheduleMode.cs",
+      "size": 7520,
+      "sha256": "385226036671568d0403152ee4d53e3ee81fcba6334804aeba2e01286697c3b7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/VersionChecker.cs",
+      "size": 187598,
+      "sha256": "a48f4208f5c8db0a314c35a7dceab376bb1506ab23e337106c27cf64230f05e4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ViewsHelper.cs",
+      "size": 3588,
+      "sha256": "c8931596628e5484d19b99de2ab58a8d83543eef5f3d3d6aeaecb3231c41fade"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/MFAAvalonia.csproj",
+      "size": 9433,
+      "sha256": "5191a4f8430f32e8e324ae31d5d04d6182d8c06f2f087b769637334c40724cd7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/NuGet.Config",
+      "size": 584,
+      "sha256": "f9bbbce043335c8e22a529013d7d7ca93140867982d4417ece5d918a985d6108"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAdbDiscovery.cs",
+      "size": 3718,
+      "sha256": "e90222cada83016d69d33a664a2ed3b83a08e65b19ef0da0a9c92c7ecb720ab9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.cs",
+      "size": 68835,
+      "sha256": "7e330ee519f46544acff7cf24cae64196c14005a44a5082258a14d170d784d04"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaPolicy.cs",
+      "size": 2707,
+      "sha256": "8d65eea01d69f388379a07bd30aec08f2c211c6a61a214f2e1a4983558efb10d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrCountInput.cs",
+      "size": 1800,
+      "sha256": "5a6957efe7f98a715f134b07810b8d44568f66b83a301388893b5c81b42f6e52"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrFormalPreflight.cs",
+      "size": 15892,
+      "sha256": "1670b2b90ed8d21c8d5338cb7966af53b4bdf7e6a041283162d85d15a05e0870"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthCaptchaMessage.cs",
+      "size": 2379,
+      "sha256": "96b2a06a2df029d0541fc1e94313624b96a6c2769260a8f2713772aa9fa14fa1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
+      "size": 10766,
+      "sha256": "c584b1b3686e3c9f104128b5f6a3833405578ff9ce9e75ec20fd044723bf9daa"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",
+      "size": 18036,
+      "sha256": "f3054f7f78e0f8a500a330cebc62f9a275fed97387536dd9b826e3f03188dae5"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml",
+      "size": 10584,
+      "sha256": "f1cd17f670e069ef6193f114e9fb74fac5e1055d08adbf439b7392751386b148"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml.cs",
+      "size": 207,
+      "sha256": "01bda795cca2a56d1e3f50c68f8a836ee6f0937123106d21d92053ebb7bb76bf"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrModuleOrderList.cs",
+      "size": 10375,
+      "sha256": "50b6334646ed5974a9489ba5aa6c5f35f66836f3c2b3c4fa776587f0bc7bcc7d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuDisplay.cs",
+      "size": 18025,
+      "sha256": "de9b2f3ce37a5482d25b449ff682a5a79767e9d890fec73ed2d3ceee6b319378"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuIdentity.cs",
+      "size": 6752,
+      "sha256": "fcede6100bee93057ff1733b708894c8df3b2cd361d9ddcf502860b328b5d17a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuReadOnlyDiagnostic.cs",
+      "size": 5407,
+      "sha256": "db7b2b7fc6e7132e33373454bb530de3d2c26f9288cf11952109f0b2d2842b07"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrPlayerSettings.cs",
+      "size": 19857,
+      "sha256": "6430bfa18bd74b54548ddd608eb845efcfadf2940f28b0fbb24826e55f80b3b2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrProfileRunGate.cs",
+      "size": 1375,
+      "sha256": "02d48938c029004eddbc04d0845d01a368222435b3371db9cc52c15c04d264c6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrRuntimePaths.cs",
+      "size": 2496,
+      "sha256": "b9002d3703403e8f1ea9647af866d50ba0f579b2bff5a707cc4dc8e4361194cd"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrSoftwareUpdateService.cs",
+      "size": 21603,
+      "sha256": "affd403168c01edaaf924bec11f3a587e4cfcabae44b568184a5336810afc7bd"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrTaskResult.cs",
+      "size": 1539,
+      "sha256": "61ce600c7f68e3e2819d96dde5ba699c2d68b659087d12d8422567fda93c1281"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrWindowsChild.cs",
+      "size": 16263,
+      "sha256": "8f3672e68e89538669a35f83103f85e1e4d0f420819635f02beb1e3f174913e9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/PrivatePathHelper.cs",
+      "size": 16365,
+      "sha256": "28052cdebe7cd0d97488a72a5a3fae98929a854f5a04e4c6f56ba3da58029b2b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Utilities/Attributes/LazyStaticAttribute.cs",
+      "size": 179,
+      "sha256": "c4c587476e7a384d9e8caa6a716c54715398e9121e53f22fbf252d1650e0c1bd"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Utilities/Attributes/MaaJsonPropertyAttribute.cs",
+      "size": 203,
+      "sha256": "b849293e6c873924822a989746a6ae33ed4ff40d90ecf86b53dfb01782db4258"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Utilities/Attributes/MaaPropertyAttribute.cs",
+      "size": 170,
+      "sha256": "116b5b07ebfe3987e8fb22b1e71e18bfd8f36874d7f3713216f99219340b1e7b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Utilities/UrlUtilities.cs",
+      "size": 1733,
+      "sha256": "e8bf43470147707fa89816eca9450a44ca12a83faca66fd80cd102d43471eb8e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewLocator.cs",
+      "size": 993,
+      "sha256": "6ed54bcd01b355e2617b3870a0a4ab4bbba59b01f72f309bcd5e2dc30772c14f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Other/InstanceTabBarViewModel.cs",
+      "size": 31896,
+      "sha256": "8194d276db2e50f065b60f137850e7f818c9c24db00b86641aa3c014599bd2fc"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Other/InstanceTabViewModel.cs",
+      "size": 7308,
+      "sha256": "10bf56816d4949acd24eef5610b501b56f0e61774b1594795b342a26b24d8b0b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Other/LocalizationViewModel.cs",
+      "size": 5897,
+      "sha256": "a986be531bcc5a347ca135be696e9657252e709690710c0643b336d0a47db10d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Other/LogItemViewModel.cs",
+      "size": 8282,
+      "sha256": "947bde01ae86c96f6061b68bb4a1393d9518c199ccdab13e109514f20357d2fa"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Other/RenameInstanceDialogViewModel.cs",
+      "size": 913,
+      "sha256": "e0189d4f844c34bc7322d589b27ef24c8d7c8fc8ca812cbc5d790ef1cb31b3ec"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Other/SupportedLanguage.cs",
+      "size": 279,
+      "sha256": "3dd8f41f1c6fa9c9a57ad5ecdfea85b6e98b35e41bb7b97ff86fa44d02373698"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Other/ThemeItemViewModel.cs",
+      "size": 810,
+      "sha256": "aff75f762a0fbd13089cc6f2ce505eaa8dff6ff5cef90a318ac989c972e074f3"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Other/TimerModel.cs",
+      "size": 16768,
+      "sha256": "037f3c1f07f5087d25f8201b766c4634f5fd1488f2684e08a3a5cf257b4f9d5a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Pages/MonitorItemViewModel.cs",
+      "size": 9211,
+      "sha256": "29f688b1f64a1d87b58b3ea469056c5c3bcf817c3ad676cf693fe0e22932c2f6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Pages/MonitorViewModel.cs",
+      "size": 5387,
+      "sha256": "10e9d8806bf1e5354c84603920d209f261b4152f206a7f249113b465697b4951"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Pages/ResourcesViewModel.cs",
+      "size": 294,
+      "sha256": "94a7e58d82322577a285c5bd2d49823d7ecdde334f6a0037631a71860c71ebf6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Pages/ScreenshotViewModel.cs",
+      "size": 4772,
+      "sha256": "80e293f92feb0c94116b779ceaaf9b1ae8a476ea5cfe4dc8fd596722d05789ba"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Pages/SettingsViewModel.cs",
+      "size": 9520,
+      "sha256": "8aee4baf38a5a441cd7c6c1bf14f7bcee17eedd6d75c4e6485cf03456606789c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Pages/TaskQueueViewModel.cs",
+      "size": 190647,
+      "sha256": "e92ac976fb38a0b7bb8a97078257779780d0d40bf214607a5c55b79decff02b9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/AdbEditorDialogViewModel.cs",
+      "size": 6270,
+      "sha256": "8fecd1f4b1d1174b0995b3a7dd3e0ca35513ac4b09df8302e5bb0778df204cfc"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/AddTaskDialogViewModel.cs",
+      "size": 13761,
+      "sha256": "b91e85b326e6dac64372cc3d47042db547426d866681010f5f243f5e4d89d737"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/AddTaskItemGroupViewModel.cs",
+      "size": 904,
+      "sha256": "f6897b83fcae5aaf523d2e29b7761da32114037de185743ef1f402401ad2f4e4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/AddTaskItemViewModel.cs",
+      "size": 1489,
+      "sha256": "85fcc79e3b8d0bb5edc6f3b07a0f30af9cd873e7a08d22240f4fa1a6cf02aa3e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/CustomThemeDialogViewModel.cs",
+      "size": 3653,
+      "sha256": "cc24f6cc52b960749e109a162b65dd7c90bf5f7a3f700f2c30e5b4b5f79a6aac"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/ExportLogDialogViewModel.cs",
+      "size": 4691,
+      "sha256": "369c4845b0a6e351d77ff907c07563c545153a0d7c80c5851b664b58f0d7a57d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/MultiInstanceEditorDialogViewModel.cs",
+      "size": 3535,
+      "sha256": "1205005713fd4389da66b9edbe5d57058d848abf9f254d0e84a47e795ce0417c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/PlayCoverEditorDialogViewModel.cs",
+      "size": 1450,
+      "sha256": "147dc52879ac629943f3401052731fe34afccd56ec36e64ef35684f87c462b10"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/Settings/ConnectSettingsUserControlModel.cs",
+      "size": 15896,
+      "sha256": "743ef475aa3ae99da95b212764466145efe6a7d384a4ffab7e9d732325532873"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/Settings/ExternalNotificationSettingsUserControlModel.cs",
+      "size": 20152,
+      "sha256": "7ee46d6ecf4b90d2cc5d1b0b12213c597604eb1d5d11ab8b10721fbd8e759570"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/Settings/GameSettingsUserControlModel.cs",
+      "size": 3728,
+      "sha256": "aba8f98f0a00fab08cd8c93281614d2b16972a44da1c41ec79ea44ce22d63b75"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/Settings/GuiSettingsUserControlModel.cs",
+      "size": 10406,
+      "sha256": "fd078e94f19bd27285c2895e4cd289558842ec986f7ca944f5b5e57f4a698817"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/Settings/PerformanceUserControlModel.cs",
+      "size": 8514,
+      "sha256": "bc500f56c8af59f277756f5776226e6e61a19e6f92eb35046ac917e70a77cf42"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/Settings/StartSettingsUserControlModel.cs",
+      "size": 20404,
+      "sha256": "122b36dbb29df480250b5d7f3c6b18f44175e2646a9009a30ba87ff09142d6f7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/Settings/TimerSettingsUserControlModel.cs",
+      "size": 956,
+      "sha256": "67d332e8f6055ecd548fe06c87984f1e271f1a9581cc6fb247ffe2c0c011e379"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/Settings/VersionUpdateSettingsUserControlModel.cs",
+      "size": 14327,
+      "sha256": "9ff3c9e22c24eb7c618159e7cebbf46b78678a6d44081e03d32db3404508ce2c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/TaskRemarkDialogViewModel.cs",
+      "size": 1002,
+      "sha256": "004e77a884fd0607aa3d9662e48e27a4f5ffe696e9f1aab3d5010af81caad576"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/ViewModelBase.cs",
+      "size": 1608,
+      "sha256": "a5b69ec1cd83cdcd39d4cd33eeb73aad0e5f91e35271cdb91e232a25a807e3b7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Windows/AnnouncementViewModel.cs",
+      "size": 17652,
+      "sha256": "63aac6f2a0edaeb95d25f8a24d0c62a5bedd73d67a6c1a4b05acd31246745bb6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Windows/ChangelogViewModel.cs",
+      "size": 3393,
+      "sha256": "ee987b51271b034ff065c340bea4d155ee3aaa18fa044df4e779c677338f0ceb"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Windows/RootViewModel.cs",
+      "size": 9288,
+      "sha256": "883b00fae0c2da68b8f06ca3bc30e550a46cf632b2fe07afb7fac63f4ade028c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileAnnouncementView.axaml",
+      "size": 2157,
+      "sha256": "7dd440ff2b6ee24e5f14fad0ad5f1bea24d20687b806a57887cca919426c69b7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileAnnouncementView.axaml.cs",
+      "size": 501,
+      "sha256": "f1155f8a693da8586c1f6af60e969e45e1b96f83835412ce3bd550a33aaff4c0"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileHomeView.axaml",
+      "size": 4188,
+      "sha256": "738fba9951c138dd8b010a0ab25943354feaf2b3cea07aa9e422ba6f4f10bcbd"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileHomeView.axaml.cs",
+      "size": 2779,
+      "sha256": "2f4eb5dd421b1b137d80d813221a623f920cc9acdc5a6cbc412eedae0989aafc"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileScheduleView.axaml",
+      "size": 5758,
+      "sha256": "3d55fe7267f5163a026b36686efa0f8faa8684cce5d9831c73a9e6a4fce1300b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileScheduleView.axaml.cs",
+      "size": 1303,
+      "sha256": "f59852d821a898b79bbed0f636748b26b12369f511771a43ddb9da939cea0faf"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileSettingsView.axaml",
+      "size": 12417,
+      "sha256": "125e0bcc88f695a4b71291bff513224d70ca953f02b32c2a787bc0d453c0d33a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileSettingsView.axaml.cs",
+      "size": 10637,
+      "sha256": "c56a77f5f5d7b0d92acabf124a6f4acf57e49e76fe6556404bd0a19815a3ce4c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileTaskQueueView.axaml",
+      "size": 28143,
+      "sha256": "ac4cc8237dbd5dc974363bd11742fa79407cc19844936e7e137e695a50882a3f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/MobileTaskQueueView.axaml.cs",
+      "size": 26153,
+      "sha256": "77f79bd3752ae2b159d1d4066bd3d7a0c2a354470b09795316f3370c5cc6c722"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/RootViewContent.axaml",
+      "size": 9107,
+      "sha256": "1e3152f22fd6d33cac21932d75ece9dab9679c06b8ec1fd01cd1ebcd49b31529"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/RootViewContent.axaml.cs",
+      "size": 18902,
+      "sha256": "596e7b29fd1921907e9114ac26f3db6e3e2d63a84a1ec6c3d18ae80ab076c344"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/RootViewMobile.axaml",
+      "size": 4594,
+      "sha256": "f339f4514aee3bde12ca850370002d38ca845b329227f66e3d278f99879ed5e2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Mobile/RootViewMobile.axaml.cs",
+      "size": 2352,
+      "sha256": "c710d3a1d5d33beea62c744f91a4c94eaec8c8dd1ce6e537edd0d1c586bbc6c1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/InstanceContainerView.axaml",
+      "size": 689,
+      "sha256": "0d86c3735a79da649ed3a9b5d6f8034e76e64b64133aa093c75536a3bdb6f589"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/InstanceContainerView.axaml.cs",
+      "size": 448,
+      "sha256": "7fe601eeb8fcd2f1b83291d6c196bc86fba618ed23db2eda45caff4c34683655"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/MonitorView.axaml",
+      "size": 14701,
+      "sha256": "541aa3d5110495b7e891dbca8c8f00cc0af4abcc0c31f859bc712d0f096ed103"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/MonitorView.axaml.cs",
+      "size": 977,
+      "sha256": "74fe2fe542f109af75564ce01f582e5c7069500abdcd0758d7016f3a12b3b4b6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/ResourcesView.axaml",
+      "size": 996,
+      "sha256": "2a6a6b6b3b5954a479d123bcb230e5171b5b0452b880024bcd62fe6c7a7cdece"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/ResourcesView.axaml.cs",
+      "size": 311,
+      "sha256": "363ace4208fa2d8e1504a661662ef98471b6a2f6b7e1a2eea929d5d47ac55bf8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/ScreenshotView.axaml",
+      "size": 2704,
+      "sha256": "f07f65668d5bf268c8a19d380bb89ae635198b6b6e7e0c8c2853940b631e29cf"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/ScreenshotView.axaml.cs",
+      "size": 1200,
+      "sha256": "cb0137f6aa6450f925f14f8f82a2574916ee3f0c6f8854cfad98be237d8e7e23"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/SettingsView.axaml",
+      "size": 4641,
+      "sha256": "7f9330f8f9e76a93216ed6be1991c4a38ebc1088108fdd9b4204ccdbed75e613"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/SettingsView.axaml.cs",
+      "size": 689,
+      "sha256": "540e4355f1c6d2f73e1c236729ee7a0b51d13fd86ad279a9bb17161b90169092"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/TaskQueueView.axaml",
+      "size": 144725,
+      "sha256": "76179ab4db574eb913698eb48233d463f130721803ebbb0691b4650b539c1079"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/TaskQueueView.axaml.cs",
+      "size": 116351,
+      "sha256": "e973b61b467e8c90b61ba41b30c51568e6106af134f85cadd13cf23cf53b6a1d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/AdbEditorDialogView.axaml",
+      "size": 4236,
+      "sha256": "37314534c6d42a654f6698a9ff212e04795cccc8a757d82d94a4db6257d18bb9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/AdbEditorDialogView.axaml.cs",
+      "size": 529,
+      "sha256": "a32a2985feddfd534ec427536b2f5d68295513ee6cc91ca5a3fde55db78c8046"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/AddTaskDialogView.axaml",
+      "size": 17096,
+      "sha256": "d5c335a17d33fc13dd1c679c65108bf691f6af40dd2e05e8340883c71020cce6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/AddTaskDialogView.axaml.cs",
+      "size": 1489,
+      "sha256": "fdb0a155c6593720173f8cc5df27a2e15b95504a9c9022d8c2bffcf5bd4370df"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/CustomThemeDialogView.axaml",
+      "size": 2869,
+      "sha256": "b5943fff17176865b2baf00a3dcf2b47806d5e6f40ba97d73e00b2cb360ea636"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/CustomThemeDialogView.axaml.cs",
+      "size": 256,
+      "sha256": "d90374241d1685db333110721578d55ad0d5ffaaf76657c87b4401e99598452b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Dashboard/DashboardCard.axaml",
+      "size": 24101,
+      "sha256": "2cf7af95c0b26332058aeddec991f87b7f858363685679e65e4a8bbc8836a2b2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Dashboard/DashboardCard.axaml.cs",
+      "size": 12023,
+      "sha256": "25fbcdaa3d3b8fdc367010ee5e1013ad6fd1e340f1783b503055f751b5e40112"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Dashboard/DashboardCardGrid.cs",
+      "size": 101120,
+      "sha256": "46b8a27e5aeb57fe731305c33f953a093a2196523f7f4e39b7fb577a54ebd3cd"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/DisplayIcon.axaml",
+      "size": 1555,
+      "sha256": "516dd8cb73d74f778b4b5df5b2ecfd78d2898d6e411c41e9ea452f8bd0bc0c90"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/DisplayIcon.axaml.cs",
+      "size": 7666,
+      "sha256": "d1286fae11f8c452ed0c8390fd9fae82f6f8ef68817ccf8aa5e7809d8bd3a15f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/DragAdorner.cs",
+      "size": 3349,
+      "sha256": "01f65351a2762f8dabf4e391e08b7a2e4a1de149c98d31949a4b180924228186"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/ExportLogDialogView.axaml",
+      "size": 8765,
+      "sha256": "007f0164c836c76a06feb42d3bfc174c21c33714c43a04fea56933f590291675"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/ExportLogDialogView.axaml.cs",
+      "size": 204,
+      "sha256": "65a68c13d4d6c0a6cf5dfb9359f1d2ad9a5cf613bcd96a4d19e07c9a1c68e996"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/HotKeyEditor.axaml",
+      "size": 989,
+      "sha256": "292dbf01662b1981aafc33fcf00ccb3cc2bc2348f1c4e8f621410516549ed431"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/HotKeyEditor.axaml.cs",
+      "size": 2916,
+      "sha256": "c41ce3820ff986a25a4279e35a294bde93aa0ba37555801201fe43ef01cc884f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/InstanceTabBar.axaml",
+      "size": 53422,
+      "sha256": "fc13a335917a7f50bb2109735034f5b69053b499973926a9d91f92e38eb277b6"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/InstanceTabBar.axaml.cs",
+      "size": 26283,
+      "sha256": "6254d1261e7edc52fb83279b509898c6a3772956dac89f2a8403321a8317ee3e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/MarqueeTextBlock.axaml",
+      "size": 2108,
+      "sha256": "fe958814c84715b0ba998c139a6d3b130ba374916ee04ed37aad802971a6f2df"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/MarqueeTextBlock.axaml.cs",
+      "size": 10699,
+      "sha256": "59d1e308c55fb69e84ff9fa4eef6a43628ac20c975f8fa5fc2f205b536b4f74b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/MultiInstanceEditorDialogView.axaml",
+      "size": 3108,
+      "sha256": "06c192701834f222aa59a551d2ec264610fb1773a37fbfd1a4deb4d05d95b1d9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/MultiInstanceEditorDialogView.axaml.cs",
+      "size": 272,
+      "sha256": "0a93c12618bbf0a01f80e37bacc341588c7e2e941b6435ccb765742cf7fe3806"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/PinButton.cs",
+      "size": 2309,
+      "sha256": "70bb2d2350c94d3b4c97543cc3f54772bd6006ca78b6f937bc3706a499d1e882"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/PlayCoverEditorDialog.axaml",
+      "size": 1707,
+      "sha256": "7ead85b607ee223b65ba2088c0bcfc964af27ba648172722e94763e04e4ab51c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/PlayCoverEditorDialog.axaml.cs",
+      "size": 256,
+      "sha256": "ced15c6d12e75faed5831f298d1c972ebbc24e38190b3f23483d365417988ba4"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/RenameInstanceDialog.axaml",
+      "size": 3641,
+      "sha256": "5642c4772eb13b765da57850bfb454ebd978b08ab5332248115b20f7f1e8670a"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/RenameInstanceDialog.axaml.cs",
+      "size": 325,
+      "sha256": "61aa8376397ca673a01e0f465aa815ff7e482c8997f4b49b873e59a275a2bca7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/SchedulePicker.axaml",
+      "size": 8351,
+      "sha256": "39199bfb3cb5bb4a2ef107c9b584646a4b8c37280e1768d810bcf5bfb31672b8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/SchedulePicker.axaml.cs",
+      "size": 16278,
+      "sha256": "f75807c870ae001145ba9530de9f04c7600b62a2929c374db0a8716b544a34c9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/AboutUserControl.axaml",
+      "size": 19850,
+      "sha256": "12c339adf6ee81b71d854f72a5dd76150098bd2d41978723eed5bd392d9fb330"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/AboutUserControl.axaml.cs",
+      "size": 4593,
+      "sha256": "0227cbaff1c14fd7e9a05fd319adb9b6a3b07c736c9a091598598d0e439028d7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/ConfigurationMgrUserControl.axaml",
+      "size": 7783,
+      "sha256": "dc8967e020309db69e65e229f598a3778eb7b341ec7b45ba1a38f416c79b3e59"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/ConfigurationMgrUserControl.axaml.cs",
+      "size": 306,
+      "sha256": "56aff792981e4b759fca69f60790b02eeab65c29439df9190c9b4ba97628c517"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/ConnectSettingsUserControl.axaml",
+      "size": 19151,
+      "sha256": "cf190c891f36409c831bea6f6670089795167e6bcc719457ae2b158698dd04eb"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/ConnectSettingsUserControl.axaml.cs",
+      "size": 366,
+      "sha256": "c408445238a8305bed1190000f5f393b1779f50cb25b3fa4076c98a9e2d9138b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/ExternalNotificationSettingsUserControl.axaml",
+      "size": 40658,
+      "sha256": "527972a2f107509d05816e41607deb984f87af1b48e9edf90f3ea8f2a6ea3c06"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/ExternalNotificationSettingsUserControl.axaml.cs",
+      "size": 406,
+      "sha256": "47672bfb222168e67510335f74ec483002b1ed35f343c0c1e38f9cfb7387b2ec"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/GameSettingsUserControl.axaml",
+      "size": 9509,
+      "sha256": "3ec4e3a35a354b866fb0c24581ad0893c6f158080db13bb33d064523449614eb"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/GameSettingsUserControl.axaml.cs",
+      "size": 436,
+      "sha256": "4cee21fc838dc75f421302d4ee2eeba78b16b84db6d4444e82c4a2f2275713b8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/GuiSettingsUserControl.axaml",
+      "size": 20675,
+      "sha256": "659213c14c2dcf63c9f1ceee39af204b83dca3bb7cc93f80bdb429b90f69087d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/GuiSettingsUserControl.axaml.cs",
+      "size": 1165,
+      "sha256": "2c7134509574ab8513159865fdffe5afb2bab253c0746691cd6729e01a2bd33d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/HotKeySettingsUserControl.axaml",
+      "size": 2656,
+      "sha256": "ed2a8a0c41e7ad582cc07cd75d300cee71817ef444cfe6d7667b0b57113647c3"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/HotKeySettingsUserControl.axaml.cs",
+      "size": 350,
+      "sha256": "460d1a2670e7403f5e01bd012a623c89386f199e557d2a9c15778fffdb66a21e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/PerformanceUserControl.axaml",
+      "size": 2937,
+      "sha256": "19529756aaed9e272a669312f0466553a3c07a3f36cfd8315396aeb21bfe54c8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/PerformanceUserControl.axaml.cs",
+      "size": 354,
+      "sha256": "ec772be04fbb6bdb4a303359d84292e107fb32f81247b74344c9cc1949d9b886"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/StartSettingsUserControl.axaml",
+      "size": 27180,
+      "sha256": "52d848f47897d6237ac2e9132a4a8562e1e5f60c43934f6867aff17b0c83a4d3"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/StartSettingsUserControl.axaml.cs",
+      "size": 360,
+      "sha256": "ddb4b5b37b1ac8defc0fc335c9ad11c0c4be685453b117443985872c7c0d233e"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/TimerSettingsUserControl.axaml",
+      "size": 14346,
+      "sha256": "6e9dcfb81e8369dcb6359add80406838799f390682f5c328516183359420ee6c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/TimerSettingsUserControl.axaml.cs",
+      "size": 360,
+      "sha256": "599c44a3ca9d10332d4fd3f13a63e090da5b00b8bb090dcc9e3048e138bc6f70"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/VersionUpdateSettingsUserControl.axaml",
+      "size": 4601,
+      "sha256": "963da8d509db1c6e87ce88250db7f9a593da41ff34bf39fd898fbf7729358798"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/VersionUpdateSettingsUserControl.axaml.cs",
+      "size": 2017,
+      "sha256": "f5ac799377aea4990d7f595fc0cf6c1ea275912e62f47b9507b56f517000f09d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/TaskRemarkDialogView.axaml",
+      "size": 3655,
+      "sha256": "cebe03d56f9923bcaa17ca8832b0ea13f74bc4c2ba153b7147ccdffa900e7632"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/TaskRemarkDialogView.axaml.cs",
+      "size": 205,
+      "sha256": "b046ee5970f1383977c2318571537726ee10d93a172c6e77c49d584a4d73a109"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/TeachingTipOverlay.axaml",
+      "size": 4277,
+      "sha256": "e0e08fb2546d030d9ec6429eb38f812e1366755c8b28e8243ebc0bd709afa7ae"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/TeachingTipOverlay.axaml.cs",
+      "size": 18791,
+      "sha256": "ff735572e3851e7d48ee521fa20158a52a2fc2915ab5aa1786cd3c6f72fb846b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/TooltipBlock.axaml",
+      "size": 4345,
+      "sha256": "8b2d95290e44e47b5ad4525dc6ecc45f4f4adb62ae85e91da55558d570d79774"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/TooltipBlock.axaml.cs",
+      "size": 14813,
+      "sha256": "6402c6ea08e9fcae9c3d70662f0b640d3c1921868cd26799df4b52a96f8efe2b"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/UpdateToastContentView.axaml",
+      "size": 1178,
+      "sha256": "462ece0d7429d781b1961a8f4976d9d49b8035276a459dfe0b04b0d0e699f2ac"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/UpdateToastContentView.axaml.cs",
+      "size": 323,
+      "sha256": "78169e70ab4ab5847b4a0ee3245aca28b4739f06aabbb48786ebb7b9bdaba2d7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/AnnouncementView.axaml",
+      "size": 5538,
+      "sha256": "46eb1dba02ff7d971507b269182c09fe711fa8607cb3f3f52f568ca97916b5b7"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/AnnouncementView.axaml.cs",
+      "size": 998,
+      "sha256": "10a67554f695040f472c7f2ea8fd6a7c38007d3fa7724df656b3151618d10c8c"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/ChangelogView.axaml",
+      "size": 4640,
+      "sha256": "04e2e4a621603b140f0f4eb3eecc4b10bcb7255b1e3f2d574c54089c2b85e1c1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/ChangelogView.axaml.cs",
+      "size": 704,
+      "sha256": "5bbc1f39dfbc9d53faf5bede9c2a325e57a777e99d3089ec3b3e79a822303eb3"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/ErrorView.axaml",
+      "size": 4414,
+      "sha256": "91bfebd7acbab78fda7811ef53a580589cde7c6c9023eb55b9a008b88e622cf1"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/ErrorView.axaml.cs",
+      "size": 6595,
+      "sha256": "d11abec39490d578a631872f24fa5085c067f9dbc495628cad0e81b5e093f1f9"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/LicenseView.axaml",
+      "size": 2756,
+      "sha256": "23e79969fa96dbf9487a440cbaf020bac51484193190ef1177c015c4c4dbdccf"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/LicenseView.axaml.cs",
+      "size": 2430,
+      "sha256": "9304bdbdc1041f72e927bb467fb776a8f4f410913922cfcb7aefcd59312cafd8"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/NotificationView.axaml",
+      "size": 6538,
+      "sha256": "dcf761d1652eac25cd15cb892c3750b5663d298e2050cbb5c16d22dc14036587"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/NotificationView.axaml.cs",
+      "size": 13778,
+      "sha256": "62c72d6aed541adbf556c0d5d2c18606fa909f3a4bbe765df99b52bd44c16569"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/RootView.axaml",
+      "size": 14182,
+      "sha256": "312fb9fe341b950fc05b8e918bbc9f6e145a97544e7f65ca50e2a11a9c40ec0f"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/RootView.axaml.cs",
+      "size": 42044,
+      "sha256": "2992585b9efee999dbd2b325b7143c6ef62df43f7d18261d969c38fb72ef69f5"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/RuntimeMissingWindow.axaml",
+      "size": 5072,
+      "sha256": "78d4761ec715f217323edc92c200825146e8948e12c1051cb21e9614993e3a58"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/RuntimeMissingWindow.axaml.cs",
+      "size": 6318,
+      "sha256": "d0ba33c151ae41bb6cabe5760dd18586cf4ffca7f475a933273bf412b656ca12"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/TempDirWarningWindow.axaml",
+      "size": 4111,
+      "sha256": "5e7cb563783b1a91a34b3001747dd4b6fe8cd1d6b93fc71f9e00082a6eb5c8cd"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Views/Windows/TempDirWarningWindow.axaml.cs",
+      "size": 373,
+      "sha256": "e36eb06cfa80bcf4a01d71dff44e0e57d6c6b7868d86a3c818e2fe5ab09d8755"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/app.manifest",
+      "size": 913,
+      "sha256": "f7af554c08d2d01e50d5c0a45f18aaa40cb3e9e33247c357bef8ad290397b4a2"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/packages.lock.json",
+      "size": 41422,
+      "sha256": "96704a87e032b1d98d42dd59cdbb8acfd4c7ae6ed2ade581725fce835496c67a"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers.MarkdigExtensions/FigureParser.cs",
+      "size": 2006,
+      "sha256": "c02bf097d0a004c3ef1d6c571b571bfbf9e6704034eb9e170a49e1664bd27753"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers.MarkdigExtensions/GridTableParser.cs",
+      "size": 7318,
+      "sha256": "c8502d7fd2cfddd583d1369035f80645292e252556fe448d19727d6e51dd60af"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/ButtonParser.cs",
+      "size": 2403,
+      "sha256": "75b53ba5d1334b8a2d19e156e40b78e73b462965dad11ca375737d7c2e07239b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/CodeBlockParser.cs",
+      "size": 2536,
+      "sha256": "27cbec334603f93b032a22ee4b8e1670a7310725d63743bb7229cfa5e7cae8f2"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/CommentParser.cs",
+      "size": 1110,
+      "sha256": "b9cef458070fdc42745cac7c5e2e28970549c8a3619e449270eb81da4ff230a5"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/DetailsParser.cs",
+      "size": 2026,
+      "sha256": "b07bafb13b3000dcb85d15c76e81246d5002f7092ce60875eb373ec3257b22fb"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/FontParser.cs",
+      "size": 8218,
+      "sha256": "8431a27b3aad6a133c98da0353ebce92d89e067613324b4f64813f11027986f5"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/HorizontalRuleParser.cs",
+      "size": 861,
+      "sha256": "5236c1595f369728d1d23bad271eb35ecf9615c4a36ab0e48d0c87d7aec3b84f"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/ITagParser.cs",
+      "size": 1056,
+      "sha256": "deda7403a69b6b3c6b16ae519c2a00074c54a420a674b203c25977fa0bab12ca"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/ImageParser.cs",
+      "size": 2696,
+      "sha256": "adc22b5d7c0b9ceccb1219ddedcfe8c2dd5cf7a3c88f3a6aefec2e2bf4f76f51"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/InputParser.cs",
+      "size": 4389,
+      "sha256": "0b2197944a57dff9fffe0669ef8c4f57bcf81e90cabd7feb8c6c286508ca9628"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/OrderListParser.cs",
+      "size": 2313,
+      "sha256": "bfe9369e46343c6cf2e1e212fb8562ba1fe5623ae63eede1b61f524ba8e8118f"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/ProgressParser.cs",
+      "size": 1294,
+      "sha256": "27817e6f38b62471553834c749cf48145a03274b8ada6a05cde4a85ea8fa874e"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/TagIgnoreParser.cs",
+      "size": 1052,
+      "sha256": "193616075d04453a94d49982721afb9bf32b61cb99c7ee3e8f1fe325079f5fe6"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/TextAreaParser.cs",
+      "size": 1665,
+      "sha256": "1b8e070c47e1480b23848eb73362c33e9c096a5c238936a3299235cf14451466"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/TextNodeParser.cs",
+      "size": 1829,
+      "sha256": "2e606c680dfbe1115ca12ba6ab43db690fe1e7a08b5260f6a918ce2f9535fda3"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/TypicalBlockParser.cs",
+      "size": 1199,
+      "sha256": "c5be354ff4726741b17e534a48873b58342c4e5afd24e8e8090debd77094b78d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/TypicalBlockParser.tsv",
+      "size": 1335,
+      "sha256": "6c88066c8bf3df56e6b2d85d84420e05478aece43cd52b87cfb944781ce735d6"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/TypicalInlineParser.cs",
+      "size": 1209,
+      "sha256": "80db674a941d7035e15fc7723dccce193a49d92353fac02d8b2f3704ccd757e3"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/TypicalInlineParser.tsv",
+      "size": 2003,
+      "sha256": "0e6b483ae902663550f53f945e3f4b9c5c18c900e49beca6b4d5175c45b4c22f"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/TypicalParseInfo.cs",
+      "size": 29787,
+      "sha256": "90b1386bf0de8f5887758a7bd6dc0f827927da60085f5489475fa039e72aab98"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers/UnorderListParser.cs",
+      "size": 10248,
+      "sha256": "f92cf71726033e60e09d8c32e990a375d5d81ad9f5bd6a328ef4fb9e5e761966"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/ReplaceManager.cs",
+      "size": 18671,
+      "sha256": "5a66e2bd277806fa8c5b4f98377145b6f8965567581760c5cc549ec5b5f46aea"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Tags.cs",
+      "size": 2000,
+      "sha256": "fab9db3ab5dd119acc4cda69ab3750af8b9a46c8b00ba431b530359a039556fd"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/TextRange.cs",
+      "size": 377,
+      "sha256": "b421dad0dc614b4142f8525344f0eb7dc98c0a1db37a4c45e5c2b25e81d7c82d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/UnknownTagException.cs",
+      "size": 805,
+      "sha256": "5ad5dca8deb7fcb2a1f8ffd72584f1582b23b08e12ee132fe18686c3a558e54d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/UnknownTagsOption.cs",
+      "size": 656,
+      "sha256": "277ba8d39c756c86f2f20bc970c790e37afbedc6531db6b09d40c15d1bb77987"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Utils/DocUtils.cs",
+      "size": 15386,
+      "sha256": "86e46e562b4e7bbed4d75d797043c1ad27f6a7340924d74c91fa28b1cbf3b0df"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Utils/EnumerableExt.cs",
+      "size": 730,
+      "sha256": "9142574c08cc263661f0458c50f0c49dea9699ea8945113a3a2336111f7f29ae"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Utils/HtmlTextNormalizer.cs",
+      "size": 1157,
+      "sha256": "6c769f94f0f4de32082d8dfa1bda0fe7593af8aab9943478d92f95998e59bb29"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Utils/HtmlUtils.cs",
+      "size": 1740,
+      "sha256": "3a047cd1de1c947e08978ec8da32cdc15e34909dd77d313a6396722170db6adc"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Utils/Length.cs",
+      "size": 2738,
+      "sha256": "ab8656653f665d819a9774a174d037b6725c04e032680b0faa8458349d7d8b87"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Utils/NodeCollectionExt.cs",
+      "size": 4060,
+      "sha256": "584311ed3265aa672c61fb0bd4b50d154e369bd093f984b8ccc8b809f0e933d8"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Utils/StringExt.cs",
+      "size": 1110,
+      "sha256": "0fd5c90249333f4513c47babf46add3aba2a3217f3350723a1b2a3968e666810"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/HtmlBlockParser.cs",
+      "size": 1793,
+      "sha256": "7447f6073f92384f1230f9974297ae7cc43b6de75077859b2d9ef645d382c51e"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/HtmlInlineParser.cs",
+      "size": 1351,
+      "sha256": "19555a78b3ef367286376f1cc3a79572ad5c626de4462af663ffa8d3f19a91ea"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/HtmlPlugin.cs",
+      "size": 924,
+      "sha256": "0471b3cc8dcf6d8a0282cc54904d7d23db75f46e8337a8b9eabc6c83b3540728"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Markdown.Avalonia.Html.csproj",
+      "size": 1814,
+      "sha256": "95dd4a4859b59739f4da80cb096b1defec63fc1e665a2ac7b50987f71cfa6274"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Properties/AssemblyInfo.cs",
+      "size": 103,
+      "sha256": "cdca81ba975d7dd96503ad3bacbebdcece2412ffdcaa1f263f21cdf9c15a28b7"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/SimpleHtmlUtils.cs",
+      "size": 4280,
+      "sha256": "38764b09b80a65cf9017bb358e2e6aeb9d60942053ba62a695d401fa9ccefea0"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Tables/AutoScaleColumnDefinitions.cs",
+      "size": 8280,
+      "sha256": "bb4ff5a6854b7d917e9a981aed15fd342224099f17382355d32473663b977a09"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Tables/Table.cs",
+      "size": 4758,
+      "sha256": "9863925d7ee3cb917ce468fd7bd1c6fd830adc01ab449023a445cdc591a17e40"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Tables/TableCell.cs",
+      "size": 1286,
+      "sha256": "108f471d14746da69610ddeed33174f69cdac8248a869e14da5cadcab71ea34c"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/packages.lock.json",
+      "size": 14724,
+      "sha256": "1c774b0d0a78eab0ad5f65970716bd33bd71fa90c969872f0143b66385984b56"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Math/Markdown.Avalonia.Math.csproj",
+      "size": 620,
+      "sha256": "382eeb8561d8c90628317975a12e7968963e26e0b85cd207254840190937ed7b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Math/MathPlugin.cs",
+      "size": 4585,
+      "sha256": "0a85c164ad6870beb704a68d8a2b41ae19bb46eaba7f7d154930418c96b4ce29"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Math/Properties/AssemblyInfo.cs",
+      "size": 103,
+      "sha256": "cdca81ba975d7dd96503ad3bacbebdcece2412ffdcaa1f263f21cdf9c15a28b7"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Math/packages.lock.json",
+      "size": 12761,
+      "sha256": "4b43a9da6cb0d61ead6903a6ea5fb3c9f468eff61d83ce5b49de4635c634ab8b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Svg/Markdown.Avalonia.Svg.csproj",
+      "size": 1319,
+      "sha256": "bfa41d4d23724369f50883d66b4fd0fb3c0abba730869a0e6943713beb1d3a44"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Svg/Properties/AssemblyInfo.cs",
+      "size": 221,
+      "sha256": "6fdcaad81621b058a2e49f3ec2121edb0337c853373888bbd78f58638c3fd1ee"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Svg/SkiaExtensions.cs",
+      "size": 2701,
+      "sha256": "0c00bf9f630c70b9fb752a87ed4eb0e610c0f3c3590f4e9bff25ea2d707d681b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Svg/SvgFormat.cs",
+      "size": 239,
+      "sha256": "5d124f946587cb2a6caa97578c926e156d47a0f640b3b4e7e798d6b08fad66f3"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Svg/SvgImageResolver.cs",
+      "size": 1491,
+      "sha256": "87792523bea9af5a63c8aab206e77ef7a83aa79117f00ac32370d287b8966870"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Svg/VectorImage.cs",
+      "size": 1922,
+      "sha256": "a6940d1f4c9c6c211cad43f34c4dff4413eaf33710a59ead20356fbc301b9b0b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Svg/packages.lock.json",
+      "size": 14189,
+      "sha256": "06962895d84b4168f280d5de6d612f7cdcc82d1af0ee0f456d68d041c6a0aeb2"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/Alias.cs",
+      "size": 797,
+      "sha256": "5020b4c9cd190c1f6210b243e9e60169dd48163ac1f1a0cff57c9e8bf6102696"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/CodeBlockElement.cs",
+      "size": 8891,
+      "sha256": "c8c23bca6df086950e2be63709f4147c1f7523cb4b8929f421bdabad8baad03c"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/CodePad.cs",
+      "size": 4075,
+      "sha256": "5cccd83c06f36c3148c6a6d03561505d70354eb82d215cd4f6e34e559b5c8f50"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/Extensions/HSV.cs",
+      "size": 1935,
+      "sha256": "96fb7193840dd8bd839ef1315b485789e24f372229716463db687e47cc11de4f"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/Extensions/HighlightWrapper.cs",
+      "size": 4401,
+      "sha256": "537cf3ef74099e46604b1f3f937d842039d87bf414e86b3b8453fc200ef920c6"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/Extensions/MixHighlightingBrush.cs",
+      "size": 2370,
+      "sha256": "c4f63346e10b5cea194093174ab638a9fbbc41dc5551eb673e14fbddae1b1d83"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/Extensions/SyntaxHighlightWrapperExtension.cs",
+      "size": 3376,
+      "sha256": "0b255a9f1069641e10750a00f646557783aa977e19cf5ecdc59812fb8625ee5b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/Markdown.Avalonia.SyntaxHigh.csproj",
+      "size": 2000,
+      "sha256": "ee1228da217ebbdaa18e3c40b1632242aac25e96b9a39c951f46c384fff2316f"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/Properties/AssemblyInfo.cs",
+      "size": 499,
+      "sha256": "72d4fbf0002ecb10513721b9e66705ec83b22e00bb48c55cbbc92d9e04ae86fc"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/StyleCollections/AppendixOfDefaultTheme.axaml",
+      "size": 1361,
+      "sha256": "6013e8a4549f48306b384cfa64aa33e905b12f6578484175c355fa694592f873"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/StyleCollections/AppendixOfDefaultTheme.axaml.cs",
+      "size": 347,
+      "sha256": "956ebb3237b1b2421235a6ffd7d5c2734695560238c0ef7932a294380900afd0"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/StyleCollections/AppendixOfFluentAvalonia.axaml",
+      "size": 1347,
+      "sha256": "c0ac3143f2369a43935784756e1eed31914fabeab1e03d9a356b7095ea1aa11a"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/StyleCollections/AppendixOfFluentAvalonia.axaml.cs",
+      "size": 351,
+      "sha256": "94cf3a2f29c9718554d9acd0497d7b9086b88d5949cceff971769ae7dd4906b1"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/StyleCollections/AppendixOfFluentTheme.axaml",
+      "size": 1326,
+      "sha256": "ad7603b69cab03d5f1004352b5fae0e4668742511f277df975b8f930ba6bf604"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/StyleCollections/AppendixOfFluentTheme.axaml.cs",
+      "size": 345,
+      "sha256": "578742bd0224790ba00e874290fbe89b2de746bb13d8e91867360680f678ca65"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/StyleEdit.cs",
+      "size": 649,
+      "sha256": "f642cdf695088d4e9a8c2e3712ec5b10c33d686edbd8046ce4849f288a067980"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/SyntaxHighlightProvider.cs",
+      "size": 18583,
+      "sha256": "e93080cc862d0e9cb071763dbb2b794308de82d1a14f835390d1e95a7258c5a9"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/SyntaxHiglight.cs",
+      "size": 907,
+      "sha256": "8504c17670743a96213bb2b45548f55aee91a4539d511570d9be1d6fd4e077b6"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/SyntaxOverride.cs",
+      "size": 3594,
+      "sha256": "ab86411a7fb41882882ab842a075cb99a8676175079e3bcfef36d1551c500043"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/ThemeDetector.cs",
+      "size": 3338,
+      "sha256": "371938010d980c44a2bbe3a214369db62a7342dd46f3f254fcade20908d78f2a"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.SyntaxHigh/packages.lock.json",
+      "size": 14234,
+      "sha256": "34b494430e7b5f6e2f70d11f4564c5a2ce317ad1ec453f6201b0b92232e8aad4"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Assets/ImageNotFound.bmp",
+      "size": 2358,
+      "sha256": "cd58133f0bb83441fff45c728603efe1f1571e4f55dc5fb981b1f08408ff3a59"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/CascadeDictionary.cs",
+      "size": 1348,
+      "sha256": "75db1d374f81ea4dfd792a6ff0d72956809bd0ecdaf45ebf3f91efe55e0ab19d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/ChatAISetup.cs",
+      "size": 626,
+      "sha256": "c2e3285e1cbeef947f1c290c9da2d171b5cdbf78febe8c34be74d2d4d857f72e"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/ContainerSwitcher.cs",
+      "size": 1086,
+      "sha256": "da5eaa3e208aa2f5412eff8ba93b3b622458e2e8ed3fc4bdc3b40fa21b7671a0"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Controls/AutoScaleColumnDefinitions.cs",
+      "size": 5025,
+      "sha256": "d9f06c898927d4a01a9aeee6de81a6ba8ad5f65c06489693f07c3ed091abc19d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Controls/Rule.cs",
+      "size": 5149,
+      "sha256": "7f9d71a79212f9dd68a3210bd627a8d3cde63248a04d9ec4aec3366cb9277816"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/CopyMode.cs",
+      "size": 222,
+      "sha256": "4fddb62a4d4bd83c157b51b00bb9c18e36753cea417b72eb499b2a05e08f792c"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/EmojiTable.cs",
+      "size": 1709,
+      "sha256": "a06311967e9573951bce018f610ce1f4929916a215f5a980d7da52f99764196d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/EmojiTable.txt",
+      "size": 12657,
+      "sha256": "62539fb862e9095506c1553cd401bb6d1c619ecdcee7ef06b257ee1e4c473837"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/EngineUpg.cs",
+      "size": 2388,
+      "sha256": "9d4894ca46b97c82b6b6cb606edd8bc6f8bee5eebb2b84ce018bfb520599362e"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Extensions/AlphaExtension.cs",
+      "size": 1991,
+      "sha256": "4d3c97d0c7e600d83d17ffc14caab5bab054c83309c803c571921b7a24efddb6"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Extensions/ComplementaryExtension.cs",
+      "size": 1844,
+      "sha256": "78fdc390ca2b5bcb6190f363bd6e5bf7b6b863382761f44605c5518d79797093"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Extensions/DivideColorExtension.cs",
+      "size": 3077,
+      "sha256": "d4d56f343edc97e1fb1023c0b305dce32df59bb0e89dc62de78fd22ef0452879"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Extensions/MultiplyExtension.cs",
+      "size": 1941,
+      "sha256": "4e39800041876842c8ed6fc7c6ea0b1fde330bee3da83c1f8eb0359037a906d1"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Header.cs",
+      "size": 872,
+      "sha256": "82dc8da3444e096b4bb7bcdb0c0a4e1043ffeb2e73633e63c5421f02355ec102"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/HeaderScrolled.cs",
+      "size": 121,
+      "sha256": "d8ea59b468dcfc4289f04162f0a584cb23e19f70e5a25c534efd97e5a6db32a7"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/HeaderScrolledEventArgs.cs",
+      "size": 1451,
+      "sha256": "6344be034ed03f61f417f7c8dcb56f7b9e69128add84a906e373c51d3444c69e"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/IDocumentAnchorProvider.cs",
+      "size": 258,
+      "sha256": "903dfd2732601fe602387d120e5f8c83b4c6f6bda8967b88b583c2a90a8dd7b4"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/IMarkdownEngine.cs",
+      "size": 1432,
+      "sha256": "9aa78a89e9a70e948f4a67af70e7988caac93a182bb0a0cbf7b5b3dd6105d08c"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/IMarkdownEngine2.cs",
+      "size": 939,
+      "sha256": "bc1561e332beb9a507597ac2a09b0049a7eeac070235b2496073a2088c4f6bd9"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/IMarkdownEngineBase.cs",
+      "size": 205,
+      "sha256": "39f24006a30b655fdcaebe262c2713909799d3959a8b513de2f79019eda6d08c"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Markdown.Avalonia.Tight.csproj",
+      "size": 2611,
+      "sha256": "e1d77735be8d54da5d2376ee59631b294699ae7a70e122a9566128883db2b90e"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Markdown.cs",
+      "size": 125371,
+      "sha256": "1886d52c4b1dc7dd1eb9b48a4779b16a723f7b2d2622744bbf79c133d67bf456"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/MarkdownDocumentCache.cs",
+      "size": 12325,
+      "sha256": "5809d02e3f249a91b39ea53cb83442482c842a5301b50e6eee3def03c7594599"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/MarkdownScrollViewer.cs",
+      "size": 72888,
+      "sha256": "2b0c0085a3279226f044cd26b38c9b689e94a3a8a578286a1dd19f99f2fa5699"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/MarkdownStyle.cs",
+      "size": 1111,
+      "sha256": "93a9cfa5cd6256572122465278ce77fb04df6c2e3a0220e48e7ad48dfe447438"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/MdAvPlugins.cs",
+      "size": 5815,
+      "sha256": "bcbb729df31ac0a4961a9941b27e836e55d77947d810269c4cd8597a7408a045"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/BlockParser.cs",
+      "size": 4888,
+      "sha256": "8bd3f57f8a4f5d918a975cba53a5355c2afa349069911de9add0aaa847d92d52"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/BlockParser2.cs",
+      "size": 961,
+      "sha256": "93f9abb7d17661eb5fab5ce3ee49e65b97dfb4031a420a21c07d699fa1e27375"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/BlockParserExt.cs",
+      "size": 3426,
+      "sha256": "83993901078ad14975a2598c5ee1654b30c5208288643cb53d151f1f7e051891"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/AbstractHeaderParser.cs",
+      "size": 708,
+      "sha256": "d17da4e3d71b3de33417e1aa90539d24962ffc11b9a3927711ce81b644a9915a"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/AbstractHorizontalParser.cs",
+      "size": 1616,
+      "sha256": "ad36cf43fb79e8a75e23e8fead279072b72e9c47283135b60ee0937bbc53620d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/AbstractListParser.cs",
+      "size": 13461,
+      "sha256": "c1c3124a0d8012a56dec42407ccd9cac53272722555c3103973b4ea4f1b78842"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/AtxHeaderParser.cs",
+      "size": 1382,
+      "sha256": "7ce846eb7304527022df839262e28aadf07900b46f9d42c5799df9ac54b2eb90"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/BlockquotesParser.cs",
+      "size": 4463,
+      "sha256": "e27480fbc46d89f13cde74a92d1a93c57ec42bc096d8a050944ad4a22ad4ce80"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/CommonHorizontalParser.cs",
+      "size": 1091,
+      "sha256": "aadf15f72f6d330296623810ce665b1bdcf8f435b3e3ad558c0ffa24af7fec7f"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/CommonListParser.cs",
+      "size": 925,
+      "sha256": "c1e6ba616b903ca243a888ee67ae7a37b94c2c352e85943d86a8244113858a30"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/ContainerBlockParser.cs",
+      "size": 1918,
+      "sha256": "b86deb7f145e569c28cdb6373ca341eff433ae911e1466c9f49e35f397e801d3"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/ExtHorizontalParser.cs",
+      "size": 1296,
+      "sha256": "856efbddf3e74f364ac3046d006310525f8743c0e73d41fb429c1d36a0f09804"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/ExtListParser.cs",
+      "size": 1242,
+      "sha256": "fe3ced8b1afef30fb5ce383d3dea72b01039a2404d121e896d74efde0920c34b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/FencedCodeBlockParser.cs",
+      "size": 6883,
+      "sha256": "92720764e564f84db77302376c999daf36c5ecd2916d1b2039460412d2ddac6c"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/IndentCodeBlockParser.cs",
+      "size": 1508,
+      "sha256": "757b2af2c78521ee05463a46c95525da4f5a348fb598756dadf306b03ba43ad4"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/NoteParser.cs",
+      "size": 2375,
+      "sha256": "9c708f57eec0500110ea35490eb5b400a92fcf1fc4fda25d18e135e36f95f4fd"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/SetextHeaderParser.cs",
+      "size": 1409,
+      "sha256": "80c7f6dd1ec293a04028e056757fe5ccbd4ea61961ef5cbd31796734d5bdd093"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/Builtin/TableParser.cs",
+      "size": 9795,
+      "sha256": "87f59608d4975ae7777298a92b51032790ebe43befef4da80d5c7dc632bfb86f"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/InlineParser.cs",
+      "size": 2450,
+      "sha256": "f9c8fbb5b3ad0ee8f4ace481e537385cb68a5fc19f28edb818c22ab2311b375b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsers/ParseStatus.cs",
+      "size": 514,
+      "sha256": "0a80bf7436161a9cfff2d815f6aa9054bd5a16f457fd2b8bb4da2bce6f80ee3d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Parsing/StandardMarkdownParser.cs",
+      "size": 5819,
+      "sha256": "42a0ff53c0bed42adc7bc8b596a57ba595ea061e1c08d37e5351bbb43f355ef8"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Plugins/BlockOverride2.cs",
+      "size": 1094,
+      "sha256": "af6afc32099e3f417feb1c83217bfe438bba3f477538d336781643f86693f2d9"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Plugins/IBlockOverrider.cs",
+      "size": 891,
+      "sha256": "aea833df6428f2d3ce9075bd6518b60bfbbd193c6950466b99fcf8686eda9576"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Plugins/IMdAvPlugin.cs",
+      "size": 486,
+      "sha256": "6b40c96951b552fbe81b10b11877097dccb2b04854c10b6683230dd3fe93b61c"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Plugins/IStyleEditor.cs",
+      "size": 230,
+      "sha256": "9fa5886c7213799b195b12392acc87f7fb440b27357174697a8efc82af485c7e"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Plugins/SetupInfo.cs",
+      "size": 13243,
+      "sha256": "b511edad6a850d9f0764b0efa8d85be31388dfd3fa1bdd2972621f2cb35fc82b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/ProgressiveRenderingProgressEventArgs.cs",
+      "size": 942,
+      "sha256": "a3a911d922f54bc6df4e1f6be451a1b12a25a923f9d42ce670b2974032fdc61a"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Properties/AssemblyInfo.cs",
+      "size": 543,
+      "sha256": "e125715e4e773118d27fa316b619c8dc6d3ea580454a77112107d56457f177e8"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/INamedStyle.cs",
+      "size": 165,
+      "sha256": "628a7c33498fbbb66d768b6fc29304c726f27dbba2f915ce9e2f298d898a2abf"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleDefaultTheme.axaml",
+      "size": 8344,
+      "sha256": "01ffe1cbb1904c33f932fe609d0af82de08861b6efba8da14fc4b6563891181d"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleDefaultTheme.axaml.cs",
+      "size": 465,
+      "sha256": "9d7ff897ff65c2d7db82efd191100030cc70010b99e256ed660e9f73028ec16a"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleFluentAvalonia.axaml",
+      "size": 7801,
+      "sha256": "c3831788991155b0fffdec758cf6ccf1d8077d73c53bbc8a75ed5d84a90d1ee2"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleFluentAvalonia.axaml.cs",
+      "size": 472,
+      "sha256": "a076a04bd748105bc7ad571d7d318d4ce9d3e5f25edb5493649c6638bb7b17d4"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleFluentTheme.axaml",
+      "size": 7963,
+      "sha256": "1514e6c6bb5be94ee4f015c3d9458ce717b8f53cdebbea4b561873804e24d17c"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleFluentTheme.axaml.cs",
+      "size": 463,
+      "sha256": "57b0b89e147ae3df46a6118d15826d61725a732ea1ea306864ac3f5d0b94b3f2"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleGithubLike.axaml",
+      "size": 6780,
+      "sha256": "1028ea0b1c5898b97a907142c4d3ac7139a49ca7fc485578ae2a8e9bbdd45488"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleGithubLike.axaml.cs",
+      "size": 460,
+      "sha256": "d184cc04117aef425672d0085c7095ae6bf7ec14f54fe3d65ede1bf525ce8fb6"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleStandard.axaml",
+      "size": 7199,
+      "sha256": "d43b724d7a3df0530dee550acfeb81953d56aa19c7e60fb36886438df876a3a2"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/StyleCollections/MarkdownStyleStandard.axaml.cs",
+      "size": 454,
+      "sha256": "0587a9c4b648af4ab42be91f1e7dd1bac7d0809df2b53e4af3c00d19cf53e918"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Tables/ITable.cs",
+      "size": 260,
+      "sha256": "960af61ebf892c4f6e731b46a5518bd326693a5cb2cd6da31ff1ec30469aba68"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Tables/ITableCell.cs",
+      "size": 368,
+      "sha256": "9f9bad85095b9db2c988906108ab4f70a931b344666a05eb761d530b5abd9a7a"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Tables/TextileTable.cs",
+      "size": 9151,
+      "sha256": "7decc27a51ce16c6c2e8fe20816eab42d2bec187f585ceba672fe4354423e03f"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Tables/TextileTableCell.cs",
+      "size": 4064,
+      "sha256": "12a99f6ac6581d406bc153dad79b8869e5a282fcc7eea86a2b5b9f0d1efa23dd"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/TextMarkerStyle.cs",
+      "size": 1728,
+      "sha256": "bfd8272e44c3bdc7f65aed82b0d4d1cbf9289ab9c2f3566fb005172defbd5f90"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/DefaultBitmapLoader.cs",
+      "size": 4603,
+      "sha256": "fa770a1a659128d4c4711f09526413634be3dd80e0cd32f3afb6162a7290caf4"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/DefaultHyperlinkCommand.cs",
+      "size": 1886,
+      "sha256": "691e8a63baa592ff5c980caae1712ef96d06873a8a03c50debfbfddeb99085b6"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/DefaultPathResolver.cs",
+      "size": 2780,
+      "sha256": "6988b95342394fb9a38fd62e4a978d3b6c71faf2b334318aea793fc00c4eb3c2"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/Helper.cs",
+      "size": 321,
+      "sha256": "a84ff849cc7c1506add39f2ce2122b9490aac448030cf00eaa2cc7f96d560fc9"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/IBitmapLoader.cs",
+      "size": 504,
+      "sha256": "421e55c8455c91d3ee0b0fe180f2dfc955dfb30da8de4069a67552beb4194604"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/IContainerBlockHandler.cs",
+      "size": 795,
+      "sha256": "abcca59aa1ea8c8ab46a10a18fae14db260ec67ccc8e3eecef272153410c065a"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/IImageResolver.cs",
+      "size": 870,
+      "sha256": "b2332417e8ca639c6535a8401e7b7a58773874f7e2ebc04eb3d8109499083c0e"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/IPathResolver.cs",
+      "size": 1208,
+      "sha256": "9b90dfc6cdc221670c426cb4ad838e6e5c6155a4d1725f2d23ca7730fd5e6bfb"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/InterassemblyUtil.cs",
+      "size": 1054,
+      "sha256": "2cd3b463a0958129f5df8bb5ff1d1f9bd642c5f2731da60f5294503c27bf21c2"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/TextUtil.cs",
+      "size": 8220,
+      "sha256": "bcdf9cb923f725f9d72d0c9d761a76a8fac4939843fa118835ce739026fa9113"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Utils/ThemeDetector.cs",
+      "size": 2656,
+      "sha256": "a6ef6251ec75f0537fb39cf02ff5c12f768e69c8bbf34c21d4a80b93c5fce3b5"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/VirtualizingMarkdownPanel.cs",
+      "size": 30151,
+      "sha256": "b049c58f0f4724c1b6a02de4e8cad1215bcc29b1a95c55b1ebb8ceb52a6c2068"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/packages.lock.json",
+      "size": 12175,
+      "sha256": "8af6cf95295a4e08e8f756524b33b0a7dd8c1eee6a12ad58c48df6d5d249b1b5"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia/Markdown.Avalonia.csproj",
+      "size": 1514,
+      "sha256": "83e6c0f1e00d3fcd42827445b4fbf5f1d0a8340729fdbc45713a1b352c30efac"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia/Markdown.Avalonia.props",
+      "size": 1145,
+      "sha256": "56a980b79b6d424b04b72313b0b997ff245a24be630ee74c0767927490026322"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia/MarkdownScrollViewer.cs",
+      "size": 356,
+      "sha256": "98a36739f422e2e6027a7004cd4ed89bcce0fa0d39e3149afce74db0c3180e95"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia/MdAvPlugins.cs",
+      "size": 2596,
+      "sha256": "d8c09a9b83ce9bf1955a038017026e9e7df1f0cb6fe30bd605824dd1dc3e9b48"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia/Properties/AssemblyInfo.cs",
+      "size": 215,
+      "sha256": "e9c4f8716ff007b88d5a5dfa35cadfde3b9933a503840fc0aa519d9de098ca8b"
+    },
+    {
+      "path": "gui/MFAAvalonia/Markdown.Avalonia/packages.lock.json",
+      "size": 17607,
+      "sha256": "48e8dc74c4dc864c8750eab3fbbab89541f900f489c2d28fc268ec39d9b281f1"
+    },
+    {
+      "path": "gui/MFAAvalonia/PcrUpdate.Tests/PcrUpdate.Tests.csproj",
+      "size": 292,
+      "sha256": "d7fa2295a21fcd127dc54198c5425be2b6847daec25ba18e1c0a65e50f79f5c8"
+    },
+    {
+      "path": "gui/MFAAvalonia/PcrUpdate.Tests/Program.cs",
+      "size": 7597,
+      "sha256": "e95ff5177fd12afbb7b23940ef2d6f2613f3030c484a8c4999dee081e7cdfc8c"
+    },
+    {
+      "path": "gui/MFAAvalonia/PcrUpdate.Tests/packages.lock.json",
+      "size": 39747,
+      "sha256": "701cfebd5da1b7ad7209f6c160fa4ec4d9a57b36711a62088858efc277572de4"
+    },
+    {
+      "path": "gui/MFAAvalonia/README.md",
+      "size": 10292,
+      "sha256": "6c1aa4c9376668a2808b5650bbab0ff8244393948a58a4788d4f6c7af6d48403"
+    },
+    {
+      "path": "gui/MFAAvalonia/README_en.md",
+      "size": 11148,
+      "sha256": "3d1a5983c9bd15a19a4ff48faf7234f6fcdc93643b36414e474923ca6c5d5e43"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Animations/FloatingTextExtensions.cs",
+      "size": 8347,
+      "sha256": "32998117ba94ee49faf7e680ec10bf867fb3755067176293eed0c8b3c0ac8212"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Animations/SquishyDragExtensions.cs",
+      "size": 10335,
+      "sha256": "7e906c2f392b6821c408ee486fd9221815a83f2f57cefdbe481592f8d888c6ad"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Animations/SquishyOverExtensions.cs",
+      "size": 11659,
+      "sha256": "e2ef301b69b3bea96380db10837ca5abcbb0c9a7b9844e1ff2d8cb4fb2dc013b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Animations/SukiEasingOut.cs",
+      "size": 3214,
+      "sha256": "070acd05a354cafb985d09657f0438c296ca3d235cc5416578458fffa544c6e0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Animations/SukiSpringEase.cs",
+      "size": 2432,
+      "sha256": "1f919b38631de5c43d679690de88b50263fed20af84c3a0f8f83944c7338883e"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/ColorTheme/Dark.axaml",
+      "size": 3257,
+      "sha256": "4d23c378ddefe139017a49533c4aa7ad7ffc01d663cd81bc029e3b86f65034ba"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/ColorTheme/Light.axaml",
+      "size": 3173,
+      "sha256": "010c50a793885a2fe9fb2dd50e1f9bacd1a0c6b8a3b1342ad699eef045612788"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/ColorTheme/NotificationColor.cs",
+      "size": 1980,
+      "sha256": "0cc7e76baf723f4af92404a813918a33f7ae379a8986ec1eac45ab4e3ffccf37"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Icons.cs",
+      "size": 22945,
+      "sha256": "4c8ed03cd704adf7f93e2af1b9fc4761f666e68e9c36d4760406d1ceb34108ff"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/backgroundshadcn.sksl",
+      "size": 3307,
+      "sha256": "a7bdfeaef78f0e744d7a167e7ceb87ddf9c913065cb880bd1e0fe8affb36edd8"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/bubble.sksl",
+      "size": 3157,
+      "sha256": "77567fdf4a6da8db2c8b12754ed4241f7d2a0ee5776fef74377248915aad448c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/bubblestrong.sksl",
+      "size": 3203,
+      "sha256": "2cdb1b50a5e1660c8bdd46d4a8ca01be3b119f416434d7a289e2f1f9947b7791"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/cells.sksl",
+      "size": 1459,
+      "sha256": "3f9158a4720be4a442272d7fedfa791346da69161e8ef325e89deb7c0173b8d2"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/flat.sksl",
+      "size": 2891,
+      "sha256": "920958e097d81e135ac889577219ba6af3a573ee3afa00d71283143142f94920"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/gradient.sksl",
+      "size": 3214,
+      "sha256": "82fabc6589ea8a15b1add25d977254681a3921256816f54003618f8ee59456f0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/gradientdarker.sksl",
+      "size": 3264,
+      "sha256": "92c8ed4b24564672bb3ae4e3a6b9c4c7bc6a348d0be3b3851dfd7f6ad130423f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/gradientsoft.sksl",
+      "size": 3026,
+      "sha256": "a8f8cdbe9000d0e9a56428734d5018ec64775cbae114c4484b5343dae301bf86"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Background/waves.sksl",
+      "size": 1782,
+      "sha256": "f5474e93d7f2163152c0edd10fc019ee4bd073e760d3a34633d832fab529d5f7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Loading/glow.sksl",
+      "size": 861,
+      "sha256": "873743d535b7940c7df77edd213162e6c92a42eedd512abc9cbfe7e86c8cf6b2"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Loading/pellets.sksl",
+      "size": 899,
+      "sha256": "2ec3f485ff73ec44d541429b1059fc79bc2a903901ea7c238985bd325183bb1f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Content/Shaders/Loading/simple.sksl",
+      "size": 923,
+      "sha256": "92ebb79d1aac2c2aae9f8746bbd021403fcc7b5e6fbaec9de4bdd89f6609c0ce"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/BusyArea.axaml",
+      "size": 3369,
+      "sha256": "4591db034bd28ccc8b09b0c8acaa6ab5f2c44c6a9b3eafa2273ec2232fd9353b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/BusyArea.axaml.cs",
+      "size": 889,
+      "sha256": "ccc73c75bbba214bc812779c20caee4a110d0b98ba35ee5b4e6e145ea02265e2"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/CircleProgressBar.axaml",
+      "size": 3841,
+      "sha256": "beac72fbf088755bf5f1b4990a7caf15a9ed3c591198a17bf6e88f5c1262df23"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/CircleProgressBar.axaml.cs",
+      "size": 1825,
+      "sha256": "2d38b59f3aacb47fa6b27eb8745246a63584d611e3fe5f6ad064ce87813052e6"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/CodeView.axaml",
+      "size": 466,
+      "sha256": "5f8b08b3eb0c68ac7e3644165090a08f02f74b5679b1c1b5d40603b8c9030006"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/CodeView.axaml.cs",
+      "size": 4875,
+      "sha256": "101bcaa8efceb9d22ec5f8d12b14185caa85a3adeac78f96b6da2984985d6211"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/ContentExpandControl.axaml",
+      "size": 1398,
+      "sha256": "4235740a0b2cc1c1f6ab7da93ac3c6241655734a2924fe21c3f4270b0f857b2f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/ContentExpandControl.axaml.cs",
+      "size": 2354,
+      "sha256": "bff5cf808dd3ed5ad0795718651b478f9cdbc689c419816a258eba96edf30132"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/ChatUI/ChatMessage.cs",
+      "size": 215,
+      "sha256": "fdabfb3287a14a9919e085ef8788d943396d78caa3ba38840c7c643efb49a908"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/ChatUI/ChatUI.axaml",
+      "size": 7276,
+      "sha256": "8217f9340a76242170b641936e7a694924142668ad796486792672ac5090a6c3"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/ChatUI/ChatUI.axaml.cs",
+      "size": 4870,
+      "sha256": "c5a234a3224cdaad5fd28c011bb140b56a581e8f5beb20544f4ed748af358a59"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/DesktopEnvironment/InternalWindow.axaml",
+      "size": 6930,
+      "sha256": "22ef5c5ed1471884bd88597d3458a383099d3af3d8590fae85ddef887db2b671"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/DesktopEnvironment/InternalWindow.axaml.cs",
+      "size": 7677,
+      "sha256": "5da2779a9f4ea58c2ef54f7467ca784736691655b23abd5e3a6393490ed79643"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/DesktopEnvironment/SDESoftware.cs",
+      "size": 988,
+      "sha256": "22c6ecbcb162a1d2b47ba8e01597382d6f270bb75773b1265648d7e8e3ea1e4d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/DesktopEnvironment/SukiDesktopEnvironment.axaml",
+      "size": 6382,
+      "sha256": "b22d3fdc46633762fea43fb7b40d6549637541625b43e3c85fa82238c697413c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/DesktopEnvironment/SukiDesktopEnvironment.axaml.cs",
+      "size": 2416,
+      "sha256": "f12f0d77c7ea6310b3dfd8bb834973b4626fd031a9669941ec5948a9c5f044a6"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/DesktopEnvironment/WindowManager.axaml",
+      "size": 457,
+      "sha256": "dfa151f2aa397c0aecda2c084cf4aac7d8459421ba10aedae689ed9dc9d6d0d0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Experimental/DesktopEnvironment/WindowManager.axaml.cs",
+      "size": 672,
+      "sha256": "c7e06590dcff3c974a76468fa580ee2d5b49fa197f7300522e8788cad09749b0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Gauges/HorizontalBarMeter/HorizontalBarMeter.cs",
+      "size": 13291,
+      "sha256": "192c5375f2a741fc40712dcd0476af3bea85bbbfea0462859c4fc832e5638b4f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Gauges/HorizontalBarMeter/HorizontalBarMeterStyles.axaml",
+      "size": 1168,
+      "sha256": "c948a8f754043a589fe574bdce2d468860aab3befdcf3d51794bfd32ac20f134"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Gauges/RadialGauge/RadialGauge.cs",
+      "size": 21619,
+      "sha256": "a46c454fd7e3563f31fea05512d95c342431c1dd44d032255c54c5ccaec7305c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Gauges/RadialGauge/RadialGaugeSegment.cs",
+      "size": 1085,
+      "sha256": "216440e192cd742f9f1605f3b7a1b7e8ddf78b130f5e02ae8b65865426225e2f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Gauges/RadialGauge/RadialGaugeStyles.axaml",
+      "size": 4428,
+      "sha256": "51a1c1e0ef60ce0a5fb6240ef8d052504a036f8a828cf9b37770e24d02806536"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Gauges/VerticalBarMeter/VerticalBarMeter.cs",
+      "size": 13541,
+      "sha256": "38d499926c614c6005140c15496202ac4cac1e9e14f24b023c29acbe03935be2"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Gauges/VerticalBarMeter/VerticalBarMeterStyles.axaml",
+      "size": 1152,
+      "sha256": "92e1461361ae3e374321ee76027a3d289a442d1d5a2f475350743f4cd778d7bc"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/GlassMorphism/BlurBackground.cs",
+      "size": 6747,
+      "sha256": "0ab89b3368bf0bc9f075b6e4afcf7f48af35da6534ae44f8f033fdec3442f13a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/GlassMorphism/GlassCard.axaml",
+      "size": 6496,
+      "sha256": "22a7bf9930e634b4f9a4bf4328ead6a6a4df2676fc1eb798747921c299fcf2f8"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/GlassMorphism/GlassCard.axaml.cs",
+      "size": 4380,
+      "sha256": "fb197f665d1d16ed0ac925fdeaaebabf3d2cfbd36e2f43d632588fad638987cb"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/GroupBox.axaml",
+      "size": 6041,
+      "sha256": "400eea1dd5dc34ec62f2f06e7bea279e1d725a168adbb7d666de1e73698b8505"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/GroupBox.axaml.cs",
+      "size": 510,
+      "sha256": "dfe777d0d3f89b5677e0f6267e88e3735a2930b372f172503a858e13b50ff19e"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Hosts/SukiDialogHost.axaml",
+      "size": 4932,
+      "sha256": "bd0e6b05ce5b6ad56c221d0fc88474cbf0c2710c663df2d000e4c7738b9b299c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Hosts/SukiDialogHost.cs",
+      "size": 4058,
+      "sha256": "d339d1071b80c69e80f5c276b9d5ff58df6bf8726e0d9290beaf9fe6fa3a4260"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Hosts/SukiMessageBoxHost.axaml",
+      "size": 14830,
+      "sha256": "8b1797b9093d86d8678825fe97190b2ce7346e8bbdb8aee73fde4dc7788c109a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Hosts/SukiMessageBoxHost.axaml.cs",
+      "size": 10517,
+      "sha256": "817f628c49e8a9876b47bd56e80afa379c29973be23893525b75d5c239e55832"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Hosts/SukiToastHost.axaml",
+      "size": 1015,
+      "sha256": "59a1d180496e23e0ecd631b00a0afbf0b524e0dd6919fc779a01cf027158318f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Hosts/SukiToastHost.cs",
+      "size": 5099,
+      "sha256": "21762af8695dc11638859db736284940fdf1db203dc20ab212bbb152403c95e9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/InfoBadge.axaml",
+      "size": 7733,
+      "sha256": "e80e8b5a156af3d4df4db2c74c7c8a5d36ff08a54d44837989ecf2caa7cd8ccf"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/InfoBadge.axaml.cs",
+      "size": 3518,
+      "sha256": "5ac86eb1b3d69e0208d6f5524717d34bc05df7605a32d298bf8b96276a825e28"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/InfoBar.axaml",
+      "size": 8041,
+      "sha256": "103effa5c7ee914f16df4fc7fcdc7b09433e460452d041523eb1397e8492d819"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/InfoBar.axaml.cs",
+      "size": 5290,
+      "sha256": "51cbdc954f5a9a33211388bd2378fc0945538d5d17cd28a93b4935642e02c8db"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Loading.cs",
+      "size": 4978,
+      "sha256": "d10cc96c55ef83d945d317eee9200929f28b0a2ec4b33af359df533fe7ab7c46"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PasswordBox.axaml",
+      "size": 5212,
+      "sha256": "5de0389efc3414e8317a451a4ac9e3940de52f870806ea8f2fa4c016ee6311cf"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PasswordBox.axaml.cs",
+      "size": 5081,
+      "sha256": "4577b6141b3624233b476612e90b389accfe470f9dfca87d09e97ae1bce79410"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/CategoryViewModel.cs",
+      "size": 722,
+      "sha256": "8dcec8bfb2d7e511867fd34bd267e7bf09c52422bdf931b1378d7fa2e1c2d2eb"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/DateTimePickerSelectedDateConverter.cs",
+      "size": 2327,
+      "sha256": "0e1684c7436fe05282dad60e5270bf5ca1ae065a0e32d253ba87bce690ef5fd8"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/IPropertyViewModel.cs",
+      "size": 202,
+      "sha256": "d85cf6b85a69dcfe4640176bb3ccb657445d0239f46c24972a23af3e98a4aaad"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/IPropertyViewModel{T}.cs",
+      "size": 142,
+      "sha256": "a664662ff5b5b762cf4b886fd8562225e5fd5848b0a8194a18f9146cc5fd16c3"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/InstanceViewModel.cs",
+      "size": 6288,
+      "sha256": "ca6bc3071e1efbbb5875a0150039f1a3670a4ed7d88ffd7cf8cf36ac25a29fba"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/PropertyGrid.axaml",
+      "size": 2014,
+      "sha256": "76c0342359ed7421c81f579e55d082dae99502ce053949dd7d08f5ae849de51d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/PropertyGrid.axaml.cs",
+      "size": 2070,
+      "sha256": "c06b897cd31b4748fca3eb8acc301f9a4983c07ec75e6cb551a395db86f71fc0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/PropertyGridDialog.axaml",
+      "size": 1958,
+      "sha256": "73afa23dd1b7494fa5b0fe93a71782f0658b70d2320f75e4d2b6aa19dd7cdc93"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/PropertyGridDialog.axaml.cs",
+      "size": 217,
+      "sha256": "55032eda6c156f4968736af479132eec7d7331776107bd039d284438296d2492"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/PropertyGridTemplateSelector.axaml",
+      "size": 8154,
+      "sha256": "d7497f10b10bab46c4be61585fac3de55124515513b53c58131ac1b4b51edbef"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/PropertyGridTemplateSelector.axaml.cs",
+      "size": 3679,
+      "sha256": "841dcfe6cf264f4574ed6c5e6685cbbefd1f66e8e699e4c991e5a871c84636e9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/PropertyGridWindow.axaml",
+      "size": 2006,
+      "sha256": "9adc4744d31804bbbdd245a79932fa34c18c45f1ff16594dbc265b06e865df47"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/PropertyGridWindow.axaml.cs",
+      "size": 215,
+      "sha256": "a7f2550e955c19bd615541ddb5c3784cf73c6e80810b47324a28df62e4b7fad1"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/BoolViewModel.cs",
+      "size": 355,
+      "sha256": "7d210b1004b8e3c06e9f08aab66cab518dc0d0a8171160bc80ab5ae1bd71e808"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/ComplexTypeViewModel.cs",
+      "size": 418,
+      "sha256": "dc86bc6b56303907a5f93e91651226c93cee207f502d742c6ac7f5807794d028"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/DateTimeOffsetViewModel.cs",
+      "size": 399,
+      "sha256": "aa1020f4c71b14c4958d61e6a636a1f78e52646742ebf90950eeb7307aa853a0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/DateTimeViewModel.cs",
+      "size": 381,
+      "sha256": "7b22cb7bfd9a0ef03f9b73043012e44040d43930218b4d087208876c91ec0df9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/DecimalViewModel.cs",
+      "size": 364,
+      "sha256": "9b44238e43f52f169bacfec5317b90325d4118f12c7d662a8184639ea8af7856"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/DoubleViewModel.cs",
+      "size": 361,
+      "sha256": "d716b563b41b118c0498ff3c655b14e5a28610aa08b8126cd899517f419ef4f2"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/EnumViewModel.cs",
+      "size": 674,
+      "sha256": "29d790b5e7b8115c860c2cba1d705304d8fc21eb4a670872f1e75c0de498f432"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/FloatViewModel.cs",
+      "size": 358,
+      "sha256": "20889f7fe175bf73cb96c77b8be50e7386d283e04bcd1a8b7b213f146f15e0bd"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/IntegerViewModel.cs",
+      "size": 360,
+      "sha256": "4b76096a5b321e65e482982e1a8b6e61b399aedac4094a23c4479d6cb80ca713"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/LongViewModel.cs",
+      "size": 355,
+      "sha256": "44bc242237e2a7e491cc3fd63d9ddf672d417dbb559459dfcebe68e431bc7a61"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/PropertyViewModelBase.cs",
+      "size": 1973,
+      "sha256": "a6c8bce3fe00a3e5e02034c3f0a4c5c2cbe21f87a842dd0208b7c4e7a9e3d05a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/PropertyGrid/ViewModels/StringViewModel.cs",
+      "size": 361,
+      "sha256": "a52571fcb5fa2f472f8ddc876c5b3f42694d783e931459f8af478ed1068ae42b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Settings/SettingsLayout.axaml",
+      "size": 13413,
+      "sha256": "0b43bdf2d17af60ec073cd5f5bf1c1d1622ab4f08caff3f9bbf6ac0b35d20997"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Settings/SettingsLayout.axaml.cs",
+      "size": 14974,
+      "sha256": "eb1ea6c87a0ead459dcbc29a52d893bf559ee9cdfcddee9f28f1a96484025421"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Settings/SettingsLayoutItem.cs",
+      "size": 1011,
+      "sha256": "9a0bf62351e312e331dea7249e911a373ee7ed98b0fea9d29447d36b9d6f5a24"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Stepper.axaml",
+      "size": 647,
+      "sha256": "548ea36d83cd516a11593264eb9267050f432755b9543cf549ac70543db0e7c6"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Stepper.axaml.cs",
+      "size": 11990,
+      "sha256": "1c84ecfccaeeb8b1b859d2e4188295850ed47bd842dbda798b14d7be7233a89a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiBackground.cs",
+      "size": 6910,
+      "sha256": "317404436cb1f5585d5a75fa6c6a0de9607bd1aae7d368e15fca1ff1053fb97d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiDialog.axaml",
+      "size": 5538,
+      "sha256": "44172b5729039e09e90486b91c8a41e80f8abbc1333e89a6e449555b0665fa57"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiDialog.cs",
+      "size": 3342,
+      "sha256": "9b623dfbc4604f714c522baf33e45eb5c28313c6649279ed43d2d7dfa132d76b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiImageBrowser.axaml",
+      "size": 626,
+      "sha256": "a83fcd472b173c8b658bb36e447c3bc778c287041723838552db1889e80fb3e9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiImageBrowser.axaml.cs",
+      "size": 346,
+      "sha256": "a24e96212c25ce561f1de2c6b1aae8507b4714ff48bd12ccb8d3046aad1bb0cc"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiImageViewer.axaml",
+      "size": 2011,
+      "sha256": "4a7809aa1122446a095414d74c764abb9542fbfedebe9e34599de6ff8283700b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiImageViewer.axaml.cs",
+      "size": 16196,
+      "sha256": "6e1c95a9f96c64221d2e327b1dff3555aa801516399af1ab00c1ac405f336077"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiMainHost.axaml",
+      "size": 6099,
+      "sha256": "7f32da4bf3405b0214456991b142e6eac1ec5b25fa6411eba4ad980e823b3a41"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiMainHost.axaml.cs",
+      "size": 5863,
+      "sha256": "2d377f1b0c1c46cfb3fba38496819dd97cf3df0e22083a85a3760208d83babef"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiSideMenu.axaml",
+      "size": 12644,
+      "sha256": "e9690e2365c0e035a8356b211974c4725dffb38f8087993333aab906ff62e264"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiSideMenu.axaml.cs",
+      "size": 13582,
+      "sha256": "da96ec26643dd0b0e3c18d01b10f476e6b10182dbf92d881b25aa8ec28f3303a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiSideMenuItem.axaml",
+      "size": 11053,
+      "sha256": "c636ba223738ac2415811a70b0aeb3832c4a40d18675a3128257268af3d927c2"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiSideMenuItem.axaml.cs",
+      "size": 5522,
+      "sha256": "719b56a99c525cf4e67815b431ffa409c673b4ff51b3303fe39060fb60c22a9a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiStackPage.axaml",
+      "size": 1648,
+      "sha256": "337684328366b73c81c9aa4042803c581dc09064e5d0eb65485173fe308333dc"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiStackPage.axaml.cs",
+      "size": 7752,
+      "sha256": "55b29da14bd3d4c5d00aa1fccad7116f8c78790f494dda2e543dad27fe38c9e9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiToast.axaml",
+      "size": 8151,
+      "sha256": "3adcc1d11e96ee497399440cc09cbc79896f623d3bec566e9ac57c6360e6f627"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiToast.axaml.cs",
+      "size": 8540,
+      "sha256": "7c8c120fe29564a132bcbc51e5c6632bc3d74957e90a6cea0a406d01220f2f2a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiTransitioningContentControl.axaml",
+      "size": 1186,
+      "sha256": "08ef71d61a64cf8832f37a611eb5b260c314e98d8b873ca3d1235712ff5474a1"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiTransitioningContentControl.axaml.cs",
+      "size": 6891,
+      "sha256": "9d5be9637f87a5cbf752f0a9d6e3438d373bec5365984d055fa74be7060b4070"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiWindow.axaml",
+      "size": 19490,
+      "sha256": "73b9bec641d7bce911fb2612be2b40e3103d1760b2773ffc52db2e2510692292"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/SukiWindow.axaml.cs",
+      "size": 40980,
+      "sha256": "90a96d07ab9d62c822deec5ea34ed430205684acd28c3c1cfdf7e3ddddb05e29"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/ClickToEditControl.cs",
+      "size": 10255,
+      "sha256": "f43082e86fa97eb4ea23e6abcd418143f26834d2dc267e24c122c7018f58690d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/MobileNumberPicker/MobileNumberPicker.axaml",
+      "size": 4057,
+      "sha256": "56b66f1ccb52bc78e389e929a61b6571199e644dcbeb2477ee22937cc95e6d7a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/MobileNumberPicker/MobileNumberPicker.axaml.cs",
+      "size": 3309,
+      "sha256": "c8a561d3c568ce91930b31ae79fa8292b1eeaf410a9459714d8cde3576ecc297"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/MobileNumberPicker/MobileNumberPickerPopup.axaml",
+      "size": 4173,
+      "sha256": "1ae1213af53400b55cd427cdf8547d0b7cabfe412f57dab969a23aa13dccf3ab"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/MobileNumberPicker/MobileNumberPickerPopup.axaml.cs",
+      "size": 4391,
+      "sha256": "07c1dc70c593e9c39b3c24eac244d61431131aa185bc98b3c7931f79d6e87c85"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/MobilePicker/MobilePicker.axaml",
+      "size": 2210,
+      "sha256": "d6ce3593133bf1c0eda5d3fda10cb905a3bb7afcabd2d35c3369c6c9f8bb6487"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/MobilePicker/MobilePicker.axaml.cs",
+      "size": 4191,
+      "sha256": "8aecbed26f2d7739d6f0f23831d87fe31fda5759b58238cb4cd5304803c6656c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/MobilePicker/MobilePickerPopUp.axaml",
+      "size": 4195,
+      "sha256": "9b1db24c5db862d3dde2d28352f3735dcc40b66d08b9a0d6da163466ca72c221"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/MobilePicker/MobilePickerPopUp.axaml.cs",
+      "size": 1609,
+      "sha256": "ddf0c2594cfff754c31d4fe6ab6cec7d9b5029fbe50b8d2ff31fed5ea2f31df7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/TouchNavigationStack.axaml",
+      "size": 2402,
+      "sha256": "518e6cf8813aeb9118d49298d04ffccc55f00b77ebd48557a2e4a721199e0b11"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/Touch/TouchNavigationStack.axaml.cs",
+      "size": 5481,
+      "sha256": "300e810612ba95eadf053f25ed3bb45d38d421c25f58ffc5b844150a7f5ad8dd"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/WaveProgress.axaml",
+      "size": 7718,
+      "sha256": "6a318e7d8b240dd8d3df059bce61ca21ab8197b6c20df8e2c72fa26788883306"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Controls/WaveProgress.axaml.cs",
+      "size": 1244,
+      "sha256": "87da6748f4c7fa6855c74bc0f9998f30d2ba5e36cb3d17d0d9596e57edf23b58"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/AdvancedIconSelectorConverter.cs",
+      "size": 818,
+      "sha256": "a9cbb6938cc52688c8beaf6867e8c3b17df4e0bbf0f94b647fcaa6b96deea77d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/BoolToPasswordCharConverter.cs",
+      "size": 1219,
+      "sha256": "50894b3b93585b6ac1747a82339c9cd15612b287301d57463604b2f140bea378"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/ComboBoxItemConverter.cs",
+      "size": 1349,
+      "sha256": "07dddc09e258db0ad18ab6c28b78d74ac60e4df1858462b6c93de03b82b38643"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/ComboboxConverter.cs",
+      "size": 2207,
+      "sha256": "40e87fc7b3378c6c6417855b787d7ff83b2995d05e88cfc3689fe15605a64564"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/IfConditionConverter.cs",
+      "size": 621,
+      "sha256": "38572b69a7d26dcbc16ae879d44ea1fd495134e20310dc3175e6a690b60e020c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/InfoBadgeOverflowConverter.cs",
+      "size": 703,
+      "sha256": "dbe846f26077be2bad7e6d419ada76fd7e1f939128c27678f73f8d74fc85b715"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/IsCheckedToClassConverter.cs",
+      "size": 655,
+      "sha256": "5acf76139ba4537b2a0f5cd69d9207b8e6d1bbca84285e7f7bf905fc35d0511f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/IsNotNullOrEmptyToDouble.cs",
+      "size": 777,
+      "sha256": "20680476f588fcea34f86b1a821d3486200bf706dfdffe4bd55846b2ba8d0048"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/ProgressToContentConverter.cs",
+      "size": 843,
+      "sha256": "03eba84a77fe74fcc0c6c4ee61d948d4f818003e570a0a2cc5ec3ebdd960c831"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/SideMenuScrollerToOpacityMask.cs",
+      "size": 1868,
+      "sha256": "5574d1a688ce3d8bf595d4e0ea08f0ac1be2b57e9d60402a3c29a5f343205b9e"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/SideMenuScrollerToVisibilityBool.cs",
+      "size": 943,
+      "sha256": "6272f679cd284d0f72d99d849fb2c7b7449b7dea05bbc5b1c819e59ace023e99"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/WaveProgress/WaveProgressGradientOffsetConverter.cs",
+      "size": 1573,
+      "sha256": "4aa63ff956936f2baabc8372337874fd5311b75d5ac0528939f87ab7054565ce"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/WaveProgress/WaveProgressValueColorConverter.cs",
+      "size": 813,
+      "sha256": "c455c2d212dc1c540c07d9faf0b43e6654725ff77b5e54aff0938808d595107d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/WaveProgress/WaveProgressValueConverter.cs",
+      "size": 599,
+      "sha256": "76a98cb12daf9193c7fc5b721557752cd9d796bbe5f9a32f5826905b3dd4feef"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Converters/WaveProgress/WaveProgressValueTextConverter.cs",
+      "size": 589,
+      "sha256": "cdc4e7b4aef8a9af57f3e5fda842f6f52e11dd8e29ac8787d9474f4fa4c19ab7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/CustomFont/NotoSansSC-Bold.otf",
+      "size": 8543168,
+      "sha256": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/CustomFont/NotoSansSC-Light.otf",
+      "size": 8299104,
+      "sha256": "35cca31cea56b2720c096efaea2cfdffdf1b523bf5de0a80552d16edccfa9c70"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/CustomFont/NotoSansSC-Medium.otf",
+      "size": 8345436,
+      "sha256": "7633f5a016d4dd95e685a69633d818aabc4644c4b08e26bd35b1b30c45ed5dda"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/CustomFont/NotoSansSC-Regular.otf",
+      "size": 8331336,
+      "sha256": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Dialogs/DialogContentMaxWidthValueConverter.cs",
+      "size": 778,
+      "sha256": "1d7e1af33f4ecfaff368b21091454b134b4bb6129e2b478d55e0cfb254f049cb"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Dialogs/FluentSukiDialogBuilder.cs",
+      "size": 5727,
+      "sha256": "da3427facb23e3d49fc3255fdd637e317dae60bcc37031416ec8e753ec88ca55"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Dialogs/ISukiDialog.cs",
+      "size": 703,
+      "sha256": "871e60c6d512c3435c5294d36c3ed6ec4ba8c5ee29d83bc6393f8361e589e5fc"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Dialogs/ISukiDialogManager.cs",
+      "size": 999,
+      "sha256": "dcbc3b06105451e2cb892b97afa809faed62d3c541bd78a59ac7a5b5dddfefc7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Dialogs/SukiDialogBuilder.cs",
+      "size": 5369,
+      "sha256": "373f0746c16821b4a9443285f7ba0ffb3970b914f5834b9e88f8ff52f9fa4b7d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Dialogs/SukiDialogManager.cs",
+      "size": 1300,
+      "sha256": "5333fb0fe82d3e49e623f927912e687a2d9c9fd8f34712f8aeaa1b0cae085308"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Dialogs/SukiDialogManagerEventArgs.cs",
+      "size": 380,
+      "sha256": "be1d7a0dc091854e5f1415cb540a6a5fa6f4513da8bfcfacd170dae5ecbdb79b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Enums/CornerPosition.cs",
+      "size": 118,
+      "sha256": "3d5a6f9e90c568a9adeb21576840be68bec2ba183cc13b1393317f52d156481c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Enums/SideMenuTogglePaneButtonPositionOptions.cs",
+      "size": 103,
+      "sha256": "851eb401cc47463ddf3db5844819bb0b3893a4d70043d72f6a68496349458e0e"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Enums/SukiBackgroundStyle.cs",
+      "size": 182,
+      "sha256": "ca52dc6527bc1b0a87714b430db113fae494936e0c3f53332bb2b2d93da51a1d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Enums/SukiButtonStyles.cs",
+      "size": 671,
+      "sha256": "7d0650f0749d47bbec5a0cc548059f92420e1f1d661d518b4806eb92bf4eda06"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Enums/SukiColor.cs",
+      "size": 79,
+      "sha256": "56290324b578fba3a03e9f74e1d33182c0041395816640070760b720a886eff7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Enums/ToastLocation.cs",
+      "size": 113,
+      "sha256": "7e0416c7f1768114a49e9aef32068b52440dea5c4400fc36931b8bd158f0cf2f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/ColorExtensions.cs",
+      "size": 1045,
+      "sha256": "1709b20d37be24f0ad178b6aa251d3561052d6d4a1e6ec8ac1480c2ad257e592"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/ComboBoxExtensions.cs",
+      "size": 11075,
+      "sha256": "20647adbd354f2c9ff72fb0521ec163d892f3eb3d24a31f4dd3f68a9c9e45690"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/ControlExtensions.cs",
+      "size": 1030,
+      "sha256": "e1a28d36b606a077895a7f18502e9fa1d77e3592d0d12b2a8a2b472f375d81b1"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/EnumExtensions.cs",
+      "size": 3966,
+      "sha256": "c7c379ce3ec57d5b1127298bf64efa1bdc722f20d4bc956e4f6a80cda7e10f69"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/MenuIconExtensions.cs",
+      "size": 662,
+      "sha256": "e7574bf9b71196ced8aaa968f65627df47ed8c05f13b457aa893a735905fefb9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/ResourceNodeExtensions.cs",
+      "size": 842,
+      "sha256": "04acd664f47212896c126cc5e482e301ab9f7e99e0fd3aab1a2967f9e921fad7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/SystemFontFamilyExtension.cs",
+      "size": 3543,
+      "sha256": "d53ed6f39d2631dbf87150e54b5f6477972ccc82d4bbdc2dad7ee47beffe5a5e"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/TabControlExtensions.cs",
+      "size": 797,
+      "sha256": "8d18fe2977338ec9c3c53161d50e54ebe02e5f68026f81fd8a755de1b1e6b9c7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Extensions/WindowExtensions.cs",
+      "size": 4354,
+      "sha256": "513caa481c8d2095f8e6770768203883d575e20fb7ecb07c6b8b93fdc4d3c37c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/AnimationExtensions.cs",
+      "size": 922,
+      "sha256": "85eeab2a103b3c2173b471041d45f77341c4c1679e2be1c10e9638bf10156347"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/CompositionAnimationHelper.cs",
+      "size": 5614,
+      "sha256": "0df36f2ff79add7f465e0b3cefeca7b76205148530f7ddeec98fd8c3a6e6a8ca"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/ConditionalXAML/If.cs",
+      "size": 2448,
+      "sha256": "bc652a6be0a32560e333c40d122de48b86e6106e3fdbac86c6504549e1af9a67"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/ConditionalXAML/InlineSharp.cs",
+      "size": 5573,
+      "sha256": "59fcc1a6d78e4d1a6884fcc36f5ee19f4890bdd88804ce4774bbed0a720c7930"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/ControlAnimations.cs",
+      "size": 10499,
+      "sha256": "9aea7cce568b7121346923a0629219d1e48fbc46a1b5c3b95cf15515c04eaadf"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/DialogPool.cs",
+      "size": 890,
+      "sha256": "f82a618967dd874165402e55af3f2f1937b0bd8d85ce6b49d76e4d66609b8898"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/FluentAnimator.cs",
+      "size": 2631,
+      "sha256": "5c644f4f1106c74899a2ebe3d455a20a662f65642ca161d00a0f3bbd6a970f95"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/SukiObservableObject.cs",
+      "size": 813,
+      "sha256": "66d841cfd4b760026b8992d6b1908926188ccb507d674b57af12a4be0517b297"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/ToastPool.cs",
+      "size": 623,
+      "sha256": "550675aa03b5b46bec814e6685e89818b329d57e8f589f52fb70314880178474"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Helpers/ViewLocator.cs",
+      "size": 836,
+      "sha256": "1c11dc847d84363916d61dd12ac522bb0d45b6a3334556f0673b6ca9550ae2e5"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Locale/en-us.axaml",
+      "size": 1833,
+      "sha256": "5da0190d5a6518264d8471568010c5ed323e3b4670466e167702cb7a4026c0b5"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Locale/en-us.axaml.cs",
+      "size": 92,
+      "sha256": "ebb915d06c4286e25f92079bd595b84a67b2bd5cb85aba9c160a059709a3537a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Locale/ja-jp.axaml",
+      "size": 1887,
+      "sha256": "857fa2505524bd5c6415a4a71815da2b8a085a8f8df4b638d866b7b392b0fe20"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Locale/ja-jp.axaml.cs",
+      "size": 93,
+      "sha256": "dedf64c2fd6c922630d3f79a007fded0b31bf6f350057cab9ae02f56780a4fac"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Locale/zh-hans.axaml",
+      "size": 1842,
+      "sha256": "ffc59f7abe286f4521edcfe049bdcf6ed6883b7557c88acc5eb72d2093ef2e12"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Locale/zh-hant.axaml",
+      "size": 1857,
+      "sha256": "b63f08118f36aecbdc2085be8ec324898350558e5343b0b1343e71226c9cc750"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Locale/zh_hans.axaml.cs",
+      "size": 97,
+      "sha256": "169c99cbefbfba59f15e7a5ea391bcfa2e96ea135f30cef8fd63e1039d36dcff"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Locale/zh_hant.axaml.cs",
+      "size": 98,
+      "sha256": "054ca240b1809b4a56dc5b838d6cd7a9902df712553cdf9f8db56a15bf32150c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/MessageBox/SukiMessageBox.cs",
+      "size": 10822,
+      "sha256": "14a8530d58dcd121ba0d99220a101a95c1957d724945761989189ab3a5e914de"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/MessageBox/SukiMessageBoxButtons.cs",
+      "size": 678,
+      "sha256": "ae0e680b48a6e3eb794b822058a8e925b14afb9792cfb84b04c8d711043b4a52"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/MessageBox/SukiMessageBoxButtonsFactory.cs",
+      "size": 4286,
+      "sha256": "f7a683ba55254fee2c4b3fe41c4b2b8fe94a340c555cfdd259de11f23af4b8a5"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/MessageBox/SukiMessageBoxIcons.cs",
+      "size": 244,
+      "sha256": "b262fbe89fad78c82022f1ce8c7e917f5942ef70fedec56c218c475042338092"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/MessageBox/SukiMessageBoxIconsFactory.cs",
+      "size": 2955,
+      "sha256": "ee3c8968af644f7f5b232dbc45481c444f12a4eb8e5dedde9edb37d4884a8a30"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/MessageBox/SukiMessageBoxOptions.cs",
+      "size": 3634,
+      "sha256": "f14c232a89f25f8f514a5ff9e4061dedd22b2085429d2c13f91b0db98649f3f4"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/MessageBox/SukiMessageBoxResult.cs",
+      "size": 249,
+      "sha256": "f76abad5d11c64818381308a1c130b829e64f7f9e6a1752bb0a426937d38e054"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Models/SukiColorTheme.cs",
+      "size": 2756,
+      "sha256": "cc4aa9c4bb7c45fc6a0c9a637d3878e5f1a00f3b1a12b7333367182ceca1743b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Properties/AssemblyInfo.cs",
+      "size": 610,
+      "sha256": "dc377302a3fd23110dd98588b4db1416264a9137e51a8dba2eccb061147acdef"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Roboto-Medium.ttf",
+      "size": 168644,
+      "sha256": "9d0d55a303bfd13b79a87721f65185e93f235e2d77fe398b2dca67ac519915f5"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Roboto-Regular.ttf",
+      "size": 168260,
+      "sha256": "319cff6e7a31f0f2a41c475dca42890aa5d19fe16017e2290f8c1d4e14f76481"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/SukiUI.csproj",
+      "size": 7184,
+      "sha256": "7aeb4a0d69e41b5c412b37afc95d9e3a4f1936bb0b7093e69d848abd5067651c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/AutoCompleteBoxStyles.axaml",
+      "size": 6891,
+      "sha256": "98557fd1de2a5d6e102fdb2fa2ea2aa1d5dc0ce379a386981e38d1b95134c3d7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/BorderStyles.xaml",
+      "size": 2264,
+      "sha256": "ce89d462dc5b3dac08578a6d8add73134aa662f1e6b39b4bcf23e7bbe0333d1e"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Button.axaml",
+      "size": 29375,
+      "sha256": "1864eeabdaf90cc63b50ae23668709c8c8a7605591fec48636e4fe514fbc69f8"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ButtonLoadingStyles.axaml",
+      "size": 1033,
+      "sha256": "52fbe455c8561dd51ad8808e6244d4da6ffa9d38d88998b2b2a57678dbdd59b9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Calendar/Calendar.axaml",
+      "size": 1148,
+      "sha256": "d6a246ca0b5828b8f185285ad99c439a2c5677cb8641b14749f848e6ed01b536"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Calendar/CalendarButton.axaml",
+      "size": 3410,
+      "sha256": "9910a7b423e9d9bdf6a57dc81632fb08fc3d267bff81c78ab910469afafbaa86"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Calendar/CalendarDayButton.axaml",
+      "size": 5682,
+      "sha256": "435ec7d1764ccc2a6692bf9158013dbd9409337f5c6d7f7a6defffb4d16ddc59"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Calendar/CalendarItem.axaml",
+      "size": 4503,
+      "sha256": "955c23b4b3c5ac134b349161dcf321c4f7b52e904b5d147587b3d8e8accf0469"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/CalendarDatePickerStyle.axaml",
+      "size": 8698,
+      "sha256": "986a91b4ec51abf497c9cadb8525ceefa37a0b82abe8cdfd2fd100a3815d60c4"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/CheckBoxStyles.axaml",
+      "size": 6306,
+      "sha256": "631d6565efc73d7f2b292fba6c73d19da988ea7460db400f4559c006b6211c5c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ColorPicker.axaml",
+      "size": 34413,
+      "sha256": "4b87b17f5a648e69ed84301d0e38ba8bda0d964aa8245b7e70fc5911286f2bf4"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Colors.xaml",
+      "size": 6574,
+      "sha256": "a145c4b399bb13f9c58263ec020bb30db708aab60e858194eab719a25685016a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ComboBoxItemStyle.axaml",
+      "size": 5035,
+      "sha256": "43ab3422eb1e0c479c4f2d6b26325174fcd0140ad4dcf3e95c76b181b0187ea7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ComboBoxStyles.xaml",
+      "size": 17232,
+      "sha256": "fcfb4c65d83ecbb1b3ee2a15cc84135b63550bea79450c9962ed0720ab53273e"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ContextMenu.axaml",
+      "size": 3305,
+      "sha256": "a5e9037229be04acc2c0bd223d47cd061ce0ca1aa27735a5a65565754c09949a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/DataGridStyle.axaml",
+      "size": 18740,
+      "sha256": "be46c3710f8defdaef35aa8b803b34c403187325107b1d8766c98a3c0c0467e4"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/DatePicker.axaml",
+      "size": 17432,
+      "sha256": "3394109ac8ad626cabd65ae188e3e1c2e26f8f52f4b9d5068b9ac18a1f030b6b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/DropDownButton.axaml",
+      "size": 9164,
+      "sha256": "141ab60699db9f6189f82e78e9fcb597cf1e362492ee8693809ccb606a6d1e78"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Expander.axaml",
+      "size": 8776,
+      "sha256": "8e598551003f549183311b774f706ce1195f50467581c7585a5010e6391d0c47"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/FlyoutPresenter.axaml",
+      "size": 2769,
+      "sha256": "e47e2b8addc6cf9f0ff94b3e7fe3bf835f3b8abb60500fb65b2692bdb10929de"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/GridSplitterStyles.axaml",
+      "size": 524,
+      "sha256": "09d35e6b5b3acf1508308a9149abe9e30ad14f7c1c843830f9ca5b69c23840a0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/GridSplitterStyles.axaml.cs",
+      "size": 162,
+      "sha256": "e93522f32732b5cb006496c6a4922f2158d2530194bc0760578ea77ed88c2bbe"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/HyperlinkButton.axaml",
+      "size": 4166,
+      "sha256": "e8516087d92b6a29b0041312626c8f247a9bc30e031f5d26f3d11160867b7456"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Index.axaml",
+      "size": 7750,
+      "sha256": "e6bb121e07a8df34de8bef7c76dcbb138c79ddd069b4114f6b90105c4a34beb2"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Index.axaml.cs",
+      "size": 14303,
+      "sha256": "df03e8e84c3fa2576d09a686da987ff8c93b3e0599ee765a148b1eccb90eb5d0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ListBoxItemStyle.axaml",
+      "size": 9453,
+      "sha256": "29130c29b51e9580804379995892c5e1ffd439886ad3693d48ff33e1ca5848c6"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ListBoxStyles.xaml",
+      "size": 6141,
+      "sha256": "948991f9fc70e96b6d9c0fa85e594f24fc8844f58d663d1df24c780986f5f174"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ManagedFileChooser.axaml",
+      "size": 22422,
+      "sha256": "83311fc7814f1c38c748b0a099f73985b6fe460cd8a6af12df26d28444782ce7"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ManagedFileChooserConverters.cs",
+      "size": 2970,
+      "sha256": "a74ecfe2f9ce1d3b1906cc725ddc3de716eca42a6f637c5138d177f6d6285b9a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Menu.axaml",
+      "size": 9600,
+      "sha256": "b30ffe4cfb7140515b579778fcef611ec22b9e55b9016cac0aba3c27bd548782"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/MenuFlyoutPresenter.axaml",
+      "size": 2128,
+      "sha256": "094da73726989d8f4ed81f582835627cd51856148820d7399a2f502ad2498538"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/MenuItem.axaml",
+      "size": 14940,
+      "sha256": "b5e1003e78567dd2bb1929a3468affd7f4ead6992fa707ca8ddc07d57feea150"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/NotificationCardStyle.axaml",
+      "size": 11081,
+      "sha256": "110787a32ad41e600262590dbc056e14b5cdfe4b2c1903fdb8507f685ee67707"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/NotificationStyle.axaml",
+      "size": 3051,
+      "sha256": "8a0008cfdaec0e4e88d932b68d5d75a47286b6d19a516f5f615447ae5090fe77"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/NumericUpDown.xaml",
+      "size": 13211,
+      "sha256": "bee04bb9adfccf051b66fee6ea3a4db53ec1feea12af35d08314ee7160430c8c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/NumericUpDownExtensions.cs",
+      "size": 1017,
+      "sha256": "f72a69a798c963e226b3d46d3a53a79b7824c0297bbc14e935deb9df9e348d43"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/PathIcon.axaml",
+      "size": 7055,
+      "sha256": "fd20f77d035cbe4f0d4e18716049d5b0f72c1fd937d7563545ba3bd07649f50d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ProgressBar.axaml",
+      "size": 18151,
+      "sha256": "f297a4cce5f27f0bfcb49607f2750d791178e0d596cf1137fc4e360fc0652533"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/RadioButtonStyles.xaml",
+      "size": 17938,
+      "sha256": "a8c8a65fa617df429ea957b7db6cd9a917944200f209277e9bb2711f5f423a7d"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/RichTextBoxStyles.axaml",
+      "size": 443,
+      "sha256": "439b23d663aae8a1ebe310133c7a375ce72d0d11640f65a6cd12a14046b19b26"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ScrollBarStyle.axaml",
+      "size": 13294,
+      "sha256": "e85f605b9324c368028c20940cdea0bb54199c29fe2c018e3ffc3728ab29478a"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ScrollViewerStyles.axaml",
+      "size": 6315,
+      "sha256": "9f6e78cc3cfc3b3c266d325d875875f17d51209c7bcfeb74a1fa63993f4594cc"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ScrollableExtensions.cs",
+      "size": 5583,
+      "sha256": "02ba3f4cef6a8b6a345998de57e9888bccb2124e0954afb55033ba126e291e45"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Separator.axaml",
+      "size": 1814,
+      "sha256": "44330adda3f5642fcbf04e6b03b51e25b6eec073a1e0167295c6e73367c721a8"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Shadcn/BlackWhiteTheme.axaml",
+      "size": 1458,
+      "sha256": "ce81643ba3384ca8b53ee531fb5d1e15cf72accfc14124a919ba614a088791a9"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Shadcn/ShadDarkStyles.axaml",
+      "size": 6904,
+      "sha256": "3b5c93afcee7f2428fa835003d097b933059a2c2635b3b6b1d7f91c80e156075"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/Shadcn/Shadcn.cs",
+      "size": 2206,
+      "sha256": "a51d76ae4b50ce9c22b166c6e8f28600fab6a2c1cdabde7d57574da78a43c986"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/SliderStyles.xaml",
+      "size": 8462,
+      "sha256": "f0160e7c4cdce61f458a37d65449aa07de9fb4b186324e1570f4ba87413352de"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/SplitButton.axaml",
+      "size": 32633,
+      "sha256": "35429c094b7e733018799f9d4d43b713f61e2ca163a63228fc59b63a84926659"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/SplitView.axaml",
+      "size": 13505,
+      "sha256": "8f30f580a75bf8a93a9db0326bf6177b54fbc41a88e5cf6fd0c0d99a63f32a5c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TabControl.axaml",
+      "size": 6127,
+      "sha256": "31ffe3ca460a8ddbcd824d0ecb666716eda3a7069ecb95243147afa7c90d3cd0"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TabItem.axaml",
+      "size": 7059,
+      "sha256": "28eb2941b75a3e2eab736297e736cc20b8ccc883dfe94f5709b24fbde629f322"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TextBlock.axaml",
+      "size": 6384,
+      "sha256": "f8c76cba8649c49b35a0acd968370ff1a3ae989f6161559c00024e9c468431ae"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TextBox.axaml",
+      "size": 32781,
+      "sha256": "542f4b8ac4d95943f420eb0219e8c9484a56b2fe404ac1a455f3f9ad300e8d78"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TextBoxExtensions.cs",
+      "size": 4946,
+      "sha256": "96fc440aa67a0c32051d4892028304274dc44ef8d25ed659ffd151827770d834"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TextEraserButton.axaml",
+      "size": 999,
+      "sha256": "82329cdde101f3f947f680d32911cb94ed9180a35aad1566acc8a535756ac5ad"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TextEraserButton.axaml.cs",
+      "size": 717,
+      "sha256": "940a04dfd892817574a18533e96218c40c9dc386565332e1718f0540bde1558c"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TextStyles.axaml",
+      "size": 1528,
+      "sha256": "3b635e3bfa05e763e7186b31af236638c2ff2e402726c9749155183448d04f5f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TimePickerStyle.axaml",
+      "size": 27275,
+      "sha256": "6f33d8193ec25b13e6ba5cdda7be89e13980e370acb46584e264b4920043e12b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ToggleButton.axaml",
+      "size": 19486,
+      "sha256": "82814874a54bb99b66e449127497c9b345da0b746aed5c25972601140f6b2849"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ToggleSwitch.axaml",
+      "size": 12420,
+      "sha256": "a00a82de700eb8e4bc2f7d98b85fea54288226dc9dd7ffad81138caebed38d66"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/ToolTipStyles.axaml",
+      "size": 1921,
+      "sha256": "6fb1f8a2453b13781816d91219b07fcd1a2c83208a3a0c16664d55cf87512465"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Theme/TreeViewStyles.xaml",
+      "size": 6865,
+      "sha256": "90d491fae34403f6d49b74cdd14eb9f9b2f990799b08bf438d2276e7748b0660"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Toasts/FluentSukiToastBuilder.cs",
+      "size": 4252,
+      "sha256": "2e6fd8d73878b1bf76864cb67514cd1c43f0cf21bb86020aa87c5ff52ed55a30"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Toasts/ISukiToast.cs",
+      "size": 884,
+      "sha256": "b1181ba9877483300d319d3239bdef057d6dc1bd8a1886d9f96e525cef4fe2db"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Toasts/ISukiToastManager.cs",
+      "size": 2155,
+      "sha256": "0d1a19895953667f8aff681c6b6b28230650172d9060572c1ab99c7a8f62d47b"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Toasts/SukiToastBuilder.cs",
+      "size": 3650,
+      "sha256": "78e63815085cf2957b63c749eb0738ad594fa922e08828e2cf449e557a10ca5f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Toasts/SukiToastDismissSource.cs",
+      "size": 528,
+      "sha256": "63f482cf32fe1aef11a90ee43585323f652c9ac10b5ecd17fee358658f5b1552"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Toasts/SukiToastDismissedEventArgs.cs",
+      "size": 531,
+      "sha256": "a3d9f0186223cf140d2470f803643877fd3c9ed048c3414cc7d648fc6ceb8907"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Toasts/SukiToastManager.cs",
+      "size": 4652,
+      "sha256": "fe3860ba2d7f442dcc0e8dfc8c95b4f715f2104a5bdd8beaee3f3a1ce2d55c66"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Toasts/SukiToastQueuedEventArgs.cs",
+      "size": 327,
+      "sha256": "def429c24bc601021b46b79a46e101cbfdb0884c062549a30d6a28b045fac542"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Utilities/Effects/EffectBackgroundDraw.cs",
+      "size": 3297,
+      "sha256": "a578bc1bfa0e44115df1f750223dfeb49dbd9e998066e9c9d33f467a5892a28f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Utilities/Effects/EffectDrawBase.cs",
+      "size": 5256,
+      "sha256": "8b21a718026568f2ce99f67c600e769f05e98f7b01ab37e1f2bbab3888a748da"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Utilities/Effects/SukiEffect.cs",
+      "size": 8261,
+      "sha256": "84de537d3705f3d5785cb01aee223acb17bdd2063cdccd47f6c8cd358fcef74f"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/Utilities/IsExternalInit.cs",
+      "size": 166,
+      "sha256": "c5bdc9b844bbe0f07f78fbd84f3cfb567acd2b355e75f4e57acd1a0378b3dfa3"
+    },
+    {
+      "path": "gui/MFAAvalonia/SukiUI/packages.lock.json",
+      "size": 11921,
+      "sha256": "44b5fbb69aee8522b6762e3ff7a1c3c8a3155e57b2ac63401b8a6a0e0e366012"
+    },
+    {
+      "path": "gui/MFAAvalonia/cliff.toml",
+      "size": 2074,
+      "sha256": "ba36850ba40c59431d5bdbba42c5ed34a267560721494a56f7ae67798ad8046e"
+    },
+    {
+      "path": "gui/MFAAvalonia/docs/en/external-notification.md",
+      "size": 2815,
+      "sha256": "31ca51c691ba195d2796a9ccbf4a9b7ac69acb61a035379aa38196f647ac4ef9"
+    },
+    {
+      "path": "gui/MFAAvalonia/docs/zh/外部通知.md",
+      "size": 3163,
+      "sha256": "0d1f74c263160c07d70cb51220fc9dec5bcacf250cb3efca4b0de48632ca3dd6"
+    }
+  ]
+}

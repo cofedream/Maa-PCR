@@ -1,0 +1,105 @@
+{
+  "ReturnHome": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ],
+    "next": [
+      "ReturnPresetCancel"
+    ]
+  },
+  "ReturnCancelControl": {
+    "recognition": "OCR",
+    "roi": [
+      690,
+      610,
+      175,
+      55
+    ],
+    "expected": "^取消$",
+    "threshold": 0.8
+  },
+  "ReturnPresetTitle": {
+    "recognition": "OCR",
+    "roi": [
+      480,
+      30,
+      320,
+      47
+    ],
+    "expected": "^关卡一览$",
+    "threshold": 0.8
+  },
+  "ReturnPresetCancel": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "ReturnCancelControl",
+      "ReturnPresetTitle",
+      "PresetsReached"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "ReturnMainGate"
+    ]
+  },
+  "ReturnMainGate": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ],
+    "next": [
+      "ReturnMainHome"
+    ]
+  },
+  "ReturnHomeControl": {
+    "recognition": "OCR",
+    "roi": [
+      45,
+      680,
+      120,
+      40
+    ],
+    "expected": "^我的主页$",
+    "threshold": 0.8
+  },
+  "ReturnMainHome": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "ReturnHomeControl",
+      "ObserveMain"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "ReturnHomeGate"
+    ]
+  },
+  "ReturnHomeGate": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "post_delay": 1000,
+    "on_error": [
+      "UnknownStop"
+    ],
+    "next": [
+      "ObserveHome"
+    ]
+  }
+}

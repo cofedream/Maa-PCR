@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "sourceTable": "事件",
+  "strategy": {
+    "selectButtonLabel": "选择",
+    "normalizeWhitespace": true,
+    "ignorePunctuation": true,
+    "minTextScore": 0.65
+  },
+  "layouts": [
+    {
+      "id": "event-one-choice",
+      "optionCount": 1,
+      "titleRoi": {"left":0.22,"top":0.10,"right":0.78,"bottom":0.22},
+      "optionTextRois": [
+        {"left":0.30,"top":0.20,"right":0.70,"bottom":0.78}
+      ],
+      "selectButtonRois": [
+        {"left":0.41,"top":0.75,"right":0.59,"bottom":0.91}
+      ],
+      "calibrationRequired": false
+    },
+    {
+      "id": "event-two-choice",
+      "optionCount": 2,
+      "titleRoi": {"left":0.22,"top":0.10,"right":0.78,"bottom":0.22},
+      "optionTextRois": [
+        {"left":0.17,"top":0.20,"right":0.49,"bottom":0.78},
+        {"left":0.51,"top":0.20,"right":0.83,"bottom":0.78}
+      ],
+      "selectButtonRois": [
+        {"left":0.276,"top":0.75,"right":0.443,"bottom":0.91},
+        {"left":0.557,"top":0.75,"right":0.724,"bottom":0.91}
+      ],
+      "calibrationRequired": false
+    },
+    {
+      "id": "event-three-choice",
+      "optionCount": 3,
+      "titleRoi": {"left":0.22,"top":0.10,"right":0.78,"bottom":0.22},
+      "optionTextRois": [
+        {"left":0.06,"top":0.20,"right":0.32,"bottom":0.78},
+        {"left":0.37,"top":0.20,"right":0.63,"bottom":0.78},
+        {"left":0.68,"top":0.20,"right":0.94,"bottom":0.78}
+      ],
+      "selectButtonRois": [
+        {"left":0.105,"top":0.75,"right":0.285,"bottom":0.91},
+        {"left":0.410,"top":0.75,"right":0.590,"bottom":0.91},
+        {"left":0.715,"top":0.75,"right":0.895,"bottom":0.91}
+      ],
+      "calibrationRequired": false
+    }
+  ],
+  "signatures": [
+    {"id":"event-sheet-b1","sourceCell":"B1","tags":["recruit","tank"]},
+    {"id":"event-sheet-c1","sourceCell":"C1","tags":["recruit","healer"]},
+    {"id":"event-sheet-b2","sourceCell":"B2","tags":["recruit","booster"]},
+    {"id":"event-sheet-c2","sourceCell":"C2","tags":["recruit","buffer"]},
+    {"id":"event-sheet-b3","sourceCell":"B3","tags":["recruit","debuffer"]},
+    {"id":"event-sheet-c3","sourceCell":"C3","tags":["recruit","jammer"]},
+    {"id":"event-sheet-b4","sourceCell":"B4","tags":["recruit","attacker"]},
+    {"id":"event-sheet-c4","sourceCell":"C4","tags":["recruit","breaker"]},
+    {"id":"event-sheet-b5","sourceCell":"B5","tags":["battle","normal","alpha-coin"]},
+    {"id":"event-sheet-c5","sourceCell":"C5","tags":["battle","ex","alpha-coin"]},
+    {"id":"event-sheet-b6","sourceCell":"B6","tags":["battle","normal","alpha-coin"]},
+    {"id":"event-sheet-c6","sourceCell":"C6","tags":["battle","ex","alpha-coin"]},
+    {"id":"event-sheet-b7","sourceCell":"B7","tags":["battle","normal","alpha-coin"]},
+    {"id":"event-sheet-c7","sourceCell":"C7","tags":["battle","ex","alpha-coin"]},
+    {"id":"event-sheet-b8","sourceCell":"B8","tags":["battle","normal","alpha-coin"]},
+    {"id":"event-sheet-c8","sourceCell":"C8","tags":["battle","ex","alpha-coin"]},
+    {"id":"event-sheet-b9","sourceCell":"B9","tags":["chain","relic","chance"]},
+    {"id":"event-sheet-b10","sourceCell":"B10","tags":["chain","relic","chance"]},
+    {"id":"event-sheet-b11","sourceCell":"B11","tags":["relic","chance"]},
+    {"id":"event-sheet-b12","sourceCell":"B12","tags":["chain","alpha-coin","chance"]},
+    {"id":"event-sheet-b13","sourceCell":"B13","tags":["chain","stop"]},
+    {"id":"event-sheet-c13","sourceCell":"C13","tags":["chain","alpha-coin","chance"]},
+    {"id":"event-sheet-b14","sourceCell":"B14","tags":["chain","stop"]},
+    {"id":"event-sheet-c14","sourceCell":"C14","tags":["alpha-coin","chance"]},
+    {"id":"event-sheet-b15","sourceCell":"B15","tags":["chain","chance"]},
+    {"id":"event-sheet-b16","sourceCell":"B16","tags":["recruit","random-role"]},
+    {"id":"event-sheet-c16","sourceCell":"C16","tags":["chain","chance"]},
+    {"id":"event-sheet-b17","sourceCell":"B17","tags":["recruit","select-role"]},
+    {"id":"event-sheet-c17","sourceCell":"C17","tags":["recruit","select-any","chance"]},
+    {"id":"event-sheet-b18","sourceCell":"B18","tags":["alpha-coin","chance"]},
+    {"id":"event-sheet-c18","sourceCell":"C18","tags":["recruit","chance"]},
+    {"id":"event-sheet-d18","sourceCell":"D18","tags":["relic","chance"]},
+    {"id":"event-sheet-b19","sourceCell":"B19","tags":["alpha-coin"]},
+    {"id":"event-sheet-c19","sourceCell":"C19","tags":["relic","recruit","chance"]},
+    {"id":"event-sheet-b20","sourceCell":"B20","tags":["minigame","alpha-coin"]},
+    {"id":"event-sheet-c20","sourceCell":"C20","tags":["minigame","alpha-coin"]},
+    {"id":"event-sheet-d20","sourceCell":"D20","tags":["minigame","alpha-coin"]},
+    {"id":"event-sheet-b21","sourceCell":"B21","tags":["alpha-coin"]},
+    {"id":"event-sheet-c21","sourceCell":"C21","tags":["relic"]},
+    {"id":"event-sheet-b22","sourceCell":"B22","tags":["alpha-coin"]},
+    {"id":"event-sheet-c22","sourceCell":"C22","tags":["recruit","special"]}
+  ]
+}

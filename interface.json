@@ -1,0 +1,230 @@
+{
+  "interface_version": 2,
+  "name": "PCRAlpha",
+  "label": "PCR Alpha",
+  "version": "0.1.0-alpha",
+  "description": "选择本次模块，设置预设槽位与次数后点开始。不会自动购买或重置；资源不足或结果不明时停止。",
+  "controller": [
+    {
+      "name": "PCRAdb",
+      "label": "PCR Android",
+      "type": "Adb",
+      "display_short_side": 720
+    }
+  ],
+  "resource": [
+    {
+      "name": "PCR",
+      "label": "PCR 游戏资源",
+      "path": [
+        "assets/resource"
+      ]
+    }
+  ],
+  "agent": {
+    "child_exec": "./runtime/python/python.exe",
+    "child_args": [
+      "-B",
+      "./scripts/start-alpha-agent.py"
+    ]
+  },
+  "task": [
+    {
+      "name": "PCRAlpha",
+      "label": "运行所选组合一次",
+      "entry": "PCRAlphaEntry",
+      "default_check": false,
+      "description": "选择本次模块后点开始。日程使用游戏内已设计划；活动为已勾选困难关卡；扫荡关卡先在游戏内预选，再在上方设置槽位与次数。0 次跳过该类扫荡。",
+      "option": [
+        "AlphaModules",
+        "AlphaRewardsFinal"
+      ],
+      "pipeline_override": {
+        "PCRAlphaEntry": {
+          "custom_action_param": {
+            "selection_mode": "pi_nodes_v1"
+          }
+        },
+        "PCRAlphaSelectSchedule": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectEvent": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectAbyss": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectDeep": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectRewards": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectVeryHard": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectHard": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectRewardsFinal": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectNormal": {
+          "attach": {
+            "selected": false
+          }
+        }
+      }
+    }
+  ],
+  "option": {
+    "AlphaModules": {
+      "type": "checkbox",
+      "label": "本次任务（可多选）",
+      "default_case": [],
+      "cases": [
+        {
+          "name": "schedule_onekey",
+          "label": "日程",
+          "description": "按游戏内日程计划执行一键自动",
+          "pipeline_override": {
+            "PCRAlphaSelectSchedule": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "event",
+          "label": "活动",
+          "description": "扫荡活动中已勾选的困难关卡，每关每日最多3次，无需填写预设槽位。",
+          "pipeline_override": {
+            "PCRAlphaSelectEvent": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "abyss",
+          "label": "深渊前哨",
+          "description": "普通、困难、高难中已通关的前哨按本次剩余次数扫荡；预算不足安全跳过。不打首领，不购买重置，不调整次数。",
+          "pipeline_override": {
+            "PCRAlphaSelectAbyss": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "deep",
+          "label": "深域",
+          "description": "先在游戏内预选深域关卡，再设置预设槽位和每关每日目标；填 0 次跳过。无法确认时停止。",
+          "pipeline_override": {
+            "PCRAlphaSelectDeep": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "rewards",
+          "label": "每日任务/礼物",
+          "description": "领取可确认的每日任务奖励与礼物；无需扫荡预设，结果不明时停止。",
+          "pipeline_override": {
+            "PCRAlphaSelectRewards": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "very_hard",
+          "label": "高难",
+          "description": "先在游戏内预选高难关卡，再设置预设槽位和每关每日目标；填 0 次跳过。",
+          "pipeline_override": {
+            "PCRAlphaSelectVeryHard": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "hard",
+          "label": "困难/外传",
+          "description": "先在游戏内预选困难或外传关卡，再设置预设槽位和每关每日目标；填 0 次跳过。",
+          "pipeline_override": {
+            "PCRAlphaSelectHard": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "normal",
+          "label": "普通 · 每关本次",
+          "description": "先在游戏内预选普通关卡，再设置预设槽位和每关本次次数；填 0 次跳过，不需要每日目标。",
+          "pipeline_override": {
+            "PCRAlphaSelectNormal": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "AlphaRewardsFinal": {
+      "type": "switch",
+      "label": "末尾补领",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "No",
+          "label": "关闭",
+          "pipeline_override": {
+            "PCRAlphaSelectRewardsFinal": {
+              "attach": {
+                "selected": false
+              }
+            }
+          }
+        },
+        {
+          "name": "Yes",
+          "label": "开启",
+          "pipeline_override": {
+            "PCRAlphaSelectRewardsFinal": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

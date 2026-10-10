@@ -1,0 +1,305 @@
+{
+  "revision": 29,
+  "gui_version": "2.16.5",
+  "runtime_manifest_sha256": "11a89540e0e443807c5750a55b3214b2659491b6cb0cf932a3f0067cca535540",
+  "gui_binary_sha256": {
+    "MFAAvalonia.exe": "5c0cd02b8e16c753cdc3cf1208e468a2b731280aba0b764cbe964ec1f6449c52",
+    "MFAAvalonia.dll": "852bfbe93231eb816b3c78a18bd0456976acad4ef4e4bc38064f08387576a08f",
+    "MFAAvalonia.Core.dll": "41f5bdc3185fc419a6bf5d6814a3ec5ca871b21b402082b2783c5fedaa01f18b"
+  },
+  "runtime_source_correspondence": [
+    {
+      "path": "assets/resource/pipeline/abyss.json",
+      "size": 22600,
+      "sha256": "fb2f3b7411efce89c8817a8a9ea846fd35bdfdb9e04e4ebc93d85d655c7af581"
+    },
+    {
+      "path": "assets/resource/pipeline/alpha_entry.json",
+      "size": 2291,
+      "sha256": "9815eee84b29aab6c18a7d224816ac43f1a0f3332e5271f07106e000c79d2587"
+    },
+    {
+      "path": "assets/resource/pipeline/event.json",
+      "size": 32504,
+      "sha256": "c9ee7515898c6bbc047acbcd44b1b505913c1c0ec9f7641892798f9087c24809"
+    },
+    {
+      "path": "assets/resource/pipeline/preset_execution.json",
+      "size": 30820,
+      "sha256": "6a911de12c16877f738fa2f2da535b3019ee0e373da7fc2559c4c74840815fca"
+    },
+    {
+      "path": "assets/resource/pipeline/preset_scan.json",
+      "size": 8772,
+      "sha256": "f5ced4f8fd0bb94fada61fbe3d6a8113c25257cfdb07e169620d83255d1442fd"
+    },
+    {
+      "path": "assets/resource/pipeline/presets.json",
+      "size": 7594,
+      "sha256": "ffc456fcde506d329da24e140be937efe5c5691540b68757a99a837cfa22fe2f"
+    },
+    {
+      "path": "assets/resource/pipeline/return_home.json",
+      "size": 1830,
+      "sha256": "c59ae5a543580e73cec9bf773972111bdb94c1b5ee449dfaba0245f05f93d3f0"
+    },
+    {
+      "path": "assets/resource/pipeline/rewards.json",
+      "size": 13338,
+      "sha256": "47372d77a8b03b336ecb156e23ff013e6e5658e59b9deceea1d0e4d74330f633"
+    },
+    {
+      "path": "assets/resource/pipeline/schedule.json",
+      "size": 4138,
+      "sha256": "bbe86dc2b8deb80293ef2d3494670aff8b20c89c8ae560954cc61dc90ca776e7"
+    },
+    {
+      "path": "assets/resource/pipeline/schedule_house.json",
+      "size": 1973,
+      "sha256": "def03dcd5ecadeb12975ad1186b30bfbb814ced76adb499225d389b983e533e5"
+    },
+    {
+      "path": "assets/resource/pipeline/schedule_onekey.json",
+      "size": 23625,
+      "sha256": "569224d66890a1257558c40c94325f117e3957f6cbf08db903390c70eae941a4"
+    },
+    {
+      "path": "assets/resource/pipeline/schedule_quick.json",
+      "size": 10590,
+      "sha256": "2879062a39e1153bcc323737cf3c75c7dd050847ff74f9402ab58a1d5eed162a"
+    },
+    {
+      "path": "scripts/pcr.py",
+      "size": 265,
+      "sha256": "5ad7a95b8dc4539cdc05870bd3677eb22275ab9ce39f098bcacbb65ff8788f14"
+    },
+    {
+      "path": "scripts/player-maintenance.py",
+      "size": 422,
+      "sha256": "95ec5151ec60998072c182bc85fe8c2e997284c23d0f07aa41d1bb4dc2198ad2"
+    },
+    {
+      "path": "scripts/start-alpha-agent.py",
+      "size": 628,
+      "sha256": "8dfb532a95be1fbb529a96aad8205acb988083cdfae8ef26cf60752531644aab"
+    },
+    {
+      "path": "scripts/start-alpha-owned-agent.py",
+      "size": 1386,
+      "sha256": "bcab7a8ade88b575f621d83fec45721b1ec80438757d23802e5ce02f8c0919bf"
+    },
+    {
+      "path": "scripts/validate-alpha-config.py",
+      "size": 2581,
+      "sha256": "14483b03c01f4e7cb53462d224d44f26b68cf578130e0a6f5934b4648b1569a3"
+    },
+    {
+      "path": "src/pcr_maa/__init__.py",
+      "size": 40,
+      "sha256": "38a23fad2d5be703c8921f26d3a222a5145fadf40d45b1a60ed7c2b064d5bb85"
+    },
+    {
+      "path": "src/pcr_maa/abyss.py",
+      "size": 18951,
+      "sha256": "5dd4b310de543ef9f2c0bc579d979e60ce34de3a6bd6673b3eb08abbbc946ada"
+    },
+    {
+      "path": "src/pcr_maa/abyss_native.py",
+      "size": 25341,
+      "sha256": "e23d167b24b884eb17999aecb5d9ad2eceacafa1cb428cb73f12e756a0936234"
+    },
+    {
+      "path": "src/pcr_maa/abyss_reconcile.py",
+      "size": 9874,
+      "sha256": "6ace6d6beb88ddb69629dc476fd40beeb7eb93aa48cb17cbf25ec96c06c2fedb"
+    },
+    {
+      "path": "src/pcr_maa/agent_callbacks.py",
+      "size": 11787,
+      "sha256": "6a2475d4350e0b06ac824eba821dcceae201f608f300883aa123156d60768d70"
+    },
+    {
+      "path": "src/pcr_maa/agent_entry.py",
+      "size": 17517,
+      "sha256": "c1df6bbbb101e259ca7514585afff10a1008f228081b5062660b51275720ecca"
+    },
+    {
+      "path": "src/pcr_maa/alpha_owner.py",
+      "size": 7478,
+      "sha256": "182686c3910cf2207580c9b373ee9b07963f9badc0740e476c1f61b18ebe25ee"
+    },
+    {
+      "path": "src/pcr_maa/cli.py",
+      "size": 27755,
+      "sha256": "e4952a8d877ab4b4f39363b74e77ff0cbd5b8b057061526ff94af910d881368d"
+    },
+    {
+      "path": "src/pcr_maa/context_backend.py",
+      "size": 9372,
+      "sha256": "5b764c3f514586ecb2a15b4be441810de4cb4af3db7cfa197ee4fc3b870e29e9"
+    },
+    {
+      "path": "src/pcr_maa/daily.py",
+      "size": 16340,
+      "sha256": "08d51aff025b14756906d377675cf844a8704cb0a3fd22c1fb2e1a466abee2d3"
+    },
+    {
+      "path": "src/pcr_maa/daily_goal.py",
+      "size": 4854,
+      "sha256": "9fb3fd77529a5c42e618e1ff62aba6817fdc3fbe5c01187736e6b2cdf5cedb5b"
+    },
+    {
+      "path": "src/pcr_maa/device.py",
+      "size": 17226,
+      "sha256": "1ed2c9c1a444c1873a4d66976b2c6d9a4191c1b2d8cb2d889f9c12a8f4fe39fa"
+    },
+    {
+      "path": "src/pcr_maa/event.py",
+      "size": 13630,
+      "sha256": "b26c071388a5f61c93291459b048a0a3724ea3b8cb23e89dea16dcb57e53a3b3"
+    },
+    {
+      "path": "src/pcr_maa/event_native.py",
+      "size": 29342,
+      "sha256": "d21f29bbfb356d2c1e0127459076a382f3b15e4701ab839882c5cb771b9a5bba"
+    },
+    {
+      "path": "src/pcr_maa/game_day.py",
+      "size": 510,
+      "sha256": "3c80c8b340e483630ae3d46303f9fe7683db2921ba2ac7520a737da06f88a646"
+    },
+    {
+      "path": "src/pcr_maa/gui_contract.py",
+      "size": 2792,
+      "sha256": "3185c122e59e89414b98113f2fde69a2d15135605864013a5d24a1ac10a5e0f5"
+    },
+    {
+      "path": "src/pcr_maa/home_guard.py",
+      "size": 3259,
+      "sha256": "4bff862b194c19d0ef0678ac5f569e1f799442bc6799ed9768d86f4c8802ed89"
+    },
+    {
+      "path": "src/pcr_maa/local_config.py",
+      "size": 823,
+      "sha256": "613c0914cca58af081760ee345c541886cba692e24e680c463697666c21b4151"
+    },
+    {
+      "path": "src/pcr_maa/native.py",
+      "size": 6764,
+      "sha256": "b5ed718e553c9bf9a83e678054f48b9d70c80c5f01b5b6aa61bf950fd5d0f6e0"
+    },
+    {
+      "path": "src/pcr_maa/navigation_abort.py",
+      "size": 32318,
+      "sha256": "84f34044e1f7f8465fcf58dc1532badcbbb225918755eea8b4374e2eabc42f03"
+    },
+    {
+      "path": "src/pcr_maa/observation.py",
+      "size": 2131,
+      "sha256": "fdffb2f9012fe7ff1344031e4f44667635ad4da1e080e34f555f683f148ea438"
+    },
+    {
+      "path": "src/pcr_maa/onekey_completed_reconcile.py",
+      "size": 45473,
+      "sha256": "475c51b42bb0ada5ae424f4458769cd529f7f562f7cb7e2b89acce9e4c451481"
+    },
+    {
+      "path": "src/pcr_maa/onekey_history.py",
+      "size": 43060,
+      "sha256": "6df65813e474d4b0a274e6495cbdf7651b19aafe48fc96b9951ed7fafc4f1351"
+    },
+    {
+      "path": "src/pcr_maa/onekey_reconcile.py",
+      "size": 83243,
+      "sha256": "9db6c035abf6d8728ac511a839ce40245f7bef661c22ffa13183221edb705a71"
+    },
+    {
+      "path": "src/pcr_maa/operator_entry.py",
+      "size": 11300,
+      "sha256": "74401070af2b383a2ccbdbcb03fe74c7b0d1f9e5d038d396c235bef20d7ffdc2"
+    },
+    {
+      "path": "src/pcr_maa/player_maintenance.py",
+      "size": 23798,
+      "sha256": "9452b1f7b24bb6e8a316683c8b7727368fe45a25516474d32befe3595c223880"
+    },
+    {
+      "path": "src/pcr_maa/preset_confirmation.py",
+      "size": 11566,
+      "sha256": "f7ddf3b35ea6b177c75a6fbcb21c1d466c3a656dc6e103c7a2933088170a974a"
+    },
+    {
+      "path": "src/pcr_maa/preset_execution.py",
+      "size": 23305,
+      "sha256": "e136687874fa27d0d093777fef21f795c7ced413221a89fe1a9c546996d99a7f"
+    },
+    {
+      "path": "src/pcr_maa/preset_execution_native.py",
+      "size": 23434,
+      "sha256": "49ce19d9f5c5f243c6badab9dabf1632b271ce9b0bc340087fd890fb1eead2a7"
+    },
+    {
+      "path": "src/pcr_maa/preset_reconcile.py",
+      "size": 25294,
+      "sha256": "b18e66e8f7bc3d9a2ea850eab93b3c60ee9bec92fff76ce1978bb6d19d3bde10"
+    },
+    {
+      "path": "src/pcr_maa/preset_result_reconcile.py",
+      "size": 6966,
+      "sha256": "e026ee4bd3c4a6e7f005fe7496e005bdbed2dca7c3053ebc52bab64678a667d7"
+    },
+    {
+      "path": "src/pcr_maa/preset_scan.py",
+      "size": 15147,
+      "sha256": "582600e40e9e702cd57b93a3129936dc8375c89235c05869962afed9cddb0e57"
+    },
+    {
+      "path": "src/pcr_maa/replay.py",
+      "size": 1292,
+      "sha256": "bce30cf3d33296b5f57c91327e8f4eb6756ca6f0fd612933cbc6e761fa4c9e5a"
+    },
+    {
+      "path": "src/pcr_maa/result_checkpoint.py",
+      "size": 8948,
+      "sha256": "c6249ec0cdc80d11156ff5d72661b191be817083147820fa8e366fd3ab0d599b"
+    },
+    {
+      "path": "src/pcr_maa/rewards.py",
+      "size": 6630,
+      "sha256": "e72c7c3e8a3a77017d698c470c59001fd5f12ed9741009632f3ea91bb9b35917"
+    },
+    {
+      "path": "src/pcr_maa/schedule.py",
+      "size": 9661,
+      "sha256": "6be2bedcd68a0a6e45a5441ec38798f6c8353c2f81a4d204cf96078fced89e8d"
+    },
+    {
+      "path": "src/pcr_maa/schedule_house.py",
+      "size": 14921,
+      "sha256": "761107e6dd93c26e2a769bc2d170ef75a623f0b5cc2427c51c55c44519c33987"
+    },
+    {
+      "path": "src/pcr_maa/schedule_onekey.py",
+      "size": 71967,
+      "sha256": "e3adfdd8929f16ac7e4b4b3ed910723b2d115fa14f2721d13acc92c63afbfcff"
+    },
+    {
+      "path": "src/pcr_maa/schedule_quick.py",
+      "size": 9950,
+      "sha256": "7441e0f8896111c722f59fe6bff07f67355790bf9ef8b5569b0f31c0ccbc5a37"
+    },
+    {
+      "path": "src/pcr_maa/schedule_recovery.py",
+      "size": 7129,
+      "sha256": "38ffe39d898c83d45b8d61b10c4307922dfd9ad668193d42c470699a42837dcc"
+    },
+    {
+      "path": "src/pcr_maa/supported_daily.py",
+      "size": 52157,
+      "sha256": "c496d6da8701e4479683d2d12d8dc0eaeb1c932f6033f3a0258db73c86d4f5d1"
+    }
+  ],
+  "inherited_gui_component_record": "RELEASE_COMPONENTS-r26.json",
+  "fixed_dependency_materials_unchanged": true,
+  "private_evidence_excluded": true
+}

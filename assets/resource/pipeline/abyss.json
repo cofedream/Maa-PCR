@@ -1,0 +1,1209 @@
+{
+  "AbyssAdventureEntryLabel": {
+    "recognition": "OCR",
+    "roi": [
+      345,
+      550,
+      150,
+      65
+    ],
+    "expected": "^深渊讨伐战$",
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssAdventureEntryProbe": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssAdventureEntryLabel",
+      "AbyssAdventureIdentity"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "on_error": []
+  },
+  "AbyssAdventureEntryClickCandidate": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssAdventureEntryLabel",
+      "AbyssAdventureIdentity"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "AbyssAdventureTitle": {
+    "recognition": "OCR",
+    "roi": [
+      60,
+      0,
+      150,
+      80
+    ],
+    "expected": "^冒险$",
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssAdventureMainLabel": {
+    "recognition": "OCR",
+    "roi": [
+      665,
+      245,
+      175,
+      65
+    ],
+    "expected": "^主线关卡$",
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssAdventureDeepLabel": {
+    "recognition": "OCR",
+    "roi": [
+      910,
+      400,
+      160,
+      65
+    ],
+    "expected": "^深域关卡$",
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssAdventurePrincessArenaLabel": {
+    "recognition": "OCR",
+    "roi": [
+      850,
+      545,
+      170,
+      70
+    ],
+    "expected": "^公主竞技场$",
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssAdventureIdentity": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssAdventureTitle",
+      "AbyssAdventureMainLabel",
+      "AbyssAdventureDeepLabel",
+      "AbyssAdventurePrincessArenaLabel"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "on_error": []
+  },
+  "AbyssHomeTitle": {
+    "recognition": "OCR",
+    "roi": [
+      70,
+      0,
+      210,
+      78
+    ],
+    "expected": "^深渊讨伐战$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssEventName": {
+    "recognition": "OCR",
+    "roi": [
+      50,
+      74,
+      160,
+      40
+    ],
+    "expected": "^.+深渊$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssPeriod": {
+    "recognition": "OCR",
+    "roi": [
+      25,
+      116,
+      380,
+      36
+    ],
+    "expected": "^举办时间[:：]\\s*\\d{2}/\\d{2}\\s*\\d{2}[:：]\\d{2}[~～]\\s*\\d{2}/\\d{2}\\s*\\d{2}[:：]\\d{2}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssOutpostLabel": {
+    "recognition": "OCR",
+    "roi": [
+      130,
+      155,
+      160,
+      65
+    ],
+    "expected": "^前哨关卡$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssHomeSweepButton": {
+    "recognition": "OCR",
+    "roi": [
+      94,
+      564,
+      102,
+      33
+    ],
+    "expected": "^一键扫荡$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssNormalLabel": {
+    "recognition": "OCR",
+    "roi": [
+      165,
+      260,
+      80,
+      50
+    ],
+    "expected": "^普通$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssNormalRemainingLabel": {
+    "recognition": "OCR",
+    "roi": [
+      60,
+      305,
+      145,
+      35
+    ],
+    "expected": "^剩余挑战次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssNormalRemaining": {
+    "recognition": "OCR",
+    "roi": [
+      267,
+      307,
+      64,
+      31
+    ],
+    "expected": "^\\d{1,3}\\s*[/／]\\s*\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssHardLabel": {
+    "recognition": "OCR",
+    "roi": [
+      165,
+      360,
+      80,
+      50
+    ],
+    "expected": "^困难$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssHardRemainingLabel": {
+    "recognition": "OCR",
+    "roi": [
+      60,
+      405,
+      145,
+      35
+    ],
+    "expected": "^剩余挑战次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssHardRemaining": {
+    "recognition": "OCR",
+    "roi": [
+      267,
+      407,
+      64,
+      31
+    ],
+    "expected": "^\\d{1,3}\\s*[/／]\\s*\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssVeryHardLabel": {
+    "recognition": "OCR",
+    "roi": [
+      165,
+      458,
+      80,
+      50
+    ],
+    "expected": "^高难$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssVeryHardRemainingLabel": {
+    "recognition": "OCR",
+    "roi": [
+      60,
+      503,
+      145,
+      35
+    ],
+    "expected": "^剩余挑战次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssVeryHardRemaining": {
+    "recognition": "OCR",
+    "roi": [
+      267,
+      505,
+      64,
+      31
+    ],
+    "expected": "^\\d{1,3}\\s*[/／]\\s*\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssHomeGuard": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssHomeTitle",
+      "AbyssEventName",
+      "AbyssPeriod",
+      "AbyssOutpostLabel",
+      "AbyssNormalLabel",
+      "AbyssHardLabel",
+      "AbyssVeryHardLabel"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssHomeSnapshot": {
+    "recognition": "Custom",
+    "custom_recognition": "AbyssHomePage",
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 30000,
+    "on_error": [],
+    "post_delay": 0
+  },
+  "AbyssHomeArrived": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssHomeGuard"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "AbyssFromHome": {
+    "recognition": "And",
+    "all_of": [
+      "ObserveHome"
+    ],
+    "action": "Click",
+    "target": [
+      718,
+      681
+    ],
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "AbyssFromAdventure",
+      "AbyssUnavailable"
+    ],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "AbyssFromAdventure": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssAdventureEntryLabel",
+      "AbyssAdventureIdentity"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [
+      "AbyssHomeArrived"
+    ],
+    "timeout": 30000,
+    "on_error": [],
+    "post_delay": 600
+  },
+  "AbyssConfirmTitle": {
+    "recognition": "OCR",
+    "roi": [
+      552,
+      37,
+      184,
+      40
+    ],
+    "expected": "^一键扫荡确认$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssConfirmInstruction": {
+    "recognition": "OCR",
+    "roi": [
+      417,
+      92,
+      439,
+      31
+    ],
+    "expected": "^消耗扫荡券和体力，进行以下关卡。确认吗[？?]$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssCancelButton": {
+    "recognition": "OCR",
+    "roi": [
+      448,
+      610,
+      99,
+      57
+    ],
+    "expected": "^取消$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssChallengeButton": {
+    "recognition": "OCR",
+    "roi": [
+      733,
+      610,
+      115,
+      57
+    ],
+    "expected": "^挑战$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow1Title": {
+    "recognition": "OCR",
+    "roi": [
+      64,
+      138,
+      160,
+      38
+    ],
+    "expected": "^前哨关卡$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow1Mode": {
+    "recognition": "OCR",
+    "roi": [
+      97,
+      175,
+      120,
+      37
+    ],
+    "expected": "^深渊讨伐战$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow1Difficulty": {
+    "recognition": "OCR",
+    "roi": [
+      258,
+      174,
+      83,
+      39
+    ],
+    "expected": "^高难$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow1RemainingLabel": {
+    "recognition": "OCR",
+    "roi": [
+      400,
+      174,
+      150,
+      40
+    ],
+    "expected": "^剩余挑战次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow1Remaining": {
+    "recognition": "OCR",
+    "roi": [
+      596,
+      175,
+      59,
+      34
+    ],
+    "expected": "^\\d{1,3}\\s*[/／]\\s*\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteRow1TimesLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1060,
+      138,
+      130,
+      35
+    ],
+    "expected": "^跳过次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow1Times": {
+    "recognition": "OCR",
+    "roi": [
+      1153,
+      174,
+      38,
+      37
+    ],
+    "expected": "^\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteRow2Title": {
+    "recognition": "OCR",
+    "roi": [
+      64,
+      224,
+      160,
+      38
+    ],
+    "expected": "^前哨关卡$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow2Mode": {
+    "recognition": "OCR",
+    "roi": [
+      97,
+      261,
+      120,
+      37
+    ],
+    "expected": "^深渊讨伐战$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow2Difficulty": {
+    "recognition": "OCR",
+    "roi": [
+      258,
+      260,
+      83,
+      39
+    ],
+    "expected": "^困难$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow2RemainingLabel": {
+    "recognition": "OCR",
+    "roi": [
+      400,
+      260,
+      150,
+      40
+    ],
+    "expected": "^剩余挑战次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow2Remaining": {
+    "recognition": "OCR",
+    "roi": [
+      596,
+      261,
+      59,
+      34
+    ],
+    "expected": "^\\d{1,3}\\s*[/／]\\s*\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteRow2TimesLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1060,
+      224,
+      130,
+      35
+    ],
+    "expected": "^跳过次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow2Times": {
+    "recognition": "OCR",
+    "roi": [
+      1153,
+      260,
+      38,
+      37
+    ],
+    "expected": "^\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteRow3Title": {
+    "recognition": "OCR",
+    "roi": [
+      64,
+      310,
+      160,
+      38
+    ],
+    "expected": "^前哨关卡$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow3Mode": {
+    "recognition": "OCR",
+    "roi": [
+      97,
+      347,
+      120,
+      37
+    ],
+    "expected": "^深渊讨伐战$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow3Difficulty": {
+    "recognition": "OCR",
+    "roi": [
+      258,
+      346,
+      83,
+      39
+    ],
+    "expected": "^普通$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow3RemainingLabel": {
+    "recognition": "OCR",
+    "roi": [
+      400,
+      346,
+      150,
+      40
+    ],
+    "expected": "^剩余挑战次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow3Remaining": {
+    "recognition": "OCR",
+    "roi": [
+      596,
+      347,
+      59,
+      34
+    ],
+    "expected": "^\\d{1,3}\\s*[/／]\\s*\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteRow3TimesLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1060,
+      310,
+      130,
+      35
+    ],
+    "expected": "^跳过次数$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteRow3Times": {
+    "recognition": "OCR",
+    "roi": [
+      1153,
+      346,
+      38,
+      37
+    ],
+    "expected": "^\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteStaminaCost": {
+    "recognition": "OCR",
+    "roi": [
+      297,
+      465,
+      47,
+      25
+    ],
+    "expected": "^\\d{1,9}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteStaminaOwned": {
+    "recognition": "OCR",
+    "roi": [
+      580,
+      465,
+      48,
+      25
+    ],
+    "expected": "^\\d{1,9}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteTicketCost": {
+    "recognition": "OCR",
+    "roi": [
+      319,
+      505,
+      25,
+      23
+    ],
+    "expected": "^\\d{1,9}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteTicketsOwned": {
+    "recognition": "OCR",
+    "roi": [
+      543,
+      505,
+      86,
+      23
+    ],
+    "expected": "^\\d{1,9}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteStages": {
+    "recognition": "OCR",
+    "roi": [
+      934,
+      489,
+      37,
+      39
+    ],
+    "expected": "^\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssQuoteTotalTimes": {
+    "recognition": "OCR",
+    "roi": [
+      1153,
+      489,
+      38,
+      40
+    ],
+    "expected": "^\\d{1,3}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssConfirmGuard": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssConfirmTitle",
+      "AbyssConfirmInstruction",
+      "AbyssCancelButton",
+      "AbyssChallengeButton",
+      "AbyssQuoteTitles"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssQuoteSnapshot": {
+    "recognition": "Custom",
+    "custom_recognition": "AbyssQuotePage",
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 30000,
+    "on_error": [],
+    "post_delay": 0
+  },
+  "AbyssOpenSweep": {
+    "recognition": "Custom",
+    "custom_recognition": "AbyssOpenPage",
+    "action": "Click",
+    "next": [],
+    "timeout": 30000,
+    "on_error": [],
+    "post_delay": 500,
+    "target": true,
+    "max_hit": 1
+  },
+  "AbyssCancel": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssCancelButton",
+      "AbyssConfirmGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 500,
+    "next": [
+      "AbyssCancelled"
+    ],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "AbyssCancelled": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssHomeGuard"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "AbyssChallenge": {
+    "recognition": "Custom",
+    "custom_recognition": "AbyssConfirmedQuote",
+    "action": "Click",
+    "next": [
+      "AbyssTicketSnapshot"
+    ],
+    "timeout": 30000,
+    "on_error": [],
+    "post_delay": 500,
+    "target": true,
+    "max_hit": 1
+  },
+  "AbyssTicketTitle": {
+    "recognition": "OCR",
+    "roi": [
+      535,
+      176,
+      217,
+      38
+    ],
+    "expected": "^扫荡券确认$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketQuestion1": {
+    "recognition": "OCR",
+    "roi": [
+      531,
+      274,
+      224,
+      31
+    ],
+    "expected": "^要消耗扫荡券和体力$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketQuestion2": {
+    "recognition": "OCR",
+    "roi": [
+      555,
+      300,
+      178,
+      30
+    ],
+    "expected": "^通关关卡吗[？?]$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketStaminaLabel": {
+    "recognition": "OCR",
+    "roi": [
+      354,
+      355,
+      106,
+      33
+    ],
+    "expected": "^消耗体力$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketCostLabel": {
+    "recognition": "OCR",
+    "roi": [
+      382,
+      394,
+      76,
+      30
+    ],
+    "expected": "^消耗券$",
+    "threshold": 0.9,
+    "only_rec": true,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketStaminaOwnedLabel": {
+    "recognition": "OCR",
+    "roi": [
+      648,
+      355,
+      75,
+      33
+    ],
+    "expected": "^体力$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketOwnedLabel": {
+    "recognition": "Or",
+    "any_of": [
+      "AbyssTicketOwnedLabelDetected",
+      "AbyssTicketOwnedLabelFixed"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketStaminaCost": {
+    "recognition": "OCR",
+    "roi": [
+      588,
+      355,
+      52,
+      31
+    ],
+    "expected": "^\\d{1,9}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssTicketStaminaOwned": {
+    "recognition": "OCR",
+    "roi": [
+      878,
+      355,
+      56,
+      31
+    ],
+    "expected": "^\\d{1,9}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": false
+  },
+  "AbyssTicketCost": {
+    "recognition": "OCR",
+    "roi": [
+      598,
+      397,
+      41,
+      23
+    ],
+    "expected": "^\\d{1,2}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssTicketOwned": {
+    "recognition": "OCR",
+    "roi": [
+      839,
+      394,
+      96,
+      29
+    ],
+    "expected": "^\\d{1,9}$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssTicketCancelButton": {
+    "recognition": "OCR",
+    "roi": [
+      445,
+      471,
+      110,
+      55
+    ],
+    "expected": "^取消$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketConfirmButton": {
+    "recognition": "OCR",
+    "roi": [
+      734,
+      471,
+      119,
+      55
+    ],
+    "expected": "^确认$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketGuard": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssTicketTitle",
+      "AbyssTicketQuestion1",
+      "AbyssTicketQuestion2",
+      "AbyssTicketStaminaLabel",
+      "AbyssTicketCostLabel",
+      "AbyssTicketStaminaOwnedLabel",
+      "AbyssTicketOwnedLabel",
+      "AbyssTicketCancelButton",
+      "AbyssTicketConfirmButton",
+      "AbyssConfirmTitle",
+      "AbyssConfirmInstruction",
+      "AbyssQuoteTitles"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketSnapshot": {
+    "recognition": "Custom",
+    "custom_recognition": "AbyssTicketPage",
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 30000,
+    "on_error": [],
+    "post_delay": 0
+  },
+  "AbyssTicketCommit": {
+    "recognition": "Custom",
+    "custom_recognition": "AbyssTicketPage",
+    "action": "Click",
+    "next": [],
+    "timeout": 30000,
+    "on_error": [],
+    "post_delay": 500,
+    "target": true,
+    "max_hit": 1
+  },
+  "AbyssTicketCancel": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssTicketCancelButton",
+      "AbyssTicketGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 500,
+    "next": [
+      "AbyssQuoteReturned"
+    ],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "AbyssQuoteReturned": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssConfirmGuard"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssResultProbe": {
+    "recognition": "And",
+    "all_of": [
+      "ExecResultTitle",
+      "ExecResultComplete",
+      "ExecResultButton"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "AbyssResultClose": {
+    "recognition": "Custom",
+    "custom_recognition": "AbyssResultPage",
+    "action": "Click",
+    "next": [
+      "AbyssLimitedShopCancel",
+      "AbyssHomeArrived"
+    ],
+    "timeout": 30000,
+    "on_error": [],
+    "post_delay": 600,
+    "target": true,
+    "max_hit": 1
+  },
+  "AbyssLimitedShopCancel": {
+    "recognition": "And",
+    "all_of": [
+      "ExecLimitedShopButton",
+      "ExecLimitedShopTitle",
+      "ExecLimitedShopNotice",
+      "ExecLimitedShopInstruction"
+    ],
+    "action": "Click",
+    "target": [
+      790,
+      634
+    ],
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [],
+    "next": [
+      "AbyssHomeArrived"
+    ]
+  },
+  "AbyssReturnHome": {
+    "recognition": "And",
+    "all_of": [
+      "ReturnHomeControl",
+      "AbyssHomeSnapshot"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "ReturnHomeGate"
+    ],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "AbyssRecoverResultStart": {
+    "next": [
+      "ObserveHome",
+      "AbyssHomeArrived",
+      "AbyssResultClose",
+      "AbyssLimitedShopCancel"
+    ],
+    "timeout": 30000,
+    "rate_limit": 300,
+    "on_error": []
+  },
+  "AbyssQuoteTitles": {
+    "recognition": "OCR",
+    "roi": [
+      64,
+      132,
+      160,
+      280
+    ],
+    "expected": "^前哨关卡$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "AbyssTicketOwnedLabelDetected": {
+    "recognition": "OCR",
+    "roi": [
+      674,
+      395,
+      32,
+      29
+    ],
+    "expected": "^券$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": false
+  },
+  "AbyssTicketOwnedLabelFixed": {
+    "recognition": "OCR",
+    "roi": [
+      674,
+      395,
+      32,
+      29
+    ],
+    "expected": "^券$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "only_rec": true
+  },
+  "AbyssUnavailable": {
+    "recognition": "Custom",
+    "custom_recognition": "ActivityEntryAbsent",
+    "action": "DoNothing",
+    "next": [],
+    "on_error": []
+  },
+  "AbyssAdventureGate": {
+    "action": "DoNothing",
+    "next": [
+      "AbyssFromAdventure",
+      "AbyssUnavailable"
+    ],
+    "timeout": 30000,
+    "on_error": []
+  }
+}

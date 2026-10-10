@@ -1,0 +1,822 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/notofonts/noto-cjk",
+  "upstream_commit": "f8d157532fbfaeda587e826d4cd5b21a49186f7c",
+  "fonts": [
+    {
+      "filename": "NotoSansSC-Light.otf",
+      "sha256": "35cca31cea56b2720c096efaea2cfdffdf1b523bf5de0a80552d16edccfa9c70",
+      "size": 8299104,
+      "sfnt_signature": "OTTO",
+      "name_table": [
+        {
+          "Id": 0,
+          "Text": "© 2014-2021 Adobe (http://www.adobe.com/)."
+        },
+        {
+          "Id": 1,
+          "Text": "Noto Sans SC Light"
+        },
+        {
+          "Id": 2,
+          "Text": "Regular"
+        },
+        {
+          "Id": 4,
+          "Text": "Noto Sans SC Light"
+        },
+        {
+          "Id": 5,
+          "Text": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603"
+        },
+        {
+          "Id": 6,
+          "Text": "NotoSansSC-Light"
+        },
+        {
+          "Id": 13,
+          "Text": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This Font Software is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software."
+        },
+        {
+          "Id": 14,
+          "Text": "http://scripts.sil.org/OFL"
+        },
+        {
+          "Id": 16,
+          "Text": "Noto Sans SC"
+        },
+        {
+          "Id": 17,
+          "Text": "Light"
+        }
+      ],
+      "matching_family": "Noto Sans SC",
+      "OS2_weight": 300,
+      "OS2_fsType": 0,
+      "maxp_glyph_count": 31036,
+      "has_fvar": false,
+      "has_gvar": false,
+      "has_CFF": true,
+      "has_CFF2": false,
+      "target_text": "扫荡困难高难深域体力未决设置保存开始停止珀岚蜡",
+      "character_count": 23,
+      "unique_count": 22,
+      "coverage": [
+        {
+          "Character": "扫",
+          "Codepoint": "U+626B",
+          "GlyphId": 13959,
+          "Covered": true
+        },
+        {
+          "Character": "荡",
+          "Codepoint": "U+8361",
+          "GlyphId": 22363,
+          "Covered": true
+        },
+        {
+          "Character": "困",
+          "Codepoint": "U+56F0",
+          "GlyphId": 11032,
+          "Covered": true
+        },
+        {
+          "Character": "难",
+          "Codepoint": "U+96BE",
+          "GlyphId": 27307,
+          "Covered": true
+        },
+        {
+          "Character": "高",
+          "Codepoint": "U+9AD8",
+          "GlyphId": 28354,
+          "Covered": true
+        },
+        {
+          "Character": "难",
+          "Codepoint": "U+96BE",
+          "GlyphId": 27307,
+          "Covered": true
+        },
+        {
+          "Character": "深",
+          "Codepoint": "U+6DF1",
+          "GlyphId": 16897,
+          "Covered": true
+        },
+        {
+          "Character": "域",
+          "Codepoint": "U+57DF",
+          "GlyphId": 11270,
+          "Covered": true
+        },
+        {
+          "Character": "体",
+          "Codepoint": "U+4F53",
+          "GlyphId": 9099,
+          "Covered": true
+        },
+        {
+          "Character": "力",
+          "Codepoint": "U+529B",
+          "GlyphId": 9935,
+          "Covered": true
+        },
+        {
+          "Character": "未",
+          "Codepoint": "U+672A",
+          "GlyphId": 15166,
+          "Covered": true
+        },
+        {
+          "Character": "决",
+          "Codepoint": "U+51B3",
+          "GlyphId": 9705,
+          "Covered": true
+        },
+        {
+          "Character": "设",
+          "Codepoint": "U+8BBE",
+          "GlyphId": 24496,
+          "Covered": true
+        },
+        {
+          "Character": "置",
+          "Codepoint": "U+7F6E",
+          "GlyphId": 21357,
+          "Covered": true
+        },
+        {
+          "Character": "保",
+          "Codepoint": "U+4FDD",
+          "GlyphId": 9237,
+          "Covered": true
+        },
+        {
+          "Character": "存",
+          "Codepoint": "U+5B58",
+          "GlyphId": 12154,
+          "Covered": true
+        },
+        {
+          "Character": "开",
+          "Codepoint": "U+5F00",
+          "GlyphId": 13085,
+          "Covered": true
+        },
+        {
+          "Character": "始",
+          "Codepoint": "U+59CB",
+          "GlyphId": 11757,
+          "Covered": true
+        },
+        {
+          "Character": "停",
+          "Codepoint": "U+505C",
+          "GlyphId": 9363,
+          "Covered": true
+        },
+        {
+          "Character": "止",
+          "Codepoint": "U+6B62",
+          "GlyphId": 16243,
+          "Covered": true
+        },
+        {
+          "Character": "珀",
+          "Codepoint": "U+73C0",
+          "GlyphId": 18374,
+          "Covered": true
+        },
+        {
+          "Character": "岚",
+          "Codepoint": "U+5C9A",
+          "GlyphId": 12474,
+          "Covered": true
+        },
+        {
+          "Character": "蜡",
+          "Codepoint": "U+8721",
+          "GlyphId": 23315,
+          "Covered": true
+        }
+      ],
+      "missing": "",
+      "path": "gui/MFAAvalonia/SukiUI/CustomFont/NotoSansSC-Light.otf",
+      "source_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/SubsetOTF/SC/NotoSansSC-Light.otf",
+      "upstream_path": "Sans/SubsetOTF/SC/NotoSansSC-Light.otf",
+      "retrieved_at_utc": "2026-10-01T10:20:13.1340347Z"
+    },
+    {
+      "filename": "NotoSansSC-Regular.otf",
+      "sha256": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9",
+      "size": 8331336,
+      "sfnt_signature": "OTTO",
+      "name_table": [
+        {
+          "Id": 0,
+          "Text": "© 2014-2021 Adobe (http://www.adobe.com/)."
+        },
+        {
+          "Id": 1,
+          "Text": "Noto Sans SC"
+        },
+        {
+          "Id": 2,
+          "Text": "Regular"
+        },
+        {
+          "Id": 4,
+          "Text": "Noto Sans SC"
+        },
+        {
+          "Id": 5,
+          "Text": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603"
+        },
+        {
+          "Id": 6,
+          "Text": "NotoSansSC-Regular"
+        },
+        {
+          "Id": 13,
+          "Text": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This Font Software is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software."
+        },
+        {
+          "Id": 14,
+          "Text": "http://scripts.sil.org/OFL"
+        }
+      ],
+      "matching_family": "Noto Sans SC",
+      "OS2_weight": 400,
+      "OS2_fsType": 0,
+      "maxp_glyph_count": 31036,
+      "has_fvar": false,
+      "has_gvar": false,
+      "has_CFF": true,
+      "has_CFF2": false,
+      "target_text": "扫荡困难高难深域体力未决设置保存开始停止珀岚蜡",
+      "character_count": 23,
+      "unique_count": 22,
+      "coverage": [
+        {
+          "Character": "扫",
+          "Codepoint": "U+626B",
+          "GlyphId": 13959,
+          "Covered": true
+        },
+        {
+          "Character": "荡",
+          "Codepoint": "U+8361",
+          "GlyphId": 22363,
+          "Covered": true
+        },
+        {
+          "Character": "困",
+          "Codepoint": "U+56F0",
+          "GlyphId": 11032,
+          "Covered": true
+        },
+        {
+          "Character": "难",
+          "Codepoint": "U+96BE",
+          "GlyphId": 27307,
+          "Covered": true
+        },
+        {
+          "Character": "高",
+          "Codepoint": "U+9AD8",
+          "GlyphId": 28354,
+          "Covered": true
+        },
+        {
+          "Character": "难",
+          "Codepoint": "U+96BE",
+          "GlyphId": 27307,
+          "Covered": true
+        },
+        {
+          "Character": "深",
+          "Codepoint": "U+6DF1",
+          "GlyphId": 16897,
+          "Covered": true
+        },
+        {
+          "Character": "域",
+          "Codepoint": "U+57DF",
+          "GlyphId": 11270,
+          "Covered": true
+        },
+        {
+          "Character": "体",
+          "Codepoint": "U+4F53",
+          "GlyphId": 9099,
+          "Covered": true
+        },
+        {
+          "Character": "力",
+          "Codepoint": "U+529B",
+          "GlyphId": 9935,
+          "Covered": true
+        },
+        {
+          "Character": "未",
+          "Codepoint": "U+672A",
+          "GlyphId": 15166,
+          "Covered": true
+        },
+        {
+          "Character": "决",
+          "Codepoint": "U+51B3",
+          "GlyphId": 9705,
+          "Covered": true
+        },
+        {
+          "Character": "设",
+          "Codepoint": "U+8BBE",
+          "GlyphId": 24496,
+          "Covered": true
+        },
+        {
+          "Character": "置",
+          "Codepoint": "U+7F6E",
+          "GlyphId": 21357,
+          "Covered": true
+        },
+        {
+          "Character": "保",
+          "Codepoint": "U+4FDD",
+          "GlyphId": 9237,
+          "Covered": true
+        },
+        {
+          "Character": "存",
+          "Codepoint": "U+5B58",
+          "GlyphId": 12154,
+          "Covered": true
+        },
+        {
+          "Character": "开",
+          "Codepoint": "U+5F00",
+          "GlyphId": 13085,
+          "Covered": true
+        },
+        {
+          "Character": "始",
+          "Codepoint": "U+59CB",
+          "GlyphId": 11757,
+          "Covered": true
+        },
+        {
+          "Character": "停",
+          "Codepoint": "U+505C",
+          "GlyphId": 9363,
+          "Covered": true
+        },
+        {
+          "Character": "止",
+          "Codepoint": "U+6B62",
+          "GlyphId": 16243,
+          "Covered": true
+        },
+        {
+          "Character": "珀",
+          "Codepoint": "U+73C0",
+          "GlyphId": 18374,
+          "Covered": true
+        },
+        {
+          "Character": "岚",
+          "Codepoint": "U+5C9A",
+          "GlyphId": 12474,
+          "Covered": true
+        },
+        {
+          "Character": "蜡",
+          "Codepoint": "U+8721",
+          "GlyphId": 23315,
+          "Covered": true
+        }
+      ],
+      "missing": "",
+      "path": "gui/MFAAvalonia/SukiUI/CustomFont/NotoSansSC-Regular.otf",
+      "source_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf",
+      "upstream_path": "Sans/SubsetOTF/SC/NotoSansSC-Regular.otf",
+      "retrieved_at_utc": "2026-10-01T10:18:25.0118675Z"
+    },
+    {
+      "filename": "NotoSansSC-Medium.otf",
+      "sha256": "7633f5a016d4dd95e685a69633d818aabc4644c4b08e26bd35b1b30c45ed5dda",
+      "size": 8345436,
+      "sfnt_signature": "OTTO",
+      "name_table": [
+        {
+          "Id": 0,
+          "Text": "© 2014-2021 Adobe (http://www.adobe.com/)."
+        },
+        {
+          "Id": 1,
+          "Text": "Noto Sans SC Medium"
+        },
+        {
+          "Id": 2,
+          "Text": "Regular"
+        },
+        {
+          "Id": 4,
+          "Text": "Noto Sans SC Medium"
+        },
+        {
+          "Id": 5,
+          "Text": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603"
+        },
+        {
+          "Id": 6,
+          "Text": "NotoSansSC-Medium"
+        },
+        {
+          "Id": 13,
+          "Text": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This Font Software is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software."
+        },
+        {
+          "Id": 14,
+          "Text": "http://scripts.sil.org/OFL"
+        },
+        {
+          "Id": 16,
+          "Text": "Noto Sans SC"
+        },
+        {
+          "Id": 17,
+          "Text": "Medium"
+        }
+      ],
+      "matching_family": "Noto Sans SC",
+      "OS2_weight": 500,
+      "OS2_fsType": 0,
+      "maxp_glyph_count": 31036,
+      "has_fvar": false,
+      "has_gvar": false,
+      "has_CFF": true,
+      "has_CFF2": false,
+      "target_text": "扫荡困难高难深域体力未决设置保存开始停止珀岚蜡",
+      "character_count": 23,
+      "unique_count": 22,
+      "coverage": [
+        {
+          "Character": "扫",
+          "Codepoint": "U+626B",
+          "GlyphId": 13959,
+          "Covered": true
+        },
+        {
+          "Character": "荡",
+          "Codepoint": "U+8361",
+          "GlyphId": 22363,
+          "Covered": true
+        },
+        {
+          "Character": "困",
+          "Codepoint": "U+56F0",
+          "GlyphId": 11032,
+          "Covered": true
+        },
+        {
+          "Character": "难",
+          "Codepoint": "U+96BE",
+          "GlyphId": 27307,
+          "Covered": true
+        },
+        {
+          "Character": "高",
+          "Codepoint": "U+9AD8",
+          "GlyphId": 28354,
+          "Covered": true
+        },
+        {
+          "Character": "难",
+          "Codepoint": "U+96BE",
+          "GlyphId": 27307,
+          "Covered": true
+        },
+        {
+          "Character": "深",
+          "Codepoint": "U+6DF1",
+          "GlyphId": 16897,
+          "Covered": true
+        },
+        {
+          "Character": "域",
+          "Codepoint": "U+57DF",
+          "GlyphId": 11270,
+          "Covered": true
+        },
+        {
+          "Character": "体",
+          "Codepoint": "U+4F53",
+          "GlyphId": 9099,
+          "Covered": true
+        },
+        {
+          "Character": "力",
+          "Codepoint": "U+529B",
+          "GlyphId": 9935,
+          "Covered": true
+        },
+        {
+          "Character": "未",
+          "Codepoint": "U+672A",
+          "GlyphId": 15166,
+          "Covered": true
+        },
+        {
+          "Character": "决",
+          "Codepoint": "U+51B3",
+          "GlyphId": 9705,
+          "Covered": true
+        },
+        {
+          "Character": "设",
+          "Codepoint": "U+8BBE",
+          "GlyphId": 24496,
+          "Covered": true
+        },
+        {
+          "Character": "置",
+          "Codepoint": "U+7F6E",
+          "GlyphId": 21357,
+          "Covered": true
+        },
+        {
+          "Character": "保",
+          "Codepoint": "U+4FDD",
+          "GlyphId": 9237,
+          "Covered": true
+        },
+        {
+          "Character": "存",
+          "Codepoint": "U+5B58",
+          "GlyphId": 12154,
+          "Covered": true
+        },
+        {
+          "Character": "开",
+          "Codepoint": "U+5F00",
+          "GlyphId": 13085,
+          "Covered": true
+        },
+        {
+          "Character": "始",
+          "Codepoint": "U+59CB",
+          "GlyphId": 11757,
+          "Covered": true
+        },
+        {
+          "Character": "停",
+          "Codepoint": "U+505C",
+          "GlyphId": 9363,
+          "Covered": true
+        },
+        {
+          "Character": "止",
+          "Codepoint": "U+6B62",
+          "GlyphId": 16243,
+          "Covered": true
+        },
+        {
+          "Character": "珀",
+          "Codepoint": "U+73C0",
+          "GlyphId": 18374,
+          "Covered": true
+        },
+        {
+          "Character": "岚",
+          "Codepoint": "U+5C9A",
+          "GlyphId": 12474,
+          "Covered": true
+        },
+        {
+          "Character": "蜡",
+          "Codepoint": "U+8721",
+          "GlyphId": 23315,
+          "Covered": true
+        }
+      ],
+      "missing": "",
+      "path": "gui/MFAAvalonia/SukiUI/CustomFont/NotoSansSC-Medium.otf",
+      "source_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/SubsetOTF/SC/NotoSansSC-Medium.otf",
+      "upstream_path": "Sans/SubsetOTF/SC/NotoSansSC-Medium.otf",
+      "retrieved_at_utc": "2026-10-01T10:20:15.6032388Z"
+    },
+    {
+      "filename": "NotoSansSC-Bold.otf",
+      "sha256": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "size": 8543168,
+      "sfnt_signature": "OTTO",
+      "name_table": [
+        {
+          "Id": 0,
+          "Text": "© 2014-2021 Adobe (http://www.adobe.com/)."
+        },
+        {
+          "Id": 1,
+          "Text": "Noto Sans SC"
+        },
+        {
+          "Id": 2,
+          "Text": "Bold"
+        },
+        {
+          "Id": 4,
+          "Text": "Noto Sans SC Bold"
+        },
+        {
+          "Id": 5,
+          "Text": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603"
+        },
+        {
+          "Id": 6,
+          "Text": "NotoSansSC-Bold"
+        },
+        {
+          "Id": 13,
+          "Text": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This Font Software is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software."
+        },
+        {
+          "Id": 14,
+          "Text": "http://scripts.sil.org/OFL"
+        }
+      ],
+      "matching_family": "Noto Sans SC",
+      "OS2_weight": 700,
+      "OS2_fsType": 0,
+      "maxp_glyph_count": 31036,
+      "has_fvar": false,
+      "has_gvar": false,
+      "has_CFF": true,
+      "has_CFF2": false,
+      "target_text": "扫荡困难高难深域体力未决设置保存开始停止珀岚蜡",
+      "character_count": 23,
+      "unique_count": 22,
+      "coverage": [
+        {
+          "Character": "扫",
+          "Codepoint": "U+626B",
+          "GlyphId": 13959,
+          "Covered": true
+        },
+        {
+          "Character": "荡",
+          "Codepoint": "U+8361",
+          "GlyphId": 22363,
+          "Covered": true
+        },
+        {
+          "Character": "困",
+          "Codepoint": "U+56F0",
+          "GlyphId": 11032,
+          "Covered": true
+        },
+        {
+          "Character": "难",
+          "Codepoint": "U+96BE",
+          "GlyphId": 27307,
+          "Covered": true
+        },
+        {
+          "Character": "高",
+          "Codepoint": "U+9AD8",
+          "GlyphId": 28354,
+          "Covered": true
+        },
+        {
+          "Character": "难",
+          "Codepoint": "U+96BE",
+          "GlyphId": 27307,
+          "Covered": true
+        },
+        {
+          "Character": "深",
+          "Codepoint": "U+6DF1",
+          "GlyphId": 16897,
+          "Covered": true
+        },
+        {
+          "Character": "域",
+          "Codepoint": "U+57DF",
+          "GlyphId": 11270,
+          "Covered": true
+        },
+        {
+          "Character": "体",
+          "Codepoint": "U+4F53",
+          "GlyphId": 9099,
+          "Covered": true
+        },
+        {
+          "Character": "力",
+          "Codepoint": "U+529B",
+          "GlyphId": 9935,
+          "Covered": true
+        },
+        {
+          "Character": "未",
+          "Codepoint": "U+672A",
+          "GlyphId": 15166,
+          "Covered": true
+        },
+        {
+          "Character": "决",
+          "Codepoint": "U+51B3",
+          "GlyphId": 9705,
+          "Covered": true
+        },
+        {
+          "Character": "设",
+          "Codepoint": "U+8BBE",
+          "GlyphId": 24496,
+          "Covered": true
+        },
+        {
+          "Character": "置",
+          "Codepoint": "U+7F6E",
+          "GlyphId": 21357,
+          "Covered": true
+        },
+        {
+          "Character": "保",
+          "Codepoint": "U+4FDD",
+          "GlyphId": 9237,
+          "Covered": true
+        },
+        {
+          "Character": "存",
+          "Codepoint": "U+5B58",
+          "GlyphId": 12154,
+          "Covered": true
+        },
+        {
+          "Character": "开",
+          "Codepoint": "U+5F00",
+          "GlyphId": 13085,
+          "Covered": true
+        },
+        {
+          "Character": "始",
+          "Codepoint": "U+59CB",
+          "GlyphId": 11757,
+          "Covered": true
+        },
+        {
+          "Character": "停",
+          "Codepoint": "U+505C",
+          "GlyphId": 9363,
+          "Covered": true
+        },
+        {
+          "Character": "止",
+          "Codepoint": "U+6B62",
+          "GlyphId": 16243,
+          "Covered": true
+        },
+        {
+          "Character": "珀",
+          "Codepoint": "U+73C0",
+          "GlyphId": 18374,
+          "Covered": true
+        },
+        {
+          "Character": "岚",
+          "Codepoint": "U+5C9A",
+          "GlyphId": 12474,
+          "Covered": true
+        },
+        {
+          "Character": "蜡",
+          "Codepoint": "U+8721",
+          "GlyphId": 23315,
+          "Covered": true
+        }
+      ],
+      "missing": "",
+      "path": "gui/MFAAvalonia/SukiUI/CustomFont/NotoSansSC-Bold.otf",
+      "source_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/SubsetOTF/SC/NotoSansSC-Bold.otf",
+      "upstream_path": "Sans/SubsetOTF/SC/NotoSansSC-Bold.otf",
+      "retrieved_at_utc": "2026-10-01T10:20:19.909178Z"
+    }
+  ],
+  "font_bytes_modified": false,
+  "license": {
+    "path": "docs/licenses/gui/NotoSansSC-OFL.txt",
+    "license": "OFL-1.1",
+    "sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
+    "size": 4301,
+    "source_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/LICENSE",
+    "copyright": "© 2014-2021 Adobe (http://www.adobe.com/).",
+    "original_response_bytes_retained": true
+  },
+  "requested_weights_without_static_face": [
+    600,
+    800
+  ],
+  "matching_scope": "Existing Avalonia nearest-weight/synthetic matching; source records do not establish runtime rendering."
+}

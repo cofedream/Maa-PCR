@@ -1,0 +1,1502 @@
+{
+  "EventClosedHomeNotice": {
+    "recognition": "OCR",
+    "roi": [
+      1000,
+      268,
+      200,
+      55
+    ],
+    "expected": "^活动即将举办[！!]?$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventClosedHomeNoticeRead": {
+    "action": "DoNothing",
+    "next": [
+      "EventClosedHomeNoticeAudit",
+      "ObserveHome"
+    ],
+    "timeout": 1000,
+    "rate_limit": 250
+  },
+  "EventClosedHomeNoticeAudit": {
+    "recognition": "And",
+    "all_of": [
+      "ObserveHome",
+      "EventClosedHomeNotice"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000
+  },
+  "EventEntryAudit": {
+    "next": [
+      "EventEntryText"
+    ],
+    "timeout": 1000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventEntryText": {
+    "recognition": "OCR",
+    "roi": [
+      520,
+      563,
+      64,
+      44
+    ],
+    "expected": "^.+$",
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": []
+  },
+  "EventClosedAdventureAudit": {
+    "recognition": "Custom",
+    "custom_recognition": "ClosedAdventurePage",
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000
+  },
+  "EventClosedReturnHome": {
+    "recognition": "And",
+    "all_of": [
+      "ClosedAdventurePageGuard",
+      "ReturnHomeControl"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "ReturnHomeGate"
+    ],
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "ClosedAdventurePageGuard": {
+    "recognition": "Custom",
+    "custom_recognition": "ClosedAdventurePage",
+    "next": []
+  },
+  "EventQuestsLabel": {
+    "recognition": "OCR",
+    "roi": [
+      675,
+      252,
+      147,
+      42
+    ],
+    "expected": "^活动关卡$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "EventBossLabel": {
+    "recognition": "OCR",
+    "roi": [
+      903,
+      100,
+      67,
+      43
+    ],
+    "expected": "^首领$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "EventStoryLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1120,
+      428,
+      88,
+      69
+    ],
+    "expected": "^活动|剧情$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "EventPeriod": {
+    "recognition": "OCR",
+    "roi": [
+      140,
+      589,
+      350,
+      30
+    ],
+    "expected": "^举办时间[:：]\\d{2}/\\d{2}\\s*\\d{2}:\\d{2}[～~]\\d{2}/\\d{2}\\s*\\d{2}:\\d{2}$",
+    "threshold": 0.9,
+    "next": [],
+    "only_rec": true
+  },
+  "EventHomeGuard": {
+    "recognition": "And",
+    "all_of": [
+      "EventQuestsLabel",
+      "EventBossLabel",
+      "EventPeriod",
+      "ReturnHomeControl"
+    ],
+    "next": []
+  },
+  "EventMapTitle": {
+    "recognition": "OCR",
+    "roi": [
+      79,
+      10,
+      91,
+      54
+    ],
+    "expected": "^活动$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "EventMapName": {
+    "recognition": "OCR",
+    "roi": [
+      550,
+      91,
+      180,
+      39
+    ],
+    "expected": "^.+$",
+    "threshold": 0.9,
+    "next": [
+      "EventOpenList"
+    ]
+  },
+  "EventHardLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1140,
+      94,
+      90,
+      31
+    ],
+    "expected": "^困难$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventHardSelected": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1127,
+      113,
+      13,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      195,
+      55,
+      70
+    ],
+    "upper": [
+      255,
+      155,
+      175
+    ],
+    "count": 55
+  },
+  "EventSweepLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1204,
+      187,
+      47,
+      28
+    ],
+    "expected": "^扫荡$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "EventMapGuard": {
+    "recognition": "And",
+    "all_of": [
+      "EventMapTitle",
+      "EventMapName",
+      "EventHardLabel",
+      "EventHardSelected",
+      "EventSweepLabel"
+    ],
+    "next": []
+  },
+  "EventRevivalLabel": {
+    "recognition": "OCR",
+    "roi": [
+      520,
+      563,
+      64,
+      44
+    ],
+    "expected": "^复刻$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventStoryActivityLabel": {
+    "recognition": "OCR",
+    "roi": [
+      480,
+      557,
+      130,
+      55
+    ],
+    "expected": "^剧情活动$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventEntryLabel": {
+    "recognition": "Or",
+    "any_of": [
+      "EventRevivalLabel",
+      "EventStoryActivityLabel"
+    ],
+    "next": []
+  },
+  "EventAdventure": {
+    "recognition": "And",
+    "all_of": [
+      "ObserveHome"
+    ],
+    "next": [
+      "EventEnterGate"
+    ],
+    "action": "Click",
+    "target": [
+      718,
+      681
+    ],
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventEnter": {
+    "recognition": "And",
+    "all_of": [
+      "EventEntryLabel",
+      "ObserveAdventure"
+    ],
+    "next": [
+      "EventPageGate"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventFromHome": {
+    "next": [
+      "EventAdventure"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventEnterGate": {
+    "next": [
+      "EventEnter",
+      "EventUnavailable"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventFromEvent": {
+    "next": [
+      "EventLoginRewardClose",
+      "StoryEventOpenQuests",
+      "EventOpenQuests",
+      "EventMapRead",
+      "EventSwitchHard"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventPageGate": {
+    "next": [
+      "EventLoginRewardClose",
+      "StoryEventOpenQuests",
+      "EventOpenQuests",
+      "EventMapRead",
+      "EventSwitchHard"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventOpenQuests": {
+    "recognition": "And",
+    "all_of": [
+      "EventQuestsLabel",
+      "EventHomeGuard"
+    ],
+    "next": [
+      "EventMapGate"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventMapGate": {
+    "next": [
+      "EventMapRead",
+      "EventSwitchHard"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventMapRead": {
+    "recognition": "And",
+    "all_of": [
+      "EventMapGuard"
+    ],
+    "next": [
+      "EventMapName"
+    ]
+  },
+  "EventOpenList": {
+    "recognition": "And",
+    "all_of": [
+      "EventSweepLabel",
+      "EventMapGuard"
+    ],
+    "next": [
+      "EventListGate"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventListGate": {
+    "next": [
+      "EventListReady"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventRewardLabel": {
+    "recognition": "OCR",
+    "roi": [
+      67,
+      103,
+      96,
+      35
+    ],
+    "expected": "^可获得$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventCheckedLabel": {
+    "recognition": "OCR",
+    "roi": [
+      849,
+      136,
+      110,
+      33
+    ],
+    "expected": "^已勾选$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventAllLabel": {
+    "recognition": "OCR",
+    "roi": [
+      848,
+      136,
+      120,
+      33
+    ],
+    "expected": "^全部关卡$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventToggleLabel": {
+    "recognition": "OCR",
+    "roi": [
+      750,
+      136,
+      92,
+      35
+    ],
+    "expected": "^列表切换$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "EventClearLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1056,
+      137,
+      148,
+      34
+    ],
+    "expected": "^解除所有勾选$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventListGuard": {
+    "recognition": "And",
+    "all_of": [
+      "ReturnPresetTitle",
+      "FitLabel",
+      "EventRewardLabel",
+      "EventToggleLabel",
+      "EventClearLabel",
+      "EventFilterAll"
+    ],
+    "next": []
+  },
+  "EventListReady": {
+    "recognition": "And",
+    "all_of": [
+      "EventListGuard"
+    ],
+    "next": []
+  },
+  "EventCheckedReady": {
+    "recognition": "And",
+    "all_of": [
+      "EventListGuard",
+      "EventCheckedLabel"
+    ],
+    "next": [
+      "EventShort",
+      "EventTop",
+      "EventResetTop"
+    ]
+  },
+  "EventToggle": {
+    "recognition": "And",
+    "all_of": [
+      "EventListGuard",
+      "EventAllLabel",
+      "EventToggleLabel"
+    ],
+    "next": [
+      "EventCheckedGate"
+    ],
+    "action": "Click",
+    "target": [
+      937,
+      150
+    ],
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventCheckedGate": {
+    "next": [
+      "EventCheckedReady"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventScanStart": {
+    "next": [
+      "EventCheckedReady",
+      "EventToggle"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventRowsOCR": {
+    "recognition": "OCR",
+    "roi": [
+      50,
+      188,
+      490,
+      315
+    ],
+    "expected": ".+",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventCountersOCR": {
+    "recognition": "OCR",
+    "roi": [
+      585,
+      188,
+      63,
+      315
+    ],
+    "expected": "\\d+[/／]\\d+",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventRowCategory": {
+    "recognition": "OCR",
+    "roi": [
+      80,
+      30,
+      146,
+      36
+    ],
+    "expected": "^活动$",
+    "threshold": 0.9,
+    "only_rec": false,
+    "next": [],
+    "attach": {
+      "row_roi": [
+        80,
+        30,
+        146,
+        36
+      ]
+    }
+  },
+  "EventRowDifficulty": {
+    "recognition": "OCR",
+    "roi": [
+      229,
+      30,
+      145,
+      36
+    ],
+    "expected": "^困难$",
+    "threshold": 0.9,
+    "only_rec": false,
+    "next": [],
+    "attach": {
+      "row_roi": [
+        229,
+        30,
+        145,
+        36
+      ]
+    }
+  },
+  "EventRowRemaining": {
+    "recognition": "OCR",
+    "roi": [
+      578,
+      29,
+      73,
+      36
+    ],
+    "expected": "^\\d+[/／]\\d+$",
+    "threshold": 0.9,
+    "only_rec": false,
+    "next": [],
+    "attach": {
+      "row_roi": [
+        578,
+        29,
+        73,
+        36
+      ]
+    }
+  },
+  "EventBlueTop": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      208,
+      3,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      105,
+      170,
+      225
+    ],
+    "upper": [
+      155,
+      220,
+      255
+    ],
+    "count": 15,
+    "next": []
+  },
+  "EventGrayTop": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      208,
+      3,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      140,
+      150,
+      173
+    ],
+    "upper": [
+      155,
+      166,
+      190
+    ],
+    "count": 15,
+    "next": []
+  },
+  "EventBlueBottom": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      483,
+      3,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      65,
+      125,
+      215
+    ],
+    "upper": [
+      110,
+      170,
+      250
+    ],
+    "count": 15,
+    "next": []
+  },
+  "EventGrayBottom": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      483,
+      3,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      140,
+      150,
+      173
+    ],
+    "upper": [
+      155,
+      166,
+      190
+    ],
+    "count": 15,
+    "next": []
+  },
+  "EventRailBlue": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      208,
+      3,
+      280
+    ],
+    "method": 4,
+    "lower": [
+      65,
+      125,
+      215
+    ],
+    "upper": [
+      155,
+      220,
+      255
+    ],
+    "count": 60,
+    "next": []
+  },
+  "EventRailGray": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      208,
+      3,
+      280
+    ],
+    "method": 4,
+    "lower": [
+      140,
+      150,
+      173
+    ],
+    "upper": [
+      155,
+      166,
+      190
+    ],
+    "count": 60,
+    "next": []
+  },
+  "EventTop": {
+    "recognition": "Custom",
+    "custom_recognition": "EventPage",
+    "custom_recognition_param": "top",
+    "action": "Custom",
+    "custom_action": "CollectEvent",
+    "next": [
+      "EventSwipe"
+    ],
+    "max_hit": 9,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventBottom": {
+    "recognition": "Custom",
+    "custom_recognition": "EventPage",
+    "custom_recognition_param": "bottom",
+    "action": "Custom",
+    "custom_action": "CollectEvent",
+    "next": [],
+    "max_hit": 9,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventPage": {
+    "recognition": "Custom",
+    "custom_recognition": "EventPage",
+    "custom_recognition_param": "page",
+    "action": "Custom",
+    "custom_action": "CollectEvent",
+    "next": [
+      "EventSwipe"
+    ],
+    "max_hit": 9,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventSwipe": {
+    "recognition": "And",
+    "all_of": [
+      "EventListGuard",
+      "EventCheckedLabel"
+    ],
+    "next": [
+      "EventShort",
+      "EventBottom",
+      "EventPage"
+    ],
+    "action": "Swipe",
+    "begin": [
+      567,
+      430
+    ],
+    "end": [
+      567,
+      350
+    ],
+    "duration": 1000,
+    "post_delay": 500,
+    "max_hit": 8,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventResetTop": {
+    "recognition": "And",
+    "all_of": [
+      "EventListGuard",
+      "EventCheckedLabel",
+      "EventGrayTop",
+      "EventRailBlue",
+      "EventRailGray"
+    ],
+    "next": [
+      "EventTop",
+      "EventResetTop"
+    ],
+    "action": "Swipe",
+    "begin": [
+      567,
+      245
+    ],
+    "end": [
+      567,
+      460
+    ],
+    "duration": 1000,
+    "post_delay": 500,
+    "max_hit": 2,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventRestoreView": {
+    "next": [
+      "EventRestoreToggle"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventRestoreToggle": {
+    "recognition": "And",
+    "all_of": [
+      "EventListGuard",
+      "EventCheckedLabel",
+      "EventToggleLabel"
+    ],
+    "next": [
+      "EventAllGate"
+    ],
+    "action": "Click",
+    "target": [
+      937,
+      150
+    ],
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventAllGate": {
+    "next": [
+      "EventAllReady"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventAllReady": {
+    "recognition": "And",
+    "all_of": [
+      "EventListGuard",
+      "EventAllLabel"
+    ],
+    "next": []
+  },
+  "EventReturnHome": {
+    "next": [
+      "EventListCancel"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventListCancel": {
+    "recognition": "And",
+    "all_of": [
+      "ReturnCancelControl",
+      "EventListGuard"
+    ],
+    "next": [
+      "EventHomeGate"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventHomeGate": {
+    "next": [
+      "EventMapHome"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventMapHome": {
+    "recognition": "And",
+    "all_of": [
+      "ReturnHomeControl",
+      "EventAnyMapGuard"
+    ],
+    "next": [
+      "ReturnHomeGate"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventFilterAll": {
+    "recognition": "OCR",
+    "roi": [
+      568,
+      136,
+      60,
+      33
+    ],
+    "expected": "^全部$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "EventSweepButton": {
+    "recognition": "OCR",
+    "roi": [
+      1020,
+      618,
+      130,
+      41
+    ],
+    "expected": "^一键扫荡$",
+    "only_rec": true,
+    "threshold": 0.9,
+    "next": []
+  },
+  "StoryEventQuestsLabel": {
+    "recognition": "OCR",
+    "roi": [
+      75,
+      547,
+      165,
+      52
+    ],
+    "expected": "^关卡[·・]首领$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "StoryEventPeriod": {
+    "recognition": "OCR",
+    "roi": [
+      470,
+      573,
+      350,
+      43
+    ],
+    "expected": "^举办时间[:：]\\d{2}/\\d{2}\\s*\\d{2}:\\d{2}[～~]\\d{2}/\\d{2}\\s*\\d{2}:\\d{2}$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "StoryEventStoryLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1035,
+      548,
+      180,
+      53
+    ],
+    "expected": "^活动剧情$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "StoryEventHomeGuard": {
+    "recognition": "And",
+    "all_of": [
+      "StoryEventQuestsLabel",
+      "StoryEventPeriod",
+      "StoryEventStoryLabel",
+      "ReturnHomeControl"
+    ],
+    "next": []
+  },
+  "StoryEventMapTitle": {
+    "recognition": "OCR",
+    "roi": [
+      75,
+      10,
+      275,
+      63
+    ],
+    "expected": "^活动关卡[·・]首领$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "StoryEventQuestsTab": {
+    "recognition": "OCR",
+    "roi": [
+      680,
+      80,
+      190,
+      45
+    ],
+    "expected": "^活动关卡$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "StoryEventBossTab": {
+    "recognition": "OCR",
+    "roi": [
+      1030,
+      80,
+      150,
+      45
+    ],
+    "expected": "^首领战$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "StoryEventMapGuard": {
+    "recognition": "And",
+    "all_of": [
+      "StoryEventMapTitle",
+      "StoryEventQuestsTab",
+      "StoryEventBossTab",
+      "ReturnHomeControl"
+    ],
+    "next": []
+  },
+  "StoryEventSweepLabel": {
+    "recognition": "OCR",
+    "roi": [
+      1090,
+      145,
+      145,
+      48
+    ],
+    "expected": "^扫荡$",
+    "threshold": 0.85,
+    "next": []
+  },
+  "StoryEventOpenQuests": {
+    "recognition": "And",
+    "all_of": [
+      "StoryEventQuestsLabel",
+      "StoryEventHomeGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "StoryEventMapGate"
+    ],
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "StoryEventMapGate": {
+    "next": [
+      "StoryEventOpenList"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "StoryEventOpenList": {
+    "recognition": "And",
+    "all_of": [
+      "StoryEventSweepLabel",
+      "StoryEventMapGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "EventListGate"
+    ],
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventAnyMapGuard": {
+    "recognition": "Or",
+    "any_of": [
+      "EventMapGuard",
+      "StoryEventMapGuard"
+    ],
+    "next": []
+  },
+  "EventShort": {
+    "recognition": "Custom",
+    "custom_recognition": "EventPage",
+    "custom_recognition_param": "short",
+    "action": "Custom",
+    "custom_action": "CollectEvent",
+    "next": [],
+    "max_hit": 9,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventShortBlankTail": {
+    "recognition": "ColorMatch",
+    "roi": [
+      60,
+      445,
+      1140,
+      52
+    ],
+    "method": 4,
+    "lower": [
+      245,
+      245,
+      245
+    ],
+    "upper": [
+      249,
+      249,
+      249
+    ],
+    "count": 59280,
+    "next": [],
+    "attach": {
+      "tail_x": 60,
+      "tail_width": 1140,
+      "tail_offset": 76,
+      "tail_bottom": 497,
+      "min_tail_height": 32
+    }
+  },
+  "EventExhaustedHard": {
+    "recognition": "And",
+    "all_of": [
+      "EventExhaustedHardText",
+      "EventExhaustedHardGray",
+      "EventExhaustedHardDimBadge"
+    ],
+    "next": []
+  },
+  "EventExhaustedHardText": {
+    "recognition": "OCR",
+    "expected": "^困难$",
+    "roi": [
+      281,
+      240,
+      40,
+      16
+    ],
+    "threshold": 0.9,
+    "only_rec": true,
+    "next": []
+  },
+  "EventExhaustedHardGray": {
+    "recognition": "ColorMatch",
+    "roi": [
+      550,
+      244,
+      20,
+      10
+    ],
+    "method": 40,
+    "lower": [
+      100,
+      25,
+      170
+    ],
+    "upper": [
+      120,
+      70,
+      215
+    ],
+    "count": 190,
+    "next": []
+  },
+  "EventExhaustedHardDimBadge": {
+    "recognition": "ColorMatch",
+    "roi": [
+      239,
+      242,
+      32,
+      10
+    ],
+    "method": 4,
+    "lower": [
+      142,
+      88,
+      118
+    ],
+    "upper": [
+      156,
+      101,
+      128
+    ],
+    "count": 300,
+    "next": []
+  },
+  "EventRowExhausted": {
+    "recognition": "OCR",
+    "expected": "已无剩余挑战次数。?",
+    "threshold": 0.9,
+    "attach": {
+      "row_roi": [
+        276,
+        20,
+        184,
+        27
+      ]
+    },
+    "roi": [
+      276,
+      219,
+      184,
+      27
+    ],
+    "next": []
+  },
+  "EventNormalLabel": {
+    "recognition": "OCR",
+    "roi": [
+      982,
+      94,
+      75,
+      31
+    ],
+    "expected": "^普通$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventNormalSelected": {
+    "recognition": "ColorMatch",
+    "roi": [
+      970,
+      113,
+      13,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      85,
+      160,
+      220
+    ],
+    "upper": [
+      155,
+      210,
+      255
+    ],
+    "count": 55,
+    "next": []
+  },
+  "EventNormalMapName": {
+    "recognition": "OCR",
+    "roi": [
+      550,
+      91,
+      180,
+      39
+    ],
+    "expected": "^.+$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventNormalMapGuard": {
+    "recognition": "And",
+    "all_of": [
+      "EventMapTitle",
+      "EventNormalMapName",
+      "EventNormalLabel",
+      "EventNormalSelected",
+      "EventHardLabel",
+      "EventSweepLabel"
+    ],
+    "next": []
+  },
+  "EventSwitchHard": {
+    "recognition": "And",
+    "all_of": [
+      "EventHardLabel",
+      "EventNormalMapGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "EventHardGate"
+    ],
+    "timeout": 30000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventHardGate": {
+    "next": [
+      "EventMapRead"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "StoryEventStaminaAfterGlyph": {
+    "recognition": "ColorMatch",
+    "roi": [
+      461,
+      519,
+      116,
+      29
+    ],
+    "method": 4,
+    "lower": [
+      0,
+      0,
+      0
+    ],
+    "upper": [
+      180,
+      180,
+      180
+    ],
+    "count": 8,
+    "connected": true,
+    "next": []
+  },
+  "EventLoginRewardTitle": {
+    "recognition": "OCR",
+    "roi": [
+      520,
+      179,
+      246,
+      34
+    ],
+    "expected": "^获得活动登录奖励$",
+    "threshold": 0.9,
+    "only_rec": true,
+    "next": []
+  },
+  "EventLoginRewardNotice": {
+    "recognition": "OCR",
+    "roi": [
+      450,
+      237,
+      385,
+      30
+    ],
+    "expected": "^作为第\\d+天的登录奖励[，,]\\s*收到以下道具[。.]?$",
+    "threshold": 0.9,
+    "only_rec": true,
+    "next": []
+  },
+  "EventLoginRewardCloseText": {
+    "recognition": "OCR",
+    "roi": [
+      606,
+      480,
+      68,
+      28
+    ],
+    "expected": "^关闭$",
+    "threshold": 0.9,
+    "only_rec": true,
+    "next": []
+  },
+  "EventLoginRewardPanelBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      335,
+      420,
+      610,
+      20
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
+    "count": 10000,
+    "connected": false,
+    "next": []
+  },
+  "EventLoginRewardClose": {
+    "recognition": "And",
+    "all_of": [
+      "EventLoginRewardTitle",
+      "EventLoginRewardNotice",
+      "EventLoginRewardCloseText",
+      "EventLoginRewardPanelBright"
+    ],
+    "action": "Click",
+    "target": [
+      640,
+      495
+    ],
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "EventAfterLoginRewardGate"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventAfterLoginRewardGate": {
+    "action": "DoNothing",
+    "next": [
+      "StoryEventOpenQuests",
+      "EventOpenQuests",
+      "EventMapRead",
+      "EventSwitchHard"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "EventUnavailable": {
+    "recognition": "Custom",
+    "custom_recognition": "ActivityEntryAbsent",
+    "action": "DoNothing",
+    "next": [],
+    "on_error": []
+  }
+}

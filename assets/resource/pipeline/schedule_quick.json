@@ -1,0 +1,616 @@
+{
+  "OneKeyQuickPrepare": {
+    "action": "DoNothing",
+    "post_delay": 0,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickReady",
+      "OneKeyQuickUnavailable",
+      "OneKeyQuickEnter",
+      "OneKeyQuickAdventureHome"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickEnter": {
+    "recognition": "And",
+    "all_of": [
+      "ObserveHome"
+    ],
+    "action": "Click",
+    "target": [
+      1017,
+      575
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickReady",
+      "OneKeyQuickUnavailable"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickReady": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickReadyGuard"
+    ],
+    "action": "DoNothing",
+    "post_delay": 0,
+    "max_hit": 1,
+    "next": []
+  },
+  "OneKeyQuickUnavailable": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickUnavailableGuard"
+    ],
+    "action": "DoNothing",
+    "post_delay": 0,
+    "max_hit": 1,
+    "next": []
+  },
+  "OneKeyQuickButtonReady": {
+    "recognition": "ColorMatch",
+    "roi": [
+      760,
+      625,
+      60,
+      25
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      90,
+      220
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 1200,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyQuickButtonUnavailable": {
+    "recognition": "ColorMatch",
+    "roi": [
+      760,
+      625,
+      60,
+      25
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      90,
+      150
+    ],
+    "upper": [
+      125,
+      255,
+      190
+    ],
+    "count": 1200,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyQuickReadyGuard": {
+    "recognition": "And",
+    "all_of": [
+      "ScheduleGuard",
+      "OneKeyLabel",
+      "OneKeyPanelBright",
+      "OneKeyQuickButtonReady"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickUnavailableGuard": {
+    "recognition": "And",
+    "all_of": [
+      "ScheduleGuard",
+      "OneKeyLabel",
+      "OneKeyPanelBright",
+      "OneKeyQuickButtonUnavailable"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickDialogBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      340,
+      230,
+      600,
+      20
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
+    "count": 10000,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyQuickResultBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      345,
+      586,
+      585,
+      15
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
+    "count": 7000,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyQuickDungeonGuard": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_dungeon_confirm_0",
+      "OneKeyCheck_dungeon_confirm_2",
+      "OneKeyCheck_dungeon_confirm_3",
+      "OneKeyQuickDialogBright"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickManaGuard": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_mana_confirm_0",
+      "OneKeyCheck_mana_confirm_4",
+      "OneKeyCheck_mana_confirm_5",
+      "OneKeyQuickDialogBright"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickExpGuard": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_exp_confirm_0",
+      "OneKeyCheck_exp_confirm_4",
+      "OneKeyCheck_exp_confirm_5",
+      "OneKeyQuickDialogBright"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickDungeonFinishGuard": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyDungeonFinish_title",
+      "OneKeyDungeonFinish_button",
+      "OneKeyDungeonFinish_panel",
+      "OneKeyDungeonFinish_button_blue"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickSweepGuard": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_sweep_result_0",
+      "OneKeyCheck_sweep_result_3",
+      "OneKeyQuickResultBright"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickLikeGuard": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_like_result_0",
+      "OneKeyCheck_like_result_2",
+      "OneKeyQuickDialogBright"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickItemGuard": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_item_result_0",
+      "OneKeyCheck_item_result_3",
+      "OneKeyQuickResultBright"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyQuickStart": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickReadyGuard"
+    ],
+    "action": "Click",
+    "target": [
+      880,
+      640
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickDungeonConfirm": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickDungeonGuard"
+    ],
+    "action": "Click",
+    "target": [
+      785,
+      493
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickManaConfirm": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickManaGuard"
+    ],
+    "action": "Click",
+    "target": [
+      785,
+      493
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickExpConfirm": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickExpGuard"
+    ],
+    "action": "Click",
+    "target": [
+      785,
+      493
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickDungeonFinish": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickDungeonFinishGuard"
+    ],
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickSweepResult": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickSweepGuard"
+    ],
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ],
+    "max_hit": 3,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickLimitedShopCancel",
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickLimitedShopCancel": {
+    "recognition": "And",
+    "all_of": [
+      "ExecLimitedShopButton",
+      "ExecLimitedShopTitle",
+      "ExecLimitedShopNotice",
+      "ExecLimitedShopInstruction"
+    ],
+    "action": "Click",
+    "target": [
+      790,
+      634
+    ],
+    "max_hit": 3,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickLikeResult": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickLikeGuard"
+    ],
+    "action": "Click",
+    "target": [
+      640,
+      493
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickItemResult": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickItemGuard"
+    ],
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickCloseOnly": {
+    "action": "DoNothing",
+    "post_delay": 0,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickFinished"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickFinished": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickUnavailableGuard"
+    ],
+    "action": "DoNothing",
+    "post_delay": 0,
+    "max_hit": 1,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickClose"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickClose": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyQuickUnavailableGuard"
+    ],
+    "action": "Click",
+    "target": [
+      370,
+      640
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [
+      "OneKeyQuickHome"
+    ],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickHome": {
+    "recognition": "And",
+    "all_of": [
+      "ObserveHome"
+    ],
+    "action": "DoNothing",
+    "post_delay": 0,
+    "max_hit": 1,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": [],
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickStop": {
+    "action": "StopTask",
+    "post_delay": 0,
+    "next": []
+  },
+  "OneKeyQuickAdventureHomeBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      45,
+      686,
+      120,
+      25
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      50,
+      255
+    ],
+    "count": 1200,
+    "connected": false,
+    "action": "DoNothing",
+    "next": []
+  },
+  "OneKeyQuickAdventureHome": {
+    "recognition": "And",
+    "all_of": [
+      "ObserveAdventure",
+      "ReturnHomeControl",
+      "OneKeyQuickAdventureHomeBright"
+    ],
+    "action": "Click",
+    "target": [
+      105,
+      700
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "next": [
+      "OneKeyQuickHomeReady"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "OneKeyQuickStop"
+    ]
+  },
+  "OneKeyQuickHomeReady": {
+    "recognition": "And",
+    "all_of": [
+      "ObserveHome"
+    ],
+    "action": "DoNothing",
+    "post_delay": 0,
+    "max_hit": 1,
+    "next": [
+      "OneKeyQuickEnter"
+    ]
+  }
+}

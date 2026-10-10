@@ -1,0 +1,503 @@
+{
+  "NavigatePresets": {
+    "next": [
+      "PresetsReached",
+      "OpenPresets",
+      "EnterMain",
+      "EnterAdventure"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "post_delay": 1000,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "PresetsReached": {
+    "recognition": "And",
+    "all_of": [
+      {
+        "recognition": "OCR",
+        "roi": [
+          480,
+          30,
+          320,
+          47
+        ],
+        "expected": "关卡一览"
+      },
+      {
+        "recognition": "OCR",
+        "roi": [
+          695,
+          535,
+          208,
+          38
+        ],
+        "expected": "使用券张数"
+      }
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "EnterAdventure": {
+    "recognition": "And",
+    "all_of": [
+      {
+        "recognition": "OCR",
+        "roi": [
+          970,
+          580,
+          110,
+          60
+        ],
+        "expected": "^日程表$",
+        "threshold": 0.7
+      },
+      {
+        "recognition": "OCR",
+        "roi": [
+          1180,
+          588,
+          65,
+          40
+        ],
+        "expected": "^礼物$",
+        "threshold": 0.7,
+        "only_rec": true
+      },
+      "HomeNoKnownLargePanel"
+    ],
+    "action": "Click",
+    "target": [
+      718,
+      681
+    ],
+    "max_hit": 1,
+    "next": [
+      "PresetsReached",
+      "EnterMain"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "HomeKnownLargePanel": {
+    "recognition": "And",
+    "all_of": [
+      "HomePaleCenter",
+      "HomeModalTitle"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "HomeReadyAnchor": {
+    "recognition": "ColorMatch",
+    "roi": [
+      90,
+      22,
+      160,
+      40
+    ],
+    "method": 40,
+    "lower": [
+      35,
+      60,
+      100
+    ],
+    "upper": [
+      90,
+      255,
+      255
+    ],
+    "count": 500,
+    "connected": true,
+    "action": "DoNothing",
+    "next": []
+  },
+  "HomeDataConnection": {
+    "recognition": "OCR",
+    "roi": [
+      980,
+      15,
+      285,
+      65
+    ],
+    "expected": "^正在进行数据连接$",
+    "threshold": 0.8,
+    "only_rec": true,
+    "action": "DoNothing",
+    "next": []
+  },
+  "HomeNoKnownLargePanel": {
+    "recognition": "Custom",
+    "custom_recognition": "HomeNoKnownLargePanel",
+    "action": "DoNothing",
+    "next": []
+  },
+  "EnterMain": {
+    "recognition": "And",
+    "all_of": [
+      {
+        "recognition": "OCR",
+        "expected": "^冒险$",
+        "roi": [
+          70,
+          6,
+          108,
+          63
+        ],
+        "threshold": 0.9
+      },
+      {
+        "recognition": "OCR",
+        "expected": "^主线关卡$",
+        "roi": [
+          685,
+          255,
+          138,
+          48
+        ],
+        "threshold": 0.9
+      }
+    ],
+    "action": "Click",
+    "target": [
+      753,
+      280
+    ],
+    "max_hit": 1,
+    "next": [
+      "PresetsReached",
+      "OpenPresets"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "OpenPresets": {
+    "recognition": "And",
+    "all_of": [
+      {
+        "recognition": "OCR",
+        "expected": "^主线关卡$",
+        "roi": [
+          76,
+          11,
+          150,
+          57
+        ],
+        "threshold": 0.9
+      },
+      {
+        "recognition": "OCR",
+        "expected": "^扫荡$",
+        "roi": [
+          1190,
+          153,
+          75,
+          81
+        ],
+        "threshold": 0.9
+      }
+    ],
+    "action": "Click",
+    "target": [
+      1225,
+      189
+    ],
+    "max_hit": 1,
+    "next": [
+      "PresetsReached"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "UnknownStop"
+    ]
+  },
+  "UnknownStop": {
+    "action": "StopTask",
+    "next": []
+  },
+  "ReadScreen": {
+    "next": [
+      "ScreenOCR"
+    ],
+    "timeout": 1500,
+    "rate_limit": 250
+  },
+  "PresetReadbackStart": {
+    "next": [
+      "ObservePresets",
+      "ObserveUnknown"
+    ],
+    "timeout": 1500,
+    "rate_limit": 250
+  },
+  "ScreenOCR": {
+    "recognition": "OCR",
+    "expected": ".+",
+    "action": "DoNothing",
+    "next": [
+      "ObservePresets",
+      "ObserveMain",
+      "ObserveAdventure",
+      "ObserveHome",
+      "ObserveUnknown"
+    ]
+  },
+  "Doctor": {
+    "action": "DoNothing",
+    "next": []
+  },
+  "ObservePresets": {
+    "recognition": "And",
+    "all_of": [
+      "PresetsReached"
+    ],
+    "action": "DoNothing",
+    "next": [
+      "SelectedSlot1",
+      "SelectedSlot2",
+      "SelectedSlot3",
+      "SelectedSlot4",
+      "SelectedSlot5",
+      "SelectedSlot6",
+      "SelectedSlot7",
+      "SelectionUnknown"
+    ]
+  },
+  "ObserveMain": {
+    "recognition": "And",
+    "all_of": [
+      "OpenPresets"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "ObserveAdventure": {
+    "recognition": "And",
+    "all_of": [
+      "EnterMain"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "ObserveHome": {
+    "recognition": "And",
+    "all_of": [
+      "EnterAdventure"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "SelectedSlot1": {
+    "recognition": "ColorMatch",
+    "roi": [
+      85,
+      103,
+      16,
+      13
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      100
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 180,
+    "action": "DoNothing",
+    "next": []
+  },
+  "SelectedSlot2": {
+    "recognition": "ColorMatch",
+    "roi": [
+      242,
+      103,
+      16,
+      13
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      100
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 180,
+    "action": "DoNothing",
+    "next": []
+  },
+  "SelectedSlot3": {
+    "recognition": "ColorMatch",
+    "roi": [
+      399,
+      103,
+      16,
+      13
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      100
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 180,
+    "action": "DoNothing",
+    "next": []
+  },
+  "SelectedSlot4": {
+    "recognition": "ColorMatch",
+    "roi": [
+      556,
+      103,
+      16,
+      13
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      100
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 180,
+    "action": "DoNothing",
+    "next": []
+  },
+  "SelectedSlot5": {
+    "recognition": "ColorMatch",
+    "roi": [
+      713,
+      103,
+      16,
+      13
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      100
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 180,
+    "action": "DoNothing",
+    "next": []
+  },
+  "SelectedSlot6": {
+    "recognition": "ColorMatch",
+    "roi": [
+      870,
+      103,
+      16,
+      13
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      100
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 180,
+    "action": "DoNothing",
+    "next": []
+  },
+  "SelectedSlot7": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1027,
+      103,
+      16,
+      13
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      100
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 180,
+    "action": "DoNothing",
+    "next": []
+  },
+  "ObserveUnknown": {
+    "action": "DoNothing",
+    "next": []
+  },
+  "SelectionUnknown": {
+    "action": "DoNothing",
+    "next": []
+  },
+  "HomePaleCenter": {
+    "recognition": "ColorMatch",
+    "roi": [
+      350,
+      220,
+      580,
+      280
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      220
+    ],
+    "upper": [
+      179,
+      35,
+      255
+    ],
+    "count": 50000,
+    "connected": true,
+    "action": "DoNothing",
+    "next": []
+  },
+  "HomeModalTitle": {
+    "recognition": "OCR",
+    "roi": [
+      320,
+      25,
+      650,
+      240
+    ],
+    "expected": "^(通知|公告|确认|登录奖励|收取报酬|收取礼物|礼物箱|限定商店|错误|通信错误|连接错误)$",
+    "threshold": 0.85
+  }
+}

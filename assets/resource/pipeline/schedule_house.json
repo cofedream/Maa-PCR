@@ -1,0 +1,172 @@
+{
+  "HouseRead": {
+    "next": [
+      "HouseSnapshot"
+    ],
+    "on_error": [
+      "HouseStop"
+    ],
+    "timeout": 30000
+  },
+  "HouseSnapshot": {
+    "recognition": "Custom",
+    "custom_recognition": "HousePage",
+    "custom_recognition_param": "observe",
+    "action": "DoNothing",
+    "max_hit": 1
+  },
+  "HouseClaim": {
+    "next": [
+      "HouseClaimClick"
+    ],
+    "on_error": [
+      "HouseStop"
+    ],
+    "timeout": 30000
+  },
+  "HouseClaimClick": {
+    "recognition": "Custom",
+    "custom_recognition": "HousePage",
+    "custom_recognition_param": "ready",
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "on_error": [
+      "HouseStop"
+    ],
+    "timeout": 30000
+  },
+  "HouseResultClose": {
+    "next": [
+      "HouseResultCloseClick"
+    ],
+    "on_error": [
+      "HouseStop"
+    ],
+    "timeout": 30000
+  },
+  "HouseResultCloseClick": {
+    "recognition": "Custom",
+    "custom_recognition": "HousePage",
+    "custom_recognition_param": "result",
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "on_error": [
+      "HouseStop"
+    ],
+    "timeout": 30000
+  },
+  "HouseStop": {
+    "action": "StopTask"
+  },
+  "HouseBeforeHome": {
+    "recognition": "Custom",
+    "custom_recognition": "HousePage",
+    "custom_recognition_param": "already_claimed",
+    "action": "DoNothing"
+  },
+  "HouseOCR": {
+    "recognition": "OCR",
+    "roi": [
+      0,
+      0,
+      1280,
+      720
+    ],
+    "expected": ".+",
+    "threshold": 0.8
+  },
+  "HouseDate": {
+    "recognition": "OCR",
+    "roi": [
+      260,
+      45,
+      85,
+      36
+    ],
+    "only_rec": true,
+    "expected": "^[0-9 ]+[/／][0-9 ]+$",
+    "threshold": 0.8
+  },
+  "HouseStrike": {
+    "recognition": "ColorMatch",
+    "roi": [
+      480,
+      450,
+      360,
+      35
+    ],
+    "method": 40,
+    "lower": [
+      [
+        0,
+        80,
+        130
+      ],
+      [
+        170,
+        80,
+        130
+      ]
+    ],
+    "upper": [
+      [
+        10,
+        255,
+        255
+      ],
+      [
+        179,
+        255,
+        255
+      ]
+    ],
+    "count": 1000,
+    "connected": true
+  },
+  "HouseRowBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      700,
+      420,
+      120,
+      10
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
+    "count": 1100
+  },
+  "HouseButtonBlue": {
+    "recognition": "ColorMatch",
+    "roi": [
+      935,
+      430,
+      65,
+      40
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      90,
+      150
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 400
+  }
+}

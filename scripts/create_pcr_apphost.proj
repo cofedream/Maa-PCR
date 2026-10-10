@@ -1,0 +1,9 @@
+<Project>
+  <UsingTask TaskName="Microsoft.NET.Build.Tasks.CreateAppHost" AssemblyFile="$(SdkTaskAssembly)" />
+  <Target Name="CreateEntry">
+    <CreateAppHost AppHostSourcePath="$(HostTemplate)" AppHostDestinationPath="$(EntryOutput)"
+      AppBinaryName="MFAAvalonia.dll" IntermediateAssembly="$(GuiAssembly)"
+      WindowsGraphicalUserInterface="true" EnableMacOSCodeSign="false"
+      DotNetSearchLocations="AppRelative" AppRelativeDotNet="runtime/dotnet" />
+  </Target>
+</Project>

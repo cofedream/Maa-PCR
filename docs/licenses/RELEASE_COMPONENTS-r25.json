@@ -1,0 +1,1397 @@
+{
+  "schema_version": 1,
+  "purpose": "active r25 component and corresponding-source record",
+  "recorded_at": "2026-10-04T02:56:39.732238+00:00",
+  "engineering_classification": "player_test_release",
+  "baseline_manifest_sha256": "b0119e2cd7a8268dcf70742ed5f848418be641fc51867fe83024380c043f1cce",
+  "baseline_r24_component_record_sha256": "f65d9e6d8cc83cb6450b5d397b0b7c34dc94da10103953a6fb80bc22973c1302",
+  "original_project_source": {
+    "license": "MIT",
+    "license_file": {
+      "path": "LICENSE",
+      "size": 1234,
+      "sha256": "0ee512989cd80603595f780ad981ffc1e87f9c0304f7492a7498d237a9a7a951"
+    }
+  },
+  "gui": {
+    "version": "2.16.4",
+    "license": "GPL-3.0",
+    "license_scope": "MFAAvalonia main source; subprojects and dependencies retain their own original terms",
+    "license_file": {
+      "path": "gui/MFAAvalonia/LICENSE",
+      "size": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    "source_freeze_sha256": "b6863050fa77e1f8515f2c7566d4ed5d5fc8fc7c37bd3079f39b0c2587030873",
+    "source_freeze_files": 817,
+    "compiled_configuration": "Release / win-x64 / SDK 10.0.101",
+    "build_03_and_publish_03_completed": false,
+    "build_receipt_sha256": "80a2bbcde14a01ac123caeca1e52a8852a5e49cd2b29ec31ef09bb15bb0464f9",
+    "managed_and_portable_apphost_overlay_count": 15,
+    "overlay": [
+      {
+        "project": "MFAAvalonia",
+        "path": "MFAAvalonia.Core.dll",
+        "size": 3230720,
+        "sha256": "d5ef60965d5c32f6f4b667118b4eaaa0ec328b31559f7881e60abedf8bd55f3f",
+        "kind": "local-managed"
+      },
+      {
+        "project": "MFAAvalonia",
+        "path": "en-US/MFAAvalonia.Core.resources.dll",
+        "size": 68096,
+        "sha256": "a53e569c83a0f86b8448e19180b8d1deaa97c3aebd06cd9cabd9fd604ad2a88b",
+        "kind": "local-managed"
+      },
+      {
+        "project": "MFAAvalonia",
+        "path": "ja-JP/MFAAvalonia.Core.resources.dll",
+        "size": 78336,
+        "sha256": "fa9334a5f3875724dc3a5bf7aa3d2140fd079340f807feb68ed682b8cf139bde",
+        "kind": "local-managed"
+      },
+      {
+        "project": "MFAAvalonia",
+        "path": "zh-Hant/MFAAvalonia.Core.resources.dll",
+        "size": 65024,
+        "sha256": "521d2aa4995217821ff5af35e3077e220148e1cc819aa9d0b9b31d8289e602ed",
+        "kind": "local-managed"
+      },
+      {
+        "project": "MFAAvalonia.Desktop",
+        "path": "MFAAvalonia.dll",
+        "size": 58368,
+        "sha256": "5b214cfe33dd47cdfade13a695aacdd797c2b3e30ec16917ced312c9e0538bd6",
+        "kind": "local-managed"
+      },
+      {
+        "project": "SukiUI",
+        "path": "SukiUI.dll",
+        "size": 34912768,
+        "sha256": "fa966421c500b077c81eeb41414a4c8efd36ebc6f0e7026c4632acec15d9addd",
+        "kind": "local-managed"
+      },
+      {
+        "project": "Markdown.Avalonia",
+        "path": "Markdown.Avalonia.Full.dll",
+        "size": 11264,
+        "sha256": "00a9d55e1357d5c637ee5c321fe71692e7183ebad99ea0315cb77d4af64d4973",
+        "kind": "local-managed"
+      },
+      {
+        "project": "Markdown.Avalonia.Html",
+        "path": "Markdown.Avalonia.Html.dll",
+        "size": 95744,
+        "sha256": "e620f6946b0a15fe46edd1a5b197ac96df98c45808fb8fa3ee6224acb38027f4",
+        "kind": "local-managed"
+      },
+      {
+        "project": "Markdown.Avalonia.Svg",
+        "path": "Markdown.Avalonia.Svg.dll",
+        "size": 9728,
+        "sha256": "bc9343cb9f5967c22459e64dc7d8c8958e47a06407846ceb8bbe146bfb3f354f",
+        "kind": "local-managed"
+      },
+      {
+        "project": "Markdown.Avalonia.Tight",
+        "path": "Markdown.Avalonia.dll",
+        "size": 289792,
+        "sha256": "0fb389918035987f50dd0c215731913f0c70c1f608da1003049968d6891503ce",
+        "kind": "local-managed"
+      },
+      {
+        "project": "Markdown.Avalonia.SyntaxHigh",
+        "path": "Markdown.Avalonia.SyntaxHigh.dll",
+        "size": 53760,
+        "sha256": "514efc9882ea6c402c07e5a219375a767fe38b441147a0329e4ad1ddbe877eff",
+        "kind": "local-managed"
+      },
+      {
+        "project": "Markdown.Avalonia.Math",
+        "path": "Markdown.Avalonia.Math.dll",
+        "size": 11776,
+        "sha256": "77d5d1e58e2b9f0b56bdcfd6b5d6d41d8bf41b1462190c9008b6ef8a0e51d807",
+        "kind": "local-managed"
+      },
+      {
+        "project": "ColorDocument.Avalonia",
+        "path": "ColorDocument.Avalonia.dll",
+        "size": 52736,
+        "sha256": "57c96e13dac82680c2ec07f03952bbc2ca19cd8a18563a95f51acf5949aa39ed",
+        "kind": "local-managed"
+      },
+      {
+        "project": "ColorTextBlock.Avalonia",
+        "path": "ColorTextBlock.Avalonia.dll",
+        "size": 74752,
+        "sha256": "b81559d318e85128869ab9b2f5c079dc923c97f600288e7c4f61e630d74b92d9",
+        "kind": "local-managed"
+      },
+      {
+        "project": "portable-apphost",
+        "path": "MFAAvalonia.exe",
+        "size": 184320,
+        "sha256": "76311353163f01a4547f5d96b24f7a33bf9b7acd3055c7998f8c86e22ebde2f5",
+        "kind": "portable-apphost"
+      }
+    ],
+    "apphost_contract": "AppRelative runtime/dotnet; no system runtime fallback",
+    "original_asset_receipt": {
+      "path": "docs/licenses/gui/OriginalAssets-PROVENANCE.json",
+      "size": 2684,
+      "sha256": "beb98c7a4f27c93907c3131c45cf7c90917baee2c8ebea8ac80647581dbe6ba9"
+    },
+    "original_assets": {
+      "schema_version": 1,
+      "purpose": "original_gui_assets",
+      "generator": "scripts/generate_gui_release_assets.py",
+      "generator_sha256": "d96fda315aeb1a84bc92857bf6f44728c309bedb350ddaee87744e1029f6045c",
+      "existing_assets_read": false,
+      "files": [
+        {
+          "path": "gui/MFAAvalonia/MFAAvalonia/Assets/logo.ico",
+          "size": 21238,
+          "sha256": "5e5a351b2a69acdfc411c4087b931f9f799fa105fdfb0ec0f68242a64ffa6966",
+          "description": "Original square-grid geometric app icon; 32 and 64 pixel ICO/DIB",
+          "author": "pcr-agent-maa contributors (Codex-assisted original geometry and synthesis)",
+          "authored_date": "2026-10-03",
+          "declared_license": "MIT",
+          "license_file": "LICENSE",
+          "input_assets": [],
+          "origin": "generated by scripts/generate_gui_release_assets.py"
+        },
+        {
+          "path": "gui/MFAAvalonia/Markdown.Avalonia.Tight/Assets/ImageNotFound.bmp",
+          "size": 2358,
+          "sha256": "cd58133f0bb83441fff45c728603efe1f1571e4f55dc5fb981b1f08408ff3a59",
+          "description": "Original geometric missing-image placeholder; 32x24, 24-bit BMP",
+          "author": "pcr-agent-maa contributors (Codex-assisted original geometry and synthesis)",
+          "authored_date": "2026-10-03",
+          "declared_license": "MIT",
+          "license_file": "LICENSE",
+          "input_assets": [],
+          "origin": "generated by scripts/generate_gui_release_assets.py"
+        },
+        {
+          "path": "gui/MFAAvalonia/MFAAvalonia/Assets/Sound/SystemNotification.wav",
+          "size": 19448,
+          "sha256": "7ba9b7cd4bce718e846c875e312074cdd1c7cfc33ed38aaa75227954037e37d4",
+          "description": "Original 660/880 Hz synthesized chime; mono PCM16, 22050 Hz",
+          "author": "pcr-agent-maa contributors (Codex-assisted original geometry and synthesis)",
+          "authored_date": "2026-10-03",
+          "declared_license": "MIT",
+          "license_file": "LICENSE",
+          "input_assets": [],
+          "origin": "generated by scripts/generate_gui_release_assets.py"
+        },
+        {
+          "path": "gui/MFAAvalonia/SukiUI/Theme/ManagedFileChooser.axaml",
+          "size": 22422,
+          "sha256": "83311fc7814f1c38c748b0a099f73985b6fe460cd8a6af12df26d28444782ce7",
+          "description": "Original simple folder PathIcon geometry; 24x24, margin 2",
+          "geometry": "M2,5 L10,5 L13,8 L22,8 L22,21 L2,21 Z",
+          "author": "pcr-agent-maa contributors (Codex-assisted original geometry and synthesis)",
+          "authored_date": "2026-10-03",
+          "declared_license": "GPL-3.0",
+          "license_file": "gui/MFAAvalonia/LICENSE",
+          "input_assets": [],
+          "origin": "New source-vector geometry in ManagedFileChooser.axaml"
+        }
+      ]
+    },
+    "removed_source_artwork": [
+      "gui/MFAAvalonia/SukiUI/Content/Images/icons8-file-explorer-new-48.png",
+      "gui/MFAAvalonia/SukiUI/OIG.N5o-removebg-preview.png",
+      "gui/MFAAvalonia/docs/images/preview.png"
+    ],
+    "old_gui_source_to_binary_r20_record_is_historical": true,
+    "build_release_r25_completed": true
+  },
+  "business": {
+    "source_freeze_sha256": "b6863050fa77e1f8515f2c7566d4ed5d5fc8fc7c37bd3079f39b0c2587030873",
+    "changed_files": [
+      {
+        "path": "assets/resource/pipeline/event.json",
+        "size": 29646,
+        "sha256": "c549cb08e360b3c342f2ad81baa8af09efa19295eef5a7aa0bc2f8a023a48c81",
+        "base_sha256": "c6f5abc62bad3881b48437cab6b58a295d2b5a1d7c79a42a9515209392270a21"
+      },
+      {
+        "path": "assets/resource/pipeline/preset_scan.json",
+        "size": 8772,
+        "sha256": "f5ced4f8fd0bb94fada61fbe3d6a8113c25257cfdb07e169620d83255d1442fd",
+        "base_sha256": "da5ecf201f0c5d67145c1339e62fc408dc2cd9c652e2d400434fecd6d08bbae9"
+      },
+      {
+        "path": "assets/resource/pipeline/presets.json",
+        "size": 7594,
+        "sha256": "ffc456fcde506d329da24e140be937efe5c5691540b68757a99a837cfa22fe2f",
+        "base_sha256": "be6f9d71949141b08c205d504c85d322b7253bfde44599062bcfa5bde0cdf0f4"
+      },
+      {
+        "path": "src/pcr_maa/event_native.py",
+        "size": 27917,
+        "sha256": "8f27ede812d99bae0c761c5ca5c1ec7754c846f074c282ee521e8b7366ac291f",
+        "base_sha256": "e8714b880180ec03f25d8da96f1ec93940b6acebc6ed6412040f0f262c12a9d8"
+      },
+      {
+        "path": "src/pcr_maa/preset_reconcile.py",
+        "size": 25294,
+        "sha256": "b18e66e8f7bc3d9a2ea850eab93b3c60ee9bec92fff76ce1978bb6d19d3bde10",
+        "base_sha256": "dc7641116684a014f6e11a340a64547434062e2f0a06347fa29ab108d450c8c9"
+      },
+      {
+        "path": "src/pcr_maa/preset_scan.py",
+        "size": 15147,
+        "sha256": "582600e40e9e702cd57b93a3129936dc8375c89235c05869962afed9cddb0e57",
+        "base_sha256": "700cf432445bdf4762aa70b991c8c2c5b0673b303025823ddf210d78a7cc69c3"
+      }
+    ],
+    "removed_game_templates": [
+      {
+        "path": "assets/resource/image/adventure_title.png",
+        "sha256": "4ca26057f7203c40ea96a5249ac909f961e58a25f3d580f458782293d420f550",
+        "size": 8385
+      },
+      {
+        "path": "assets/resource/image/event_exhausted_hard.png",
+        "sha256": "456562c18dc428699c078db8bec30369e52e800d1e6b9a3b5462350696469e33",
+        "size": 2433
+      },
+      {
+        "path": "assets/resource/image/home_gift.png",
+        "sha256": "f4f3b88de1edf461e208721509ebcd53f492d4fa504d3622a95702aa07e79c0c",
+        "size": 2920
+      },
+      {
+        "path": "assets/resource/image/home_schedule.png",
+        "sha256": "5ecf36dbfcc42b29ef7999c728f09bf1fb5dcd08d115ac5d52fe9c50076693dd",
+        "size": 3530
+      },
+      {
+        "path": "assets/resource/image/main_entry.png",
+        "sha256": "4475a77641ce6aaa94daddb66d33c62852943e7bbc33377463f270c264d62993",
+        "size": 6316
+      },
+      {
+        "path": "assets/resource/image/map_title.png",
+        "sha256": "3c0ed628896ec9f6c6e3014289c296450ff0c6bf3e84b02b644fd367a4e47def",
+        "size": 9950
+      },
+      {
+        "path": "assets/resource/image/scan_check.png",
+        "sha256": "a901e152ec89801d2e321a8906b6632598e3e2f90f6a7a0b9d1424d44810ddec",
+        "size": 5295
+      },
+      {
+        "path": "assets/resource/image/scan_no_rail.png",
+        "sha256": "a262eefbb19954487ca0ad0a6431e7cf7f010894c272bf069d77924e17ed073f",
+        "size": 600
+      },
+      {
+        "path": "assets/resource/image/sweep_entry.png",
+        "sha256": "b71f3523b895bef01884ede93515f6e6b5b5345720e2b207cfc41f8b421ed78d",
+        "size": 9173
+      }
+    ],
+    "preserved_owned_count": 48,
+    "candidate_owned_count": 54,
+    "source_tests": [
+      {
+        "path": "tests/test_pixel_free_resources.py",
+        "size": 10084,
+        "sha256": "d784f9c525efcd1d44ace9196869d3e4bf3f65298bdec71f402d77d142077684"
+      },
+      {
+        "path": "tests/test_pixel_free_history.py",
+        "size": 5657,
+        "sha256": "7b5f652d179ff9cae7273933cf9da4ecb22c65210c7d2cc10c603befe32b7ac2"
+      }
+    ],
+    "owned_program_source_alignment_count": 60,
+    "owned_program_source_bytes_match_prepared_source": true,
+    "r25_changed_files": [
+      {
+        "path": "src/pcr_maa/schedule_quick.py",
+        "size": 9828,
+        "sha256": "8194f21f106074cde39d5c237da26ef2b8b3d04f4e23f4dc7f3269882f6d31eb"
+      },
+      {
+        "path": "src/pcr_maa/supported_daily.py",
+        "size": 51664,
+        "sha256": "89d235971c52888ef11358ef7425ac0c8e37988e5da82f277aeed43cab0ffc8c"
+      }
+    ]
+  },
+  "dependency_materials": {
+    "record": {
+      "path": "third_party/materials/MATERIALS.json",
+      "sha256": "4fcf8fa797da371d956b1e10b58bd45b4f7ce57bc76a9e24b8c5a4846db27478"
+    },
+    "source_archive_count": 9,
+    "source_archive_bytes": 19984102,
+    "source_archives": [
+      {
+        "component": "MaaFramework-5.13.0-source",
+        "path": "third_party/materials/sources/MaaFramework-2bcfa85c66a2eac6ca3e5937f175495275ee0643.zip",
+        "size": 1276521,
+        "sha256": "8da9d4a105497fdaf72889d1c2859b49129ce0a99529133c9d5cd9ff4d8163ee",
+        "official_source_url": "https://codeload.github.com/MaaXYZ/MaaFramework/zip/2bcfa85c66a2eac6ca3e5937f175495275ee0643",
+        "fixed_revision": "2bcfa85c66a2eac6ca3e5937f175495275ee0643"
+      },
+      {
+        "component": "MaaFramework.Binding.CSharp-5.10.0-source",
+        "path": "third_party/materials/sources/MaaFramework.Binding.CSharp-27c69a5b8ff41b6002ead71f403a16f442a7168e.zip",
+        "size": 10749823,
+        "sha256": "405e219e39d6a9a3f5af602e80d5a878b33bf1008ebb3d86c8692a95c343614e",
+        "official_source_url": "https://codeload.github.com/MaaXYZ/MaaFramework.Binding.CSharp/zip/27c69a5b8ff41b6002ead71f403a16f442a7168e",
+        "fixed_revision": "27c69a5b8ff41b6002ead71f403a16f442a7168e"
+      },
+      {
+        "component": "MaaAgentBinary-1.2.0-repository",
+        "path": "third_party/materials/sources/MaaAgentBinary-bd83c0fdd8c33040a7845f2bf6801e532842ee39.zip",
+        "size": 5332111,
+        "sha256": "86747295fd8edf6b067187d0617001314d373b74f3bd3bd435bb8aed63c30d2c",
+        "official_source_url": "https://codeload.github.com/MaaXYZ/MaaAgentBinary/zip/bd83c0fdd8c33040a7845f2bf6801e532842ee39",
+        "fixed_revision": "bd83c0fdd8c33040a7845f2bf6801e532842ee39"
+      },
+      {
+        "component": "MaaUtils-framework-submodule",
+        "path": "third_party/materials/sources/MaaUtils-6e9ba33f6ad835418097d9324c01c44a82825a2b.zip",
+        "size": 101899,
+        "sha256": "2362d15806d7411a5d3e22130124c867d4d8154c7e6b035e84dd1b5d85ba5345",
+        "official_source_url": "https://codeload.github.com/MaaXYZ/MaaUtils/zip/6e9ba33f6ad835418097d9324c01c44a82825a2b",
+        "fixed_revision": "6e9ba33f6ad835418097d9324c01c44a82825a2b"
+      },
+      {
+        "component": "MaaTouch-v1.1.0-pinned-source",
+        "path": "third_party/materials/more/sources/MaaTouch-a1e003ccef0fd039b9ae7263179e3de74ce654e4.zip",
+        "size": 87468,
+        "sha256": "abd8accc96c324f80b648bf818ea6a4ed757ac39488e460e23ce2f34a86ff60a",
+        "official_source_url": "https://codeload.github.com/MaaAssistantArknights/MaaTouch/zip/a1e003ccef0fd039b9ae7263179e3de74ce654e4",
+        "fixed_revision": "a1e003ccef0fd039b9ae7263179e3de74ce654e4"
+      },
+      {
+        "component": "minitouch-1.2.0-source",
+        "path": "third_party/materials/stf/sources/minitouch-9e742e964465b67a800f371aee27e940726577a0.zip",
+        "size": 28627,
+        "sha256": "66212b704507bd07e7f00419bc939c6c8db8425910f14d6cdf352b1813af40fa",
+        "official_source_url": "https://codeload.github.com/openstf/minitouch/zip/9e742e964465b67a800f371aee27e940726577a0",
+        "fixed_revision": "9e742e964465b67a800f371aee27e940726577a0"
+      },
+      {
+        "component": "minicap-2.3.0-source",
+        "path": "third_party/materials/stf/sources/minicap-3686d9d4abe847195ef76d1753d02d11deed424f.zip",
+        "size": 474608,
+        "sha256": "2f93138ff45910e9976c909c5e8157e0c42edf7c38b965062a29b27c98b479f3",
+        "official_source_url": "https://codeload.github.com/openstf/minicap/zip/3686d9d4abe847195ef76d1753d02d11deed424f",
+        "fixed_revision": "3686d9d4abe847195ef76d1753d02d11deed424f"
+      },
+      {
+        "component": "minicap-pinned-android-libjpeg-turbo-source",
+        "path": "third_party/materials/vendor/sources/android-libjpeg-turbo-46be77d8b8287ea3687da6ab245032929363515b.zip",
+        "size": 1840452,
+        "sha256": "f6ae79e8e53674a35657ce4b9907a08939be72ab7f8bbd69a589a3b195888cb2",
+        "official_source_url": "https://codeload.github.com/openstf/android-libjpeg-turbo/zip/46be77d8b8287ea3687da6ab245032929363515b",
+        "fixed_revision": "46be77d8b8287ea3687da6ab245032929363515b"
+      },
+      {
+        "component": "minitouch-pinned-libevdev-source",
+        "path": "third_party/materials/vendor/sources/libevdev-d447a75e9e23f2286c44859f07b955981e82d483.tar.gz",
+        "size": 92593,
+        "sha256": "695a193b3ce8e85fd753d387682b7151d3f1e9349604c9ffce9a8ce2f3b069ee",
+        "official_source_url": "https://gitlab.freedesktop.org/libevdev/libevdev/-/archive/d447a75e9e23f2286c44859f07b955981e82d483/libevdev-d447a75e9e23f2286c44859f07b955981e82d483.tar.gz",
+        "fixed_revision": "d447a75e9e23f2286c44859f07b955981e82d483"
+      }
+    ],
+    "original_notice_count": 106,
+    "original_notice_bytes": 381086,
+    "original_notices": [
+      {
+        "path": "third_party/materials/delivery-notices/licenses/NETCore.Encrypt-2.1.1-License.txt",
+        "size": 1061,
+        "sha256": "57a95618d85a31dad78de9247a538a47f9deae0dd65bd1bab84d6e632270b59f"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/licenses/SharpDX-4.2.0-License.txt",
+        "size": 1074,
+        "sha256": "ed6e2ed433cc7006268284316ae05c40ec7350903c2cc67ffe8db6cdfca887ca"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/licenses/STF-minicap-LICENSE.txt",
+        "size": 598,
+        "sha256": "d072e0b1953c3c90abf2c55ee76fde535febcdf4639eff1fdc15aac1126bf93f"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/licenses/STF-minitouch-LICENSE.txt",
+        "size": 576,
+        "sha256": "f507ac16a6c66151569a0304269af2da8264ce1994e5107852dd1b6e9d7ea5d6"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/licenses/libevdev-d447a75-COPYING.txt",
+        "size": 1510,
+        "sha256": "f063d1279b31e73007e1c54493391818b4cb5f9162d590120397e0347b932137"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/MaaAgentBinary-173d43c4b5518064b27720b0cf08c781f291eba9/LICENSE",
+        "size": 34523,
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "source_archive": "sources/MaaAgentBinary-173d43c4b5518064b27720b0cf08c781f291eba9.zip",
+        "archive_path": "MaaAgentBinary-173d43c4b5518064b27720b0cf08c781f291eba9/LICENSE"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/MaaAgentBinary-bd83c0fdd8c33040a7845f2bf6801e532842ee39/LICENSE",
+        "size": 34523,
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "source_archive": "sources/MaaAgentBinary-bd83c0fdd8c33040a7845f2bf6801e532842ee39.zip",
+        "archive_path": "MaaAgentBinary-bd83c0fdd8c33040a7845f2bf6801e532842ee39/LICENSE"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/MaaDeps-884887968f8995f8217b28b2a470ec3620a9c660/maadeps/vendor/LICENSE_pefile",
+        "size": 1083,
+        "sha256": "bfd4b5e4f8a99c961fd6f94d708e38396cc146bfe8fbc5d2a86e63aa29fb4208",
+        "source_archive": "sources/MaaDeps-884887968f8995f8217b28b2a470ec3620a9c660.zip",
+        "archive_path": "MaaDeps-884887968f8995f8217b28b2a470ec3620a9c660/maadeps/vendor/LICENSE_pefile"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/MaaFramework-2bcfa85c66a2eac6ca3e5937f175495275ee0643/LICENSE.md",
+        "size": 7560,
+        "sha256": "446e755fae55ff034bbb21be44670b5f116c2b2667947e7036f2bfe6632539a8",
+        "source_archive": "sources/MaaFramework-2bcfa85c66a2eac6ca3e5937f175495275ee0643.zip",
+        "archive_path": "MaaFramework-2bcfa85c66a2eac6ca3e5937f175495275ee0643/LICENSE.md"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/MaaFramework.Binding.CSharp-27c69a5b8ff41b6002ead71f403a16f442a7168e/LICENSE.md",
+        "size": 7723,
+        "sha256": "e8880c62416bec83f380033323ed845d4716343a1bfc8bd4728b03a6f20d6e4c",
+        "source_archive": "sources/MaaFramework.Binding.CSharp-27c69a5b8ff41b6002ead71f403a16f442a7168e.zip",
+        "archive_path": "MaaFramework.Binding.CSharp-27c69a5b8ff41b6002ead71f403a16f442a7168e/LICENSE.md"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/MaaUtils-6e9ba33f6ad835418097d9324c01c44a82825a2b/LICENSE.md",
+        "size": 7560,
+        "sha256": "446e755fae55ff034bbb21be44670b5f116c2b2667947e7036f2bfe6632539a8",
+        "source_archive": "sources/MaaUtils-6e9ba33f6ad835418097d9324c01c44a82825a2b.zip",
+        "archive_path": "MaaUtils-6e9ba33f6ad835418097d9324c01c44a82825a2b/LICENSE.md"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/MaaTouch-a1e003ccef0fd039b9ae7263179e3de74ce654e4/LICENSE",
+        "size": 11357,
+        "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "source_archive": "more/sources/MaaTouch-a1e003ccef0fd039b9ae7263179e3de74ce654e4.zip",
+        "archive_path": "MaaTouch-a1e003ccef0fd039b9ae7263179e3de74ce654e4/LICENSE"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/minicap-3686d9d4abe847195ef76d1753d02d11deed424f/LICENSE",
+        "size": 598,
+        "sha256": "d072e0b1953c3c90abf2c55ee76fde535febcdf4639eff1fdc15aac1126bf93f",
+        "source_archive": "stf/sources/minicap-3686d9d4abe847195ef76d1753d02d11deed424f.zip",
+        "archive_path": "minicap-3686d9d4abe847195ef76d1753d02d11deed424f/LICENSE"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/minitouch-9e742e964465b67a800f371aee27e940726577a0/LICENSE",
+        "size": 576,
+        "sha256": "f507ac16a6c66151569a0304269af2da8264ce1994e5107852dd1b6e9d7ea5d6",
+        "source_archive": "stf/sources/minitouch-9e742e964465b67a800f371aee27e940726577a0.zip",
+        "archive_path": "minitouch-9e742e964465b67a800f371aee27e940726577a0/LICENSE"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/android-libjpeg-turbo-46be77d8b8287ea3687da6ab245032929363515b/LICENSE",
+        "size": 576,
+        "sha256": "f507ac16a6c66151569a0304269af2da8264ce1994e5107852dd1b6e9d7ea5d6",
+        "source_archive": "vendor/sources/android-libjpeg-turbo-46be77d8b8287ea3687da6ab245032929363515b.zip",
+        "archive_path": "android-libjpeg-turbo-46be77d8b8287ea3687da6ab245032929363515b/LICENSE"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/android-libjpeg-turbo-46be77d8b8287ea3687da6ab245032929363515b/jni/vendor/libjpeg-turbo/libjpeg-turbo-1.4.1/release/License.rtf",
+        "size": 2178,
+        "sha256": "d26120ab237f87dea10aa4fa7fd4243cadffd26e54eb2f3903d5fb0f8ed336b2",
+        "source_archive": "vendor/sources/android-libjpeg-turbo-46be77d8b8287ea3687da6ab245032929363515b.zip",
+        "archive_path": "android-libjpeg-turbo-46be77d8b8287ea3687da6ab245032929363515b/jni/vendor/libjpeg-turbo/libjpeg-turbo-1.4.1/release/License.rtf"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/originals/libevdev-d447a75e9e23f2286c44859f07b955981e82d483/COPYING",
+        "size": 1510,
+        "sha256": "f063d1279b31e73007e1c54493391818b4cb5f9162d590120397e0347b932137",
+        "source_archive": "vendor/sources/libevdev-d447a75e9e23f2286c44859f07b955981e82d483.tar.gz",
+        "archive_path": "libevdev-d447a75e9e23f2286c44859f07b955981e82d483/COPYING"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/abseil/copyright",
+        "size": 11361,
+        "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/abseil/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-algorithm/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-algorithm/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-align/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-align/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-array/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-array/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-asio/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-asio/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-assert/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-assert/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-atomic/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-atomic/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-bind/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-bind/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-cmake/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-cmake/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-concept-check/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-concept-check/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-config/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-config/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-container/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-container/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-container-hash/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-container-hash/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-context/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-context/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-conversion/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-conversion/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-core/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-core/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-date-time/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-date-time/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-describe/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-describe/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-detail/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-detail/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-dll/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-dll/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-exception/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-exception/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-filesystem/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-filesystem/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-function/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-function/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-function-types/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-function-types/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-functional/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-functional/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-fusion/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-fusion/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-headers/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-headers/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-integer/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-integer/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-intrusive/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-intrusive/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-io/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-io/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-iterator/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-iterator/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-lexical-cast/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-lexical-cast/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-move/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-move/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-mp11/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-mp11/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-mpl/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-mpl/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-numeric-conversion/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-numeric-conversion/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-optional/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-optional/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-pool/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-pool/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-predef/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-predef/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-preprocessor/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-preprocessor/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-process/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-process/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-range/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-range/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-regex/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-regex/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-scope/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-scope/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-smart-ptr/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-smart-ptr/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-static-assert/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-static-assert/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-system/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-system/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-throw-exception/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-throw-exception/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-tokenizer/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-tokenizer/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-tuple/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-tuple/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-type-index/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-type-index/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-type-traits/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-type-traits/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-typeof/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-typeof/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-unordered/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-unordered/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-utility/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-utility/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-uuid/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-uuid/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-variant2/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-variant2/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/boost-winapi/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/boost-winapi/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/cppzmq/copyright",
+        "size": 1083,
+        "sha256": "7e6db90e2e805c72b3daa77849d1cb5f1f92da0e69750c8a4aa1d86d70704748",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/cppzmq/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/cpuinfo/copyright",
+        "size": 1424,
+        "sha256": "8e7e60636c3aa0cb03571a1a841ce5697f9551ff92b3c426c2561613d15ade70",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/cpuinfo/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/cxxopts/copyright",
+        "size": 1055,
+        "sha256": "aa324fbe633a96546bebca975fbbab65caa175894bd00cfa13d7335e7363400c",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/cxxopts/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/date/copyright",
+        "size": 1637,
+        "sha256": "c90f6c00fb961170560299cbda28ca2d45804913aa8b2a9f36dbb8e0028d6930",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/date/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/directml-bin/copyright",
+        "size": 10439,
+        "sha256": "a05138e3a085ff60a44881eedfa58dccb03ecc1d7b1f6ae888418e8c2fec4b8d",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/directml-bin/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/directx-headers/copyright",
+        "size": 1093,
+        "sha256": "903df5512f7d02609fed0c780a9b704f5a3eeb6e4d84ebe42a29845c81899a3c",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/directx-headers/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/dlpack/copyright",
+        "size": 11345,
+        "sha256": "3e8f6bc39276a586d60c8c5aaece2ff989262181cf2b3d2a128db58f97a9300c",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/dlpack/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/doc/xz/COPYING",
+        "size": 3119,
+        "sha256": "616a3ad264ce29b8f1cb97e53037b139d406899ca8d1f799651e17bfa09830b8",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/doc/xz/COPYING"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/doc/xz/COPYING.0BSD",
+        "size": 607,
+        "sha256": "0b01625d853911cd0e2e088dcfb743261034a091bb379246cb25a14cc4c74bf1",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/doc/xz/COPYING.0BSD"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/doc/xz/COPYING.GPLv2",
+        "size": 18092,
+        "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/doc/xz/COPYING.GPLv2"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/eigen3/copyright",
+        "size": 33358,
+        "sha256": "94b25172ec4364bb0164e30a3e3b4137037ff70cb94a035e9016157fd356073e",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/eigen3/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/flatbuffers/copyright",
+        "size": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/flatbuffers/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/libjpeg-turbo/copyright",
+        "size": 5620,
+        "sha256": "2189dc45a8fe96204069f8124caa53a148dfdc193f50f584c6ca7849a6072872",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/libjpeg-turbo/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/liblzma/copyright",
+        "size": 3119,
+        "sha256": "616a3ad264ce29b8f1cb97e53037b139d406899ca8d1f799651e17bfa09830b8",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/liblzma/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/libpng/copyright",
+        "size": 5345,
+        "sha256": "16d9daaafbf63a31a5bdc91d4600972548fef5aaa1244202393288dbd079c49a",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/libpng/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/maa-fastdeploy/copyright",
+        "size": 11357,
+        "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/maa-fastdeploy/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/maa-onnxruntime/copyright",
+        "size": 1073,
+        "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/maa-onnxruntime/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/ms-gsl/copyright",
+        "size": 1157,
+        "sha256": "4c21dc82a1c7186ea754fd59d504c00947953a3401fe8e24eaa44109ef8e2555",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/ms-gsl/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/nlohmann-json/copyright",
+        "size": 1076,
+        "sha256": "46a65cffd1ea955132d95a8dd921640714a8d6b537d2e4e482d31145ae95b603",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/nlohmann-json/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/onnx/copyright",
+        "size": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/onnx/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/opencv4/copyright",
+        "size": 14996,
+        "sha256": "e5313db48cd388bb81b5f748aa9ba8b979e592e49ca7cc612ad8c4b01168f6f2",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/opencv4/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/optional-lite/copyright",
+        "size": 1338,
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/optional-lite/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/protobuf/copyright",
+        "size": 1732,
+        "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/protobuf/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/re2/copyright",
+        "size": 1558,
+        "sha256": "6040cda75d90b1738292a631d89934c411ef7ffd543c4d6a1b7edfc8edf29449",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/re2/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/safeint/copyright",
+        "size": 1066,
+        "sha256": "a46919cc8f01eb73f6e4b84af0d41b46b2a33b87c74e864279ef585079f82da4",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/safeint/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/tiff/copyright",
+        "size": 2416,
+        "sha256": "0e27c2382d7b8147972bbb746e04059a1152c8d0fda9d03ef1399d1a433c4ade",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/tiff/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/utf8-range/copyright",
+        "size": 1091,
+        "sha256": "02de69b64fc36d9e938f418e52723e42f0b2b226d58a9cb3c8dcbdf7059f5074",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/utf8-range/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/vgamepad-bin/copyright",
+        "size": 1072,
+        "sha256": "777ec45017bfb1c95fcb259ef0601e8c59ed40d22512443b4019262b226cf635",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/vgamepad-bin/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/wil/copyright",
+        "size": 1162,
+        "sha256": "27ebda9d51f0a56b7e281ccd8230a27236dcb51c05f64b07869ecf6e965d68b0",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/wil/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/zeromq/copyright",
+        "size": 16725,
+        "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/zeromq/copyright"
+      },
+      {
+        "path": "third_party/materials/delivery-notices/native-MaaDeps/zlib/copyright",
+        "size": 1002,
+        "sha256": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243",
+        "source_archive": "more/upstream-binaries/MaaDeps-x64-windows-devel-v2.12.6.tar.xz",
+        "archive_path": "./vcpkg/installed/maa-x64-windows/share/zlib/copyright"
+      }
+    ],
+    "separate_original_component_licenses_apply": true
+  },
+  "embedded_runtime_originals": {
+    "CPython": {
+      "version": "3.11.16",
+      "player_license": "runtime/python/LICENSE.txt",
+      "sha256": "886a0ead2d89030ee62dbff52b04e47ab91998341295bb9c56fb952b4e081c7a",
+      "retain_selected_site_packages_original_licenses_and_dist_info": true
+    },
+    "dotnet": {
+      "version": "10.0.1",
+      "license": "MICROSOFT SOFTWARE LICENSE TERMS / MICROSOFT .NET LIBRARY",
+      "player_license": "runtime/dotnet/LICENSE.txt",
+      "license_sha256": "7f6839a61ce892b79c6549e2dc5a81fdbd240a0b260f8881216b45b7fda8b45d",
+      "player_third_party_notices": "runtime/dotnet/ThirdPartyNotices.txt",
+      "third_party_notices_sha256": "deb4427a295e1ed474b0d81c5a0d972c1b550b9a715cda939cdfa9236b1b418f",
+      "MIT_is_not_the_shipped_runtime_LICENSE": true,
+      "object_code_redistribution_conditions_in_original_terms_must_be_preserved": true
+    },
+    "source_original_notice_copies": [
+      {
+        "path": "docs/licenses/runtime/dotnet/LICENSE.txt",
+        "size": 9519,
+        "sha256": "7f6839a61ce892b79c6549e2dc5a81fdbd240a0b260f8881216b45b7fda8b45d"
+      },
+      {
+        "path": "docs/licenses/runtime/dotnet/ThirdPartyNotices.txt",
+        "size": 78887,
+        "sha256": "deb4427a295e1ed474b0d81c5a0d972c1b550b9a715cda939cdfa9236b1b418f"
+      },
+      {
+        "path": "docs/licenses/runtime/python/LICENSE.txt",
+        "size": 25066,
+        "sha256": "886a0ead2d89030ee62dbff52b04e47ab91998341295bb9c56fb952b4e081c7a"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/MaaAgentBinary-1.0.1.dist-info/LICENSE",
+        "size": 34523,
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/MaaAgentBinary/LICENSE",
+        "size": 34523,
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/StrEnum-0.4.15.dist-info/LICENSE",
+        "size": 1073,
+        "sha256": "bcd733d0a46522162b95dbab61f7cdc1c3e36861dfa127d68a4435240d36ad36"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/attrs-26.1.0.dist-info/licenses/LICENSE",
+        "size": 1109,
+        "sha256": "882115c95dfc2af1eeb6714f8ec6d5cbcabf667caff8729f42420da63f714e9f"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/cv2/LICENSE-3RD-PARTY.txt",
+        "size": 183251,
+        "sha256": "c1d60169b55cee56452b227c2fd2a7b9ddda3dd3741065f1c6201072be73fadb"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/cv2/LICENSE.txt",
+        "size": 1090,
+        "sha256": "edef0fac1eb08d29d34563f724742e078da2513e196133a12c6ad9ff01e26107"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/jsonschema-4.26.0.dist-info/licenses/COPYING",
+        "size": 1057,
+        "sha256": "4f92a015a13c4d1a040bef018aa13430b4f1bc73b41b16bb846c346766de7439"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/jsonschema_specifications-2025.9.1.dist-info/licenses/COPYING",
+        "size": 1057,
+        "sha256": "42dcd63495f87b4eb7c7757afa379bb55a53f94afd7a5f657d9adf57236e515c"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/maafw-5.13.0.dist-info/licenses/LICENSE.md",
+        "size": 7560,
+        "sha256": "446e755fae55ff034bbb21be44670b5f116c2b2667947e7036f2bfe6632539a8"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/LICENSE.txt",
+        "size": 45831,
+        "sha256": "a804dff0ead9fadc5293456410bcbfc32bf024be9c4513459663fb7b442d2341"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+        "size": 1039,
+        "sha256": "d544761558b510866c21f7e8a2d5716fca76e0b98117e3b6b86314db7244d150"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+        "size": 704,
+        "sha256": "aea41976c720f91bd19725c16916a1ace40eb1ea42620d340e587a5de4bbcea0"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/_core/src/highway/LICENSE",
+        "size": 21155,
+        "sha256": "d208152e2777ffd0126eacc1bd21c0320d69e4e6b622d21a2a12a47e8ef73763"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
+        "size": 1441,
+        "sha256": "b0fd592d4ead563148e3977e7b589169d46a5ef2ff133c755a81af880a3fc919"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
+        "size": 1542,
+        "sha256": "a732977853530066790c42817087f4829b518dd98d340c916acbfd227e39d3cb"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
+        "size": 1573,
+        "sha256": "585483905b13d4b42f800c55ba99e89d6e2e33ccd5f503e201c07531d148ff41"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
+        "size": 1523,
+        "sha256": "8db000e158c162e7249787852d8c69764706502ccee725c06641b31c1e95c8af"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
+        "size": 2314,
+        "sha256": "19060ef465e1797d682ee0fc3081bd25ab1395e995e43d25c9d13c95d9a3cd6b"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/ma/LICENSE",
+        "size": 1616,
+        "sha256": "d78dbb208b80d92b4d333e41a4baae50d12444f46e53199fa7726a91de6e2da7"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/random/LICENSE.md",
+        "size": 3582,
+        "sha256": "b4bc2f4fa1c95778f1ed3dd8f14706bece399475b978f9f34b5d3cd72521b48a"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
+        "size": 2805,
+        "sha256": "cf5619f25b112d5ce7c896efffc8e610bcb345dfadcc19f2c1460aa48fff2c9e"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
+        "size": 2986,
+        "sha256": "92c10699884321f1c2947fe2a70ab23b0fbf1507f756d89dd08f38c61fc3d4fa"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
+        "size": 1176,
+        "sha256": "41190663b77bee5302386495a07b7eabfbfa571aa0ae2f11da6764162062fc4f"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
+        "size": 1540,
+        "sha256": "322ac46d870c8aeead6c53adcccc839296fb3c8e456eae155081297daf7f8013"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
+        "size": 1253,
+        "sha256": "28cad82ce1379dc529df30da78ec012d7d0d1d576b03ddcb93388aee53659f59"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy-2.4.6.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
+        "size": 340,
+        "sha256": "454ec7350e478e037061850b67395753b425b1cb0a34bbc26290b020bf89d763"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy/_core/include/numpy/random/LICENSE.txt",
+        "size": 1039,
+        "sha256": "d544761558b510866c21f7e8a2d5716fca76e0b98117e3b6b86314db7244d150"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy/ma/LICENSE",
+        "size": 1616,
+        "sha256": "d78dbb208b80d92b4d333e41a4baae50d12444f46e53199fa7726a91de6e2da7"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/numpy/random/LICENSE.md",
+        "size": 3582,
+        "sha256": "b4bc2f4fa1c95778f1ed3dd8f14706bece399475b978f9f34b5d3cd72521b48a"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/opencv_python_headless-5.0.0.93.dist-info/LICENSE-3RD-PARTY.txt",
+        "size": 183251,
+        "sha256": "c1d60169b55cee56452b227c2fd2a7b9ddda3dd3741065f1c6201072be73fadb"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/opencv_python_headless-5.0.0.93.dist-info/LICENSE.txt",
+        "size": 1090,
+        "sha256": "edef0fac1eb08d29d34563f724742e078da2513e196133a12c6ad9ff01e26107"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/pillow-12.3.0.dist-info/licenses/LICENSE",
+        "size": 78016,
+        "sha256": "4f7866a74802c6326f81faff59a56546b6aec2b10b91973e0e9308de95e79857"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/referencing-0.37.0.dist-info/licenses/COPYING",
+        "size": 1057,
+        "sha256": "42dcd63495f87b4eb7c7757afa379bb55a53f94afd7a5f657d9adf57236e515c"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/rpds_py-2026.6.3.dist-info/licenses/LICENSE",
+        "size": 1076,
+        "sha256": "8bcb72c82ea8ae74802293c41d93ad7d51434001b0ae45a603a5af0f507aee0a"
+      },
+      {
+        "path": "docs/licenses/runtime/python/Lib/site-packages/typing_extensions-4.16.0.dist-info/licenses/LICENSE",
+        "size": 13936,
+        "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf"
+      }
+    ],
+    "runtime_object_code_is_not_in_source_archive": true
+  },
+  "OCR_models": {
+    "license_material": "docs/licenses/MaaCommonAssets-LICENSE.txt",
+    "source_readme": "assets/resource/model/ocr/README.md",
+    "fixed_owned_originals": [
+      {
+        "path": "assets/resource/model/ocr/README.md",
+        "size": 611,
+        "sha256": "0524b253496b3e225f10ff24dad5d47456e0b1022e2449d8f8794e7b93a59d4c"
+      },
+      {
+        "path": "assets/resource/model/ocr/det.onnx",
+        "size": 4731945,
+        "sha256": "767e663dded50813dca0abc9a49859e345e0f74a48b387661188f096a9211d74"
+      },
+      {
+        "path": "assets/resource/model/ocr/keys.txt",
+        "size": 32871,
+        "sha256": "d917d7489d2c20d2e4cee8c17068f8ac54f6ee406a04bf5ac3b1ff5dc38e1e52"
+      },
+      {
+        "path": "assets/resource/model/ocr/rec.onnx",
+        "size": 10816419,
+        "sha256": "da4815ea386ee8083be319da8d20e70f4fdb0b6404ba0d2da7f675831e1b37fa"
+      }
+    ],
+    "modified": false
+  },
+  "historical_records": [
+    {
+      "path": "docs/licenses/COMPONENTS.json",
+      "status": "unmodified historical audit, not active r24 inventory"
+    },
+    {
+      "path": "docs/history/README-r23.md",
+      "status": "unmodified historical readme"
+    }
+  ],
+  "engineering_limits": [
+    "Offline acceptance; no other-player live-game acceptance.",
+    "Existing settings and unresolved historical records preserved."
+  ]
+}

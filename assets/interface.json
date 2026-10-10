@@ -1,0 +1,10 @@
+{
+  "interface_version": 2,
+  "name": "pcr-agent-maa-cn",
+  "label": "PCR 国服预设查看",
+  "version": "0.1.0",
+  "description": "本阶段仅查看扫荡预设。完整日常未交付。当前请使用 CLI；GUI 控制器绑定尚未交付，不允许通用 GUI 自动发现设备或采用默认 ADB 配置。",
+  "controller": [],
+  "resource": [{"name": "CN", "path": ["{PROJECT_DIR}/resource"]}],
+  "task": [{"name": "查看扫荡预设", "entry": "NavigatePresets", "description": "有限无消费导航，到关卡一览立即停止。只在完成固定设备配置的 CLI 中执行。"}]
+}

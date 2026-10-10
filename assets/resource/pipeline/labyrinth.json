@@ -1,0 +1,2901 @@
+{
+  "LabyDawnEntryLabel": {
+    "recognition": "OCR",
+    "expected": "明界迷宫",
+    "roi": [
+      1060,
+      480,
+      210,
+      130
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyAdventureIdentity": {
+    "recognition": "OCR",
+    "expected": "主线关卡",
+    "roi": [
+      600,
+      240,
+      580,
+      180
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyHomeTitle": {
+    "recognition": "OCR",
+    "expected": "明界迷宫",
+    "roi": [
+      70,
+      0,
+      250,
+      80
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyHomeDepart": {
+    "recognition": "OCR",
+    "expected": "^出发$",
+    "roi": [
+      650,
+      360,
+      280,
+      85
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyHomeTasks": {
+    "recognition": "OCR",
+    "expected": "^任务$",
+    "roi": [
+      1000,
+      290,
+      230,
+      95
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyHomeObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyHomeTitle",
+      "LabyHomeDepart",
+      "LabyHomeTasks"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 2000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDawnEntryClick": {
+    "recognition": "And",
+    "all_of": [
+      "LabyDawnEntryLabel",
+      "LabyAdventureIdentity"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [
+      "LabyHomeObserved"
+    ],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyGuildPrompt": {
+    "recognition": "OCR",
+    "expected": "请选择要同行的公会",
+    "roi": [
+      470,
+      80,
+      400,
+      80
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyGuildDifficulty": {
+    "recognition": "OCR",
+    "expected": "难度变更",
+    "roi": [
+      1050,
+      0,
+      140,
+      110
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyGuildObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyGuildPrompt",
+      "LabyHomeTitle",
+      "LabyGuildDifficulty"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDepartureOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyHomeDepart",
+      "LabyHomeTitle",
+      "LabyHomeTasks"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [
+      "LabyGuildObserved"
+    ],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyGourmetName": {
+    "recognition": "OCR",
+    "expected": "美食殿堂",
+    "roi": [
+      70,
+      440,
+      260,
+      70
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyGourmetSelect": {
+    "recognition": "OCR",
+    "expected": "^选择$",
+    "roi": [
+      90,
+      510,
+      220,
+      110
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyGourmetSelectOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyGourmetSelect",
+      "LabyGourmetName",
+      "LabyGuildPrompt",
+      "LabyHomeTitle"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyGuildConfirmationTitle": {
+    "recognition": "OCR",
+    "expected": "^公会选择确认$",
+    "roi": [
+      470,
+      25,
+      350,
+      65
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyGourmetTicketQuote": {
+    "recognition": "OCR",
+    "expected": "将消耗1张迷宫通行证.*美食殿堂",
+    "roi": [
+      310,
+      90,
+      660,
+      80
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyGuildConfirmDepart": {
+    "recognition": "OCR",
+    "expected": "^出发$",
+    "roi": [
+      790,
+      580,
+      300,
+      90
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyGourmetStartOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyGuildConfirmDepart",
+      "LabyGuildConfirmationTitle",
+      "LabyGourmetTicketQuote"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyDepartureRewardTitle": {
+    "recognition": "OCR",
+    "expected": "^出发奖励$",
+    "roi": [
+      500,
+      25,
+      280,
+      70
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDepartureGuildReward": {
+    "recognition": "OCR",
+    "expected": "美食殿堂.*选择印记",
+    "roi": [
+      420,
+      190,
+      490,
+      90
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDepartureRewardCloseLabel": {
+    "recognition": "OCR",
+    "expected": "^关闭$",
+    "roi": [
+      490,
+      590,
+      300,
+      90
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDepartureRewardObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyDepartureRewardTitle",
+      "LabyDepartureGuildReward",
+      "LabyDepartureRewardCloseLabel"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 2000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDepartureRewardCloseOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyDepartureRewardCloseLabel",
+      "LabyDepartureRewardTitle",
+      "LabyDepartureGuildReward"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyOpeningRosterTitle": {
+    "recognition": "OCR",
+    "expected": "^角色选择$",
+    "roi": [
+      470,
+      25,
+      360,
+      60
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningRosterPrompt": {
+    "recognition": "OCR",
+    "expected": "邀请选择的角色成为伙伴",
+    "roi": [
+      410,
+      85,
+      490,
+      50
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningCount0": {
+    "recognition": "OCR",
+    "expected": "^0/3$",
+    "roi": [
+      1170,
+      85,
+      80,
+      40
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningCount1": {
+    "recognition": "OCR",
+    "expected": "^1/3$",
+    "roi": [
+      1170,
+      85,
+      80,
+      40
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningCount2": {
+    "recognition": "OCR",
+    "expected": "^2/3$",
+    "roi": [
+      1170,
+      85,
+      80,
+      40
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningCount3": {
+    "recognition": "OCR",
+    "expected": "^3/3$",
+    "roi": [
+      1170,
+      85,
+      80,
+      40
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningIcon1075": {
+    "recognition": "TemplateMatch",
+    "template": "role-1075.png",
+    "roi": [
+      515,
+      344,
+      108,
+      95
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningIcon1351": {
+    "recognition": "TemplateMatch",
+    "template": "role-1351.png",
+    "roi": [
+      233,
+      485,
+      108,
+      95
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningIcon1059": {
+    "recognition": "TemplateMatch",
+    "template": "role-1059.png",
+    "roi": [
+      797,
+      203,
+      108,
+      95
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningSelect1075Once": {
+    "recognition": "And",
+    "all_of": [
+      "LabyOpeningIcon1075",
+      "LabyOpeningRosterTitle",
+      "LabyOpeningRosterPrompt",
+      "LabyOpeningCount0"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyOpeningSelect1351Once": {
+    "recognition": "And",
+    "all_of": [
+      "LabyOpeningIcon1351",
+      "LabyOpeningRosterTitle",
+      "LabyOpeningRosterPrompt",
+      "LabyOpeningCount1",
+      "LabyOpening1075Selected"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyOpeningSelect1059Once": {
+    "recognition": "And",
+    "all_of": [
+      "LabyOpeningIcon1059",
+      "LabyOpeningRosterTitle",
+      "LabyOpeningRosterPrompt",
+      "LabyOpeningCount2",
+      "LabyOpeningFirstTwoSelected"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyOpening1075Badge": {
+    "recognition": "ColorMatch",
+    "roi": [
+      589,
+      332,
+      46,
+      46
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      230
+    ],
+    "upper": [
+      179,
+      25,
+      255
+    ],
+    "count": 500,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpening1075Selected": {
+    "recognition": "And",
+    "all_of": [
+      "LabyOpeningRosterTitle",
+      "LabyOpeningCount1",
+      "LabyOpening1075Badge"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 2000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpening1351Badge": {
+    "recognition": "ColorMatch",
+    "roi": [
+      307,
+      474,
+      46,
+      46
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      230
+    ],
+    "upper": [
+      179,
+      25,
+      255
+    ],
+    "count": 500,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningFirstTwoSelected": {
+    "recognition": "And",
+    "all_of": [
+      "LabyOpeningRosterTitle",
+      "LabyOpeningCount2",
+      "LabyOpening1075Badge",
+      "LabyOpening1351Badge"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 2000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpening1059Badge": {
+    "recognition": "ColorMatch",
+    "roi": [
+      870,
+      190,
+      46,
+      46
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      230
+    ],
+    "upper": [
+      179,
+      25,
+      255
+    ],
+    "count": 500,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningThreeSelected": {
+    "recognition": "And",
+    "all_of": [
+      "LabyOpeningRosterTitle",
+      "LabyOpeningCount3",
+      "LabyOpening1075Badge",
+      "LabyOpening1351Badge",
+      "LabyOpening1059Badge"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 2000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningInviteLabel": {
+    "recognition": "OCR",
+    "expected": "^去邀请$",
+    "roi": [
+      960,
+      590,
+      280,
+      80
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningInviteBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      980,
+      609,
+      240,
+      20
+    ],
+    "method": 40,
+    "lower": [
+      90,
+      70,
+      220
+    ],
+    "upper": [
+      130,
+      255,
+      255
+    ],
+    "count": 3000,
+    "connected": false,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningInviteOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyOpeningInviteLabel",
+      "LabyOpeningThreeSelected",
+      "LabyOpeningRosterPrompt",
+      "LabyOpeningInviteBright"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyJoinedTitle": {
+    "recognition": "OCR",
+    "expected": "^角色加入$",
+    "roi": [
+      480,
+      90,
+      320,
+      65
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyJoined1075": {
+    "recognition": "OCR",
+    "expected": "佩可莉姆.{0,5}夏日",
+    "roi": [
+      410,
+      230,
+      420,
+      75
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyJoined1351": {
+    "recognition": "OCR",
+    "expected": "雪菲.{0,5}夏日",
+    "roi": [
+      410,
+      330,
+      420,
+      75
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyJoined1059": {
+    "recognition": "OCR",
+    "expected": "^可可萝$",
+    "roi": [
+      410,
+      430,
+      420,
+      75
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyJoinedCloseLabel": {
+    "recognition": "OCR",
+    "expected": "^关闭$",
+    "roi": [
+      485,
+      540,
+      305,
+      75
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningJoinedObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyJoinedTitle",
+      "LabyJoined1075",
+      "LabyJoined1351",
+      "LabyJoined1059"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyOpeningJoinedCloseOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyJoinedCloseLabel",
+      "LabyOpeningJoinedObserved"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyMapMenu": {
+    "recognition": "OCR",
+    "expected": "^菜单$",
+    "roi": [
+      1180,
+      55,
+      90,
+      55
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapRetreatLabel": {
+    "recognition": "OCR",
+    "expected": "撤退",
+    "roi": [
+      850,
+      620,
+      110,
+      65
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapReturnLabel": {
+    "recognition": "OCR",
+    "expected": "返回",
+    "roi": [
+      1100,
+      620,
+      110,
+      65
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyHomeTitle",
+      "LabyMapRegionLabel",
+      "LabyMapMenu",
+      "LabyMapRetreatLabel",
+      "LabyMapReturnLabel"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapBrowseRight": {
+    "recognition": "And",
+    "all_of": [
+      "LabyMapObserved"
+    ],
+    "action": "Swipe",
+    "begin": [
+      1110,
+      410
+    ],
+    "end": [
+      440,
+      410
+    ],
+    "duration": 600,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyMapBrowseLeft": {
+    "recognition": "And",
+    "all_of": [
+      "LabyMapObserved"
+    ],
+    "action": "Swipe",
+    "begin": [
+      440,
+      410
+    ],
+    "end": [
+      1110,
+      410
+    ],
+    "duration": 600,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyMapRegion2Preview": {
+    "recognition": "And",
+    "all_of": [
+      "LabyMapObserved"
+    ],
+    "action": "Click",
+    "target": [
+      600,
+      50,
+      1,
+      1
+    ],
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyMapRegionLabel": {
+    "recognition": "OCR",
+    "expected": "^区域$",
+    "roi": [
+      425,
+      15,
+      80,
+      35
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapMenuOpenOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyMapMenu",
+      "LabyMapObserved"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyMapMenuDetails": {
+    "recognition": "OCR",
+    "expected": "^详情$",
+    "roi": [
+      940,
+      30,
+      130,
+      40
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapMenuGuide": {
+    "recognition": "OCR",
+    "expected": "^指南$",
+    "roi": [
+      950,
+      175,
+      150,
+      40
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapDifficultyLabel": {
+    "recognition": "OCR",
+    "expected": "^难度详情$",
+    "roi": [
+      935,
+      125,
+      115,
+      45
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapMenuDetailsObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyHomeTitle",
+      "LabyMapMenuDetails",
+      "LabyMapMenuGuide",
+      "LabyMapDifficultyLabel"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapDifficultyOpenOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyMapDifficultyLabel",
+      "LabyMapMenuDetailsObserved"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyDifficultyDetailsTitle": {
+    "recognition": "OCR",
+    "expected": "^难度详情$",
+    "roi": [
+      490,
+      25,
+      300,
+      60
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDifficultyDetailsEnemy": {
+    "recognition": "OCR",
+    "expected": "强敌出现$",
+    "roi": [
+      355,
+      105,
+      300,
+      45
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDifficultyDetailsClose": {
+    "recognition": "OCR",
+    "expected": "^关闭$",
+    "roi": [
+      490,
+      590,
+      300,
+      85
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyDifficultyDetailsCloseOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyDifficultyDetailsClose",
+      "LabyDifficultyDetailsTitle",
+      "LabyDifficultyDetailsEnemy"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyMapMenuCloseOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyHomeTitle",
+      "LabyMapMenuDetails",
+      "LabyMapMenuGuide",
+      "LabyMapDifficultyLabel"
+    ],
+    "action": "Click",
+    "target": [
+      1218,
+      53,
+      1,
+      1
+    ],
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyOpeningEmptyObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyOpeningRosterTitle",
+      "LabyOpeningRosterPrompt",
+      "LabyOpeningCount0"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyInitialUpperNormalLabel": {
+    "recognition": "OCR",
+    "expected": "^普通$",
+    "roi": [
+      652,
+      306,
+      48,
+      26
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "only_rec": true,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyInitialLowerNormalLabel": {
+    "recognition": "OCR",
+    "expected": "^普通$",
+    "roi": [
+      652,
+      508,
+      48,
+      26
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "only_rec": true,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyInitialUpperActive": {
+    "recognition": "ColorMatch",
+    "roi": [
+      595,
+      240,
+      160,
+      100
+    ],
+    "method": 40,
+    "lower": [
+      80,
+      90,
+      210
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 1400,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyInitialUpperNormalPreviewOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyInitialUpperNormalLabel",
+      "LabyInitialLowerNormalLabel",
+      "LabyInitialUpperActive",
+      "LabyMapObserved"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyNormalMoveTitle": {
+    "recognition": "OCR",
+    "expected": "^移动目标确认$",
+    "roi": [
+      490,
+      170,
+      320,
+      55
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalMoveDescription": {
+    "recognition": "OCR",
+    "expected": "将移动到战斗格子.*普通",
+    "roi": [
+      430,
+      365,
+      450,
+      80
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalMoveConfirm": {
+    "recognition": "OCR",
+    "expected": "^确认$",
+    "roi": [
+      670,
+      460,
+      250,
+      70
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalMoveCancel": {
+    "recognition": "OCR",
+    "expected": "^取消$",
+    "roi": [
+      375,
+      460,
+      245,
+      70
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalMoveObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalMoveTitle",
+      "LabyNormalMoveDescription",
+      "LabyNormalMoveConfirm",
+      "LabyNormalMoveCancel"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalMoveConfirmOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalMoveConfirm",
+      "LabyNormalMoveTitle",
+      "LabyNormalMoveDescription",
+      "LabyNormalMoveCancel"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyNormalChallengeTitle": {
+    "recognition": "OCR",
+    "expected": "战斗格子.*普通",
+    "roi": [
+      20,
+      20,
+      640,
+      110
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalChallengeButton": {
+    "recognition": "OCR",
+    "expected": "^挑战$",
+    "roi": [
+      945,
+      560,
+      310,
+      110
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalChallengeMap": {
+    "recognition": "OCR",
+    "expected": "^查看地图$",
+    "roi": [
+      650,
+      560,
+      310,
+      110
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalChallengeObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalChallengeTitle",
+      "LabyNormalChallengeButton",
+      "LabyNormalChallengeMap"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalChallengeOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalChallengeButton",
+      "LabyNormalChallengeTitle",
+      "LabyNormalChallengeMap"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyTeamTitle": {
+    "recognition": "OCR",
+    "expected": "^队伍编组$",
+    "roi": [
+      520,
+      25,
+      250,
+      60
+    ],
+    "only_rec": false,
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamMembersLabel": {
+    "recognition": "OCR",
+    "expected": "当前的成员$",
+    "roi": [
+      65,
+      495,
+      205,
+      45
+    ],
+    "only_rec": false,
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamPowerZero": {
+    "recognition": "OCR",
+    "expected": "^0$",
+    "roi": [
+      762,
+      507,
+      24,
+      22
+    ],
+    "only_rec": true,
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamBattleStartLabel": {
+    "recognition": "OCR",
+    "expected": "^战斗开始$",
+    "roi": [
+      1060,
+      575,
+      145,
+      50
+    ],
+    "only_rec": false,
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamIcon1075": {
+    "recognition": "TemplateMatch",
+    "template": "role-1075.png",
+    "roi": [
+      75,
+      155,
+      425,
+      145
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamSelected1075": {
+    "recognition": "TemplateMatch",
+    "template": "role-1075.png",
+    "roi": [
+      60,
+      535,
+      720,
+      140
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamIcon1059": {
+    "recognition": "TemplateMatch",
+    "template": "role-1059.png",
+    "roi": [
+      75,
+      155,
+      425,
+      145
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamSelected1059": {
+    "recognition": "TemplateMatch",
+    "template": "role-1059.png",
+    "roi": [
+      60,
+      535,
+      720,
+      140
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamIcon1351": {
+    "recognition": "TemplateMatch",
+    "template": "role-1351.png",
+    "roi": [
+      75,
+      155,
+      425,
+      145
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamSelected1351": {
+    "recognition": "TemplateMatch",
+    "template": "role-1351.png",
+    "roi": [
+      60,
+      535,
+      720,
+      140
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamSelect1075Once": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamIcon1075",
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamPowerZero"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyTeamSelect1351Once": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamIcon1351",
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamSelected1075"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyTeamSelect1059Once": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamIcon1059",
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamSelected1075",
+      "LabyTeamSelected1351"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyTeamThreeObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamSelected1075",
+      "LabyTeamSelected1351",
+      "LabyTeamSelected1059"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamBattleStartBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1060,
+      578,
+      145,
+      15
+    ],
+    "method": 40,
+    "lower": [
+      85,
+      70,
+      220
+    ],
+    "upper": [
+      130,
+      255,
+      255
+    ],
+    "count": 1500,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyTeamBattleStartOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamBattleStartLabel",
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamSelected1075",
+      "LabyTeamSelected1351",
+      "LabyTeamSelected1059",
+      "LabyTeamBattleStartBright"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyNormalBattleWin": {
+    "recognition": "OCR",
+    "expected": "(?i)^WIN!?$",
+    "roi": [
+      470,
+      25,
+      350,
+      145
+    ],
+    "only_rec": true,
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalBattleDamageReport": {
+    "recognition": "OCR",
+    "expected": "^伤害报告$",
+    "roi": [
+      1020,
+      25,
+      230,
+      60
+    ],
+    "only_rec": false,
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalBattleNext": {
+    "recognition": "OCR",
+    "expected": "^下一步$",
+    "roi": [
+      995,
+      625,
+      240,
+      65
+    ],
+    "only_rec": false,
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalBattleWinObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalBattleWin",
+      "LabyNormalBattleDamageReport",
+      "LabyNormalBattleNext"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalBattleNextOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalBattleNext",
+      "LabyNormalBattleWin",
+      "LabyNormalBattleDamageReport"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyNormalBattleObtained": {
+    "recognition": "OCR",
+    "expected": "^获得道具$",
+    "roi": [
+      500,
+      175,
+      280,
+      65
+    ],
+    "threshold": 0.8,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalBattleObtainedObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalBattleWin",
+      "LabyNormalBattleObtained",
+      "LabyNormalBattleNext"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNormalBattleObtainedNextOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalBattleNext",
+      "LabyNormalBattleWin",
+      "LabyNormalBattleObtained"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyRoleRewardTitle": {
+    "recognition": "OCR",
+    "expected": "^角色加入奖励[！!]$",
+    "roi": [
+      445,
+      24,
+      405,
+      78
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardRemaining": {
+    "recognition": "OCR",
+    "expected": "^还剩[1-9][0-9]*次$",
+    "roi": [
+      588,
+      151,
+      109,
+      25
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardName0": {
+    "recognition": "OCR",
+    "expected": ".+",
+    "roi": [
+      195,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardButton0": {
+    "recognition": "OCR",
+    "expected": "^选择$",
+    "roi": [
+      176,
+      544,
+      190,
+      93
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard00": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      195,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard01": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      195,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard02": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      195,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardName1": {
+    "recognition": "OCR",
+    "expected": ".+",
+    "roi": [
+      564,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardButton1": {
+    "recognition": "OCR",
+    "expected": "^选择$",
+    "roi": [
+      548,
+      544,
+      190,
+      93
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard10": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      564,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard11": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      564,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard12": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      564,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardName2": {
+    "recognition": "OCR",
+    "expected": ".+",
+    "roi": [
+      932,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardButton2": {
+    "recognition": "OCR",
+    "expected": "^选择$",
+    "roi": [
+      917,
+      544,
+      190,
+      93
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard20": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      932,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard21": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      932,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardGuard22": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      932,
+      444,
+      160,
+      64
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyRoleRewardTitle",
+      "LabyRoleRewardRemaining",
+      "LabyRoleRewardName0",
+      "LabyRoleRewardName1",
+      "LabyRoleRewardName2",
+      "LabyRoleRewardButton0",
+      "LabyRoleRewardButton1",
+      "LabyRoleRewardButton2"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardSelectOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyRoleRewardGuard00"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyRoleRewardJoinedTitle": {
+    "recognition": "OCR",
+    "expected": "^角色加入$",
+    "roi": [
+      520,
+      94,
+      250,
+      46
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardJoinedMessage": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      455,
+      154,
+      385,
+      43
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0,
+    "only_rec": true
+  },
+  "LabyRoleRewardJoinedItem": {
+    "recognition": "OCR",
+    "expected": "^__unqualified_role_reward__$",
+    "roi": [
+      412,
+      238,
+      475,
+      51
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardJoinedClose": {
+    "recognition": "OCR",
+    "expected": "^关闭$",
+    "roi": [
+      500,
+      547,
+      278,
+      66
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardJoinedObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyRoleRewardJoinedTitle",
+      "LabyRoleRewardJoinedMessage",
+      "LabyRoleRewardJoinedItem",
+      "LabyRoleRewardJoinedClose"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 4000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRoleRewardJoinedCloseOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyRoleRewardJoinedClose",
+      "LabyRoleRewardJoinedTitle",
+      "LabyRoleRewardJoinedMessage",
+      "LabyRoleRewardJoinedItem"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyNextUpperEventLabel": {
+    "recognition": "OCR",
+    "expected": "(?i)^EVENT$",
+    "roi": [
+      580,
+      117,
+      120,
+      40
+    ],
+    "only_rec": true,
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNextUpperEventActive": {
+    "recognition": "ColorMatch",
+    "roi": [
+      557,
+      184,
+      169,
+      87
+    ],
+    "method": 40,
+    "lower": [
+      85,
+      70,
+      220
+    ],
+    "upper": [
+      130,
+      255,
+      255
+    ],
+    "count": 1400,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNextUpperEventPreviewOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNextUpperEventLabel",
+      "LabyMapObserved",
+      "LabyNextUpperEventActive"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyEventMoveDescription": {
+    "recognition": "OCR",
+    "expected": "^将移动到事件格子[。.]?$",
+    "roi": [
+      480,
+      375,
+      330,
+      70
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyEventMoveConfirmOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNormalMoveConfirm",
+      "LabyNormalMoveTitle",
+      "LabyEventMoveDescription",
+      "LabyNormalMoveCancel"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyEventTitle": {
+    "recognition": "OCR",
+    "expected": "^触发事件[！!]$",
+    "roi": [
+      500,
+      15,
+      280,
+      69
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitIdentity": {
+    "recognition": "OCR",
+    "expected": "^这里是公会管理协会[！!]$",
+    "roi": [
+      325,
+      101,
+      650,
+      44
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitClass0": {
+    "recognition": "OCR",
+    "expected": "^坦克型职能的$",
+    "roi": [
+      360,
+      477,
+      202,
+      32
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitAmount0": {
+    "recognition": "OCR",
+    "expected": "^随机印记[×xX]?2$",
+    "roi": [
+      390,
+      505,
+      140,
+      24
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitCoins0": {
+    "recognition": "OCR",
+    "expected": "^\\+阿尔法金币[×xX]200$",
+    "roi": [
+      365,
+      521,
+      215,
+      34
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitButton0": {
+    "recognition": "OCR",
+    "expected": "^选择$",
+    "roi": [
+      360,
+      548,
+      190,
+      95
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitBright0": {
+    "recognition": "ColorMatch",
+    "roi": [
+      410,
+      567,
+      90,
+      15
+    ],
+    "method": 40,
+    "lower": [
+      85,
+      70,
+      220
+    ],
+    "upper": [
+      130,
+      255,
+      255
+    ],
+    "count": 700,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitClass1": {
+    "recognition": "OCR",
+    "expected": "^治疗型职能的$",
+    "roi": [
+      733,
+      477,
+      202,
+      32
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitAmount1": {
+    "recognition": "OCR",
+    "expected": "^随机印记[×xX]?2$",
+    "roi": [
+      763,
+      505,
+      140,
+      24
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitCoins1": {
+    "recognition": "OCR",
+    "expected": "^\\+阿尔法金币[×xX]200$",
+    "roi": [
+      738,
+      521,
+      215,
+      34
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitButton1": {
+    "recognition": "OCR",
+    "expected": "^选择$",
+    "roi": [
+      733,
+      548,
+      190,
+      95
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitBright1": {
+    "recognition": "ColorMatch",
+    "roi": [
+      783,
+      567,
+      90,
+      15
+    ],
+    "method": 40,
+    "lower": [
+      85,
+      70,
+      220
+    ],
+    "upper": [
+      130,
+      255,
+      255
+    ],
+    "count": 700,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyEventTitle",
+      "LabyRecruitIdentity",
+      "LabyRecruitClass0",
+      "LabyRecruitClass1",
+      "LabyRecruitAmount0",
+      "LabyRecruitAmount1",
+      "LabyRecruitCoins0",
+      "LabyRecruitCoins1",
+      "LabyRecruitButton0",
+      "LabyRecruitButton1"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 3000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitSelect0Once": {
+    "recognition": "And",
+    "all_of": [
+      "LabyRecruitButton0",
+      "LabyRecruitBright0",
+      "LabyEventTitle",
+      "LabyRecruitIdentity",
+      "LabyRecruitClass0",
+      "LabyRecruitClass1",
+      "LabyRecruitAmount0",
+      "LabyRecruitAmount1",
+      "LabyRecruitCoins0",
+      "LabyRecruitCoins1",
+      "LabyRecruitButton0",
+      "LabyRecruitButton1"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyRecruitSelect1Once": {
+    "recognition": "And",
+    "all_of": [
+      "LabyRecruitButton1",
+      "LabyRecruitBright1",
+      "LabyEventTitle",
+      "LabyRecruitIdentity",
+      "LabyRecruitClass0",
+      "LabyRecruitClass1",
+      "LabyRecruitAmount0",
+      "LabyRecruitAmount1",
+      "LabyRecruitCoins0",
+      "LabyRecruitCoins1",
+      "LabyRecruitButton0",
+      "LabyRecruitButton1"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyRecruitJoinedMessage": {
+    "recognition": "OCR",
+    "expected": "^以下角色已加入到伙伴中[。.]?$",
+    "roi": [
+      485,
+      150,
+      335,
+      53
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitJoinedFirstName": {
+    "recognition": "OCR",
+    "expected": ".+",
+    "roi": [
+      415,
+      238,
+      440,
+      53
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitJoinedSecondName": {
+    "recognition": "OCR",
+    "expected": ".+",
+    "roi": [
+      415,
+      332,
+      440,
+      53
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitJoinedObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyRoleRewardJoinedTitle",
+      "LabyRecruitJoinedMessage",
+      "LabyRecruitJoinedFirstName",
+      "LabyRecruitJoinedSecondName",
+      "LabyRoleRewardJoinedClose"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 15000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitJoinedCloseOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyRoleRewardJoinedClose",
+      "LabyRoleRewardJoinedTitle",
+      "LabyRecruitJoinedMessage",
+      "LabyRecruitCloseFirstGuard",
+      "LabyRecruitCloseSecondGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyRecruitCloseFirstGuard": {
+    "recognition": "OCR",
+    "expected": "^菲欧$",
+    "roi": [
+      415,
+      238,
+      440,
+      53
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitCloseSecondGuard": {
+    "recognition": "OCR",
+    "expected": "^优衣\\s*[（(]礼服[）)]$",
+    "roi": [
+      415,
+      332,
+      440,
+      53
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyEventObtainedTitle": {
+    "recognition": "OCR",
+    "expected": "^获得道具$",
+    "roi": [
+      540,
+      33,
+      205,
+      43
+    ],
+    "only_rec": false,
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyEventObtainedMessage": {
+    "recognition": "OCR",
+    "expected": "^获得了以下道具[。.]?$",
+    "roi": [
+      505,
+      83,
+      280,
+      40
+    ],
+    "only_rec": false,
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitCoins200": {
+    "recognition": "OCR",
+    "expected": "^阿尔法金币\\s*[×xX]\\s*200$",
+    "roi": [
+      452,
+      183,
+      200,
+      30
+    ],
+    "only_rec": true,
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyEventObtainedClose": {
+    "recognition": "OCR",
+    "expected": "^关闭$",
+    "roi": [
+      500,
+      608,
+      278,
+      65
+    ],
+    "only_rec": false,
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitCoinsObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyEventObtainedTitle",
+      "LabyEventObtainedMessage",
+      "LabyRecruitCoins200",
+      "LabyEventObtainedClose"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 5000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyRecruitCoinsCloseOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyEventObtainedClose",
+      "LabyEventObtainedTitle",
+      "LabyEventObtainedMessage",
+      "LabyRecruitCoins200",
+      "LabyEventObtainedClose"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyMapFooterBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      810,
+      625,
+      192,
+      52
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      235
+    ],
+    "upper": [
+      179,
+      60,
+      255
+    ],
+    "count": 6000,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyMapStableObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyMapObserved",
+      "LabyMapFooterBright"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 5000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNextUpperNormalLabel": {
+    "recognition": "OCR",
+    "expected": "^普通$",
+    "roi": [
+      592,
+      224,
+      90,
+      36
+    ],
+    "only_rec": true,
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNextUpperNormalActive": {
+    "recognition": "ColorMatch",
+    "roi": [
+      557,
+      178,
+      169,
+      91
+    ],
+    "method": 40,
+    "lower": [
+      85,
+      70,
+      220
+    ],
+    "upper": [
+      130,
+      255,
+      255
+    ],
+    "count": 1400,
+    "connected": true,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNextUpperNormalPreviewOnce": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNextUpperNormalLabel",
+      "LabyMapStableObserved",
+      "LabyNextUpperNormalActive"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 3000,
+    "rate_limit": 250
+  },
+  "LabyNodeBattleDefeatMark": {
+    "recognition": "OCR",
+    "expected": "(?i)^LOSE!?$",
+    "roi": [
+      470,
+      25,
+      350,
+      145
+    ],
+    "only_rec": true,
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNodeBattleDefeatedObserved": {
+    "recognition": "And",
+    "all_of": [
+      "LabyNodeBattleDefeatMark",
+      "LabyNormalBattleDamageReport"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1500,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "LabyNodeBattleOutcomeObserved": {
+    "recognition": "Or",
+    "any_of": [
+      "LabyNormalBattleWinObserved",
+      "LabyNodeBattleDefeatedObserved"
+    ],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 80000,
+    "pre_delay": 0,
+    "post_delay": 0,
+    "rate_limit": 500
+  }
+}

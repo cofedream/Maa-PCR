@@ -1,0 +1,69 @@
+name: Accepted Stable Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-2025
+    env:
+      PCR_RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.16'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.101'
+      - name: Install Locked Test Dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Require Reviewed Acceptance
+        run: |
+          python -X utf8 -B -c "import json,sys;sys.path.insert(0,'scripts');from assemble_release import require_acceptance;d=json.load(open('delivery/acceptance.json'));require_acceptance(d,d['revision'],version=sys.argv[1])" $env:PCR_RELEASE_TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Public Regression
+        run: |
+          New-Item -ItemType Directory -Force .runtime/release | Out-Null
+          python -X utf8 -B -m pytest -p scripts.public_test_policy -m "not private_replay" --basetemp .runtime/release/test-temp --junitxml .runtime/release/tests.xml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: GUI Update Contract Checks
+        run: |
+          $evidence = [IO.Path]::GetFullPath((Join-Path (Get-Location) '.runtime/release/gui-checks'))
+          dotnet run --project gui/MFAAvalonia/PcrUpdate.Tests/PcrUpdate.Tests.csproj --configuration Release --runtime win-x64 -p:Platform=x64 -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -p:UsedAvaloniaProducts= -- $evidence
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Portable Candidate
+        run: |
+          $acceptance = Get-Content delivery/acceptance.json -Raw | ConvertFrom-Json
+          python -X utf8 -B scripts/build_release.py --output .runtime/release/build --revision $acceptance.revision --version $env:PCR_RELEASE_TAG --base-manifest delivery/baselines/r38-package-manifest.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Bundled Runtime Checks
+        run: |
+          $env:PCR_PLAYER_PACKAGE_ROOT = [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE '.runtime/release/build/player'))
+          $env:PCR_PLAYER_PACKAGE_ALIAS = $env:PCR_PLAYER_PACKAGE_ROOT
+          python -X utf8 -B -m pytest tests/test_player_candidate.py::test_packaged_runtime_ignores_external_python_environment tests/test_player_candidate.py::test_packaged_native_crt_loads_from_python_directory tests/test_player_candidate.py::test_native_entry_uses_bundled_runtime --basetemp .runtime/release/bundled-runtime-temp --junitxml .runtime/release/bundled-runtime.xml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Seal Matching Assets
+        run: |
+          python -X utf8 -B scripts/release_ci.py --player .runtime/release/build/player --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --output .runtime/release/assets --base-manifest delivery/baselines/r38-package-manifest.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create $env:PCR_RELEASE_TAG .runtime/release/assets/*.zip .runtime/release/assets/update-index.json .runtime/release/assets/SHA256SUMS.txt .runtime/release/assets/RELEASE_RECEIPT.json --verify-tag --generate-notes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish Runtime Test Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-runtime-tests
+          include-hidden-files: true
+          path: |
+            .runtime/release/tests.xml
+            .runtime/release/bundled-runtime.xml
+            .runtime/release/bundled-runtime-temp/
+          if-no-files-found: warn

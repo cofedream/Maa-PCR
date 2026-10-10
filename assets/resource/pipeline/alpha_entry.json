@@ -1,0 +1,107 @@
+{
+  "PCRAlphaEntry": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "PCRAlphaExecuteSupported",
+    "custom_action_param": {
+      "selection_mode": "pi_nodes_v1"
+    },
+    "pre_delay": 0,
+    "post_delay": 0,
+    "next": [],
+    "on_error": [],
+    "focus": {
+      "Node.Action.Starting": "PCR Alpha：校验当次上下文；结果以 Agent 摘要和报告为准。"
+    }
+  },
+  "PCRAlphaSelectSchedule": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectEvent": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectAbyss": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectDeep": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectRewards": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectVeryHard": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectHard": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectRewardsFinal": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectNormal": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  }
+}

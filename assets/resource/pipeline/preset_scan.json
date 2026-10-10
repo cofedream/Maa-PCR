@@ -1,0 +1,521 @@
+{
+  "InspectPreset": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "next": [
+      "NavigatePresets"
+    ]
+  },
+  "ScanSlotGate": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "next": [
+      "ScanSlotReady",
+      "ScanSelectClick"
+    ]
+  },
+  "ScanSlotGuard": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "PresetsReached",
+      "SelectedSlot1"
+    ]
+  },
+  "ScanSlotReady": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "ScanSlotGuard"
+    ],
+    "next": [
+      "ScanChecked",
+      "ScanToggle"
+    ]
+  },
+  "ScanSelectClick": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "PresetsReached",
+      {
+        "recognition": "Or",
+        "any_of": [
+          "SelectedSlot1",
+          "SelectedSlot2",
+          "SelectedSlot3",
+          "SelectedSlot4",
+          "SelectedSlot5",
+          "SelectedSlot6",
+          "SelectedSlot7"
+        ]
+      }
+    ],
+    "action": "Click",
+    "target": [
+      140,
+      110
+    ],
+    "max_hit": 1,
+    "next": [
+      "ScanSlotReady"
+    ],
+    "post_delay": 500
+  },
+  "ScanCheckedLabel": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "OCR",
+    "expected": "^已勾选$",
+    "roi": [
+      849,
+      182,
+      110,
+      32
+    ],
+    "threshold": 0.8
+  },
+  "ScanKnownView": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "Or",
+    "any_of": [
+      {
+        "recognition": "OCR",
+        "expected": "^全部关卡$",
+        "roi": [
+          849,
+          182,
+          110,
+          32
+        ],
+        "threshold": 0.8
+      },
+      {
+        "recognition": "OCR",
+        "expected": "^搜索结果$",
+        "roi": [
+          849,
+          182,
+          110,
+          32
+        ],
+        "threshold": 0.8
+      }
+    ]
+  },
+  "ScanToggleLabel": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "OCR",
+    "expected": "列表切换",
+    "roi": [
+      750,
+      184,
+      89,
+      30
+    ],
+    "threshold": 0.8
+  },
+  "ScanChecked": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "ScanSlotGuard",
+      "ScanCheckedLabel"
+    ],
+    "next": [
+      "ScanShort",
+      "ScanTop",
+      "ScanResetToggle"
+    ]
+  },
+  "ScanToggle": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "ScanSlotGuard",
+      "ScanKnownView",
+      "ScanToggleLabel"
+    ],
+    "action": "Click",
+    "target": [
+      937,
+      196
+    ],
+    "max_hit": 3,
+    "post_delay": 500,
+    "next": [
+      "ScanChecked",
+      "ScanToggle"
+    ]
+  },
+  "ScanOCR": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "OCR",
+    "expected": ".+",
+    "roi": [
+      50,
+      228,
+      760,
+      275
+    ],
+    "threshold": 0.8
+  },
+  "ScanCheckGlyph": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "ColorMatch",
+    "roi": [
+      1098,
+      232,
+      80,
+      265
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      100
+    ],
+    "upper": [
+      120,
+      255,
+      255
+    ],
+    "count": 800,
+    "connected": true
+  },
+  "ScanNoRail": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1216,
+      237,
+      15,
+      261
+    ],
+    "method": 4,
+    "lower": [
+      240,
+      240,
+      240
+    ],
+    "upper": [
+      250,
+      250,
+      250
+    ],
+    "count": 3915
+  },
+  "ScanBlueTop": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      246,
+      3,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      105,
+      170,
+      225
+    ],
+    "upper": [
+      155,
+      220,
+      255
+    ],
+    "count": 15
+  },
+  "ScanBlueBottom": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      483,
+      3,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      65,
+      125,
+      215
+    ],
+    "upper": [
+      110,
+      170,
+      250
+    ],
+    "count": 15
+  },
+  "ScanGrayTop": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      246,
+      3,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      140,
+      150,
+      173
+    ],
+    "upper": [
+      155,
+      166,
+      190
+    ],
+    "count": 15
+  },
+  "ScanGrayBottom": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      483,
+      3,
+      5
+    ],
+    "method": 4,
+    "lower": [
+      140,
+      150,
+      173
+    ],
+    "upper": [
+      155,
+      166,
+      190
+    ],
+    "count": 15
+  },
+  "ScanShort": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "Custom",
+    "custom_recognition": "PresetPage",
+    "custom_recognition_param": "short",
+    "action": "Custom",
+    "custom_action": "CollectPresetPage",
+    "next": [],
+    "max_hit": 9
+  },
+  "ScanTop": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "Custom",
+    "custom_recognition": "PresetPage",
+    "custom_recognition_param": "top",
+    "action": "Custom",
+    "custom_action": "CollectPresetPage",
+    "next": [
+      "ScanSwipe"
+    ],
+    "max_hit": 9
+  },
+  "ScanBottom": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "Custom",
+    "custom_recognition": "PresetPage",
+    "custom_recognition_param": "bottom",
+    "action": "Custom",
+    "custom_action": "CollectPresetPage",
+    "next": [],
+    "max_hit": 9
+  },
+  "ScanPage": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "Custom",
+    "custom_recognition": "PresetPage",
+    "custom_recognition_param": "page",
+    "action": "Custom",
+    "custom_action": "CollectPresetPage",
+    "next": [
+      "ScanSwipe"
+    ],
+    "max_hit": 9
+  },
+  "ScanSwipe": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "ScanSlotGuard",
+      "ScanCheckedLabel"
+    ],
+    "action": "Swipe",
+    "begin": [
+      567,
+      440
+    ],
+    "end": [
+      567,
+      360
+    ],
+    "duration": 1000,
+    "post_delay": 500,
+    "max_hit": 8,
+    "next": [
+      "ScanBottom",
+      "ScanPage"
+    ]
+  },
+  "ScanUnknown": {
+    "timeout": 1800,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "action": "StopTask",
+    "next": []
+  },
+  "ScanRailBlue": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      246,
+      3,
+      242
+    ],
+    "method": 4,
+    "lower": [
+      65,
+      125,
+      215
+    ],
+    "upper": [
+      155,
+      220,
+      255
+    ],
+    "count": 60
+  },
+  "ScanRailGray": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1223,
+      246,
+      3,
+      242
+    ],
+    "method": 4,
+    "lower": [
+      140,
+      150,
+      173
+    ],
+    "upper": [
+      155,
+      166,
+      190
+    ],
+    "count": 60
+  },
+  "ScanResetToggle": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScanUnknown"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "ScanSlotGuard",
+      "ScanCheckedLabel",
+      "ScanGrayTop",
+      "ScanRailBlue",
+      "ScanRailGray",
+      "ScanToggleLabel"
+    ],
+    "action": "Click",
+    "target": [
+      937,
+      196
+    ],
+    "max_hit": 1,
+    "post_delay": 500,
+    "next": [
+      "ScanToggle"
+    ]
+  }
+}

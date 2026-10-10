@@ -1,0 +1,26 @@
+# CPython 3.13 / Windows x64 wheels, verified against PyPI JSON on 2026-10-10.
+# Other platforms or Python ABIs require a separately verified wheel lock.
+--index-url https://pypi.org/simple
+--only-binary=:all:
+--require-hashes
+
+attrs==26.1.0 --hash=sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309
+certifi==2024.8.30 --hash=sha256:922820b53db7a7257ffbda3f597266d435245903d80737e34f8a45ff3e3230d8
+charset-normalizer==3.3.2 --hash=sha256:3e4d1f6587322d2788836a99c69062fbb091331ec940e02d12d179c1d53e25fc
+idna==3.8 --hash=sha256:050b4e5baadcd44d760cedbd2b8e639f2ff89bbc7a5730fcc662954303377aac
+jsonschema==4.26.0 --hash=sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce
+jsonschema-specifications==2025.9.1 --hash=sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe
+maaagentbinary==1.0.1 --hash=sha256:d97bcc9f35b52add199b287932511ecfcddcb83930c6b532d1c7010b432ec8bf
+maafw==5.13.0 --hash=sha256:105c22431183446d350864b946fb9448f47fd9d73a20e4b46e276ea2a22067e5
+msgpack==1.1.0 --hash=sha256:bce7d9e614a04d0883af0b3d4d501171fbfca038f12c77fa838d9f198147a23f
+numpy==2.4.6 --hash=sha256:c4fc99836233ea196540b17ab0983aff60ed07941751930f5f4d05bc3b3b7359
+opencv-python-headless==5.0.0.93 --hash=sha256:829717b6a95554f273e49e357cee3b3a2a26b6f4842fbc1bed2b45bdd8f87e0e
+pillow==12.3.0 --hash=sha256:1cca606cd25738df4ed873d5ad46bbdb3d83b5cbca291f6b4ff13a4df6b0bbe8
+pycryptodome==3.20.0 --hash=sha256:9b3ae153c89a480a0ec402e23db8d8d84a3833b65fa4b15b81b83be9d637aab9
+pydantic==1.10.21 --hash=sha256:e622314542fb48542c09c7bd1ac51d71c5632dd3c92dc82ede6da233f55f4848
+referencing==0.37.0 --hash=sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231
+requests==2.32.3 --hash=sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6
+rpds-py==2026.6.3 --hash=sha256:9250a9a0a6fd4648b3f868da8d91a4c52b5811a62df58e753d50ae4454a36f80
+strenum==0.4.15 --hash=sha256:a30cda4af7cc6b5bf52c8055bc4bf4b2b6b14a93b574626da33df53cf7740659
+typing-extensions==4.16.0 --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
+urllib3==2.2.3 --hash=sha256:ca899ca043dcb1bafa3e262d73aa25c465bfb49e0bd9dd5d59f1d0acba2f8fac

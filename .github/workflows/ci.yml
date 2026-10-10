@@ -1,0 +1,67 @@
+name: Windows Build and Tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.16'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.101'
+      - name: Install Locked Test Dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Public Tests
+        run: |
+          New-Item -ItemType Directory -Force .runtime/ci | Out-Null
+          python -X utf8 -B -m pytest -p scripts.public_test_policy -m "not private_replay" --basetemp .runtime/ci/test-temp --junitxml .runtime/ci/public-tests.xml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Portable Candidate
+        run: |
+          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r38-package-manifest.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: GUI Update Contract Checks
+        run: |
+          $evidence = [IO.Path]::GetFullPath((Join-Path (Get-Location) '.runtime/ci/gui-checks'))
+          dotnet run --project gui/MFAAvalonia/PcrUpdate.Tests/PcrUpdate.Tests.csproj --configuration Release --runtime win-x64 -p:Platform=x64 -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -p:UsedAvaloniaProducts= -- $evidence | Tee-Object -FilePath .runtime/ci/gui-checks.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Bundled Runtime Checks
+        run: |
+          $env:PCR_PLAYER_PACKAGE_ROOT = [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE '.runtime/ci/build/player'))
+          $env:PCR_PLAYER_PACKAGE_ALIAS = $env:PCR_PLAYER_PACKAGE_ROOT
+          python -X utf8 -B -m pytest tests/test_player_candidate.py::test_packaged_runtime_ignores_external_python_environment tests/test_player_candidate.py::test_packaged_native_crt_loads_from_python_directory tests/test_player_candidate.py::test_native_entry_uses_bundled_runtime --basetemp .runtime/ci/bundled-runtime-temp --junitxml .runtime/ci/bundled-runtime.xml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish Build Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-candidate-and-tests
+          include-hidden-files: true
+          path: |
+            .runtime/ci/public-tests.xml
+            .runtime/ci/bundled-runtime.xml
+            .runtime/ci/bundled-runtime-temp/
+            .runtime/ci/gui-checks.log
+            .runtime/ci/build/*.json
+            .runtime/ci/build/*.log
+            .runtime/ci/build/*.zip
+          if-no-files-found: warn
+  source-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,1257 @@
+{
+  "OneKeyPreflight": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyRead"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyRead": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeySnapshot",
+    "action": "DoNothing",
+    "max_hit": 1,
+    "next": []
+  },
+  "OneKeyStop": {
+    "action": "StopTask",
+    "next": []
+  },
+  "OneKeyOCR": {
+    "recognition": "OCR",
+    "roi": [
+      0,
+      0,
+      1280,
+      720
+    ],
+    "expected": ".+",
+    "threshold": 0.8,
+    "action": "DoNothing"
+  },
+  "OneKeyLabel": {
+    "recognition": "OCR",
+    "roi": [
+      740,
+      600,
+      290,
+      80
+    ],
+    "expected": "^一键自动$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyDate": {
+    "recognition": "OCR",
+    "roi": [
+      260,
+      45,
+      85,
+      36
+    ],
+    "only_rec": true,
+    "expected": "^[0-9 ]+[/／][0-9 ]+$",
+    "threshold": 0.8,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_dungeon_confirm_0": {
+    "recognition": "OCR",
+    "roi": [
+      410,
+      165,
+      450,
+      65
+    ],
+    "expected": "^地下城跳过确认$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_dungeon_confirm_1": {
+    "recognition": "OCR",
+    "roi": [
+      360,
+      275,
+      570,
+      110
+    ],
+    "expected": "^跳过地下城的全部战斗，直接获得报酬吗？$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_dungeon_confirm_2": {
+    "recognition": "OCR",
+    "roi": [
+      710,
+      460,
+      150,
+      65
+    ],
+    "expected": "^确认$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_dungeon_confirm_3": {
+    "recognition": "OCR",
+    "roi": [
+      430,
+      460,
+      140,
+      65
+    ],
+    "expected": "^取消$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyGuard_dungeon_confirm": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_dungeon_confirm_0",
+      "OneKeyCheck_dungeon_confirm_1",
+      "OneKeyCheck_dungeon_confirm_2",
+      "OneKeyCheck_dungeon_confirm_3"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_mana_confirm_0": {
+    "recognition": "OCR",
+    "roi": [
+      410,
+      165,
+      450,
+      65
+    ],
+    "expected": "^玛那关卡跳过确认$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_mana_confirm_1": {
+    "recognition": "OCR",
+    "roi": [
+      350,
+      255,
+      600,
+      70
+    ],
+    "expected": "^消耗扫荡券和挑战次数，攻略玛那关卡。确认吗？$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_mana_confirm_2": {
+    "recognition": "OCR",
+    "roi": [
+      330,
+      325,
+      280,
+      45
+    ],
+    "expected": "挑战次数",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_mana_confirm_3": {
+    "recognition": "OCR",
+    "roi": [
+      330,
+      365,
+      280,
+      45
+    ],
+    "expected": "^消耗.*券$",
+    "threshold": 0.85,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_mana_confirm_4": {
+    "recognition": "OCR",
+    "roi": [
+      710,
+      460,
+      150,
+      65
+    ],
+    "expected": "^确认$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_mana_confirm_5": {
+    "recognition": "OCR",
+    "roi": [
+      430,
+      460,
+      140,
+      65
+    ],
+    "expected": "^取消$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyQuoteNumber": {
+    "recognition": "OCR",
+    "only_rec": false,
+    "expected": "^[0-9]+$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyGuard_mana_confirm": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_mana_confirm_0",
+      "OneKeyCheck_mana_confirm_1",
+      "OneKeyCheck_mana_confirm_2",
+      "OneKeyCheck_mana_confirm_3",
+      "OneKeyCheck_mana_confirm_4",
+      "OneKeyCheck_mana_confirm_5"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_exp_confirm_0": {
+    "recognition": "OCR",
+    "roi": [
+      410,
+      165,
+      450,
+      65
+    ],
+    "expected": "^经验值关卡跳过确认$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_exp_confirm_1": {
+    "recognition": "OCR",
+    "roi": [
+      350,
+      255,
+      600,
+      70
+    ],
+    "expected": "^消耗扫荡券和挑战次数，攻略经验值关卡。确认吗？$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_exp_confirm_2": {
+    "recognition": "OCR",
+    "roi": [
+      330,
+      325,
+      280,
+      45
+    ],
+    "expected": "挑战次数",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_exp_confirm_3": {
+    "recognition": "OCR",
+    "roi": [
+      330,
+      365,
+      280,
+      45
+    ],
+    "expected": "^消耗.*券$",
+    "threshold": 0.85,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_exp_confirm_4": {
+    "recognition": "OCR",
+    "roi": [
+      710,
+      460,
+      150,
+      65
+    ],
+    "expected": "^确认$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_exp_confirm_5": {
+    "recognition": "OCR",
+    "roi": [
+      430,
+      460,
+      140,
+      65
+    ],
+    "expected": "^取消$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyGuard_exp_confirm": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_exp_confirm_0",
+      "OneKeyCheck_exp_confirm_1",
+      "OneKeyCheck_exp_confirm_2",
+      "OneKeyCheck_exp_confirm_3",
+      "OneKeyCheck_exp_confirm_4",
+      "OneKeyCheck_exp_confirm_5"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_sweep_result_0": {
+    "recognition": "OCR",
+    "roi": [
+      500,
+      15,
+      290,
+      65
+    ],
+    "expected": "^扫荡结果$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_sweep_result_1": {
+    "recognition": "OCR",
+    "roi": [
+      450,
+      230,
+      400,
+      170
+    ],
+    "expected": "扫荡完成",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_sweep_result_2": {
+    "recognition": "OCR",
+    "roi": [
+      345,
+      320,
+      200,
+      110
+    ],
+    "expected": "合计获得报酬",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_sweep_result_3": {
+    "recognition": "OCR",
+    "roi": [
+      550,
+      604,
+      180,
+      72
+    ],
+    "expected": "^确认$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyGuard_sweep_result": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_sweep_result_0",
+      "OneKeyCheck_sweep_result_1",
+      "OneKeyCheck_sweep_result_2",
+      "OneKeyCheck_sweep_result_3"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_like_result_0": {
+    "recognition": "OCR",
+    "roi": [
+      480,
+      165,
+      320,
+      65
+    ],
+    "expected": "^点赞完成$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_like_result_1": {
+    "recognition": "OCR",
+    "roi": [
+      330,
+      255,
+      610,
+      80
+    ],
+    "expected": "^获得了体力10。$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_like_result_2": {
+    "recognition": "OCR",
+    "roi": [
+      550,
+      460,
+      180,
+      70
+    ],
+    "expected": "^确认$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyGuard_like_result": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_like_result_0",
+      "OneKeyCheck_like_result_1",
+      "OneKeyCheck_like_result_2"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_item_result_0": {
+    "recognition": "OCR",
+    "roi": [
+      490,
+      15,
+      320,
+      65
+    ],
+    "expected": "^收取报酬$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_item_result_1": {
+    "recognition": "OCR",
+    "roi": [
+      440,
+      92,
+      420,
+      75
+    ],
+    "expected": "收取了以下道具",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_item_result_2": {
+    "recognition": "OCR",
+    "roi": [
+      280,
+      545,
+      710,
+      65
+    ],
+    "expected": "超出持有数上限的道具将送往礼物箱",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyCheck_item_result_3": {
+    "recognition": "OCR",
+    "roi": [
+      550,
+      604,
+      180,
+      72
+    ],
+    "expected": "^关闭$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyGuard_item_result": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyCheck_item_result_0",
+      "OneKeyCheck_item_result_1",
+      "OneKeyCheck_item_result_3"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyStrike": {
+    "recognition": "ColorMatch",
+    "roi": [
+      480,
+      450,
+      390,
+      23
+    ],
+    "method": 40,
+    "lower": [
+      [
+        0,
+        80,
+        130
+      ],
+      [
+        170,
+        80,
+        130
+      ]
+    ],
+    "upper": [
+      [
+        10,
+        255,
+        255
+      ],
+      [
+        179,
+        255,
+        255
+      ]
+    ],
+    "count": 600,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyStamp": {
+    "recognition": "ColorMatch",
+    "roi": [
+      925,
+      420,
+      90,
+      74
+    ],
+    "method": 40,
+    "lower": [
+      [
+        0,
+        80,
+        130
+      ],
+      [
+        170,
+        80,
+        130
+      ]
+    ],
+    "upper": [
+      [
+        10,
+        255,
+        255
+      ],
+      [
+        179,
+        255,
+        255
+      ]
+    ],
+    "count": 400,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyRowBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      700,
+      420,
+      120,
+      10
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
+    "count": 1100,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyPanelBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      460,
+      30,
+      260,
+      50
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
+    "count": 6000,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyButtonBlue": {
+    "recognition": "ColorMatch",
+    "roi": [
+      925,
+      430,
+      85,
+      42
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      90,
+      150
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 400,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyHomeDialogBlue": {
+    "recognition": "ColorMatch",
+    "roi": [
+      350,
+      400,
+      580,
+      135
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      90,
+      150
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 2000,
+    "connected": true,
+    "action": "DoNothing"
+  },
+  "OneKeyBottom": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1032,
+      570,
+      7,
+      9
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      90,
+      150
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 35,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyExecRead": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyExecSnapshot"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyExecSnapshot": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "observe",
+    "action": "DoNothing",
+    "max_hit": 1
+  },
+  "OneKeyDo_enter": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_enter"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_enter": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "enter",
+    "max_hit": 1,
+    "post_delay": 650,
+    "post_wait_freezes": {
+      "time": 200,
+      "target": [
+        240,
+        25,
+        810,
+        650
+      ],
+      "threshold": 0.98,
+      "rate_limit": 100,
+      "timeout": 2500
+    },
+    "action": "Click",
+    "target": [
+      1017,
+      575
+    ]
+  },
+  "OneKeyDo_onekey": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_onekey"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_onekey": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "onekey",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      880,
+      640
+    ]
+  },
+  "OneKeyDo_close": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_close"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_close": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "close",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      370,
+      640
+    ]
+  },
+  "OneKeyDo_dungeon_confirm": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_dungeon_confirm"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_dungeon_confirm": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "dungeon_confirm",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      785,
+      493
+    ]
+  },
+  "OneKeyDo_mana_confirm": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_mana_confirm"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_mana_confirm": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "mana_confirm",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      785,
+      493
+    ]
+  },
+  "OneKeyDo_exp_confirm": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_exp_confirm"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_exp_confirm": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "exp_confirm",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      785,
+      493
+    ]
+  },
+  "OneKeyDo_dungeon_result": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_dungeon_result"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_dungeon_result": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "dungeon_result",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ]
+  },
+  "OneKeyDo_mana_result": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_mana_result"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_mana_result": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "mana_result",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ]
+  },
+  "OneKeyDo_exp_result": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_exp_result"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_exp_result": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "exp_result",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ]
+  },
+  "OneKeyDo_like_result": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_like_result"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_like_result": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "like_result",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      640,
+      493
+    ]
+  },
+  "OneKeyDo_item_result": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_item_result"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_item_result": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "item_result",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ]
+  },
+  "OneKeyDo_down": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_down"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_down": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "down",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Swipe",
+    "begin": [
+      667,
+      500
+    ],
+    "end": [
+      667,
+      287
+    ],
+    "duration": 1000
+  },
+  "OneKeyDo_up": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_up"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_up": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "up",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Swipe",
+    "begin": [
+      667,
+      287
+    ],
+    "end": [
+      667,
+      500
+    ],
+    "duration": 1000
+  },
+  "OneKeySettingsTitle": {
+    "recognition": "OCR",
+    "roi": [
+      530,
+      30,
+      230,
+      60
+    ],
+    "expected": "^计划整理$",
+    "threshold": 0.85,
+    "action": "DoNothing"
+  },
+  "OneKeySettingsClose": {
+    "recognition": "OCR",
+    "roi": [
+      560,
+      600,
+      165,
+      70
+    ],
+    "expected": "^关闭$",
+    "threshold": 0.85,
+    "action": "DoNothing"
+  },
+  "OneKeySettingsBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1100,
+      605,
+      100,
+      60
+    ],
+    "method": 4,
+    "lower": [
+      235,
+      235,
+      235
+    ],
+    "upper": [
+      255,
+      255,
+      255
+    ],
+    "count": 4500,
+    "action": "DoNothing"
+  },
+  "OneKeyRadioBlue": {
+    "recognition": "ColorMatch",
+    "method": 40,
+    "lower": [
+      90,
+      80,
+      130
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 230,
+    "action": "DoNothing"
+  },
+  "OneKeyRadioWhite": {
+    "recognition": "ColorMatch",
+    "method": 4,
+    "lower": [
+      220,
+      220,
+      220
+    ],
+    "upper": [
+      255,
+      255,
+      255
+    ],
+    "count": 300,
+    "action": "DoNothing"
+  },
+  "OneKeyDo_settings_open": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_settings_open"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_settings_open": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "settings_open",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      612,
+      640
+    ]
+  },
+  "OneKeyDo_settings_close": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_settings_close"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_settings_close": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "settings_close",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ]
+  },
+  "OneKeyDo_settings_down": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_settings_down"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_settings_down": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "settings_down",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Swipe",
+    "begin": [
+      60,
+      530
+    ],
+    "end": [
+      60,
+      244
+    ],
+    "duration": 1000
+  },
+  "OneKeyDungeonFinish_title": {
+    "recognition": "OCR",
+    "roi": [
+      530,
+      5,
+      215,
+      40
+    ],
+    "expected": "^完成地下城战斗1次吧$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyDungeonFinish_complete": {
+    "recognition": "OCR",
+    "roi": [
+      730,
+      32,
+      70,
+      48
+    ],
+    "expected": "^已完成$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyDungeonFinish_button": {
+    "recognition": "OCR",
+    "roi": [
+      560,
+      610,
+      160,
+      55
+    ],
+    "expected": "^跳过完毕$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyDungeonFinish_floor": {
+    "recognition": "OCR",
+    "roi": [
+      370,
+      337,
+      58,
+      38
+    ],
+    "expected": "^[1-9][0-9]*层$",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyDungeonFinish_exp": {
+    "recognition": "OCR",
+    "roi": [
+      570,
+      338,
+      110,
+      38
+    ],
+    "expected": "^经验值",
+    "threshold": 0.9,
+    "action": "DoNothing"
+  },
+  "OneKeyDungeonFinish_panel": {
+    "recognition": "ColorMatch",
+    "roi": [
+      345,
+      586,
+      585,
+      15
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
+    "count": 7500,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyDungeonFinish_button_blue": {
+    "recognition": "ColorMatch",
+    "roi": [
+      520,
+      615,
+      240,
+      45
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      90,
+      150
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 6500,
+    "connected": false,
+    "action": "DoNothing"
+  },
+  "OneKeyGuard_dungeon_finish": {
+    "recognition": "And",
+    "all_of": [
+      "OneKeyDungeonFinish_title",
+      "OneKeyDungeonFinish_complete",
+      "OneKeyDungeonFinish_button",
+      "OneKeyDungeonFinish_floor",
+      "OneKeyDungeonFinish_exp",
+      "OneKeyDungeonFinish_panel",
+      "OneKeyDungeonFinish_button_blue"
+    ],
+    "action": "DoNothing"
+  },
+  "OneKeyDo_dungeon_finish": {
+    "action": "DoNothing",
+    "next": [
+      "OneKeyInput_dungeon_finish"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_dungeon_finish": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "dungeon_finish",
+    "max_hit": 1,
+    "post_delay": 650,
+    "action": "Click",
+    "target": [
+      640,
+      640
+    ]
+  }
+}

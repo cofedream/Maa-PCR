@@ -1,0 +1,545 @@
+{
+  "schemaVersion": 1,
+  "events": [
+    {
+      "id": "1101",
+      "name": "这里是公会管理协会！请问要找什么样的伙伴？",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11011",
+          "slot": 1,
+          "name": "想要坦克型 成为伙伴！",
+          "description": "坦克型职能的 随机印记×2 ＋阿尔法金币×200"
+        },
+        {
+          "id": "11012",
+          "slot": 2,
+          "name": "想要治疗型 成为伙伴！",
+          "description": "治疗型职能的 随机印记×2 ＋阿尔法金币×200"
+        }
+      ]
+    },
+    {
+      "id": "1102",
+      "name": "这里是公会管理协会！请问要找什么样的伙伴？",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11021",
+          "slot": 1,
+          "name": "想要强化型 成为伙伴！",
+          "description": "强化型职能的 随机印记×2 ＋阿尔法金币×200"
+        },
+        {
+          "id": "11022",
+          "slot": 2,
+          "name": "想要增益型 成为伙伴！",
+          "description": "增益型职能的 随机印记×2 ＋阿尔法金币×200"
+        }
+      ]
+    },
+    {
+      "id": "1103",
+      "name": "这里是公会管理协会！请问要找什么样的伙伴？",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11031",
+          "slot": 1,
+          "name": "想要减益型 成为伙伴！",
+          "description": "减益型职能的 随机印记×2 ＋阿尔法金币×200"
+        },
+        {
+          "id": "11032",
+          "slot": 2,
+          "name": "想要干扰型 成为伙伴！",
+          "description": "干扰型职能的 随机印记×2 ＋阿尔法金币×200"
+        }
+      ]
+    },
+    {
+      "id": "1104",
+      "name": "这里是公会管理协会！请问要找什么样的伙伴？",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11041",
+          "slot": 1,
+          "name": "想要攻击型 成为伙伴！",
+          "description": "攻击型职能的 随机印记×2 ＋阿尔法金币×200"
+        },
+        {
+          "id": "11042",
+          "slot": 2,
+          "name": "想要破防型 成为伙伴！",
+          "description": "破防型职能的 随机印记×2 ＋阿尔法金币×200"
+        }
+      ]
+    },
+    {
+      "id": "1105",
+      "name": "发现了魔物们聚集的斗技场！",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11051",
+          "slot": 1,
+          "name": "一试身手吧！",
+          "description": "向战斗格子（普通难度）的 敌人发起挑战 ＋阿尔法金币×200"
+        },
+        {
+          "id": "11052",
+          "slot": 2,
+          "name": "与强敌战斗真是令人兴奋！",
+          "description": "向战斗格子（极难）的 敌人发起挑战 ＋阿尔法金币×300"
+        }
+      ]
+    },
+    {
+      "id": "1107",
+      "name": "发现了不可思议的石板！要怎么办？",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11073",
+          "slot": 1,
+          "name": "摸一下 应该没关系吧？",
+          "description": "有50％的概率获得阿尔法金币×1500 有50％的概率获得阿尔法金币×2000"
+        },
+        {
+          "id": "11072",
+          "slot": 2,
+          "name": "噗吉 全力挥～击☆",
+          "description": "有50％的概率获得随机职能的 选择印记×1 有50％的概率获得全体选择印记×1",
+          "conditionType": 1,
+          "conditionValue": 2000
+        },
+        {
+          "id": "11071",
+          "slot": 3,
+          "name": "靠近的时候可得小心点",
+          "description": "有50％的概率获得★2迷宫遗物×1 有50％的概率获得★3迷宫遗物×1",
+          "conditionType": 1,
+          "conditionValue": 2000
+        }
+      ]
+    },
+    {
+      "id": "1108",
+      "name": "在地下城迷路了！要走哪边？",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11082",
+          "slot": 1,
+          "name": "难道不是左边吗？",
+          "description": "阿尔法金币×1000"
+        },
+        {
+          "id": "11081",
+          "slot": 2,
+          "name": "当然是右边啊！",
+          "description": "有50％的概率获得★1迷宫遗物×1 有50％的概率获得随机职能的 随机印记×2"
+        }
+      ]
+    },
+    {
+      "id": "1109",
+      "name": "发现了魔物们聚集的斗技场！",
+      "area": 2,
+      "choices": [
+        {
+          "id": "11091",
+          "slot": 1,
+          "name": "一试身手吧！",
+          "description": "向战斗格子（普通难度）的 敌人发起挑战 ＋阿尔法金币×300"
+        },
+        {
+          "id": "11092",
+          "slot": 2,
+          "name": "与强敌战斗真是令人兴奋！",
+          "description": "向战斗格子（极难）的 敌人发起挑战 ＋阿尔法金币×450"
+        }
+      ]
+    },
+    {
+      "id": "1110",
+      "name": "石头剪刀……布！",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11101",
+          "slot": 1,
+          "name": "石头！！！",
+          "description": "胜利后获得阿尔法金币×3000 失败后获得阿尔法金币×1000"
+        },
+        {
+          "id": "11102",
+          "slot": 2,
+          "name": "出剪刀吧",
+          "description": "胜利后获得阿尔法金币×3000 失败后获得阿尔法金币×1000"
+        },
+        {
+          "id": "11103",
+          "slot": 3,
+          "name": "要不要出布呢",
+          "description": "胜利后获得阿尔法金币×3000 失败后获得阿尔法金币×1000"
+        }
+      ]
+    },
+    {
+      "id": "1111",
+      "name": "能听到从箱子里传出的声音……",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11111",
+          "slot": 1,
+          "name": "弟弟 这边这边♪",
+          "description": "阿尔法金币×2000"
+        },
+        {
+          "id": "11112",
+          "slot": 2,
+          "name": "哥哥 在这边哦♪",
+          "description": "★1～3迷宫遗物×１"
+        }
+      ]
+    },
+    {
+      "id": "1112",
+      "name": "活动会场出现了魔物！",
+      "area": 1,
+      "choices": [
+        {
+          "id": "11121",
+          "slot": 1,
+          "name": "见识下御久间流的 剑术吧！",
+          "description": "阿尔法金币×2000"
+        },
+        {
+          "id": "11122",
+          "slot": 2,
+          "name": "这里就 交给我们吧！",
+          "description": "纯成为伙伴 ＋全体随机印记×2～4"
+        }
+      ]
+    },
+    {
+      "id": "1113",
+      "name": "发现了魔物们聚集的斗技场！",
+      "area": 3,
+      "choices": [
+        {
+          "id": "11131",
+          "slot": 1,
+          "name": "一试身手吧！",
+          "description": "向战斗格子（普通难度）的 敌人发起挑战 ＋阿尔法金币×400"
+        },
+        {
+          "id": "11132",
+          "slot": 2,
+          "name": "与强敌战斗真是令人兴奋！",
+          "description": "向战斗格子（极难）的 敌人发起挑战 ＋阿尔法金币×600"
+        }
+      ]
+    },
+    {
+      "id": "1117",
+      "name": "发现了魔物们聚集的斗技场！",
+      "area": 4,
+      "choices": [
+        {
+          "id": "11171",
+          "slot": 1,
+          "name": "一试身手吧！",
+          "description": "向战斗格子（普通难度）的 敌人发起挑战 ＋阿尔法金币×500"
+        },
+        {
+          "id": "11172",
+          "slot": 2,
+          "name": "与强敌战斗真是令人兴奋！",
+          "description": "向战斗格子（极难）的 敌人发起挑战 ＋阿尔法金币×750"
+        }
+      ]
+    },
+    {
+      "id": "1314",
+      "name": "发现了钓鱼地点！",
+      "area": 1,
+      "choices": [
+        {
+          "id": "13141",
+          "slot": 1,
+          "name": "悠闲地 钓鱼吧",
+          "description": "有50％的概率获得★1迷宫遗物×1 并进入下一个事件"
+        }
+      ]
+    },
+    {
+      "id": "1315",
+      "name": "是个非常适合郊游的好天气！",
+      "area": 1,
+      "choices": [
+        {
+          "id": "13151",
+          "slot": 1,
+          "name": "大家一起 做料理吧☆",
+          "description": "有50％的概率进入下一个事件"
+        }
+      ]
+    },
+    {
+      "id": "1316",
+      "name": "是老虎机！要挑战吗？",
+      "area": 1,
+      "choices": [
+        {
+          "id": "13161",
+          "slot": 1,
+          "name": "给你们点颜色瞧瞧！",
+          "description": "有50％的概率获得阿尔法金币×2000 并进入下一个事件"
+        }
+      ]
+    },
+    {
+      "id": "2314",
+      "name": "好幸运！还能再钓一次哦！",
+      "area": 2,
+      "choices": [
+        {
+          "id": "23141",
+          "slot": 1,
+          "name": "再挑战一次！",
+          "description": "25％时可获得★2迷宫遗物×1 并进入下一个事件"
+        }
+      ]
+    },
+    {
+      "id": "2315",
+      "name": "料理完成了！不过食材还有剩余哦！",
+      "area": 2,
+      "choices": [
+        {
+          "id": "23152",
+          "slot": 1,
+          "name": "这样应该就 足够了吧？",
+          "description": "随机职能的 随机印记×2"
+        },
+        {
+          "id": "23151",
+          "slot": 2,
+          "name": "我还没 吃够呢☆",
+          "description": "有50％的概率进入下一个事件",
+          "conditionType": 1
+        }
+      ]
+    },
+    {
+      "id": "2316",
+      "name": "再较量一次！",
+      "area": 2,
+      "choices": [
+        {
+          "id": "23162",
+          "slot": 1,
+          "name": "到这里就行了……",
+          "description": "挑战结束"
+        },
+        {
+          "id": "23161",
+          "slot": 2,
+          "name": "今天真是走运！",
+          "description": "有50％的概率获得阿尔法金币×4000 并进入下一个事件",
+          "conditionType": 1,
+          "conditionValue": 2000
+        }
+      ]
+    },
+    {
+      "id": "3314",
+      "name": "最后再来一次！",
+      "area": 3,
+      "choices": [
+        {
+          "id": "33141",
+          "slot": 1,
+          "name": "最后再较量一次！",
+          "description": "10％时可获得★3迷宫遗物×1"
+        }
+      ]
+    },
+    {
+      "id": "3315",
+      "name": "完美！不过食材还有很多哦！",
+      "area": 3,
+      "choices": [
+        {
+          "id": "33152",
+          "slot": 1,
+          "name": "这么多 根本吃不完吧！",
+          "description": "随机职能的 选择印记×2"
+        },
+        {
+          "id": "33151",
+          "slot": 2,
+          "name": "诶嘿嘿～ 再一下就好……",
+          "description": "有50％的概率获得全体选择印记×２",
+          "conditionType": 1
+        }
+      ]
+    },
+    {
+      "id": "3316",
+      "name": "最后一发！",
+      "area": 3,
+      "choices": [
+        {
+          "id": "33162",
+          "slot": 1,
+          "name": "差不多该放弃了……",
+          "description": "挑战结束"
+        },
+        {
+          "id": "33161",
+          "slot": 2,
+          "name": "今天的我 才不会输！",
+          "description": "有50％的概率获得阿尔法金币×8000",
+          "conditionType": 1,
+          "conditionValue": 4000
+        }
+      ]
+    }
+  ],
+  "layouts": [
+    {
+      "id": "event-one-choice",
+      "optionCount": 1,
+      "titleRoi": {
+        "left": 0.22,
+        "top": 0.1,
+        "right": 0.78,
+        "bottom": 0.22
+      },
+      "optionTextRois": [
+        {
+          "left": 0.3,
+          "top": 0.2,
+          "right": 0.7,
+          "bottom": 0.78
+        }
+      ],
+      "selectButtonRois": [
+        {
+          "left": 0.41,
+          "top": 0.75,
+          "right": 0.59,
+          "bottom": 0.91
+        }
+      ],
+      "calibrationRequired": false
+    },
+    {
+      "id": "event-two-choice",
+      "optionCount": 2,
+      "titleRoi": {
+        "left": 0.22,
+        "top": 0.1,
+        "right": 0.78,
+        "bottom": 0.22
+      },
+      "optionTextRois": [
+        {
+          "left": 0.17,
+          "top": 0.2,
+          "right": 0.49,
+          "bottom": 0.78
+        },
+        {
+          "left": 0.51,
+          "top": 0.2,
+          "right": 0.83,
+          "bottom": 0.78
+        }
+      ],
+      "selectButtonRois": [
+        {
+          "left": 0.276,
+          "top": 0.75,
+          "right": 0.443,
+          "bottom": 0.91
+        },
+        {
+          "left": 0.557,
+          "top": 0.75,
+          "right": 0.724,
+          "bottom": 0.91
+        }
+      ],
+      "calibrationRequired": false
+    },
+    {
+      "id": "event-three-choice",
+      "optionCount": 3,
+      "titleRoi": {
+        "left": 0.22,
+        "top": 0.1,
+        "right": 0.78,
+        "bottom": 0.22
+      },
+      "optionTextRois": [
+        {
+          "left": 0.06,
+          "top": 0.2,
+          "right": 0.32,
+          "bottom": 0.78
+        },
+        {
+          "left": 0.37,
+          "top": 0.2,
+          "right": 0.63,
+          "bottom": 0.78
+        },
+        {
+          "left": 0.68,
+          "top": 0.2,
+          "right": 0.94,
+          "bottom": 0.78
+        }
+      ],
+      "selectButtonRois": [
+        {
+          "left": 0.105,
+          "top": 0.75,
+          "right": 0.285,
+          "bottom": 0.91
+        },
+        {
+          "left": 0.41,
+          "top": 0.75,
+          "right": 0.59,
+          "bottom": 0.91
+        },
+        {
+          "left": 0.715,
+          "top": 0.75,
+          "right": 0.895,
+          "bottom": 0.91
+        }
+      ],
+      "calibrationRequired": false
+    }
+  ],
+  "source": [
+    {
+      "path": "android/app/src/main/assets/resource-packs/cn-bilibili/events.placeholder.json",
+      "sha256": "977715882da6b64fe579ead11042e4cb264766ec546fe8bb60301066ca15352d"
+    },
+    {
+      "path": "android/app/src/main/assets/resource-packs/cn-bilibili/labyrinth-event-ocr.json",
+      "sha256": "a6754d6013300a41b9c6412237b99e11cede340b4661c982052f1e2ccea38842"
+    }
+  ],
+  "license": "upstream contributed data/code CC-BY-NC-SA-4.0; no game image"
+}

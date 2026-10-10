@@ -1,0 +1,2 @@
+# Keep release inventory hashes stable across Windows and Linux checkouts.
+* -text

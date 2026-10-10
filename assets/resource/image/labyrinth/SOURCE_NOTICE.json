@@ -1,0 +1,879 @@
+{
+  "upstream": "https://github.com/wbero/limingjie-assistant",
+  "source_code_license": "CC-BY-NC-SA-4.0 for adapted own contributions",
+  "image_license": "Third-party imagery retains respective rights. Attribution does not establish distribution permission. See upstream THIRD_PARTY_NOTICES.md.",
+  "assets": [
+    {
+      "key": "TITLE_LOGO",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_title_logo.bmp",
+      "source_sha256": "aa8c35e4a92e06bfad7e247e85ef4a6bde3e1864de0075e6a8a9abb43640bf55",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\title_logo.png",
+      "local_sha256": "38ba58b1acb14f4fe1585c5abd40f0969bb99436848565eef9211663d8e5d75b",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "TITLE_TAP_PROMPT",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_tap_prompt.bmp",
+      "source_sha256": "04aa62264f17cf20966e87c4547671ab0c5bf3017a6cde11d9286282e5ec70e6",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\title_tap_prompt.png",
+      "local_sha256": "dd48511f330a44eaa9d3f53a939d3d7a3f14490a2b24ad4f2a01ef94b97bfb42",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "LOADING_NOTICE_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_loading_notice_standard.bmp",
+      "source_sha256": "26b5dcb158330447680274b6b7f6e0821a350fe0d9ab0fe973b6d7652eb2e3e6",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\loading_notice_standard.png",
+      "local_sha256": "5df31ee9ef9ac4348cb7f2f79f9df726b17c268410b236444f794fd80548ca15",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "HOME_LEVEL",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_home_level.bmp",
+      "source_sha256": "03f21d8318dfb1ca54a8a0f31c513ac7ed3853d3b387bbbdc2c829867e78d657",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\home_level.png",
+      "local_sha256": "f63ca9a3181253322c1e3bece658d6e407a5a08af022465cf6262297469850cc",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "HOME_ADVENTURE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\adventure.bmp",
+      "source_sha256": "4f4fdc8876f4d4b4eed22d2d5a926d6b8b995113f4a4e8f082894f69f2a17532",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\home_adventure.png",
+      "local_sha256": "22accda642486a0e6aac1a65086daf833cfefcd77186e06e1100d6a9a28d5f43",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "ADVENTURE_HEADER_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_adventure_header_standard.bmp",
+      "source_sha256": "b2594499978030fd1a5c2aabd67dd074887bf755190bb656b1982e56047c51d5",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\adventure_header_standard.png",
+      "local_sha256": "eb527027a993be0d014b417f794b71feeb74c0c9ab936b7650526da54a339dd8",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "LABYRINTH_ENTRY",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_labyrinth_entry.bmp",
+      "source_sha256": "6234df241158075d64b760d51de988e27be6330e01e66608d322a4c955ffa4bc",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\labyrinth_entry.png",
+      "local_sha256": "99c1c1a7c1dc9f21eec25e157c7ced09b63bcb8d3cd4ecc8dfae2fda4f210dab",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "DAWN_START_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_dawn_start_standard.bmp",
+      "source_sha256": "4634be834050f6198fc2cf18a503ac3bdb5481805632f3fad037de6c0d5cd837",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\dawn_start_standard.png",
+      "local_sha256": "b092370e41d68776bc2db2ac95b145cec322fddc5450d5dc2680b2cb0370e30f",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "DAWN_ACTIVE_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_dawn_active_standard.bmp",
+      "source_sha256": "676bf2f0f7f0bf2a547e55648ee28e2678a4f4e1d13edf8053346f427f85c1bd",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\dawn_active_standard.png",
+      "local_sha256": "cfbe700613eac6ea1ee9315f6346b3bc0fe18f9bf9a63be7497347f8f8c3e965",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "DAWN_TICKET_LABEL_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_dawn_ticket_label_standard.bmp",
+      "source_sha256": "28539d65711210d1e3f3131b6004f1bcaa18ef6f678c65ba57f6e7b1b311d5fe",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\dawn_ticket_label_standard.png",
+      "local_sha256": "550ace559e785461a7d1914b9b3b49c686e4cf56525cfdb91ca5471e93f231df",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SELECTION_HEADER_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_selection_header_standard.bmp",
+      "source_sha256": "929bb97f90efe0a284439dee2958c84e429cc1b27cdd4cf0c18489a11dc1ef8e",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\selection_header_standard.png",
+      "local_sha256": "b2f27b1ab5b8ee057f8a9bb7ab7a887c4420a99e258c3a646515810ecf606b8a",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SELECTION_COUNT_NONE_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_selection_count_none_standard.bmp",
+      "source_sha256": "96116c47d842e9404f68caaa8bfbe73c7488bca7ce6da75b36f3b301c369ad41",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\selection_count_none_standard.png",
+      "local_sha256": "b226e3a12fb878222ddc34d56680df4804ce31cb9e5b82941fd6932538ea909c",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SELECTION_COUNT_COMPLETE_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_selection_count_complete_standard.bmp",
+      "source_sha256": "a4976b3b2b2f60f4277e41097041d5bd9df12422364b8eac659193f334c55f85",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\selection_count_complete_standard.png",
+      "local_sha256": "b6959217a7924249955d2f0c2c78aca277078940330bfef8f3b2961c383bdf3c",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "INVITE_DISABLED_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_invite_disabled_standard.bmp",
+      "source_sha256": "f09052ef92e25ce4dce5fb5d2be67255795a74e01947f6dafd180adc81a01866",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\invite_disabled_standard.png",
+      "local_sha256": "57aa8eca18d4283f08c82823bf3ea927a305b36b4f644fc6a555b8d95556ae99",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "INVITE_ENABLED_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_invite_enabled_standard.bmp",
+      "source_sha256": "8cb4c704a8ba48806bd53b2f43fbf923f1f0791285ae273bd1dc0c6224c5c4ed",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\invite_enabled_standard.png",
+      "local_sha256": "b11cefba891b9e60cae14b9ebfb987147e260cc5cb211af94c8bc9451b9a958c",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "ROLE_REWARD_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\initial_role_reward\\initial_role_reward_title.png",
+      "source_sha256": "c32f28534c92e18280a464af75a72d615161b7bce9ea17a540ad4e8ed98f27ec",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\role_reward_title.png",
+      "local_sha256": "58665b12adcff57147ced774382af1d7a1ea56ebf72402aec42ef7c14224d5a4",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "ROLE_REWARD_INSTRUCTION",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\initial_role_reward\\initial_role_reward_instruction.png",
+      "source_sha256": "9f02a887e28ec571a7f0798528ef76e6f28aadace44dfb50bf9601aeeb4aa216",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\role_reward_instruction.png",
+      "local_sha256": "38ad7e6bb95bfad4269e7696be3f547fff9680defb368f461ae617c45ef33e53",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "ROLE_REWARD_SELECT_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\initial_role_reward\\initial_role_reward_select_button.png",
+      "source_sha256": "9946c3c337011078798f6c8297cfc73b677d66bd393677b5006634ac76095e30",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\role_reward_select_button.png",
+      "local_sha256": "431ece141ebed9e794f266c07b212156d2a4a4565f8a5605bd8f08b6e1849cbe",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "LINK_CHOICE_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\link_choice\\link_choice_title.png",
+      "source_sha256": "b165c191b5a7ec74acee9a70cbc40f767794b5c398704cb4fba83735c771dd45",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\link_choice_title.png",
+      "local_sha256": "d8b1a4836d09f4eaef3930f673cb27c3fd1a2b905d84ed8658717f04f5959d4e",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "LINK_CHOICE_INSTRUCTION",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\link_choice\\link_choice_instruction.png",
+      "source_sha256": "0accd35ef0120288854923a692ab18d8d3ef62e5b5baa5dc61ec0c849380c513",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\link_choice_instruction.png",
+      "local_sha256": "79b4f5757995af32747bf156cd215da21be8601566e6aedef519a4a62a528511",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "LINK_CHOICE_REMAINING",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\link_choice\\link_choice_remaining.png",
+      "source_sha256": "8e812e199da889c12e83cf35aedd8b98ab80879a42b08f76d1b5289490690fef",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\link_choice_remaining.png",
+      "local_sha256": "875d540ce2aea83f173ac141ad66bc11b9dc8d2b8cfcdf3fd2c2b706c4c69680",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "LINK_CHOICE_CARD_SIGNATURE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\link_choice\\link_choice_card_signature.png",
+      "source_sha256": "10078bc1f94aabaa4e131c7270e1652178488bd2015b14dd8c32b1dae418f9a0",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\link_choice_card_signature.png",
+      "local_sha256": "bd3e9e2288f5577906b5043f279f9d6e292d61dd5d819ef5c2407ea49c30916e",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RELIC_CHOICE_INSTRUCTION",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\relic_choice\\relic_choice_instruction.png",
+      "source_sha256": "f79d4454ea14c529f1251ed484871fdba12c9fe3564a933c0c401aa250b8930f",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\relic_choice_instruction.png",
+      "local_sha256": "497b24abe51077b4472d824e5a86b06fa3b3b446ffeb4a8ea8648beec5f1c5bf",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "ITEM_REWARD_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\item_reward\\item_reward_title.png",
+      "source_sha256": "b98e862513f4f2e12166d9df23e590ed0c6285381abcda0e7cdb86e88bed6ef0",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\item_reward_title.png",
+      "local_sha256": "ef71cb93df66e687bde670c9aeaebba03574931db680f7523dceb08b6427cc15",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "ITEM_REWARD_INSTRUCTION",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\item_reward\\item_reward_instruction.png",
+      "source_sha256": "cda4cb07a435a6eb5587f8cae0b5ed29cfe6e41c9e0bdbdea29bd709c87ea784",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\item_reward_instruction.png",
+      "local_sha256": "9f1f5ef6e95c660d694b4c599aefe41cd42b9d84eefcce153f8dbf69595c554b",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "ITEM_REWARD_CLOSE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\item_reward\\item_reward_close.png",
+      "source_sha256": "0f0d94c29961b5e90086a3a0bca4218ac9a7f9b4eac8770ab6580ad43c6564bb",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\item_reward_close.png",
+      "local_sha256": "123c08b6ccdfdabc26e992874e11e0f1292a838c4ad39da2c6e785bdf522d1ba",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_title.png",
+      "source_sha256": "f320d851abb2387a67d685e03c936e1117b6dda8e7d7835fb3eae092bbfe1f6f",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_title.png",
+      "local_sha256": "0e5530e6ce7ef412685dda048658f34229a50e0d253ba5bb810fa9e3f1c135d9",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_INSTRUCTION",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_instruction.png",
+      "source_sha256": "98e079c83d8e0c0127036478178f7ec11b30f30a7e4dcc3d5bbce08bb95ba1ae",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_instruction.png",
+      "local_sha256": "d1d436b82d19608940cd3a5377d2ec1a99a2e19d13c6fcad6cd356b883e47a33",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_CLOSE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_close_button.png",
+      "source_sha256": "42a936f36cd4ded60762acb96380941542275d181e0fc09effd85940cedd6b7c",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_close.png",
+      "local_sha256": "fb62e93c1ae4bc820fc1f281f1de98345ec4e31650b363dbc7333bcd3e3c0dd5",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_BUY_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_buy_button.png",
+      "source_sha256": "0eee5de9caaa1892b540674b91158531264af0f34190f803343c2aa9aef69b56",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_buy_button.png",
+      "local_sha256": "35eb1bf26561b120c873773ddb3f0b642774beb15dc0b54078bea0fd58b195d6",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_REFRESH_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_refresh_button.png",
+      "source_sha256": "4e9343599d22b253686e071d5a7c610f7736dddbb1da61e4c0a14e719377643a",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_refresh_button.png",
+      "local_sha256": "2620e6d841b7c5c21b9d1ce0e56a1401b12fe09e1c6f8eb1efc23baa3deb8a12",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_PURCHASE_CONFIRMATION_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_purchase_confirmation_title.png",
+      "source_sha256": "686e83d53fef57ed4d618421145a2ab9de21dc984e202195b037bbb3100b7ef4",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_purchase_confirmation_title.png",
+      "local_sha256": "56e5247b1d9bb63e7f480f7f522dd0d5f0f6bf7ab5931411c952d049915c61d5",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_PURCHASE_COMPLETE_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_purchase_complete_title.png",
+      "source_sha256": "705f3ca1422317415a649dca750a648f974419d0459ff5e4c7f43a5440c2d76e",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_purchase_complete_title.png",
+      "local_sha256": "fc680d6f2d3976d31723f123e6a7febbb3cfaac83f05275c222179ad31e56440",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_EXIT_CONFIRMATION_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_exit_confirmation_title.png",
+      "source_sha256": "5bfb9fe786ba2f0c6d5e007bfc429a82060aa358ebe4b534c28218504d8ef105",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_exit_confirmation_title.png",
+      "local_sha256": "4aea19e785b6b767da161e423cb2743aed0cb100d797a07586b842b3300145fe",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SHOP_EXIT_CONFIRM_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\shop\\shop_exit_confirm_button.png",
+      "source_sha256": "bab2df20c2da33eb72d587da26a25fdf9b498c6b1b2d8318fec6484f66d6f05f",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\shop_exit_confirm_button.png",
+      "local_sha256": "0f78d2cc013e5148ddf3b643ab78ea8a8b1c10d3ad98675940a58ccdbbac4d6d",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "JOINED_HEADER_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_joined_header_standard.bmp",
+      "source_sha256": "8201a93710ddd0c40dbf4e20c980af7b54de96d68e155ff2827fd1ed4a2bec04",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\joined_header_standard.png",
+      "local_sha256": "128b712cd28dd88fbc88bf57fe0f84ce0dbda6e274e50da39bf0f15f6a7e7dc1",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "JOINED_CLOSE_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_joined_close_standard.bmp",
+      "source_sha256": "1dc328212ba46a681ce982e5bb2eadc115dc6442ed450e2226c7e31487c59220",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\joined_close_standard.png",
+      "local_sha256": "111bd1fdc2788bffb1283550993f6cb2a21cc87b3d17d3c10ac866fa7b461a52",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "NODE_HEADER_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_node_header_standard.bmp",
+      "source_sha256": "01ffb0b0fe7a5682fd05b36cc61c6154c5b798fd1081aed99084c32658f845ec",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\node_header_standard.png",
+      "local_sha256": "7805e3049f45e65266c2249d8bb961dda9b1f56ca901c1582809a72665e52d20",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "NODE_CHARACTERS_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_node_characters_standard.bmp",
+      "source_sha256": "553d5702c8bd72cf7031620125ea319c2339ba095705d3c25d4f5cdfcb831220",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\node_characters_standard.png",
+      "local_sha256": "4c4b4b1aa74f1b9033e573926af1111ae3a58b23b2b6d4a8d53e92e61824abdd",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "NODE_RELICS_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_node_relics_standard.bmp",
+      "source_sha256": "1bcb43a7fbe86ced298733e0202540e641a98b16232d27de5d9c89fffd3c81e6",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\node_relics_standard.png",
+      "local_sha256": "756c32bafb6fdce9a9eedfc9f741fe51791fc71711aec2b5fd0ffbc82c9e2baf",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "NODE_RETREAT_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_node_retreat_standard.bmp",
+      "source_sha256": "53ca8cc0f84665274b4522e1b68b51405d692f6620ece9d1129491b325b6aa1b",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\node_retreat_standard.png",
+      "local_sha256": "411b601490d093a93b7f88567157350a25482bcbb8191fac0fa64dae9324699a",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "NODE_RETURN_STANDARD",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_node_return_standard.bmp",
+      "source_sha256": "bfcdeb77c6b43ef26cdf5407e27ed2aee3d7ee3af4df86cc1dbe151a85fe4102",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\node_return_standard.png",
+      "local_sha256": "0196ceff964d8898282db636278cf9970dd0308094eb237f9e480079abcdc178",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_CHALLENGE_HEADER_NORMAL",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_challenge\\battle_challenge_header_normal.png",
+      "source_sha256": "f574a0913630538ca5794b6f3ffc7a3a0effc3f6560ed3df3a0ffdad1b27919d",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_challenge_header_normal.png",
+      "local_sha256": "cf96b13b2f0bd07fdcb8c5268cd880523ee3f1c22d13d9c4c78dd22e5f6c57c8",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_CHALLENGE_SUFFIX_NORMAL",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_challenge\\battle_challenge_normal_suffix.png",
+      "source_sha256": "a7845826df5f996fc286f0ea4dd40718457e0d7249db18f9a2fdb29b69dc4023",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_challenge_suffix_normal.png",
+      "local_sha256": "2f831d0c099339990ec7f27d45eab3e9dfc505dc5d8d482997aa0e3681cad141",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_CHALLENGE_SUFFIX_EXTREME",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_challenge\\battle_challenge_extreme_suffix.png",
+      "source_sha256": "4dce6773ced0142ed0c846cbc6be24ef46dd054cb2600cc747e92bb45568eb96",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_challenge_suffix_extreme.png",
+      "local_sha256": "e56c053253efe781929320a158e956d6d76d29e3649ad3bed61083046ea55e14",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_CHALLENGE_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_challenge\\battle_challenge_button.png",
+      "source_sha256": "6903290809d11f67f5f3cc4a81677ceae1b739769584ea58c708f7111019f251",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_challenge_button.png",
+      "local_sha256": "a7110d4e89ca4f235b30323d1d1cdf8a00868f15d9f1e3c719c8371e2df90741",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_CHALLENGE_VIEW_MAP_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_challenge\\battle_challenge_view_map_button.png",
+      "source_sha256": "7e402732bbfb608fa86ebd5b7d9e5ae3ef867ddedb9f36521446b0ac5ae04a65",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_challenge_view_map_button.png",
+      "local_sha256": "e882398ef172d983ddd2157708e5aefa16f924370db4828f6b816ac22460546d",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_TEAM_HEADER",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_team_selection\\battle_team_selection_header.png",
+      "source_sha256": "26ce564dbae86f66742615628b1b972b3899b48e8abdc4c555490eb7ae3eaa61",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_team_header.png",
+      "local_sha256": "8ecbf14532c281460ad4494316bb062e213471e5b5d4b0f67d7ddeffe06bb76c",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_TEAM_FILTER_BAR",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_team_selection\\battle_team_selection_filter_bar.png",
+      "source_sha256": "4000066e45caefd101f3ba9e43968eea35000ec613bff5b62bbd3550110c95e4",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_team_filter_bar.png",
+      "local_sha256": "4f1d4459df183af5b37ccffd0ce68f62948ea527883ded5629f8177dd98ca7a5",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_TEAM_CURRENT_MEMBERS_SUMMARY",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_team_selection\\battle_team_selection_current_members_summary.png",
+      "source_sha256": "1ef76cff7232dd43aa10555743e22a0a2ff26024e77d7eb263b895d79fb4d538",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_team_current_members_summary.png",
+      "local_sha256": "10d347c300c35a26cc2ea04e358a341c84e83c6991b5db094b65c371962e723b",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_TEAM_CANCEL_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_team_selection\\battle_team_selection_cancel_button.png",
+      "source_sha256": "f1828431dd66bcf848479b0c160515a227331928ab394bc8a96e76e3671a6ea4",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_team_cancel_button.png",
+      "local_sha256": "2308144208ea7020410e9e5e888c06aff1186e09aa7529a168fa5ba4e5f77513",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_TEAM_START_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_team_selection\\battle_team_selection_start_button.png",
+      "source_sha256": "8620605628410a0cda3aee6e7959abbc2f865f0b5c3b360eb56d29241e0cb69c",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_team_start_button.png",
+      "local_sha256": "1aae2c2effe90c5d43d1f669ce3c46127f3137058f710c69ad834b4b3664a041",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SESSION_ERROR_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\session_error_title.bmp",
+      "source_sha256": "6aeb03cf8c4820533c6417aea4a00fa0486e3962775680a1b4e8f0ed031c8f3e",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\session_error_title.png",
+      "local_sha256": "10a89cd7201fda0d11815fcad91eb2311f076dd4a9b5be686cf7efc0a77abb74",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SESSION_RETURN_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\session_return_title.bmp",
+      "source_sha256": "93e9ac06e68ad8da4636b7bb20981d8e84b015c5aa60c222c27a36193ea66844",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\session_return_title.png",
+      "local_sha256": "7acc7ed1229feab7f98062f2d564ddba10b88a6982dc42c6cddb393df1241b83",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SESSION_DATE_CHANGE_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\session_date_change_title.png",
+      "source_sha256": "470c910a00cb4b85c5f824d7db4f7ad97b02cb9ca4cb1ac4b63cbc80483f1ff5",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\session_date_change_title.png",
+      "local_sha256": "cd9aa04142eaef6f14aab5994d6bb1192b81b76e69f89e7644f2d58a7d50125f",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "SESSION_DATE_CHANGE_CONFIRM",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\session_date_change_confirm.png",
+      "source_sha256": "20cd7ce43ebb99a9044ae3e67e995ed2b83e59c2d0cacd5dea3aab7d19d8b7ba",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\session_date_change_confirm.png",
+      "local_sha256": "66df25a260a04da43188aeb3fb7c5b18693ac4720af456e4f94a87217ee844a0",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_IN_PROGRESS_MENU_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_in_progress\\battle_menu_button.png",
+      "source_sha256": "ad9b47b0500b83fef11823a8a33a54884b049fcfe477ff59daf24cb212dc2ded",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_in_progress_menu_button.png",
+      "local_sha256": "2621b3270f01a51b1869eecd6054cd1de24eb114b05928edfe5f37c3702fa176",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_RESULT_REWARD_BANNER",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_result\\battle_result_reward_banner.png",
+      "source_sha256": "d2522d20d88627b90214c16219032b30369a647a8fd96698945f7e71adaaa138",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_result_reward_banner.png",
+      "local_sha256": "a0d8a3371f804d65003f3b38af6e1b0a56a5f965825869644c3bee600fcbad56",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_RESULT_NEXT_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_result\\battle_result_next_button.png",
+      "source_sha256": "ed41173b8f8b51dab619b17d92fbca415c976d18b5565f699d05fbd4e14bf83a",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_result_next_button.png",
+      "local_sha256": "963f26dc98b92fe63c135a32b88725cb6f76b7383ac9cba9a6255200ac5ba142",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RUN_RESULT_LOGO",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\run_result\\run_result_logo.png",
+      "source_sha256": "454acef36bd8ccf80f33eb1f49ce5151932c4dc31d5dd7fb11a4873d15bf7518",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\run_result_logo.png",
+      "local_sha256": "862abe8858e0edafe9653b2e18a70f293a15a66ba90aedabc8bc066465f08779",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RUN_RESULT_CLOSE_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\run_result\\run_result_close_button.png",
+      "source_sha256": "d861fac920c55c03aa74ec12ffa4519e2e8060090efe9576aa32ec14d95a5719",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\run_result_close_button.png",
+      "local_sha256": "38ca921436656fa402ae31db9d46d23b51b2e8a3de84929b7e689812f69c2e5c",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "EVENT_SINGLE_CHOICE_TRIGGER_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\event_single_choice_trigger_title.png",
+      "source_sha256": "0d1336f87adbc65cf2938d7953ee4d196fb4e09543a2b2d25b11cdf19236f5dc",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\event_single_choice_trigger_title.png",
+      "local_sha256": "1566003529685aa8cce564eb55a308feb1efc8a90f7733999d84c17831e0bf56",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "EVENT_SINGLE_CHOICE_SELECT_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\event_single_choice_select_button.png",
+      "source_sha256": "3618fd4f3fbbd1f33d27b8611ad97a4cc1da85933489cbf6093c3392e40195ac",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\event_single_choice_select_button.png",
+      "local_sha256": "3d1a8602631b04ece3e59afad7bd1f71ff46da4db5a4b631ca6f8765cfffc962",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RUN_CLEAR_CHEST_RESULT_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\run_clear\\run_clear_chest_result_title.png",
+      "source_sha256": "acc1d500c114820a3a304d8e9110067101fd31ded0f398cb9da6d023a13cfe16",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\run_clear_chest_result_title.png",
+      "local_sha256": "27e9aa37dd848b411dc3d43980f9949832dba3f6261a9f0b5249becb939a99cf",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RUN_CLEAR_CHEST_CONFIRM_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\run_clear\\run_clear_chest_confirm_button.png",
+      "source_sha256": "c340421ebecf380462cc6bc81d348185e469c30e5963ac1b3b453d623c7d293a",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\run_clear_chest_confirm_button.png",
+      "local_sha256": "3b099b37c33e2ba8c250f99c892fd75bd192de8890da6880cd3b6e602c8e72a4",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_TEAM_ROSTER_EMPTY_NOTICE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_team_selection\\roster_empty_notice.png",
+      "source_sha256": "6e19df84af01a5a887ad68cf8de3babf5c099dc33f5144f6706896944fbfe4b5",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_team_roster_empty_notice.png",
+      "local_sha256": "7ae313ffe4be49fef26c947a70374419651747a5ad9d81457fa73c5d7a444b25",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "DAWN_HOME_MY_HOME_TAB",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\dawn_home\\dawn_home_my_home_tab.png",
+      "source_sha256": "4e42fd68e84b71f0bfec6f4ac14f5c45cad010b4af197eaeedbe1e37a17fc287",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\dawn_home_my_home_tab.png",
+      "local_sha256": "0fdd06c20661e2c13fc39f385b8678713ab0df714d4251fb347805dab68c83b4",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RELIC_EFFECT_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\item_reward\\relic_effect_title.png",
+      "source_sha256": "651518e4dc5ffb69ed87f5cfd8c9e8f5200b4af30353087805e06dd8567c3a43",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\relic_effect_title.png",
+      "local_sha256": "8cba70491cec68b6c9c80678ad8dbd0c99460b37a9731bbf329f5d7f142f5b16",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RELIC_EFFECT_INSTRUCTION",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\item_reward\\relic_effect_instruction.png",
+      "source_sha256": "2f6ff715a092aad313d283a45d4e59759a444e467719b80cd21fdafa2ad9e1b6",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\relic_effect_instruction.png",
+      "local_sha256": "e436b14703c9ae6d8c59c7d2681a869206f500f57d8bbf8f00b781cae4d149f8",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RELIC_EFFECT_RESULT_TITLE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\item_reward\\relic_effect_result_title.png",
+      "source_sha256": "24c0d4fcb905d79779eb399a2bb89a5bcba5f71e320ea0427a9768681d4a01c5",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\relic_effect_result_title.png",
+      "local_sha256": "c8b75df454b948efa145d971ce022dd02b9da4a93770060da91553ea4519564b",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RELIC_EFFECT_RESULT_CLOSE",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\item_reward\\relic_effect_result_close.png",
+      "source_sha256": "87935aac6e27606e955e13d8e90426d676a676af9b1819dd44a8d2f2aff0af17",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\relic_effect_result_close.png",
+      "local_sha256": "bd9b7083da5854a36dcb9f77740ed9b2ec2b45c0ef1e4301de8d70806ea92133",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "BATTLE_RESULT_BOSS_SUMMARY_NEXT_BUTTON",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\battle_result\\battle_result_boss_summary_next_button.png",
+      "source_sha256": "0304b7ab850b2383c5cbe2222b026dbaec7ac8698be14855fbe82d6123435287",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\battle_result_boss_summary_next_button.png",
+      "local_sha256": "cbdf9fcf40f4a3439bd05ea1fa6b4bdfea3b4aea533c717c50de22b3ed095523",
+      "transform": "1920x1080 reference to 1280x720; 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.normal_battle.active",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_normal_battle_active.png",
+      "source_sha256": "1635c4b3cd35408890c0c7ca07d66c95fcafd2a34a4d5310520e5b68d840e502",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_active.png",
+      "local_sha256": "ecae3d5e16b280aaa698768042bd09fd484e17d3c9da3cfe2523cc806ed881c5",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.normal_battle.active.bottom",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_normal_battle_active_bottom.png",
+      "source_sha256": "83685eb465a55426a12e7518a80a6671466d07d8d5a52a14040de22a390b540d",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_active_bottom.png",
+      "local_sha256": "fc0e44bb5217a3081a14cc16bf2265f0156b276db8b36394697ae3d244adc923",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.normal_battle.inactive",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_normal_battle_inactive.png",
+      "source_sha256": "6fae06f9e23a731a383124e8a56ba06988ea5cf3e445388761ee09133a08545a",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_inactive.png",
+      "local_sha256": "80581c803bc0f6e3f2b69e6c22c65ca131a7d24cff05fd9617bc4a2d854faec9",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.normal_battle.inactive.bottom",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_normal_battle_inactive_bottom.png",
+      "source_sha256": "f6323d08d6b8be597bbdf2b71132a11a977985e4a25bb2248012c5eaad6f4755",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_inactive_bottom.png",
+      "local_sha256": "f1d5f9be1f84bcd0a077a8cd54adbf02c645121c3764ed4bce56007739a81153",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.normal_battle.inactive.video",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_normal_battle_inactive_video.png",
+      "source_sha256": "f74ea7068ea874efdfd74fabb7dbab8e73e648a9b668f6949aa62c4e579fdbd9",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_inactive_video.png",
+      "local_sha256": "bbdd50966d0304052030b4daf2481ce06f1a1447b0a0539aacfa84bbcb931e9e",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.ex_battle.inactive",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_ex_battle_inactive.png",
+      "source_sha256": "21998206ccaad69fb30be6f9230856396ae7214675727826c81a195497a27770",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_ex_battle_inactive.png",
+      "local_sha256": "7581f97d397d4618b4ff1e2bd5bd690e5b229d95625ab81380c16bbf6a33f208",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.boss.yellow",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_yellow.png",
+      "source_sha256": "958552cb5c310a817a8ccde3b1ce4f166d8c7b3ca45300c24009515f8bd459fe",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_yellow.png",
+      "local_sha256": "bba1eb26fec67e5038012f789c65c3a5bb138477c4d8bb16ac2b0885749313c7",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.boss.dragon",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_dragon.png",
+      "source_sha256": "4843c005ba6e412c97e715280ed67adf129097c1f8b1be1c2d9353ed70dc8f19",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_dragon.png",
+      "local_sha256": "6794c8e793d78a1ac5bc5451718c2af378e44421bcf4e6d13d0fd71dcf184ece",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.boss.platform",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_platform.png",
+      "source_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_platform.png",
+      "local_sha256": "57813dea8e492d1f3e3ac7684ae51870da3f831bf0b5619ddad6a388caa1fa3c",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.clear",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_clear.png",
+      "source_sha256": "22c06807f180a21b8d4af541c98ec3d5e62ad570a89743bda4be2880b2d087eb",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_clear.png",
+      "local_sha256": "ffb1ec91fb221c76f46ddc7f0f9e640d9d8090b0d3f23af03cd6131464918cc9",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.relic.active",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_relic_active.png",
+      "source_sha256": "dd4fa951b84b0381d3cf5db5dc39e27dd6e44200a1f47eb746bd4c8b21b30e41",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_relic_active.png",
+      "local_sha256": "fe9ce35b24f39c911e6dff086033994d1783451f3ddfcdfb189dc0381db83d2e",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.relic.inactive",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_relic_inactive.png",
+      "source_sha256": "e41557e330a96f93a043e04429dba5e3944448ff5bb8f47e2a680f3731c032d2",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_relic_inactive.png",
+      "local_sha256": "d5169005f7bb5052933eba673e00fdb8eb80da84df3cb91722c050a217f22021",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.relic.map",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_relic_map.png",
+      "source_sha256": "dd4fa951b84b0381d3cf5db5dc39e27dd6e44200a1f47eb746bd4c8b21b30e41",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_relic_map.png",
+      "local_sha256": "fe9ce35b24f39c911e6dff086033994d1783451f3ddfcdfb189dc0381db83d2e",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.event.active",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_event_active.png",
+      "source_sha256": "f1565e6864618d53ac6c0d45509d394731022f87053d9b46a26cae41c519ab27",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_event_active.png",
+      "local_sha256": "5733b29fa0a0eb210c0c6ec0bc6cf1b115c6149dbb80b9d4c420716611c1542e",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.event.active.bottom",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_event_active_bottom.png",
+      "source_sha256": "0824af12ce7ad1c2cba33948ebc0a37d089f2e2afe5adf3ee38e1c310acb8861",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_event_active_bottom.png",
+      "local_sha256": "c9d148ec6cafa3ba0bfba29656a9da16374716d34301ef0fdc04c66632780eb2",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.event.inactive",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_event_inactive.png",
+      "source_sha256": "2b1c2f8da6b775b09dace7b58910607790b601578114379e2a54a0260b592209",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_event_inactive.png",
+      "local_sha256": "6061686405bd27cc173fad441cc172dd7b02d6c1f2e2ade6da36c662edadd634",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.event.inactive.bottom",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_event_inactive_bottom.png",
+      "source_sha256": "6eb1b6726c738b487681db419f51e853b126131f71f5eee940e99a7c58ad10f5",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_event_inactive_bottom.png",
+      "local_sha256": "d89b840f590047c4f9e920a1094b5c6c5f5b15e22c5624d80b69ee256a17486f",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.link.active",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_link_active.png",
+      "source_sha256": "e7a26e10c8f7e377a9efd0b0159f009387341ae93cd48bff717bd2d3b11e5453",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_link_active.png",
+      "local_sha256": "42fc0d32235addf5c05afc7e3de1982267438ad0ac267612b548577dc6537bc1",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.link.active.map",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_link_map.png",
+      "source_sha256": "f8e145f8494ca044e3f0105d4f1178c420735410c71996e2f4fd774d6f36535e",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_link_map.png",
+      "local_sha256": "b1e40b0ca90df16e421ca60170a60183084de05a900e1d190fe5a01f072d3934",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.link.inactive",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_link_inactive.png",
+      "source_sha256": "745936100157b5e9d81c33645237aee75c6d1d6ca2d5d4fe9d7329e258b57d49",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_link_inactive.png",
+      "local_sha256": "c7f9a6117dab3dee932118e2fdd1063bf1f66363c74b2a56ac4e1efbae2290c4",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "node.shop.active",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_shop_active.png",
+      "source_sha256": "58cc3ae5b86b643dbaa5bd1cf70651bc5b70a8e296a12032e05aea0a43e96c7b",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_shop_active.png",
+      "local_sha256": "8275bf9bdc31dec7984cbfb68436b2a2a465816a87318172abacb8f2f374acf0",
+      "transform": "2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
+      "key": "RUN_CLEAR_BADGE",
+      "source": "android\\app\\src\\test\\resources\\labyrinth\\run-clear-20260917\\t0.5.jpg",
+      "source_sha256": "0c54eeae15d026e25728ca41687f172bcce6e6dacc1686f33c555ffd3c8635f5",
+      "source_crop": [
+        395,
+        134,
+        205,
+        180
+      ],
+      "local": "assets\\resource\\image\\labyrinth\\scene\\run_clear_badge.png",
+      "local_sha256": "d360980d6d11b40a9af463405ec216b397e8a2eae14ce36062bf08d964782709",
+      "transform": "explicit CLEAR mark on independent upstream final score frame, 2/3 INTER_AREA",
+      "rights": "game imagery; respective rights retained"
+    },
+    {
+      "source": "android/app/src/test/resources/labyrinth/event-no-reward-confirm-20260917.png",
+      "source_sha256": "c57a0d211ff0823d5f6023be8616aa2184ce164c293ad82b9374eb8b04f4d73e",
+      "local": "assets/resource/image/labyrinth/scene/battle_defeat_title.png",
+      "local_sha256": "4b2a90cc6aea66e44c258de664434a2f9c0de8537cb171bca5bffb2a7a801a81",
+      "transform": {
+        "crop": [
+          720,
+          35,
+          510,
+          115
+        ],
+        "resize": [
+          340,
+          77
+        ]
+      },
+      "rights": "game imagery: original game copyright; upstream snapshot crop, not relicensed as source code",
+      "key": "BATTLE_DEFEAT_TITLE"
+    }
+  ]
+}

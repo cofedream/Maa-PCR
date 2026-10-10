@@ -1,0 +1,48 @@
+{
+  "ActivityAdventureGuard": {
+    "recognition": "And",
+    "all_of": [
+      "AbyssAdventureIdentity",
+      "ReturnHomeControl",
+      "OneKeyQuickAdventureHomeBright"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "ActivityPrepareHome": {
+    "action": "DoNothing",
+    "next": [
+      "ActivityHomeReady",
+      "ActivityAdventureHome"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": []
+  },
+  "ActivityAdventureHome": {
+    "recognition": "And",
+    "all_of": [
+      "ActivityAdventureGuard"
+    ],
+    "action": "Click",
+    "target": [
+      105,
+      700
+    ],
+    "max_hit": 1,
+    "post_delay": 650,
+    "next": [
+      "ReturnHomeGate"
+    ],
+    "timeout": 30000,
+    "on_error": []
+  },
+  "ActivityHomeReady": {
+    "recognition": "Custom",
+    "custom_recognition": "ActivityHomePage",
+    "action": "DoNothing",
+    "next": [
+      "ObserveHome"
+    ]
+  }
+}

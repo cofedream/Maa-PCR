@@ -1,0 +1,966 @@
+{
+  "RewardsMissionTitle": {
+    "recognition": "OCR",
+    "roi": [
+      75,
+      10,
+      105,
+      58
+    ],
+    "expected": "^任务$",
+    "threshold": 0.85
+  },
+  "RewardsDailyLabel": {
+    "recognition": "OCR",
+    "roi": [
+      475,
+      18,
+      75,
+      31
+    ],
+    "expected": "^每日$",
+    "threshold": 0.85
+  },
+  "RewardsDailySelected": {
+    "recognition": "ColorMatch",
+    "roi": [
+      420,
+      24,
+      45,
+      15
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      160
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 600
+  },
+  "RewardsMissionFooter": {
+    "recognition": "OCR",
+    "roi": [
+      690,
+      585,
+      115,
+      36
+    ],
+    "expected": "^完成情况$",
+    "threshold": 0.85
+  },
+  "RewardsMissionBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      440,
+      90,
+      40,
+      10
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      230
+    ],
+    "upper": [
+      180,
+      40,
+      255
+    ],
+    "count": 380
+  },
+  "RewardsMissionsPage": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsMissionTitle",
+      "RewardsDailyLabel",
+      "RewardsDailySelected",
+      "RewardsMissionFooter",
+      "RewardsMissionBright"
+    ]
+  },
+  "RewardsMissionAll": {
+    "recognition": "OCR",
+    "roi": [
+      1040,
+      559,
+      180,
+      44
+    ],
+    "expected": "^全部收取$",
+    "threshold": 0.85
+  },
+  "RewardsMissionEnabled": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1010,
+      570,
+      8,
+      8
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      220
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 60
+  },
+  "RewardsMissionDisabled": {
+    "recognition": "ColorMatch",
+    "roi": [
+      1010,
+      570,
+      8,
+      8
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      140
+    ],
+    "upper": [
+      125,
+      255,
+      190
+    ],
+    "count": 60
+  },
+  "RewardsMissionsReady": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsMissionsPage",
+      "RewardsMissionAll",
+      "RewardsMissionEnabled"
+    ]
+  },
+  "RewardsMissionsEmpty": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsMissionsPage",
+      "RewardsMissionAll",
+      "RewardsMissionDisabled"
+    ]
+  },
+  "RewardsGiftTitle": {
+    "recognition": "OCR",
+    "roi": [
+      585,
+      36,
+      110,
+      39
+    ],
+    "expected": "^礼物箱$",
+    "threshold": 0.85
+  },
+  "RewardsGiftHistory": {
+    "recognition": "OCR",
+    "roi": [
+      134,
+      617,
+      135,
+      40
+    ],
+    "expected": "^收取履历$",
+    "threshold": 0.85
+  },
+  "RewardsGiftCancel": {
+    "recognition": "OCR",
+    "roi": [
+      741,
+      618,
+      89,
+      40
+    ],
+    "expected": "^取消$",
+    "threshold": 0.85
+  },
+  "RewardsGiftBright": {
+    "recognition": "ColorMatch",
+    "roi": [
+      50,
+      300,
+      35,
+      10
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      230
+    ],
+    "upper": [
+      180,
+      40,
+      255
+    ],
+    "count": 330
+  },
+  "RewardsGiftsPage": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftTitle",
+      "RewardsGiftHistory",
+      "RewardsGiftCancel",
+      "RewardsGiftBright"
+    ]
+  },
+  "RewardsGiftAll": {
+    "recognition": "OCR",
+    "roi": [
+      1010,
+      617,
+      135,
+      40
+    ],
+    "expected": "^全部收取$",
+    "threshold": 0.85
+  },
+  "RewardsGiftEnabled": {
+    "recognition": "ColorMatch",
+    "roi": [
+      965,
+      620,
+      8,
+      8
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      220
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 60
+  },
+  "RewardsGiftRow": {
+    "recognition": "OCR",
+    "roi": [
+      1090,
+      212,
+      70,
+      43
+    ],
+    "expected": "^收取$",
+    "threshold": 0.85
+  },
+  "RewardsGiftsReady": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsPage",
+      "RewardsGiftAll",
+      "RewardsGiftEnabled",
+      "RewardsGiftRow"
+    ]
+  },
+  "RewardsGiftEmptyText": {
+    "recognition": "OCR",
+    "roi": [
+      480,
+      330,
+      230,
+      36
+    ],
+    "expected": "^没有可收取的道具[。.]?$",
+    "threshold": 0.85
+  },
+  "RewardsGiftsEmpty": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsPage",
+      "RewardsGiftEmptyText"
+    ]
+  },
+  "RewardsMissionsRead": {
+    "next": [
+      "RewardsMissionsReady",
+      "RewardsMissionsEmpty"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsHomeMissions": {
+    "recognition": "OCR",
+    "roi": [
+      1090,
+      595,
+      55,
+      31
+    ],
+    "expected": "^任务$",
+    "threshold": 0.8
+  },
+  "RewardsHomeMissionsGuard": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsHomeMissions",
+      "ObserveHome"
+    ]
+  },
+  "RewardsMissionsOpen": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsHomeMissionsGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsMissionsOpenStart": {
+    "next": [
+      "RewardsMissionsOpen"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsMissionsClaim": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsMissionsReady"
+    ],
+    "action": "Click",
+    "target": [
+      1125,
+      583
+    ],
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsMissionsClaimStart": {
+    "next": [
+      "RewardsMissionsClaim"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsRead": {
+    "next": [
+      "RewardsGiftsReady",
+      "RewardsGiftsEmpty",
+      "RewardsGiftsStaminaDeferred"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsHomeGifts": {
+    "recognition": "OCR",
+    "roi": [
+      1185,
+      595,
+      70,
+      36
+    ],
+    "expected": "^礼物$",
+    "threshold": 0.85
+  },
+  "RewardsHomeGiftsGuard": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsHomeGifts",
+      "ObserveHome"
+    ]
+  },
+  "RewardsGiftsOpen": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsHomeGiftsGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsGiftsOpenStart": {
+    "next": [
+      "RewardsGiftsOpen"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsClaim": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsReady",
+      "RewardsGiftsExcludeStamina"
+    ],
+    "action": "Click",
+    "target": [
+      1080,
+      635
+    ],
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsGiftsClaimStart": {
+    "next": [
+      "RewardsGiftsClaim"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsReceived": {
+    "recognition": "OCR",
+    "roi": [
+      540,
+      88,
+      200,
+      32
+    ],
+    "expected": "^收取了以下道具[。.]?$",
+    "threshold": 0.85
+  },
+  "RewardsResultRows": {
+    "recognition": "OCR",
+    "roi": [
+      452,
+      166,
+      440,
+      220
+    ],
+    "expected": "[×xX] *[0-9]+",
+    "threshold": 0.85
+  },
+  "RewardsMissionResultTitle": {
+    "recognition": "OCR",
+    "roi": [
+      575,
+      37,
+      134,
+      37
+    ],
+    "expected": "^收取报酬$",
+    "threshold": 0.85
+  },
+  "RewardsMissionClose": {
+    "recognition": "OCR",
+    "roi": [
+      596,
+      616,
+      89,
+      42
+    ],
+    "expected": "^关闭$",
+    "threshold": 0.85
+  },
+  "RewardsMissionsResult": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsMissionResultTitle",
+      "RewardsReceived",
+      "RewardsResultRows",
+      "RewardsResultItem",
+      "RewardsMissionClose"
+    ]
+  },
+  "RewardsGiftResultTitle": {
+    "recognition": "OCR",
+    "roi": [
+      575,
+      37,
+      134,
+      37
+    ],
+    "expected": "^收取礼物$",
+    "threshold": 0.85
+  },
+  "RewardsGiftResultClose": {
+    "recognition": "OCR",
+    "roi": [
+      596,
+      616,
+      89,
+      42
+    ],
+    "expected": "^确认$",
+    "threshold": 0.85
+  },
+  "RewardsGiftsResult": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftResultTitle",
+      "RewardsReceived",
+      "RewardsResultRows",
+      "RewardsResultItem",
+      "RewardsGiftResultClose"
+    ]
+  },
+  "RewardsGiftQuestion": {
+    "recognition": "OCR",
+    "roi": [
+      505,
+      88,
+      270,
+      34
+    ],
+    "expected": "^要一键收取以下礼物吗[？?]$",
+    "threshold": 0.85
+  },
+  "RewardsGiftConfirmRows": {
+    "recognition": "OCR",
+    "roi": [
+      365,
+      163,
+      530,
+      43
+    ],
+    "expected": "[×xX] *[0-9]+",
+    "threshold": 0.85
+  },
+  "RewardsGiftConfirmYes": {
+    "recognition": "OCR",
+    "roi": [
+      744,
+      616,
+      90,
+      42
+    ],
+    "expected": "^确认$",
+    "threshold": 0.85
+  },
+  "RewardsGiftConfirmNo": {
+    "recognition": "OCR",
+    "roi": [
+      452,
+      616,
+      90,
+      42
+    ],
+    "expected": "^取消$",
+    "threshold": 0.85
+  },
+  "RewardsGiftsConfirm": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftResultTitle",
+      "RewardsGiftQuestion",
+      "RewardsGiftConfirmRows",
+      "RewardsGiftConfirmItem",
+      "RewardsGiftConfirmYes",
+      "RewardsGiftConfirmNo"
+    ]
+  },
+  "RewardsGiftsDispatchRead": {
+    "next": [
+      "RewardsGiftsConfirm"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsAfterClaim": {
+    "next": [
+      "RewardsGiftsConfirm",
+      "RewardsGiftsResult"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsConfirmClick": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsConfirm"
+    ],
+    "action": "Click",
+    "target": [
+      788,
+      638
+    ],
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsGiftsConfirmClickStart": {
+    "next": [
+      "RewardsGiftsConfirmClick"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsMissionsResultRead": {
+    "next": [
+      "RewardsMissionsResult"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsMissionsClose": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsMissionsResult"
+    ],
+    "action": "Click",
+    "target": [
+      640,
+      638
+    ],
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsMissionsCloseStart": {
+    "next": [
+      "RewardsMissionsClose"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsMissionsHome": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsMissionsPage"
+    ],
+    "action": "Click",
+    "target": [
+      43,
+      41
+    ],
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsMissionsHomeStart": {
+    "next": [
+      "RewardsMissionsHome"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsResultRead": {
+    "next": [
+      "RewardsGiftsResult"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsClose": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsResult"
+    ],
+    "action": "Click",
+    "target": [
+      640,
+      638
+    ],
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsGiftsCloseStart": {
+    "next": [
+      "RewardsGiftsClose"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsHome": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsPage"
+    ],
+    "action": "Click",
+    "target": [
+      789,
+      636
+    ],
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsGiftsHomeStart": {
+    "next": [
+      "RewardsGiftsHome"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsHomeRead": {
+    "next": [
+      "ObserveHome"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsUnknown": {
+    "action": "StopTask",
+    "next": []
+  },
+  "RewardsGiftConfirmItem": {
+    "recognition": "OCR",
+    "roi": [
+      365,
+      163,
+      530,
+      43
+    ],
+    "expected": "[一-龥]{2,}",
+    "threshold": 0.85
+  },
+  "RewardsResultItem": {
+    "recognition": "OCR",
+    "roi": [
+      452,
+      166,
+      440,
+      220
+    ],
+    "expected": "[一-龥]{2,}",
+    "threshold": 0.85
+  },
+  "RewardsGiftDisabled": {
+    "recognition": "ColorMatch",
+    "roi": [
+      965,
+      620,
+      8,
+      8
+    ],
+    "method": 40,
+    "lower": [
+      95,
+      100,
+      140
+    ],
+    "upper": [
+      125,
+      255,
+      190
+    ],
+    "count": 60
+  },
+  "RewardsGiftStaminaRow": {
+    "recognition": "OCR",
+    "roi": [
+      180,
+      150,
+      310,
+      45
+    ],
+    "expected": "^体力\\s*[×xX]\\s*[0-9]+$",
+    "threshold": 0.85
+  },
+  "RewardsGiftsStaminaDeferred": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsPage",
+      "RewardsGiftAll",
+      "RewardsGiftDisabled",
+      "RewardsGiftStaminaRow"
+    ]
+  },
+  "RewardsGiftExcludeLabel": {
+    "recognition": "OCR",
+    "roi": [
+      516,
+      605,
+      122,
+      30
+    ],
+    "expected": "^除体力外$",
+    "threshold": 0.85
+  },
+  "RewardsGiftCheckBlue": {
+    "recognition": "ColorMatch",
+    "roi": [
+      474,
+      633,
+      12,
+      10
+    ],
+    "method": 40,
+    "lower": [
+      90,
+      80,
+      160
+    ],
+    "upper": [
+      125,
+      255,
+      255
+    ],
+    "count": 65
+  },
+  "RewardsGiftCheckBlank": {
+    "recognition": "ColorMatch",
+    "roi": [
+      474,
+      633,
+      12,
+      10
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      215
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
+    "count": 105
+  },
+  "RewardsGiftsIncludeStamina": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsPage",
+      "RewardsGiftExcludeLabel",
+      "RewardsGiftCheckBlank"
+    ]
+  },
+  "RewardsGiftsIncludeStaminaStart": {
+    "next": [
+      "RewardsGiftsIncludeStamina",
+      "RewardsGiftsIncludeStaminaToggle"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsIncludeStaminaToggle": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsExcludeStamina"
+    ],
+    "action": "Click",
+    "target": [
+      480,
+      635
+    ],
+    "max_hit": 1,
+    "post_delay": 350,
+    "next": [
+      "RewardsGiftsIncludeStamina"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsExcludeStamina": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsPage",
+      "RewardsGiftExcludeLabel",
+      "RewardsGiftCheckBlue"
+    ]
+  },
+  "RewardsGiftsExcludeStaminaStart": {
+    "next": [
+      "RewardsGiftsExcludeStamina",
+      "RewardsGiftsExcludeStaminaToggle"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsExcludeStaminaToggle": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsIncludeStamina"
+    ],
+    "action": "Click",
+    "target": [
+      480,
+      635
+    ],
+    "max_hit": 1,
+    "post_delay": 350,
+    "next": [
+      "RewardsGiftsExcludeStamina"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  },
+  "RewardsGiftsWithStaminaClaim": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsGiftsReady",
+      "RewardsGiftsIncludeStamina"
+    ],
+    "action": "Click",
+    "target": [
+      1080,
+      635
+    ],
+    "max_hit": 1,
+    "post_delay": 650
+  },
+  "RewardsGiftsWithStaminaClaimStart": {
+    "next": [
+      "RewardsGiftsWithStaminaClaim"
+    ],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "RewardsUnknown"
+    ]
+  }
+}

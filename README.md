@@ -1,0 +1,25 @@
+# Maa-PCR
+
+Windows x64 的 PCR 国服日常与黎明界自动化。提供独立的“日常&扫荡”和“黎明界bot”配置，使用 MaaFramework 识别页面和执行输入。
+
+## 当前状态
+
+此源码为 **v0.1.0 / R39 开发候选**，不是已验收的稳定 Release。日常整体提速40%、六个游戏日对照、软件内更新和干净构建的最终证据见 [R39 验收](docs/R39_ACCEPTANCE.md) 和 `delivery/acceptance.json`，未完成项不得算通过。
+
+日常只运行玩家选定的已支持项目，不包括自动购买、付费扭蛋、重置或推图；`daily_complete=false` 不会因版本发布改成“覆盖全游戏”。黎明界保留完整功能并标为测试版，继承 R38 难度5真实通关证据；同批双成功及随机分支缺口见 [验收范围](docs/RELEASE_STATUS.md)。
+
+## 安装与更新
+
+正式包从 [GitHub Releases](https://github.com/shiwandehongbai/Maa-PCR/releases) 获取。解压完整运行包到可写目录后启动 `MFAAvalonia.exe`，无需安装系统 Python；首次配置模拟器与任务后由玩家启动任务。
+
+R39 默认异步检查稳定版，玩家确认后下载并安装，任务运行期间禁止安装。配置、任务顺序、账号数据及未知结果账本保留，升级后只重启软件，不自动继续游戏。R38 首次升级使用精确 R38→R39 引导包中的 `first-update.bat`，不能用旧入口替换正在运行的 Python。[更新与故障恢复](docs/UPDATES.md)。
+
+## 开发
+
+固定依赖、工具和构建参数由 `scripts/build_release.py` 管理；`python scripts/build_release.py --help` 查看入口。公开回归使用 `python -m pytest`，不连接真实 ADB，私人截图回放缺失时明确跳过。构建产物和日志只写 `.runtime`。
+
+发布构建使用 `Release` 配置和 NuGet `--locked-mode`，提交的 `packages.lock.json` 仅对应 Release。Debug 含额外诊断依赖，开发时须使用独立的 Debug 锁文件；不要用 Debug restore 覆写发布锁。
+
+源码、运行包、补丁和更新索引必须来自同一发布版本。历史原生二进制不宣称逐字节可复现。[贡献与反馈](CONTRIBUTING.md) · [黎明界集成](docs/LABYRINTH_INTEGRATION.md) · [来源和许可证](docs/SOURCE_AND_LICENSES.md)。
+
+账号密码和 SDK 票据只用于玩家本机当前会话，验证码人工完成。请勿提交配置、账本、原始日志、截图或凭据；项目使用多种第三方许可证，根 MIT 不覆盖全部组件。

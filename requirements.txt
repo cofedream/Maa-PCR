@@ -1,0 +1,2 @@
+# Release dependencies for CPython 3.13 on Windows x64.
+-r requirements-runtime.lock

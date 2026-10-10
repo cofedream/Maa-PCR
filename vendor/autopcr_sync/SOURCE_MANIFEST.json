@@ -1,0 +1,119 @@
+{
+  "upstream": "https://github.com/cc004/autopcr",
+  "commit": "f091e2ef68a95717538af5633401734fd7df3078",
+  "license": "CC-BY-NC-SA-4.0",
+  "files": [
+    {
+      "source": "autopcr/model/modelbase.py",
+      "destination": "autopcr_sync/model/modelbase.py",
+      "sha256": "5a76278761a9676ccef491d8eda97286739a85b5a1a415ca299085a4defbe4f3",
+      "modified": false,
+      "source_sha256": {
+        "autopcr/model/modelbase.py": "5a76278761a9676ccef491d8eda97286739a85b5a1a415ca299085a4defbe4f3"
+      },
+      "adopted_sha256": "5a76278761a9676ccef491d8eda97286739a85b5a1a415ca299085a4defbe4f3"
+    },
+    {
+      "source": "autopcr/model/enums.py",
+      "destination": "autopcr_sync/model/enums.py",
+      "sha256": "21a05d1d52b067e985efd65798191fe2b041fa3eb2ca36f7ac09016066ae864c",
+      "modified": false,
+      "source_sha256": {
+        "autopcr/model/enums.py": "21a05d1d52b067e985efd65798191fe2b041fa3eb2ca36f7ac09016066ae864c"
+      },
+      "adopted_sha256": "21a05d1d52b067e985efd65798191fe2b041fa3eb2ca36f7ac09016066ae864c"
+    },
+    {
+      "source": "autopcr/model/common.py",
+      "destination": "autopcr_sync/model/common.py",
+      "sha256": "bc07e293e404eb72c04a69d553ec3a7a92d5a30b41edf2077366dd4a5ad1a0f9",
+      "modified": false,
+      "source_sha256": {
+        "autopcr/model/common.py": "bc07e293e404eb72c04a69d553ec3a7a92d5a30b41edf2077366dd4a5ad1a0f9"
+      },
+      "adopted_sha256": "bc07e293e404eb72c04a69d553ec3a7a92d5a30b41edf2077366dd4a5ad1a0f9"
+    },
+    {
+      "source": "autopcr/model/responses.py",
+      "destination": "autopcr_sync/model/responses.py",
+      "sha256": "f585026b9fc31c4335763c4810fa146443472006cd15d6f5039f059819ea2070",
+      "modified": false,
+      "source_sha256": {
+        "autopcr/model/responses.py": "f585026b9fc31c4335763c4810fa146443472006cd15d6f5039f059819ea2070"
+      },
+      "adopted_sha256": "f585026b9fc31c4335763c4810fa146443472006cd15d6f5039f059819ea2070"
+    },
+    {
+      "source": "autopcr/model/sdkrequests.py",
+      "destination": "autopcr_sync/model/sdkrequests.py",
+      "sha256": "d557ceab31614cfa8d2e5f9005d84bcfa212e41c6192655e5448ebbec669733e",
+      "modified": false,
+      "source_sha256": {
+        "autopcr/model/sdkrequests.py": "d557ceab31614cfa8d2e5f9005d84bcfa212e41c6192655e5448ebbec669733e"
+      },
+      "adopted_sha256": "d557ceab31614cfa8d2e5f9005d84bcfa212e41c6192655e5448ebbec669733e"
+    },
+    {
+      "source": "autopcr/sdk/bsgamesdk.py",
+      "destination": "autopcr_sync/sdk/bsgamesdk.py",
+      "sha256": "1e94e19ebf713ed82f7fe1b40812fde0cfb477dfdbaf0a98978b0708ca63c14a",
+      "modified": false,
+      "source_sha256": {
+        "autopcr/sdk/bsgamesdk.py": "1e94e19ebf713ed82f7fe1b40812fde0cfb477dfdbaf0a98978b0708ca63c14a"
+      },
+      "adopted_sha256": "1e94e19ebf713ed82f7fe1b40812fde0cfb477dfdbaf0a98978b0708ca63c14a"
+    },
+    {
+      "source": "autopcr/sdk/rsacr.py",
+      "destination": "autopcr_sync/sdk/rsacr.py",
+      "sha256": "566f381b02e9f8db82b80d88f60a646107223a000ec8b42869edc3516ef5d259",
+      "modified": false,
+      "source_sha256": {
+        "autopcr/sdk/rsacr.py": "566f381b02e9f8db82b80d88f60a646107223a000ec8b42869edc3516ef5d259"
+      },
+      "adopted_sha256": "566f381b02e9f8db82b80d88f60a646107223a000ec8b42869edc3516ef5d259"
+    },
+    {
+      "source": "autopcr/model/requests.py",
+      "destination": "autopcr_sync/model/requests.py",
+      "modified": true,
+      "changes": "Retain only Load/Home, two initialization requests and read-only ShopItemList; omit all consumption APIs.",
+      "source_sha256": {
+        "autopcr/model/requests.py": "901e8af2d86b5b09ce803e46390195998a5e6e8c67326b6203ba54e5771a37e4"
+      },
+      "adopted_sha256": "2bc96c88f79003beeebc2db1de94ae2712f5cd66dfbeb87619db777f4bcf382d"
+    },
+    {
+      "source": "data/rainbow.json",
+      "destination": "autopcr_sync/data/rainbow.json",
+      "modified": false,
+      "sha256": "0a4deb5e0456e1d3c9035637e77acd120458a00d4c382f26848294aad11e07ca",
+      "source_sha256": {
+        "data/rainbow.json": "0a4deb5e0456e1d3c9035637e77acd120458a00d4c382f26848294aad11e07ca"
+      },
+      "adopted_sha256": "0a4deb5e0456e1d3c9035637e77acd120458a00d4c382f26848294aad11e07ca"
+    },
+    {
+      "source": "autopcr/core/apiclient.py,sessionmgr.py,sdkclient.py",
+      "destination": "autopcr_sync/core/readonly.py",
+      "modified": true,
+      "changes": "Reimplemented fixed protocol subset; exact allowlist, bounded network, no cache/logger/relogin/consumer methods.",
+      "source_sha256": {
+        "autopcr/core/apiclient.py": "44ad1d14607fc96b36d03c2dab6ba5c685edb0f38b681fd2a11eb4a6f547fbdb",
+        "autopcr/core/sessionmgr.py": "69fa0f563598c03cd215727e705b77fc5c11364ba51531fc5de28970c8a0a521",
+        "autopcr/core/sdkclient.py": "ce898d66c42dc63a94ab526c8122fdad13563903bc1307530ee3c5dbf24bf61b"
+      },
+      "adopted_sha256": "22f4a85763e15e9cb0f10edd4d2e9debf9d60aae3b5ae0ac635c6ee6737b33f4"
+    },
+    {
+      "source": "autopcr/util/aiorequests.py",
+      "destination": "autopcr_sync/util/aiorequests.py",
+      "modified": true,
+      "changes": "SDK POST only exact login/rsa URLs; no redirect, timeout and size limits.",
+      "source_sha256": {
+        "autopcr/util/aiorequests.py": "bd499ceacb654ee9c8d58d54d8d56db716aef1fff7d6435b214d32101e0d2171"
+      },
+      "adopted_sha256": "8b5d6902bf597b3d5028bb06c8545f5bdf22de4b4854dad1333000d41897b6a1"
+    }
+  ]
+}

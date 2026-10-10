@@ -1,0 +1,239 @@
+{
+  "InspectScheduleHome": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "next": [
+      "ScheduleEnter"
+    ]
+  },
+  "InspectScheduleOpen": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "next": [
+      "ScheduleRead"
+    ]
+  },
+  "ScheduleEnter": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "recognition": "And",
+    "all_of": [
+      "ObserveHome"
+    ],
+    "action": "Click",
+    "target": [
+      1017,
+      575
+    ],
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "ScheduleRead"
+    ]
+  },
+  "ScheduleGuard": {
+    "recognition": "And",
+    "all_of": [
+      {
+        "recognition": "OCR",
+        "roi": [
+          325,
+          620,
+          100,
+          43
+        ],
+        "expected": "^关闭$",
+        "threshold": 0.8
+      },
+      {
+        "recognition": "OCR",
+        "roi": [
+          550,
+          620,
+          130,
+          43
+        ],
+        "expected": "^列表设定$",
+        "threshold": 0.8
+      }
+    ]
+  },
+  "ScheduleDayChangeTitle": {
+    "recognition": "OCR",
+    "roi": [
+      540,
+      170,
+      180,
+      65
+    ],
+    "expected": "^日期变更$",
+    "threshold": 0.8,
+    "only_rec": true
+  },
+  "ScheduleDayChangeBody": {
+    "recognition": "OCR",
+    "roi": [
+      530,
+      335,
+      190,
+      60
+    ],
+    "expected": "^日期已变更[。.]?$",
+    "threshold": 0.8,
+    "only_rec": true
+  },
+  "ScheduleOCR": {
+    "recognition": "OCR",
+    "roi": [
+      255,
+      120,
+      772,
+      471
+    ],
+    "expected": ".+",
+    "threshold": 0.8
+  },
+  "ScheduleRead": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "recognition": "Custom",
+    "custom_recognition": "SchedulePage",
+    "action": "Custom",
+    "custom_action": "CollectSchedule",
+    "max_hit": 17,
+    "next": [
+      "ScheduleDone",
+      "ScheduleUp",
+      "ScheduleDown",
+      "ScheduleUnknown"
+    ]
+  },
+  "ScheduleDone": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "recognition": "Custom",
+    "custom_recognition": "ScheduleDecision",
+    "custom_recognition_param": "done",
+    "action": "DoNothing",
+    "next": []
+  },
+  "ScheduleUp": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "recognition": "Custom",
+    "custom_recognition": "ScheduleDecision",
+    "custom_recognition_param": "up",
+    "action": "Swipe",
+    "next": [
+      "ScheduleRead"
+    ],
+    "begin": [
+      667,
+      287
+    ],
+    "end": [
+      667,
+      500
+    ],
+    "duration": 1000,
+    "post_delay": 500,
+    "max_hit": 8
+  },
+  "ScheduleDown": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "recognition": "Custom",
+    "custom_recognition": "ScheduleDecision",
+    "custom_recognition_param": "down",
+    "action": "Swipe",
+    "next": [
+      "ScheduleRead"
+    ],
+    "begin": [
+      667,
+      500
+    ],
+    "end": [
+      667,
+      287
+    ],
+    "duration": 1000,
+    "post_delay": 500,
+    "max_hit": 8
+  },
+  "CloseSchedule": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "next": [
+      "ScheduleCloseClick"
+    ]
+  },
+  "ScheduleCloseControl": {
+    "recognition": "OCR",
+    "roi": [
+      325,
+      620,
+      100,
+      43
+    ],
+    "expected": "^关闭$",
+    "threshold": 0.8
+  },
+  "ScheduleCloseClick": {
+    "recognition": "And",
+    "all_of": [
+      "ScheduleCloseControl",
+      "ScheduleGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "next": [
+      "ScheduleHomeGate"
+    ]
+  },
+  "ScheduleHomeGate": {
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": [
+      "ScheduleUnknown"
+    ],
+    "next": [
+      "ObserveHome"
+    ]
+  },
+  "ScheduleUnknown": {
+    "action": "StopTask",
+    "next": []
+  }
+}

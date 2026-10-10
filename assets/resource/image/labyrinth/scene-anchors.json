@@ -1,0 +1,945 @@
+{
+  "TITLE_LOGO": {
+    "template": "labyrinth/scene/title_logo.png",
+    "rois": [
+      [
+        391,
+        429,
+        482,
+        184
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "TITLE_TAP_PROMPT": {
+    "template": "labyrinth/scene/title_tap_prompt.png",
+    "rois": [
+      [
+        505,
+        643,
+        272,
+        39
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "LOADING_NOTICE_STANDARD": {
+    "template": "labyrinth/scene/loading_notice_standard.png",
+    "rois": [
+      [
+        469,
+        631,
+        273,
+        30
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "HOME_LEVEL": {
+    "template": "labyrinth/scene/home_level.png",
+    "rois": [
+      [
+        27,
+        35,
+        66,
+        23
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "HOME_ADVENTURE": {
+    "template": "labyrinth/scene/home_adventure.png",
+    "rois": [
+      [
+        675,
+        627,
+        86,
+        89
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "ADVENTURE_HEADER_STANDARD": {
+    "template": "labyrinth/scene/adventure_header_standard.png",
+    "rois": [
+      [
+        0,
+        0,
+        196,
+        73
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "LABYRINTH_ENTRY": {
+    "template": "labyrinth/scene/labyrinth_entry.png",
+    "rois": [
+      [
+        1093,
+        560,
+        127,
+        37
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "DAWN_START_STANDARD": {
+    "template": "labyrinth/scene/dawn_start_standard.png",
+    "rois": [
+      [
+        745,
+        385,
+        87,
+        39
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "DAWN_ACTIVE_STANDARD": {
+    "template": "labyrinth/scene/dawn_active_standard.png",
+    "rois": [
+      [
+        743,
+        352,
+        84,
+        30
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "DAWN_TICKET_LABEL_STANDARD": {
+    "template": "labyrinth/scene/dawn_ticket_label_standard.png",
+    "rois": [
+      [
+        659,
+        437,
+        177,
+        30
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SELECTION_HEADER_STANDARD": {
+    "template": "labyrinth/scene/selection_header_standard.png",
+    "rois": [
+      [
+        33,
+        37,
+        1213,
+        43
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SELECTION_COUNT_NONE_STANDARD": {
+    "template": "labyrinth/scene/selection_count_none_standard.png",
+    "rois": [
+      [
+        1023,
+        91,
+        214,
+        33
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SELECTION_COUNT_COMPLETE_STANDARD": {
+    "template": "labyrinth/scene/selection_count_complete_standard.png",
+    "rois": [
+      [
+        1023,
+        91,
+        214,
+        33
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "INVITE_DISABLED_STANDARD": {
+    "template": "labyrinth/scene/invite_disabled_standard.png",
+    "rois": [
+      [
+        951,
+        599,
+        277,
+        63
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "INVITE_ENABLED_STANDARD": {
+    "template": "labyrinth/scene/invite_enabled_standard.png",
+    "rois": [
+      [
+        951,
+        599,
+        277,
+        63
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "ROLE_REWARD_TITLE": {
+    "template": "labyrinth/scene/role_reward_title.png",
+    "rois": [
+      [
+        453,
+        23,
+        387,
+        80
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "ROLE_REWARD_INSTRUCTION": {
+    "template": "labyrinth/scene/role_reward_instruction.png",
+    "rois": [
+      [
+        453,
+        100,
+        380,
+        50
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "ROLE_REWARD_SELECT_BUTTON": {
+    "template": "labyrinth/scene/role_reward_select_button.png",
+    "rois": [
+      [
+        173,
+        540,
+        193,
+        103
+      ],
+      [
+        543,
+        540,
+        193,
+        103
+      ],
+      [
+        913,
+        540,
+        193,
+        103
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "LINK_CHOICE_TITLE": {
+    "template": "labyrinth/scene/link_choice_title.png",
+    "rois": [
+      [
+        423,
+        27,
+        433,
+        73
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "LINK_CHOICE_INSTRUCTION": {
+    "template": "labyrinth/scene/link_choice_instruction.png",
+    "rois": [
+      [
+        433,
+        90,
+        413,
+        60
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "LINK_CHOICE_REMAINING": {
+    "template": "labyrinth/scene/link_choice_remaining.png",
+    "rois": [
+      [
+        563,
+        140,
+        153,
+        47
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "LINK_CHOICE_CARD_SIGNATURE": {
+    "template": "labyrinth/scene/link_choice_card_signature.png",
+    "rois": [
+      [
+        220,
+        257,
+        107,
+        127
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RELIC_CHOICE_INSTRUCTION": {
+    "template": "labyrinth/scene/relic_choice_instruction.png",
+    "rois": [
+      [
+        433,
+        90,
+        413,
+        60
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "ITEM_REWARD_TITLE": {
+    "template": "labyrinth/scene/item_reward_title.png",
+    "rois": [
+      [
+        507,
+        33,
+        267,
+        50
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "ITEM_REWARD_INSTRUCTION": {
+    "template": "labyrinth/scene/item_reward_instruction.png",
+    "rois": [
+      [
+        533,
+        87,
+        240,
+        47
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "ITEM_REWARD_CLOSE": {
+    "template": "labyrinth/scene/item_reward_close.png",
+    "rois": [
+      [
+        497,
+        597,
+        287,
+        93
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_TITLE": {
+    "template": "labyrinth/scene/shop_title.png",
+    "rois": [
+      [
+        567,
+        33,
+        147,
+        50
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_INSTRUCTION": {
+    "template": "labyrinth/scene/shop_instruction.png",
+    "rois": [
+      [
+        467,
+        87,
+        347,
+        50
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_CLOSE": {
+    "template": "labyrinth/scene/shop_close.png",
+    "rois": [
+      [
+        947,
+        600,
+        287,
+        77
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_BUY_BUTTON": {
+    "template": "labyrinth/scene/shop_buy_button.png",
+    "rois": [
+      [
+        233,
+        320,
+        193,
+        60
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_REFRESH_BUTTON": {
+    "template": "labyrinth/scene/shop_refresh_button.png",
+    "rois": [
+      [
+        333,
+        620,
+        233,
+        57
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_PURCHASE_CONFIRMATION_TITLE": {
+    "template": "labyrinth/scene/shop_purchase_confirmation_title.png",
+    "rois": [
+      [
+        500,
+        83,
+        280,
+        50
+      ],
+      [
+        500,
+        89,
+        280,
+        50
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_PURCHASE_COMPLETE_TITLE": {
+    "template": "labyrinth/scene/shop_purchase_complete_title.png",
+    "rois": [
+      [
+        500,
+        163,
+        280,
+        50
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_EXIT_CONFIRMATION_TITLE": {
+    "template": "labyrinth/scene/shop_exit_confirmation_title.png",
+    "rois": [
+      [
+        500,
+        160,
+        280,
+        50
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SHOP_EXIT_CONFIRM_BUTTON": {
+    "template": "labyrinth/scene/shop_exit_confirm_button.png",
+    "rois": [
+      [
+        653,
+        471,
+        267,
+        53
+      ],
+      [
+        653,
+        555,
+        267,
+        53
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "JOINED_HEADER_STANDARD": {
+    "template": "labyrinth/scene/joined_header_standard.png",
+    "rois": [
+      [
+        570,
+        97,
+        140,
+        37
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "JOINED_CLOSE_STANDARD": {
+    "template": "labyrinth/scene/joined_close_standard.png",
+    "rois": [
+      [
+        600,
+        560,
+        80,
+        40
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "NODE_HEADER_STANDARD": {
+    "template": "labyrinth/scene/node_header_standard.png",
+    "rois": [
+      [
+        80,
+        17,
+        197,
+        47
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "NODE_CHARACTERS_STANDARD": {
+    "template": "labyrinth/scene/node_characters_standard.png",
+    "rois": [
+      [
+        25,
+        618,
+        77,
+        84
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "NODE_RELICS_STANDARD": {
+    "template": "labyrinth/scene/node_relics_standard.png",
+    "rois": [
+      [
+        113,
+        618,
+        90,
+        84
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "NODE_RETREAT_STANDARD": {
+    "template": "labyrinth/scene/node_retreat_standard.png",
+    "rois": [
+      [
+        800,
+        619,
+        215,
+        63
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "NODE_RETURN_STANDARD": {
+    "template": "labyrinth/scene/node_return_standard.png",
+    "rois": [
+      [
+        1033,
+        619,
+        213,
+        63
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_CHALLENGE_HEADER_NORMAL": {
+    "template": "labyrinth/scene/battle_challenge_header_normal.png",
+    "rois": [
+      [
+        40,
+        40,
+        413,
+        67
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_CHALLENGE_SUFFIX_NORMAL": {
+    "template": "labyrinth/scene/battle_challenge_suffix_normal.png",
+    "rois": [
+      [
+        203,
+        57,
+        90,
+        40
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_CHALLENGE_SUFFIX_EXTREME": {
+    "template": "labyrinth/scene/battle_challenge_suffix_extreme.png",
+    "rois": [
+      [
+        203,
+        57,
+        90,
+        40
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_CHALLENGE_BUTTON": {
+    "template": "labyrinth/scene/battle_challenge_button.png",
+    "rois": [
+      [
+        947,
+        567,
+        293,
+        83
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_CHALLENGE_VIEW_MAP_BUTTON": {
+    "template": "labyrinth/scene/battle_challenge_view_map_button.png",
+    "rois": [
+      [
+        650,
+        567,
+        293,
+        83
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_TEAM_HEADER": {
+    "template": "labyrinth/scene/battle_team_header.png",
+    "rois": [
+      [
+        27,
+        23,
+        1227,
+        60
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_TEAM_FILTER_BAR": {
+    "template": "labyrinth/scene/battle_team_filter_bar.png",
+    "rois": [
+      [
+        47,
+        93,
+        693,
+        53
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_TEAM_CURRENT_MEMBERS_SUMMARY": {
+    "template": "labyrinth/scene/battle_team_current_members_summary.png",
+    "rois": [
+      [
+        50,
+        499,
+        733,
+        40
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_TEAM_CANCEL_BUTTON": {
+    "template": "labyrinth/scene/battle_team_cancel_button.png",
+    "rois": [
+      [
+        857,
+        567,
+        180,
+        73
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_TEAM_START_BUTTON": {
+    "template": "labyrinth/scene/battle_team_start_button.png",
+    "rois": [
+      [
+        1043,
+        567,
+        180,
+        73
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SESSION_ERROR_TITLE": {
+    "template": "labyrinth/scene/session_error_title.png",
+    "rois": [
+      [
+        323,
+        173,
+        632,
+        44
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SESSION_RETURN_TITLE": {
+    "template": "labyrinth/scene/session_return_title.png",
+    "rois": [
+      [
+        504,
+        461,
+        273,
+        63
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SESSION_DATE_CHANGE_TITLE": {
+    "template": "labyrinth/scene/session_date_change_title.png",
+    "rois": [
+      [
+        527,
+        172,
+        227,
+        47
+      ],
+      [
+        529,
+        174,
+        227,
+        47
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "SESSION_DATE_CHANGE_CONFIRM": {
+    "template": "labyrinth/scene/session_date_change_confirm.png",
+    "rois": [
+      [
+        500,
+        460,
+        277,
+        68
+      ],
+      [
+        502,
+        461,
+        277,
+        68
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_IN_PROGRESS_MENU_BUTTON": {
+    "template": "labyrinth/scene/battle_in_progress_menu_button.png",
+    "rois": [
+      [
+        1133,
+        24,
+        128,
+        33
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_RESULT_REWARD_BANNER": {
+    "template": "labyrinth/scene/battle_result_reward_banner.png",
+    "rois": [
+      [
+        467,
+        180,
+        360,
+        55
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_RESULT_NEXT_BUTTON": {
+    "template": "labyrinth/scene/battle_result_next_button.png",
+    "rois": [
+      [
+        968,
+        631,
+        259,
+        61
+      ],
+      [
+        941,
+        644,
+        276,
+        61
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RUN_RESULT_LOGO": {
+    "template": "labyrinth/scene/run_result_logo.png",
+    "rois": [
+      [
+        512,
+        45,
+        253,
+        69
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RUN_RESULT_CLOSE_BUTTON": {
+    "template": "labyrinth/scene/run_result_close_button.png",
+    "rois": [
+      [
+        501,
+        632,
+        277,
+        61
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "EVENT_SINGLE_CHOICE_TRIGGER_TITLE": {
+    "template": "labyrinth/scene/event_single_choice_trigger_title.png",
+    "rois": [
+      [
+        480,
+        23,
+        320,
+        80
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "EVENT_SINGLE_CHOICE_SELECT_BUTTON": {
+    "template": "labyrinth/scene/event_single_choice_select_button.png",
+    "rois": [
+      [
+        547,
+        537,
+        197,
+        97
+      ],
+      [
+        363,
+        537,
+        197,
+        97
+      ],
+      [
+        733,
+        537,
+        197,
+        97
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RUN_CLEAR_CHEST_RESULT_TITLE": {
+    "template": "labyrinth/scene/run_clear_chest_result_title.png",
+    "rois": [
+      [
+        433,
+        35,
+        413,
+        40
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RUN_CLEAR_CHEST_CONFIRM_BUTTON": {
+    "template": "labyrinth/scene/run_clear_chest_confirm_button.png",
+    "rois": [
+      [
+        497,
+        607,
+        287,
+        73
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_TEAM_ROSTER_EMPTY_NOTICE": {
+    "template": "labyrinth/scene/battle_team_roster_empty_notice.png",
+    "rois": [
+      [
+        535,
+        351,
+        198,
+        25
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "DAWN_HOME_MY_HOME_TAB": {
+    "template": "labyrinth/scene/dawn_home_my_home_tab.png",
+    "rois": [
+      [
+        57,
+        630,
+        117,
+        83
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RELIC_EFFECT_TITLE": {
+    "template": "labyrinth/scene/relic_effect_title.png",
+    "rois": [
+      [
+        507,
+        33,
+        267,
+        50
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RELIC_EFFECT_INSTRUCTION": {
+    "template": "labyrinth/scene/relic_effect_instruction.png",
+    "rois": [
+      [
+        513,
+        100,
+        253,
+        43
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RELIC_EFFECT_RESULT_TITLE": {
+    "template": "labyrinth/scene/relic_effect_result_title.png",
+    "rois": [
+      [
+        540,
+        175,
+        200,
+        41
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RELIC_EFFECT_RESULT_CLOSE": {
+    "template": "labyrinth/scene/relic_effect_result_close.png",
+    "rois": [
+      [
+        500,
+        460,
+        277,
+        68
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_RESULT_BOSS_SUMMARY_NEXT_BUTTON": {
+    "template": "labyrinth/scene/battle_result_boss_summary_next_button.png",
+    "rois": [
+      [
+        941,
+        644,
+        276,
+        61
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "RUN_CLEAR_BADGE": {
+    "template": "labyrinth/scene/run_clear_badge.png",
+    "rois": [
+      [
+        263,
+        89,
+        137,
+        120
+      ]
+    ],
+    "threshold": 0.7
+  },
+  "BATTLE_DEFEAT_TITLE": {
+    "template": "labyrinth/scene/battle_defeat_title.png",
+    "rois": [
+      [
+        470,
+        0,
+        370,
+        150
+      ]
+    ],
+    "threshold": 0.7,
+    "method": 5
+  }
+}

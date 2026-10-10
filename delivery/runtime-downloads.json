@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "python": {
+    "version": "3.13.16",
+    "url": "https://www.python.org/ftp/python/3.13.16/python-3.13.16-embed-amd64.zip",
+    "sha256": "97dae5274cc54867065e8d5a3226e48c35017ed332a0fdb0e27d5b5821961297"
+  },
+  "dotnet": {
+    "version": "10.0.1",
+    "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.1/dotnet-runtime-10.0.1-win-x64.zip",
+    "sha512": "c50326f45028c960d72f9b5fa7a54380aa30c043c073acbe9a4ad38d2e9b96409aab5a3844ce05b0175dff620aff1c2c056d659810bd4b7d925bf27da2a3e80a"
+  }
+}

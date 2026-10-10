@@ -1,0 +1,2 @@
+# The full release includes labyrinth support and shares one dependency lock.
+-r requirements-runtime.lock

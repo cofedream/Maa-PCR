@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "revision": 39,
+  "expected_version": "v0.1.0",
+  "status": "pending",
+  "accepted_owned_payload_sha256": null,
+  "live_valid_game_days": 0,
+  "candidate_to_baseline_ratio": null,
+  "candidate_longest_not_above_baseline": false,
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false
+}
