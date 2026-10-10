@@ -573,8 +573,11 @@ def test_attested_cli_forwarding_and_readonly_conflicts(monkeypatch, capsys, aut
 
 
 @pytest.mark.parametrize('value,valid', [(True, True), (False, True), (1, False), ('true', False)])
-def test_attested_device_validates_before_resource(monkeypatch, authorized, value, valid):
+def test_attested_device_validates_before_resource(tmp_path, monkeypatch, authorized, value, valid):
     from pcr_maa import device
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'never executed')
+    connection = device.validate_connection(dict(adb_path=str(adb), serial=device.SERIAL))
     monkeypatch.setattr(native, 'ROOT', authorized['journal'].directory.parent)
     class ReachedValidatedResource(Exception):
         pass
@@ -582,8 +585,9 @@ def test_attested_device_validates_before_resource(monkeypatch, authorized, valu
         raise ReachedValidatedResource()
     monkeypatch.setattr(native, 'load_resource', stop)
     options = {k: authorized[k] for k in ('execute', 'game_day', 'authorizations')}
-    with pytest.raises(ReachedValidatedResource if valid else ValueError):
-        device.navigate(2, '123', onekey=options | dict(attest_current_plan=value))
+    with pytest.raises(ReachedValidatedResource if valid else ValueError,
+                       match=None if valid else '^Invalid or conflicting standalone one-key arguments$'):
+        device.navigate(2, '123', onekey=options | dict(attest_current_plan=value), connection=connection)
 
 
 @pytest.mark.parametrize('kind', ['mana_confirm', 'exp_confirm'])
@@ -1711,12 +1715,16 @@ def test_fault_before_first_input_no_action_and_no_consumer_intent(resource,auth
     assert result['consumer_state'] == 'not_started'
 
 
-def test_device_onekey_conflicts_rejected_before_resource(monkeypatch,authorized):
+def test_device_onekey_conflicts_rejected_before_resource(tmp_path,monkeypatch,authorized):
     import pcr_maa.device as device
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'never executed')
+    connection = device.validate_connection(dict(adb_path=str(adb), serial=device.SERIAL))
     def forbidden(*a,**k):pytest.fail('invalid invocation reached resource/device')
     monkeypatch.setattr(native,'load_resource',forbidden)
-    with pytest.raises(ValueError):
-        device.navigate(2,'123',slot=1,onekey={k:authorized[k] for k in ('execute','game_day','authorizations')})
+    with pytest.raises(ValueError, match='^Invalid or conflicting standalone one-key arguments$'):
+        device.navigate(2,'123',slot=1,onekey={k:authorized[k] for k in ('execute','game_day','authorizations')},
+                        connection=connection)
 
 
 @pytest.mark.parametrize('variant',['unknown_popup','changed_row','quote_changed'])
@@ -1800,14 +1808,18 @@ def test_historical_settings_frame_is_not_current_session_permission(resource,au
         schedule_onekey(object(),**authorized,settings_audit={'verified':True,'game_day':'2026-09-24'})
 
 
-def test_known_completed_day_cli_and_device_zero_construction(monkeypatch,capsys,authorized):
+def test_known_completed_day_cli_and_device_zero_construction(tmp_path,monkeypatch,capsys,authorized):
     from pcr_maa.cli import main
     import pcr_maa.device as device
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'never executed')
+    connection = device.validate_connection(dict(adb_path=str(adb), serial=device.SERIAL))
     def forbidden(*a,**kw): pytest.fail('noncurrent game day accessed device/resource')
     monkeypatch.setattr(native,'load_resource',forbidden)
     # Test direct device entry before mocking the router for CLI.
     with pytest.raises(ValueError,match='^current_game_day_required$'):
-        device.navigate(2,'123',onekey=dict(execute=True,game_day='2026-09-24',authorizations=list(authorized['authorizations'])))
+        device.navigate(2,'123',onekey=dict(execute=True,game_day='2026-09-24',authorizations=list(authorized['authorizations'])),
+                        connection=connection)
     monkeypatch.setattr(device,'navigate',forbidden)
     args=['schedule-onekey','--execute','--game-day','2026-09-24','--input-display','2','--screenshot-display','123']
     for item in authorized['authorizations']: args+=['--authorize',item]

@@ -402,6 +402,9 @@ def test_schedule_attestation_executed_contract(tmp_path, monkeypatch):
 
 def test_schedule_attestation_device_envelope_reaches_validation(tmp_path, monkeypatch):
     from pcr_maa import device, native
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'never executed')
+    connection = device.validate_connection(dict(adb_path=str(adb), serial=device.SERIAL))
     calls = []
     def stop_at_validation(**kw):
         calls.append(kw)
@@ -413,7 +416,7 @@ def test_schedule_attestation_device_envelope_reaches_validation(tmp_path, monke
         include_schedule_onekey=True, schedule_authorizations=['arena_coins'],
         schedule_attest_current_plan=True)
     with pytest.raises(ValueError) as error:
-        device.navigate(2, '123', supported=request)
+        device.navigate(2, '123', supported=request, connection=connection)
     assert str(error.value) == 'synthetic_validation_boundary'
     assert calls[0]['schedule_attest_current_plan'] is True
 
@@ -499,6 +502,9 @@ def test_schedule_attestation_already_complete_cannot_hide_onekey(patch):
 def test_schedule_attestation_device_rejects_before_resource(tmp_path, monkeypatch, fault):
     from datetime import datetime, timezone, timedelta
     from pcr_maa import device, native, schedule_onekey
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'never executed')
+    connection = device.validate_connection(dict(adb_path=str(adb), serial=device.SERIAL))
     monkeypatch.setattr(schedule_onekey, 'now_cn',
         lambda: datetime(2027, 9, 24, 14, tzinfo=timezone(timedelta(hours=8))))
     monkeypatch.setattr(native, 'load_resource', lambda: pytest.fail('resource constructed'))
@@ -519,14 +525,24 @@ def test_schedule_attestation_device_rejects_before_resource(tmp_path, monkeypat
     elif fault == 'no_include': request['include_schedule_onekey'] = False
     elif fault == 'conflict': extra['slot'] = 1
     elif fault == 'display': request['config']['device']['screenshot_display'] = '456'
-    with pytest.raises(ValueError):
-        device.navigate(2, '123', supported=request, **extra)
+    expected = {
+        'include_int': '^include_schedule_onekey_must_be_boolean$',
+        'execute_int': '^必须显式 --execute；只读请使用 inspect-daily$',
+        'no_execute': '^必须显式 --execute；只读请使用 inspect-daily$',
+        'no_include': '^schedule_attestation_requires_include_schedule_onekey$',
+        'display': '^Conflicting supported connection arguments$',
+    }.get(fault, '^Invalid or conflicting supported chain arguments$')
+    with pytest.raises(ValueError, match=expected):
+        device.navigate(2, '123', supported=request, connection=connection, **extra)
 
 
 @pytest.mark.parametrize('shape', ['base', 'legacy_schedule', 'attest_false', 'attest_true'])
 def test_schedule_attestation_device_valid_shapes_finish_validation(tmp_path, monkeypatch, shape):
     from datetime import datetime, timezone, timedelta
     from pcr_maa import device, native, schedule_onekey
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'never executed')
+    connection = device.validate_connection(dict(adb_path=str(adb), serial=device.SERIAL))
     monkeypatch.setattr(native, 'ROOT', tmp_path)
     monkeypatch.setattr(schedule_onekey, 'now_cn',
         lambda: datetime(2027, 9, 24, 14, tzinfo=timezone(timedelta(hours=8))))
@@ -542,7 +558,7 @@ def test_schedule_attestation_device_valid_shapes_finish_validation(tmp_path, mo
     if shape.startswith('attest_'):
         request['schedule_attest_current_plan'] = shape == 'attest_true'
     with pytest.raises(Validated):
-        device.navigate(2, '123', supported=request)
+        device.navigate(2, '123', supported=request, connection=connection)
 
 
 @pytest.mark.parametrize('inflight', [False, True])
@@ -705,8 +721,12 @@ def test_custom_controller_historical_rewards_wiring(tmp_path, monkeypatch):
 
 
 def test_cli_optin_wiring_and_device_validation(tmp_path, monkeypatch, capsys):
-    from pcr_maa import device
+    from pcr_maa import device, native
     from pcr_maa.cli import main
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'never executed')
+    connection = device.validate_connection(dict(adb_path=str(adb), serial=device.SERIAL))
+    monkeypatch.setattr(native, 'load_resource', lambda: pytest.fail('resource constructed'))
     cfg = tmp_path/'config.json'
     cfg.write_text(json.dumps(config()), encoding='utf-8')
     calls = []
@@ -721,12 +741,12 @@ def test_cli_optin_wiring_and_device_validation(tmp_path, monkeypatch, capsys):
     assert [p['slot'] for p in calls[0]['supported']['config']['presets']] == [4, 2, 6]
     out = capsys.readouterr().out
     assert out.count('日程执行：unsupported') == 2 and 'daily_complete=false' in out
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='^必须显式 --execute；只读请使用 inspect-daily$'):
         original(2, '123', supported=dict(config=config(), execute=False, game_day='2026-09-23',
-                 context='user-reported-unreset', directory=tmp_path))
-    with pytest.raises(ValueError):
+                 context='user-reported-unreset', directory=tmp_path), connection=connection)
+    with pytest.raises(ValueError, match='^Invalid or conflicting supported chain arguments$'):
         original(2, '123', slot=1, supported=dict(config=config(), execute=True, game_day='2026-09-23',
-                 context='user-reported-unreset', directory=tmp_path))
+                 context='user-reported-unreset', directory=tmp_path), connection=connection)
 
 
 def test_schedule_cli_flags_and_pretasker_rejections(tmp_path, monkeypatch):
@@ -777,20 +797,26 @@ def test_schedule_cli_routes_explicit_authorizations_and_same_device(tmp_path, m
 
 
 def test_schedule_device_dispatch_rejects_before_resource_or_controller(tmp_path, monkeypatch):
-    from pcr_maa import device, native
+    from datetime import datetime, timezone, timedelta
+    from pcr_maa import device, native, schedule_onekey
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'never executed')
+    connection = device.validate_connection(dict(adb_path=str(adb), serial=device.SERIAL))
+    monkeypatch.setattr(schedule_onekey, 'now_cn',
+        lambda: datetime(2027, 9, 24, 14, tzinfo=timezone(timedelta(hours=8))))
     monkeypatch.setattr(native, 'load_resource', lambda: pytest.fail('resource constructed'))
     request = dict(config=config(), execute=True, game_day='2026-09-24',
                    context='user-reported-unreset', directory=tmp_path,
                    include_schedule_onekey=True, schedule_authorizations=['arena_coins'])
-    with pytest.raises(ValueError, match='current_game_day_required'):
-        device.navigate(2, '123', supported=request)
-    with pytest.raises(ValueError, match='Invalid or conflicting'):
+    with pytest.raises(ValueError, match='^current_game_day_required$'):
+        device.navigate(2, '123', supported=request, connection=connection)
+    with pytest.raises(ValueError, match='^Invalid or conflicting standalone one-key arguments$'):
         device.navigate(2, '123', supported=request, onekey=dict(
-            execute=True, game_day='2026-09-24', authorizations=['arena_coins']))
+            execute=True, game_day='2026-09-24', authorizations=['arena_coins']), connection=connection)
     request['schedule_authorizations'] = []
     request['game_day'] = '2027-09-24'
-    with pytest.raises(ValueError):
-        device.navigate(2, '123', supported=request)
+    with pytest.raises(ValueError, match='^explicit_unique_item_authorizations_required$'):
+        device.navigate(2, '123', supported=request, connection=connection)
 
 
 def test_real_event_journal_reused_after_unknown(tmp_path, monkeypatch):

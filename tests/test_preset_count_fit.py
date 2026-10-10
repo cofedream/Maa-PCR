@@ -209,20 +209,26 @@ def test_gui_current_state_finite_count_execution(tmp_path, remaining, target, e
 
 def test_gui_unknown_blocks_fresh_process_and_new_day(tmp_path):
     import os, subprocess, sys
+    from pathlib import Path
     port = FitPort()
     port.settled = False
     port.journal = Journal(tmp_path)
     report = execute_one(port, dict(slot=2,kind='deep',target_per_stage=10),
         'gui-current-state', port.journal, fit_remaining=True, execute=True, game_day='2026-09-23')
     assert report['outcome'] == 'unknown_settlement'
-    script = """from pcr_maa.preset_execution import execute_one,Journal
-import sys
+    script = """import sys
+sys.path.insert(0,sys.argv[2])
+from pcr_maa.preset_execution import execute_one,Journal
 class NoIO:
  def __getattr__(self,name): raise AssertionError('unexpected I/O: '+name)
 r=execute_one(NoIO(),dict(slot=2,kind='deep',target_per_stage=10),'gui-current-state',Journal(sys.argv[1]),execute=True,fit_remaining=True,game_day='2099-01-01')
 assert r['outcome']=='blocked_in_flight',r
 print(r['outcome'])
 """
-    run = subprocess.run([sys.executable,'-B','-c',script,str(tmp_path)], capture_output=True,text=True,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'))
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+    env.pop('PYTHONPATH', None)
+    source = Path(__file__).resolve().parents[1] / 'src'
+    run = subprocess.run([sys.executable,'-B','-c',script,str(tmp_path),str(source)],
+        cwd=tmp_path, capture_output=True, text=True, env=env, timeout=30)
     assert run.returncode == 0, run.stdout+run.stderr
     assert run.stdout.strip() == 'blocked_in_flight'
