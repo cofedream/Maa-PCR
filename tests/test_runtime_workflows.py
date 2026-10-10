@@ -14,11 +14,11 @@ PROBES = {
 EXIT_CHECK = 'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'
 
 
-@pytest.mark.parametrize('name,folder,evidence', [
-    ('ci.yml', 'ci', 'Publish Build Evidence'),
-    ('release.yml', 'release', 'Publish Runtime Test Evidence'),
+@pytest.mark.parametrize('name,folder,evidence,candidate_step', [
+    ('ci.yml', 'ci', 'Publish Build Evidence', 'Build Portable Candidate'),
+    ('release.yml', 'release', 'Publish Runtime Test Evidence', 'Promote Accepted CI Artifact'),
 ])
-def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, folder, evidence):
+def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, folder, evidence, candidate_step):
     text = (ROOT / '.github/workflows' / name).read_text(encoding='utf-8')
     steps = {part.splitlines()[0].removeprefix('name: '): part
              for part in text.split('\n      - ') if part.startswith('name: ')}
@@ -31,7 +31,7 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
     assert f'--basetemp .runtime/{folder}/bundled-runtime-temp' in probes
     assert f'--junitxml .runtime/{folder}/bundled-runtime.xml' in probes
     assert "python-version: '3.13.16'" in text
-    assert text.index('- name: Build Portable Candidate') < text.index('- name: Bundled Runtime Checks')
+    assert text.index('- name: ' + candidate_step) < text.index('- name: Bundled Runtime Checks')
     for step in steps.values():
         lines = [line.strip() for line in step.splitlines()]
         for index, line in enumerate(lines):
@@ -43,10 +43,57 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
     assert f'.runtime/{folder}/bundled-runtime.xml' in upload
     assert f'.runtime/{folder}/bundled-runtime-temp/' in upload
     assert not re.search(r'^\s+\.runtime/(?:ci|release)/\*', upload, re.MULTILINE)
-    if name == 'release.yml':
-        assert text.index('- name: Require Reviewed Acceptance') < text.index('- name: Build Portable Candidate')
-        assert text.index('- name: Bundled Runtime Checks') < text.index('- name: Seal Matching Assets')
-        assert text.index('- name: Seal Matching Assets') < text.index('- name: Create GitHub Release')
-        assert 'require_acceptance(d,d[\'revision\'],version=sys.argv[1])' in steps['Require Reviewed Acceptance']
-        assert '--revision $acceptance.revision --version $env:PCR_RELEASE_TAG' in steps['Build Portable Candidate']
-        assert '--acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG' in steps['Seal Matching Assets']
+    if name == 'ci.yml':
+        assert 'retention-days: 30' in upload
+        archives = [line.strip() for line in upload.splitlines() if line.strip().endswith('.zip')]
+        assert len(archives) == 2 and set(archives) == {
+            '.runtime/ci/build/Maa-PCR-*-win-x64.zip',
+            '.runtime/ci/build/Maa-PCR-*-source.zip',
+        }
+
+
+def test_release_promotes_only_the_exact_reviewed_ci_artifact_without_rebuilding():
+    text = (ROOT / '.github/workflows/release.yml').read_text(encoding='utf-8')
+    steps = {part.splitlines()[0].removeprefix('name: '): part
+             for part in text.split('\n      - ') if part.startswith('name: ')}
+    assert 'scripts/build_release.py' not in text
+    assert '- name: Build Portable Candidate' not in text
+    assert '  actions: read\n' in text
+    assert 'uses: actions/checkout@v4\n        with:\n          fetch-depth: 0\n' in text
+    order = ('Require Reviewed Acceptance', 'Public Regression', 'GUI Update Contract Checks',
+             'Fetch Accepted CI Metadata', 'Download Accepted CI Artifact',
+             'Promote Accepted CI Artifact', 'Bundled Runtime Checks',
+             'Seal Matching Assets', 'Create GitHub Release')
+    positions = [text.index('- name: ' + name) for name in order]
+    assert positions == sorted(positions)
+    gate = steps['Require Reviewed Acceptance']
+    assert 'id: promotion' in gate
+    assert 'require_acceptance(d,d[\'revision\'],version=sys.argv[1])' in gate
+    assert gate.index('require_acceptance(') < gate.index('scripts/promote_release_candidate.py request ')
+    assert 'request --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --repository $env:GITHUB_REPOSITORY' in gate
+    assert '--output .runtime/release/PROMOTION_REQUEST.json --github-output $env:GITHUB_OUTPUT' in gate
+    metadata = steps['Fetch Accepted CI Metadata']
+    assert 'GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}' in metadata
+    assert 'scripts/promote_release_candidate.py fetch-metadata --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --repository $env:GITHUB_REPOSITORY --output-dir .runtime/release/metadata' in metadata
+    assert 'gh api ' not in text
+    assert 'PCR_ACCEPTED_RUN_ID' not in metadata and 'PCR_ACCEPTED_ARTIFACT_ID' not in metadata
+    download = steps['Download Accepted CI Artifact']
+    assert 'uses: actions/download-artifact@v4' in download
+    assert 'artifact-ids: ${{ steps.promotion.outputs.artifact_id }}' in download
+    assert 'run-id: ${{ steps.promotion.outputs.run_id }}' in download
+    assert 'repository: ${{ github.repository }}' in download
+    assert 'github-token: ${{ secrets.GITHUB_TOKEN }}' in download
+    assert 'path: .runtime/release/accepted-ci/' in download
+    assert 'merge-multiple: true' in download
+    assert '\n          name:' not in download and '\n          pattern:' not in download
+    promote = steps['Promote Accepted CI Artifact']
+    assert 'scripts/promote_release_candidate.py promote --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --repository $env:GITHUB_REPOSITORY' in promote
+    assert '--run-metadata .runtime/release/metadata/run.json --artifact-metadata .runtime/release/metadata/artifact.json' in promote
+    assert '--artifact-root .runtime/release/accepted-ci/build --player .runtime/release/build/player' in promote
+    assert '--acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG' in steps['Seal Matching Assets']
+    upload = steps['Publish Runtime Test Evidence']
+    assert '.runtime/release/accepted-ci/' not in upload
+    assert '.runtime/release/build/' not in upload
+    for evidence in ('gui-checks.log', 'PROMOTION_REQUEST.json', 'metadata/run.json',
+                     'metadata/artifact.json', 'promotion.log'):
+        assert '.runtime/release/' + evidence in upload

@@ -4,6 +4,7 @@
   "expected_version": "v0.1.0",
   "status": "pending",
   "accepted_owned_payload_sha256": null,
+  "accepted_ci_artifact": null,
   "live_valid_game_days": 0,
   "candidate_to_baseline_ratio": null,
   "candidate_longest_not_above_baseline": false,

@@ -77,7 +77,7 @@ def download(record, cache):
     return target
 
 
-def extract(archive, target, *, wheel=False):
+def extract(archive, target, *, wheel=False, allow_manifest=False):
     """Never trust ZIP paths, symlinks or case collisions, including upstream wheels."""
     entries, folded = [], set()
     with zipfile.ZipFile(archive) as source:
@@ -92,7 +92,8 @@ def extract(archive, target, *, wheel=False):
                 if len(parts) < 3 or parts[1] not in ('purelib', 'platlib'):
                     continue
                 name = '/'.join(parts[2:])
-            maintenance._name(name)
+            if not (allow_manifest and name == maintenance.MANIFEST):
+                maintenance._name(name)
             if any(ord(character) < 32 for character in name):
                 raise ValueError('unsafe_dependency_archive')
             if name.casefold() in folded or stat.S_ISLNK(info.external_attr >> 16):

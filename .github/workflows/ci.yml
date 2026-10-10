@@ -46,6 +46,7 @@ jobs:
         with:
           name: windows-candidate-and-tests
           include-hidden-files: true
+          retention-days: 30
           path: |
             .runtime/ci/public-tests.xml
             .runtime/ci/bundled-runtime.xml
@@ -53,7 +54,8 @@ jobs:
             .runtime/ci/gui-checks.log
             .runtime/ci/build/*.json
             .runtime/ci/build/*.log
-            .runtime/ci/build/*.zip
+            .runtime/ci/build/Maa-PCR-*-win-x64.zip
+            .runtime/ci/build/Maa-PCR-*-source.zip
           if-no-files-found: warn
   source-scan:
     runs-on: ubuntu-latest

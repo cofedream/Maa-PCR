@@ -4,6 +4,7 @@ on:
     tags: ['v*']
 permissions:
   contents: write
+  actions: read
 jobs:
   release:
     runs-on: windows-2025
@@ -11,6 +12,8 @@ jobs:
       PCR_RELEASE_TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13.16'
@@ -22,8 +25,11 @@ jobs:
           python -m pip install --require-hashes -r requirements-dev.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Require Reviewed Acceptance
+        id: promotion
         run: |
           python -X utf8 -B -c "import json,sys;sys.path.insert(0,'scripts');from assemble_release import require_acceptance;d=json.load(open('delivery/acceptance.json'));require_acceptance(d,d['revision'],version=sys.argv[1])" $env:PCR_RELEASE_TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -X utf8 -B scripts/promote_release_candidate.py request --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --repository $env:GITHUB_REPOSITORY --output .runtime/release/PROMOTION_REQUEST.json --github-output $env:GITHUB_OUTPUT
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Public Regression
         run: |
@@ -33,12 +39,26 @@ jobs:
       - name: GUI Update Contract Checks
         run: |
           $evidence = [IO.Path]::GetFullPath((Join-Path (Get-Location) '.runtime/release/gui-checks'))
-          dotnet run --project gui/MFAAvalonia/PcrUpdate.Tests/PcrUpdate.Tests.csproj --configuration Release --runtime win-x64 -p:Platform=x64 -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -p:UsedAvaloniaProducts= -- $evidence
+          dotnet run --project gui/MFAAvalonia/PcrUpdate.Tests/PcrUpdate.Tests.csproj --configuration Release --runtime win-x64 -p:Platform=x64 -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -p:UsedAvaloniaProducts= -- $evidence | Tee-Object -FilePath .runtime/release/gui-checks.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Build Portable Candidate
+      - name: Fetch Accepted CI Metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $acceptance = Get-Content delivery/acceptance.json -Raw | ConvertFrom-Json
-          python -X utf8 -B scripts/build_release.py --output .runtime/release/build --revision $acceptance.revision --version $env:PCR_RELEASE_TAG --base-manifest delivery/baselines/r38-package-manifest.json
+          python -X utf8 -B scripts/promote_release_candidate.py fetch-metadata --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --repository $env:GITHUB_REPOSITORY --output-dir .runtime/release/metadata
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Download Accepted CI Artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ steps.promotion.outputs.artifact_id }}
+          run-id: ${{ steps.promotion.outputs.run_id }}
+          repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .runtime/release/accepted-ci/
+          merge-multiple: true
+      - name: Promote Accepted CI Artifact
+        run: |
+          python -X utf8 -B scripts/promote_release_candidate.py promote --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --repository $env:GITHUB_REPOSITORY --run-metadata .runtime/release/metadata/run.json --artifact-metadata .runtime/release/metadata/artifact.json --artifact-root .runtime/release/accepted-ci/build --player .runtime/release/build/player | Tee-Object -FilePath .runtime/release/promotion.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Bundled Runtime Checks
         run: |
@@ -64,6 +84,11 @@ jobs:
           include-hidden-files: true
           path: |
             .runtime/release/tests.xml
+            .runtime/release/gui-checks.log
+            .runtime/release/PROMOTION_REQUEST.json
+            .runtime/release/metadata/run.json
+            .runtime/release/metadata/artifact.json
+            .runtime/release/promotion.log
             .runtime/release/bundled-runtime.xml
             .runtime/release/bundled-runtime-temp/
           if-no-files-found: warn
