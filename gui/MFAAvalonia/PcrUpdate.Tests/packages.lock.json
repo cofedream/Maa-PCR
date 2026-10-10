@@ -137,8 +137,8 @@
       },
       "BouncyCastle.Cryptography": {
         "type": "Transitive",
-        "resolved": "2.6.1",
-        "contentHash": "vZsG2YILhthgRqO+ZVgRff4ZFKKTl0v7kqaVBLCtRvpREhfBP33pcWrdA3PRYgWuFL1RxiUFvjMUHTdBZlJcoA=="
+        "resolved": "2.6.2",
+        "contentHash": "7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w=="
       },
       "CalcBindingAva": {
         "type": "Transitive",
@@ -349,10 +349,10 @@
       },
       "MailKit": {
         "type": "Transitive",
-        "resolved": "4.14.1",
-        "contentHash": "Rawu+h3lSSjKra0AxR+IUB99VQ7jWI+MvxThekqLhf+ic7VQ7a69lmPFW+LXuRYHla4ADcn3x16Gsvju3LTq9w==",
+        "resolved": "4.16.0",
+        "contentHash": "trJ82DOpAmo8i1jO1vNE+dGn4mPRyeYfy4swRcAGgMJhPoI1Kohf4OFJJf0+YIj4iUxgxPn8W+ht7e7KiYzSjg==",
         "dependencies": {
-          "MimeKit": "4.14.0"
+          "MimeKit": "4.16.0"
         }
       },
       "Markdig": {
@@ -493,11 +493,11 @@
       },
       "MimeKit": {
         "type": "Transitive",
-        "resolved": "4.14.0",
-        "contentHash": "g0LtsMC8DCTkc030C3UgVqbltOJmV5cz4AX8ASowz2ZA+lxopXSYtC1XXYmenxy606aWFLwi5Xy4cC/zyYjbjQ==",
+        "resolved": "4.16.0",
+        "contentHash": "X0LFxeM4gPRIhODyY/HYS9b+zRZ7y//v59rFzgS6wLxcPuZThnMtNZHtrr0fjLyRRkg3gqJBtvW36XfUzZ7Djw==",
         "dependencies": {
-          "BouncyCastle.Cryptography": "2.6.1",
-          "System.Security.Cryptography.Pkcs": "8.0.1"
+          "BouncyCastle.Cryptography": "2.6.2",
+          "System.Security.Cryptography.Pkcs": "10.0.0"
         }
       },
       "NETCore.Encrypt": {
@@ -579,11 +579,8 @@
       },
       "SharpCompress": {
         "type": "Transitive",
-        "resolved": "0.42.1",
-        "contentHash": "1GpO8MSF0W6VugHJCJvWm73rpMd2SIjF8I5HzE9Y57D+IhdrIBtLF0qdWFPwIiPXNndvhsxHs9Dj5subTqivUA==",
-        "dependencies": {
-          "ZstdSharp.Port": "0.8.6"
-        }
+        "resolved": "0.48.0",
+        "contentHash": "6k0Sa9gf85Sz9Npy7jnn5UPerejrAa3FxU9Gq5T6PwFWHUhUIdF903TjPiJtrYjXFJsXbnccaWSNMHzEg27DwQ=="
       },
       "SharpDX": {
         "type": "Transitive",
@@ -725,8 +722,8 @@
       },
       "System.Security.Cryptography.Pkcs": {
         "type": "Transitive",
-        "resolved": "8.0.1",
-        "contentHash": "CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA=="
+        "resolved": "10.0.0",
+        "contentHash": "UPWqLSygJlFerRi9XNIuM0a1VC8gHUIufyP24xQ0sc+XimqUAEcjpOz9DhKpyDjH+5B/wO3RpC0KpkEeDj/ddg=="
       },
       "System.Security.Cryptography.ProtectedData": {
         "type": "Transitive",
@@ -753,11 +750,6 @@
         "type": "Transitive",
         "resolved": "8.0.14",
         "contentHash": "dNvG8hCE7LhCAcI7kCRDiOax0T8OJZVPEUrnMPQzJOTRAo8p1/AOWau2FKKvWRBOQXO/QQUX0gTZEJ1G2lAnfw=="
-      },
-      "ZstdSharp.Port": {
-        "type": "Transitive",
-        "resolved": "0.8.6",
-        "contentHash": "iP4jVLQoQmUjMU88g1WObiNr6YKZGvh4aOXn3yOJsHqZsflwRsxZPcIBvNXgjXO3vQKSLctXGLTpcBPLnWPS8A=="
       },
       "colordocument.avalonia": {
         "type": "Project",
@@ -850,7 +842,7 @@
           "Maa.AgentBinary": "[1.2.0, )",
           "Maa.Framework": "[5.10.0, )",
           "Maa.Framework.Runtimes": "[5.12.3, )",
-          "MailKit": "[4.14.1, )",
+          "MailKit": "[4.16.0, )",
           "Markdown.Avalonia": "[11.3.1, )",
           "Microsoft.CodeAnalysis.CSharp": "[5.0.0, )",
           "Microsoft.CodeAnalysis.Common": "[5.0.0, )",
@@ -866,7 +858,7 @@
           "Serilog": "[4.3.1-dev-02373, )",
           "Serilog.Sinks.Console": "[6.1.1, )",
           "Serilog.Sinks.File": "[7.0.0, )",
-          "SharpCompress": "[0.42.1, )",
+          "SharpCompress": "[0.48.0, )",
           "SharpDX": "[4.2.0, )",
           "SharpDX.Direct3D12": "[4.2.0, )",
           "SharpHook": "[7.1.1, )",
@@ -965,8 +957,8 @@
       },
       "System.Security.Cryptography.Pkcs": {
         "type": "Transitive",
-        "resolved": "8.0.1",
-        "contentHash": "CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA=="
+        "resolved": "10.0.0",
+        "contentHash": "UPWqLSygJlFerRi9XNIuM0a1VC8gHUIufyP24xQ0sc+XimqUAEcjpOz9DhKpyDjH+5B/wO3RpC0KpkEeDj/ddg=="
       }
     }
   }

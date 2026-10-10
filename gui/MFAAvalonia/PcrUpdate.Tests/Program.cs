@@ -124,6 +124,7 @@ try
 }
 finally { pending.SetValue(null, false); }
 Console.WriteLine($"PCR GUI update checks passed: {count}; game inputs=0");
+await DependencyChecks.RunAsync(args[0]);
 return 0;
 }
 catch (Exception error)

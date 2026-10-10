@@ -310,8 +310,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj",
-      "size": 5242,
-      "sha256": "6d1e0418a4621000aa1106ad0c14702507efb8d05a1046a2a0090589c4f308ec"
+      "size": 5318,
+      "sha256": "63cb142f5379fa8534a3f87bf7fb089c670c2290da92f7848a97f89c7f3ecf03"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia.Desktop/Program.cs",
@@ -325,8 +325,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia.Desktop/packages.lock.json",
-      "size": 42815,
-      "sha256": "b3d5c057d837e97733d837a69bfe4ae6dab2790abb99616455882e4b7774b5f2"
+      "size": 42561,
+      "sha256": "d590142acba89a3fd9d0e37a9be742ce5105b4737deff3db47529e3edd69d540"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/App.axaml",
@@ -1065,8 +1065,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Helper/UniversalExtractor.cs",
-      "size": 15591,
-      "sha256": "ede08acf146396825e02047fceaaf9322ffa4c3f45ca0c3acf2e6b5bd76ce316"
+      "size": 14624,
+      "sha256": "8b93f94d134bc0b311ea7b62927cccf31bd271bce44d9928d4825a5c89885404"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ValueType/AnnouncementType.cs",
@@ -1115,8 +1115,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Helper/VersionChecker.cs",
-      "size": 187598,
-      "sha256": "a48f4208f5c8db0a314c35a7dceab376bb1506ab23e337106c27cf64230f05e4"
+      "size": 187605,
+      "sha256": "4c643a8936b80ca16278cc9df4a37b1ffe38ae88ed5edfcc538d02a0eb542b20"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Helper/ViewsHelper.cs",
@@ -1126,7 +1126,7 @@
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/MFAAvalonia.csproj",
       "size": 9433,
-      "sha256": "5191a4f8430f32e8e324ae31d5d04d6182d8c06f2f087b769637334c40724cd7"
+      "sha256": "edb6f99ac759a14ed327b53cdc2e4bc978b04049bbc2aedab599d2bd6ca4c6b9"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/NuGet.Config",
@@ -1950,8 +1950,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/packages.lock.json",
-      "size": 41422,
-      "sha256": "96704a87e032b1d98d42dd59cdbb8acfd4c7ae6ed2ade581725fce835496c67a"
+      "size": 41136,
+      "sha256": "22f84b871729925f34e19693ca5d4aa6e608d2d9cef9904a16d77f58ce8f8373"
     },
     {
       "path": "gui/MFAAvalonia/Markdown.Avalonia.Html/Core/Parsers.MarkdigExtensions/FigureParser.cs",
@@ -2784,19 +2784,24 @@
       "sha256": "48e8dc74c4dc864c8750eab3fbbab89541f900f489c2d28fc268ec39d9b281f1"
     },
     {
+      "path": "gui/MFAAvalonia/PcrUpdate.Tests/DependencyChecks.cs",
+      "size": 4335,
+      "sha256": "cfd28dbf325e14643a1079d3893a558ff11e47403576b468a6c8f7ec182118ae"
+    },
+    {
       "path": "gui/MFAAvalonia/PcrUpdate.Tests/PcrUpdate.Tests.csproj",
       "size": 292,
       "sha256": "d7fa2295a21fcd127dc54198c5425be2b6847daec25ba18e1c0a65e50f79f5c8"
     },
     {
       "path": "gui/MFAAvalonia/PcrUpdate.Tests/Program.cs",
-      "size": 7597,
-      "sha256": "e95ff5177fd12afbb7b23940ef2d6f2613f3030c484a8c4999dee081e7cdfc8c"
+      "size": 7639,
+      "sha256": "4ba853ca03ef91ff8ec317ba0522dfb9e0bac86aa749df99b13285816ecba55f"
     },
     {
       "path": "gui/MFAAvalonia/PcrUpdate.Tests/packages.lock.json",
-      "size": 39747,
-      "sha256": "701cfebd5da1b7ad7209f6c160fa4ec4d9a57b36711a62088858efc277572de4"
+      "size": 39461,
+      "sha256": "415c4182ed111f4f65edb8d22df755349bdab2cfc9fd7098eff968eef9a28f8f"
     },
     {
       "path": "gui/MFAAvalonia/README.md",

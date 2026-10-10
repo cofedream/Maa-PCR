@@ -4726,8 +4726,8 @@
     },
     {
       "path": "build-source-manifest.json",
-      "size": 165226,
-      "sha256": "eb77ad92d195db9ea38bce18663732276d6c67dea93279ed993626594c12ce30"
+      "size": 165411,
+      "sha256": "fb9f381710e4fc6077501e56f89102660cd8b683b73d12f8be4fd40410dbde1e"
     },
     {
       "path": "CONTRIBUTING.md",
@@ -5462,7 +5462,7 @@
     {
       "path": "libs/BouncyCastle.Cryptography.dll",
       "size": 4924576,
-      "sha256": "e16a55b3d96ef717733ed680e43c7dc1df4b73fd7e1f1ee5f2c1bd850ea52517"
+      "sha256": "e5eeaf6d263c493619982fd3638e6135077311d08c961e1fe128f9107d29ebc6"
     },
     {
       "path": "libs/CalcBindingAva.dll",
@@ -6136,8 +6136,8 @@
     },
     {
       "path": "libs/MailKit.dll",
-      "size": 955392,
-      "sha256": "5cfca7d14ba20c21d8c3300e2a4a5788bbd3b93e3321c79b765cb31c4a8f571a"
+      "size": 988672,
+      "sha256": "826daa19d119273560d604d2457005dd75ba5eb1b48ea61e481726fbc02d4f1f"
     },
     {
       "path": "libs/Markdig.dll",
@@ -6162,7 +6162,7 @@
     {
       "path": "libs/Markdown.Avalonia.Math.dll",
       "size": 11776,
-      "sha256": "b3f82817c3e6da5992a80472b1dd87ce92b1c25b4d891feb024498536afaa6d0"
+      "sha256": "5310fadfa4823d240baf90c3f1a2a8e04079e25f6ebbc53cff9f0dd0bbbe5ea9"
     },
     {
       "path": "libs/Markdown.Avalonia.Svg.dll",
@@ -6181,8 +6181,8 @@
     },
     {
       "path": "libs/MFAAvalonia.Core.dll",
-      "size": 3333120,
-      "sha256": "5ea738a2d8d47e6df014ae6d170d5e55e590ebabafeed2926087d8189b0b832b"
+      "size": 3332096,
+      "sha256": "8b4a7d398c1451fb97aa917da999aa1691913beaad4d2d20174bdf024d52631d"
     },
     {
       "path": "libs/MicroCom.Runtime.dll",
@@ -6296,8 +6296,8 @@
     },
     {
       "path": "libs/MimeKit.dll",
-      "size": 1277952,
-      "sha256": "4c4648e8f3d17378f1177c6e8ec7d9c8fff2e2768dad80b6c156f7468a226eac"
+      "size": 1318400,
+      "sha256": "b9e15feef95061529e7c4d00f64b4994e920b6d8eebf4a1d9242266806c56613"
     },
     {
       "path": "libs/miniaudio.dll",
@@ -6356,8 +6356,8 @@
     },
     {
       "path": "libs/SharpCompress.dll",
-      "size": 1022976,
-      "sha256": "2bd639901df915706c5e48d5c3c0bd1fbfde6e0111a1c694e2bc480eb213ca6f"
+      "size": 2281984,
+      "sha256": "a36672a9c7a28abb8a6e8bc1412864a0f5dc9335513c5b06cf8f76a96d124bf9"
     },
     {
       "path": "libs/SharpDX.Direct3D12.dll",
@@ -6441,8 +6441,8 @@
     },
     {
       "path": "libs/System.Security.Cryptography.Pkcs.dll",
-      "size": 319784,
-      "sha256": "d8e4b733fbaec1fe0e808fd6391479f190b170df03e309c5f07dc85445447d22"
+      "size": 342328,
+      "sha256": "fc8d84a2c930c10f449b79b18cca70ea87ae51d3575e7cd0c523a323204ec764"
     },
     {
       "path": "libs/System.Security.Cryptography.ProtectedData.dll",
@@ -6461,18 +6461,13 @@
     },
     {
       "path": "libs/Tmds.DBus.Protocol.dll",
-      "size": 200704,
-      "sha256": "111fddda3d7f523e41d8fe55380fa60ce4fa09ef0984972e97030790d18aa7d6"
+      "size": 204800,
+      "sha256": "feb2ec8ded9c8c786eaaf91623bdb58f32a9b552497c02e6828b177140a3b118"
     },
     {
       "path": "libs/uiohook.dll",
       "size": 693248,
       "sha256": "454a259ea6d015fd5282d07e2053090fec2372ad5ff122e64f8609bd1cfb6bd7"
-    },
-    {
-      "path": "libs/ZstdSharp.dll",
-      "size": 396288,
-      "sha256": "213733a14b58ec1e0e19be2831fecf0299e8c6391b25413828b78e615106b669"
     },
     {
       "path": "LICENSE",
@@ -6881,13 +6876,13 @@
     },
     {
       "path": "MFAAvalonia.deps.json",
-      "size": 72169,
-      "sha256": "3b52794a77ad82b7148af4c67860532b556e948b6b8e7d634d30c82b8fe834f1"
+      "size": 71648,
+      "sha256": "ccac3150fabec0bfcda5215bcd22bbb6b76acd0cc069d4c385f76df61dd33a90"
     },
     {
       "path": "MFAAvalonia.dll",
       "size": 58368,
-      "sha256": "65dbaac2a387f5edab53e20ecbf9dff820270e2f59dc6dd8b207b306bcc69786"
+      "sha256": "9e837a0f01b26719a5884e7fcea04f48ead1a5eb18edf342a184424f45077bf1"
     },
     {
       "path": "MFAAvalonia.exe",

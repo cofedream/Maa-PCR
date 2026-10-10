@@ -62,7 +62,7 @@
         <PackageReference Include="Maa.AgentBinary" Version="1.2.0" />
         <PackageReference Include="Maa.Framework" Version="5.10.0" />
         <PackageReference Include="Maa.Framework.Runtimes" Version="5.12.3" />
-        <PackageReference Include="MailKit" Version="4.14.1" />
+        <PackageReference Include="MailKit" Version="4.16.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
@@ -82,7 +82,7 @@
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
         <PackageReference Include="Sentry" Version="6.8.0" />
-        <PackageReference Include="SharpCompress" Version="0.42.1" />
+        <PackageReference Include="SharpCompress" Version="0.48.0" />
         <PackageReference Include="SharpHook" Version="7.1.1" Condition="'$(TargetFramework)' == 'net10.0'" />
         <PackageReference Include="SkiaSharp" Version="3.119.1" />
         <PackageReference Include="SoundFlow" Version="1.4.0" />
