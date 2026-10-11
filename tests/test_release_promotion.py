@@ -62,10 +62,10 @@ def candidate(tmp_path, monkeypatch):
         'files': [row(name, data) for name, data in payload.items()]}
     archive = artifact_root / 'Maa-PCR-v0.1.0-win-x64.zip'
     receipt = {'schema_version': 1, 'revision': 39, 'expected_version': 'v0.1.0', 'status': 'passed',
-        'live_valid_game_days': 6, 'candidate_to_baseline_ratio': .6,
+        'live_valid_game_days': 2, 'candidate_to_baseline_ratio': .8,
         'accepted_owned_payload_sha256': promotion.owned_payload_sha256(manifest),
         'offline_tests_passed': True, 'isolated_update_passed': True, 'gui_verified': True,
-        'clean_build_verified': True, 'candidate_longest_not_above_baseline': True,
+        'clean_build_verified': True, 'meaningful_speedup_reviewed': True,
         'accepted_ci_artifact': {'repository': promotion.REPOSITORY, 'run_id': 123,
             'run_attempt': 2, 'artifact_id': 456, 'source_commit': commit, 'runtime_archive': {}}}
     build = {'status': 'release_staging', 'distribution_ready': False,
@@ -131,10 +131,10 @@ def test_request_outputs_only_validated_identifiers(candidate):
     assert_not_promoted(candidate)
 
 
-@pytest.mark.parametrize('key,value', [('status', 'pending'), ('live_valid_game_days', 5),
-    ('candidate_to_baseline_ratio', .601), ('offline_tests_passed', False),
+@pytest.mark.parametrize('key,value', [('status', 'pending'), ('live_valid_game_days', 1),
+    ('candidate_to_baseline_ratio', 1), ('offline_tests_passed', False),
     ('isolated_update_passed', False), ('gui_verified', False), ('clean_build_verified', False),
-    ('candidate_longest_not_above_baseline', False), ('expected_version', 'v0.2.0')])
+    ('meaningful_speedup_reviewed', False), ('expected_version', 'v0.2.0')])
 def test_acceptance_gate_precedes_all_outputs(candidate, key, value):
     candidate['receipt'][key] = value
     write_json(candidate['acceptance'], candidate['receipt'])

@@ -237,7 +237,9 @@
       "ObserveUnknown"
     ],
     "timeout": 1500,
-    "rate_limit": 250
+    "rate_limit": 250,
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScreenOCR": {
     "recognition": "OCR",
@@ -270,7 +272,9 @@
       "SelectedSlot6",
       "SelectedSlot7",
       "SelectionUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ObserveMain": {
     "recognition": "And",
@@ -317,7 +321,9 @@
     ],
     "count": 180,
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "SelectedSlot2": {
     "recognition": "ColorMatch",
@@ -340,7 +346,9 @@
     ],
     "count": 180,
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "SelectedSlot3": {
     "recognition": "ColorMatch",
@@ -363,7 +371,9 @@
     ],
     "count": 180,
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "SelectedSlot4": {
     "recognition": "ColorMatch",
@@ -386,7 +396,9 @@
     ],
     "count": 180,
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "SelectedSlot5": {
     "recognition": "ColorMatch",
@@ -409,7 +421,9 @@
     ],
     "count": 180,
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "SelectedSlot6": {
     "recognition": "ColorMatch",
@@ -432,7 +446,9 @@
     ],
     "count": 180,
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "SelectedSlot7": {
     "recognition": "ColorMatch",
@@ -455,15 +471,21 @@
     ],
     "count": 180,
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ObserveUnknown": {
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "SelectionUnknown": {
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "HomePaleCenter": {
     "recognition": "ColorMatch",

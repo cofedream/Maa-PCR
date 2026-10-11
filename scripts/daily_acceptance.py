@@ -1,4 +1,4 @@
-"""Read-only six-day R38/R39 acceptance audit."""
+"""Read-only reviewed R38/R39 performance and correctness audit."""
 import argparse
 import json
 import sys

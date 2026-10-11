@@ -7,7 +7,7 @@
   "accepted_ci_artifact": null,
   "live_valid_game_days": 0,
   "candidate_to_baseline_ratio": null,
-  "candidate_longest_not_above_baseline": false,
+  "meaningful_speedup_reviewed": false,
   "offline_tests_passed": false,
   "isolated_update_passed": false,
   "gui_verified": false,

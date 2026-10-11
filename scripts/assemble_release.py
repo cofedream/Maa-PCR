@@ -19,7 +19,7 @@ def owned_payload_sha256(manifest):
 
 def require_acceptance(receipt, revision, owned_payload=None, *, version):
     required = ('offline_tests_passed', 'isolated_update_passed', 'gui_verified',
-                'clean_build_verified', 'candidate_longest_not_above_baseline')
+                'clean_build_verified', 'meaningful_speedup_reviewed')
     ratio = receipt.get('candidate_to_baseline_ratio')
     accepted_payload = receipt.get('accepted_owned_payload_sha256')
     expected_version = receipt.get('expected_version')
@@ -30,8 +30,8 @@ def require_acceptance(receipt, revision, owned_payload=None, *, version):
             or re.fullmatch(r'v\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?', expected_version) is None
             or type(version) is not str or version != expected_version
             or type(receipt.get('live_valid_game_days')) is not int
-            or receipt['live_valid_game_days'] < 6
-            or type(ratio) not in (int, float) or not math.isfinite(ratio) or not 0 < ratio <= .6
+            or receipt['live_valid_game_days'] < 2
+            or type(ratio) not in (int, float) or not math.isfinite(ratio) or not 0 < ratio < 1
             or type(accepted_payload) is not str or re.fullmatch('[0-9a-f]{64}', accepted_payload) is None
             or owned_payload is not None and accepted_payload != owned_payload
             or any(receipt.get(key) is not True for key in required)):

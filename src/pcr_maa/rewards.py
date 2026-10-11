@@ -56,7 +56,11 @@ def claim_rewards(tasker, *, execute=False, only=None, source='live rewards', co
                         result_verified=False, claimable_before=None, claimable_after=None,
                         evidence={}, native_receipts=[])
             report['items'][kind] = item
-            require(item, 'RewardsHomeRead', 'ObserveHome')
+            if kind == 'gifts' and report['items'].get('missions', {}).get('home_verified') is True:
+                # No input since missions' home read; OpenStart still guards its current action frame.
+                item['start_home_reused_from'] = 'missions'
+            else:
+                require(item, 'RewardsHomeRead', 'ObserveHome')
             evidence(item, kind + '-start-home')
             require(item, prefix + 'OpenStart', prefix + 'Open')
             if kind == 'gifts' and execute:

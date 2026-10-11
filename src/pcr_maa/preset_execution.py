@@ -369,10 +369,16 @@ def execute_one(port, preset, context, journal, *, execute=False, preview=False,
                 if type(original) is not int or not 1 <= original <= (999 if normal else 10):
                     report['outcome'] = 'count_fit_original_unknown'
                     return report
-                # Even a failed dispatch may have changed the value.
-                fit['attempted'] = True
-                fit['adjustment'] = call('fit_count', preset['slot'], target)
-                fit['readback'] = call('read_count', preset['slot'])
+                if original == target:
+                    # No count edit to restore; fresh quote/confirmation still bind the actual value.
+                    fit['adjustment'] = dict(verified=True, observed=original, steps=[], no_change=True,
+                                             initial_evidence=getattr(port, '_count_receipt', None))
+                    fit['readback'] = original
+                else:
+                    # Even a failed dispatch may have changed the value.
+                    fit['attempted'] = True
+                    fit['adjustment'] = call('fit_count', preset['slot'], target)
+                    fit['readback'] = call('read_count', preset['slot'])
                 if not fresh():
                     report['outcome'] = 'need_new_observation'
                     return report

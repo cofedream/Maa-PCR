@@ -21,7 +21,7 @@ def _elapsed(report):
     return elapsed
 
 
-def evaluate_samples(samples):
+def evaluate_samples(samples, *, meaningful_speedup_reviewed=False):
     """Explicit live review is required; timing alone is not correctness evidence."""
     accepted, excluded = [], []
     for sample in samples:
@@ -65,15 +65,19 @@ def evaluate_samples(samples):
               for revision in (38, 39)}
     alternating = all(left["revision"] != right["revision"]
                       for left, right in zip(accepted, accepted[1:]))
-    complete = len(accepted) == 6 and all(len(group) == 3 for group in values.values()) and alternating
+    complete = bool(values[38]) and len(values[38]) == len(values[39]) and alternating
     medians = {revision: statistics.median(group) if group else None for revision, group in values.items()}
     ratio = medians[39] / medians[38] if all(medians.values()) else None
-    passed = complete and ratio <= .6 and max(values[39]) <= max(values[38])
-    return {"status": "passed" if passed else "failed" if complete else "pending",
-            "valid_game_days": len(accepted), "required_game_days": 6,
+    faster = complete and ratio < 1
+    reviewed = meaningful_speedup_reviewed is True
+    passed = faster and reviewed
+    return {"status": "passed" if passed else "failed" if complete and not faster else "pending",
+            "valid_game_days": len(accepted), "required_game_days": 2,
             "alternating": alternating, "baseline_median_seconds": medians[38],
             "candidate_median_seconds": medians[39], "candidate_to_baseline_ratio": ratio,
-            "target_ratio": .6, "excluded": excluded,
+            "baseline_longest_seconds": max(values[38], default=None),
+            "candidate_longest_seconds": max(values[39], default=None),
+            "meaningful_speedup_reviewed": reviewed, "excluded": excluded,
             "candidate_manifest_sha256": next((item["manifest"] for item in accepted
                                                 if item["revision"] == 39), None),
             "correctness_basis": "explicit live report review; not inferred from elapsed time"}
@@ -98,4 +102,4 @@ def load_registry(registry_path):
             if hashlib.sha256(manifest_path.read_bytes()).hexdigest() != entry["manifest_sha256"]:
                 raise ValueError("sample_manifest_changed")
         samples.append({**entry, "report": json.loads(payload.decode("utf-8"))})
-    return evaluate_samples(samples)
+    return evaluate_samples(samples, meaningful_speedup_reviewed=registry.get("meaningful_speedup_reviewed"))

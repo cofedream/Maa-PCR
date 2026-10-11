@@ -24,6 +24,7 @@ class SyntheticPresets(CustomController):
     def __init__(self):
         super().__init__()
         self.slot = 2
+        self.frames = []
         self.captures = []
         self.inputs = []
 
@@ -37,10 +38,13 @@ class SyntheticPresets(CustomController):
         return 0
 
     def screencap(self):
+        if self.frames:
+            self.slot = self.frames.pop(0)
         image = np.zeros((720, 1280, 3), dtype=np.uint8)
-        image[10:23, 10:26] = [255, 170, 0]
-        x, y, width, height = PRESETS[f'SelectedSlot{self.slot}']['roi']
-        image[y:y + height, x:x + width] = [255, 170, 0]
+        if self.slot is not None:
+            image[10:23, 10:26] = [255, 170, 0]
+            x, y, width, height = PRESETS[f'SelectedSlot{self.slot}']['roi']
+            image[y:y + height, x:x + width] = [255, 170, 0]
         self.captures.append(self.slot)
         return image
 
@@ -131,6 +135,16 @@ def test_standalone_successive_readback_uses_fresh_controller_frame(sdk):
         assert set(controller.captures[before:]) == {actual}
     assert rows[0]['ocr_receipt']['task_id'] != rows[1]['ocr_receipt']['task_id']
     (out / 'fresh-readbacks.json').write_text(json.dumps(rows, indent=2), encoding='utf-8')
+
+
+@pytest.mark.parametrize('frames, actual', [([2, 3, 3], 3), ([2, None, None], None)])
+def test_mid_read_transition_does_not_accept_stale_requested_slot(sdk, frames, actual):
+    tasker, _, controller, _ = sdk
+    controller.frames = list(frames)
+    result = NativePreset(tasker).verify_preset(2)
+    assert result['native_ok'] and result['selected_slot'] == actual
+    assert result['observation']['page'] == ('unknown' if actual is None else 'presets')
+    assert len(controller.captures) >= 2 and controller.inputs == []
 
 
 def test_official_tcp_borrowed_readbacks_are_native_and_fresh(sdk, monkeypatch):
