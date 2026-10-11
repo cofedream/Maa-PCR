@@ -46,9 +46,11 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
     if name == 'ci.yml':
         assert 'retention-days: 30' in upload
         archives = [line.strip() for line in upload.splitlines() if line.strip().endswith('.zip')]
-        assert len(archives) == 2 and set(archives) == {
+        assert len(archives) == 4 and set(archives) == {
             '.runtime/ci/build/Maa-PCR-*-win-x64.zip',
             '.runtime/ci/build/Maa-PCR-*-source.zip',
+            '.runtime/ci/build/Maa-PCR-R38-to-R39.patch.zip',
+            '.runtime/ci/build/Maa-PCR-R38-to-R39-bootstrap.zip',
         }
 
 
