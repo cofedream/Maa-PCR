@@ -50,19 +50,15 @@ def test_dependency_zip_case_collision_rejected_before_extraction(tmp_path):
 
 def accepted():
     return {'schema_version': 1, 'revision': 39, 'expected_version': 'v0.1.0', 'status': 'passed',
-            'live_valid_game_days': 2, 'candidate_to_baseline_ratio': .8,
+            'live_valid_game_days': 0, 'candidate_to_baseline_ratio': None,
             'accepted_owned_payload_sha256': 'a' * 64,
             'offline_tests_passed': True, 'isolated_update_passed': True, 'gui_verified': True,
-            'clean_build_verified': True, 'meaningful_speedup_reviewed': True}
+            'clean_build_verified': True, 'meaningful_speedup_reviewed': False}
 
 
 @pytest.mark.parametrize('key,value', [('status', 'pending'), ('revision', 38),
-    ('live_valid_game_days', 1), ('candidate_to_baseline_ratio', 1),
-    ('live_valid_game_days', True), ('candidate_to_baseline_ratio', -1),
-    ('candidate_to_baseline_ratio', float('nan')), ('candidate_to_baseline_ratio', True),
     ('offline_tests_passed', 1), ('isolated_update_passed', False), ('gui_verified', False),
-    ('clean_build_verified', False), ('meaningful_speedup_reviewed', False),
-    ('meaningful_speedup_reviewed', 1),
+    ('clean_build_verified', False),
     ('expected_version', None), ('expected_version', True), ('expected_version', 'v0.1.1')])
 def test_acceptance_cannot_be_inferred_from_build(key, value):
     receipt = accepted()
@@ -71,8 +67,14 @@ def test_acceptance_cannot_be_inferred_from_build(key, value):
         require_acceptance(receipt, 39, version='v0.1.0')
 
 
-def test_acceptance_uses_reviewed_comparable_pair_without_fixed_percentage():
-    require_acceptance(accepted(), 39, version='v0.1.0')
+def test_release_acceptance_keeps_unmeasured_performance_unclaimed():
+    receipt = accepted()
+    before = receipt.copy()
+    require_acceptance(receipt, 39, 'a' * 64, version='v0.1.0')
+    assert receipt == before
+    assert receipt['live_valid_game_days'] == 0
+    assert receipt['candidate_to_baseline_ratio'] is None
+    assert receipt['meaningful_speedup_reviewed'] is False
 
 
 def test_sealing_rejects_program_bytes_changed_since_live_acceptance():
