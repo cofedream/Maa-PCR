@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "purpose": "user_provided_application_logo",
+  "replacement_date": "2026-10-11",
+  "source": {
+    "origin": "Image supplied and selected by the project user",
+    "original_filename": "MAA pcr使用.png",
+    "sha256": "65a193e395c31052be0d5c282718ecac077cc9291e2d9f90f60575f45f00b1c9",
+    "size": 1238497,
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "mode": "RGB",
+    "background": "original opaque black",
+    "usage_authorization": "User requested this image as the Maa-PCR software icon and logo"
+  },
+  "conversion": {
+    "operation": "ICO format conversion and Lanczos resampling only",
+    "pillow_version": "12.3.0",
+    "redrawn": false,
+    "source_pixels_or_background_edited": false,
+    "sizes": [
+      [
+        16,
+        16
+      ],
+      [
+        24,
+        24
+      ],
+      [
+        32,
+        32
+      ],
+      [
+        48,
+        48
+      ],
+      [
+        64,
+        64
+      ],
+      [
+        128,
+        128
+      ],
+      [
+        256,
+        256
+      ]
+    ]
+  },
+  "files": [
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Assets/logo.ico",
+      "size": 136194,
+      "sha256": "f85561952d1b6641708054d2d301d95ae128b7cd315547d14ad8da8f7ef416b0",
+      "origin": "Converted from the user-provided image above",
+      "author": null,
+      "declared_license": null,
+      "license_file": null
+    }
+  ],
+  "scope": "This origin record does not declare the image to be an original geometric MIT asset"
+}

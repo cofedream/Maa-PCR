@@ -126,6 +126,7 @@ GUI_EXTRA_TEXT_FILES.update({
     'scripts/generate_gui_release_assets.py',
     'docs/GUI_ASSET_CHANGES.md',
     'docs/licenses/gui/OriginalAssets-PROVENANCE.json',
+    'docs/licenses/gui/UserProvidedLogo-PROVENANCE.json',
 })
 GUI_EXTRA_BINARY_FILES = set()
 GUI_REQUIRED_FILES = {

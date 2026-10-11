@@ -9,7 +9,9 @@ their original scope, not a new blanket licensing or distribution verdict.
 
 | Component | Version and retained material |
 | --- | --- |
-| Modified MFAAvalonia and local GUI projects | GUI component 2.16.6; player release v0.1.0 / R39 is separate. GPL-3.0 GUI source and original notices accompany matching source. Newly generated artwork retains its authorship/source manifest. |
+| Modified MFAAvalonia and local GUI projects | GUI component 2.16.6; player release v0.1.0 / R39 is separate. GPL-3.0 GUI source and original notices accompany matching source. |
+| Original GUI assets | The missing-image placeholder and synthetic chime retain the project MIT declaration; the original folder geometry is covered by its containing GUI's GPL-3.0 license. These three assets are recorded in `docs/licenses/gui/OriginalAssets-PROVENANCE.json`. |
+| User-provided replacement logo | The current `logo.ico` is converted from the user's supplied image; input and output hashes are recorded in `docs/licenses/gui/UserProvidedLogo-PROVENANCE.json`. Original authorship and license are unestablished; the supplied image and converted icon are not declared original project artwork or MIT-licensed. |
 | MaaFramework | Actual native/Python 5.13.0, fixed source commit `2bcfa85c66a2eac6ca3e5937f175495275ee0643`; LGPL original license and main/MaaUtils sources provided. |
 | C# Maa bindings | 5.10.0, source commit `27c69a5b8ff41b6002ead71f403a16f442a7168e`; original LGPL license and source provided. Declared historical NuGet runtime versions are distinct from the actual native 5.13.0 overlay. |
 | MaaAgentBinary | GUI 1.2.0 and Python 1.0.1 payloads map to `bd83c0fdd8c33040a7845f2bf6801e532842ee39`; original AGPL project text and pinned repository provided. Each nested component retains its own terms. |

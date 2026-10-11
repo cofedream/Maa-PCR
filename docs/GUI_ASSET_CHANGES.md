@@ -1,14 +1,23 @@
-# r24 GUI Asset Changes
+# GUI Asset Changes
 
 Copyright (c) 2026 pcr-agent-maa contributors.
 
-The new app icon, missing-image placeholder and notification chime are original,
+The missing-image placeholder and notification chime are original,
 code-generated assets released under the project MIT license (`LICENSE`).
 `scripts/generate_gui_release_assets.py` contains their complete source and uses
 only Python's standard library. It reads no old image, sound, font, trademark,
 game frame or other input asset. Authored on 2026-10-03 by pcr-agent-maa
 contributors with Codex-assisted original geometry and audio synthesis.
-`docs/licenses/gui/OriginalAssets-PROVENANCE.json` records exact byte hashes.
+`docs/licenses/gui/OriginalAssets-PROVENANCE.json` records exact byte hashes
+for these two assets and the original folder geometry described below.
+
+The R39 candidate's `gui/MFAAvalonia/MFAAvalonia/Assets/logo.ico` is converted
+from an image supplied by the user for this replacement. Its input and output
+hashes are recorded in `docs/licenses/gui/UserProvidedLogo-PROVENANCE.json`.
+The original author and license have not been established; neither the supplied
+image nor the converted icon is declared original project artwork or MIT-licensed.
+The original asset generator no longer produces `logo.ico`, so rerunning it
+preserves this replacement.
 
 The notification resource path and enabled/disabled setting are unchanged.
 The window/tray icon and Markdown fallback image retain their existing paths,

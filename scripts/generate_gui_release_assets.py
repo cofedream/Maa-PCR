@@ -16,51 +16,8 @@ AUTHOR = "pcr-agent-maa contributors (Codex-assisted original geometry and synth
 DATE = "2026-10-03"
 LICENSE = "MIT"
 GUI = "gui/MFAAvalonia"
-ICO = f"{GUI}/MFAAvalonia/Assets/logo.ico"
 BMP = f"{GUI}/Markdown.Avalonia.Tight/Assets/ImageNotFound.bmp"
 WAV = f"{GUI}/MFAAvalonia/Assets/Sound/SystemNotification.wav"
-
-
-def pixel(x, y, size):
-    """A square automation-grid mark: turquoise body, white 2x2 cell detail."""
-    u, v = (x + 0.5) / size, (y + 0.5) / size
-    if not (0.08 <= u <= 0.92 and 0.08 <= v <= 0.92):
-        return 0, 0, 0, 0
-    if ((0.23 <= u <= 0.44 or 0.56 <= u <= 0.77)
-            and (0.23 <= v <= 0.44 or 0.56 <= v <= 0.77)):
-        return 245, 250, 250, 255
-    return 24, 133, 122, 255
-
-
-def dib_icon(size):
-    pixels = bytearray()
-    for y in reversed(range(size)):
-        for x in range(size):
-            r, g, b, a = pixel(x, y, size)
-            pixels.extend((b, g, r, a))
-    stride = ((size + 31) // 32) * 4
-    mask = bytearray()
-    for y in reversed(range(size)):
-        line = bytearray(stride)
-        for x in range(size):
-            if pixel(x, y, size)[3] == 0:
-                line[x // 8] |= 1 << (7 - x % 8)
-        mask.extend(line)
-    header = struct.pack('<IiiHHIIiiII', 40, size, size * 2, 1, 32,
-                         0, len(pixels) + len(mask), 0, 0, 0, 0)
-    return header + pixels + mask
-
-
-def make_icon():
-    sizes = (32, 64)
-    images = [dib_icon(size) for size in sizes]
-    offset = 6 + len(sizes) * 16
-    entries = bytearray()
-    for size, payload in zip(sizes, images):
-        entries.extend(struct.pack('<BBBBHHII', size, size, 0, 0, 1, 32,
-                                   len(payload), offset))
-        offset += len(payload)
-    return struct.pack('<HHH', 0, 1, len(sizes)) + entries + b''.join(images)
 
 
 def make_placeholder():
@@ -104,14 +61,12 @@ def make_chime(path):
 
 def generate(root):
     root = Path(root).resolve()
-    for name, payload in ((ICO, make_icon()), (BMP, make_placeholder())):
-        path = root / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(payload)
+    path = root / BMP
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(make_placeholder())
     make_chime(root / WAV)
     rows = []
     for name, description in (
-            (ICO, 'Original square-grid geometric app icon; 32 and 64 pixel ICO/DIB'),
             (BMP, 'Original geometric missing-image placeholder; 32x24, 24-bit BMP'),
             (WAV, 'Original 660/880 Hz synthesized chime; mono PCM16, 22050 Hz')):
         data = (root / name).read_bytes()
