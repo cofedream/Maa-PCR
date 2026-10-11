@@ -26,28 +26,28 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <Button Command="{Binding CheckPcrUpdateCommand}" IsEnabled="{Binding PcrCanCheck}"
                         Content="{fluent:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
-                        Width="40" Height="40" ToolTip.Tip="检查 Maa-PCR 更新" />
+                        Width="40" Height="40" Padding="0" ToolTip.Tip="检查 Maa-PCR 更新" />
                 <Button Command="{Binding InstallPcrUpdateCommand}" IsEnabled="{Binding PcrCanInstallOnline}"
                         Content="{fluent:FluentIcon Icon=ArrowDownload, IconSize=Size16}"
-                        Width="40" Height="40" ToolTip.Tip="下载并安装稳定版" />
+                        Width="40" Height="40" Padding="0" ToolTip.Tip="下载并安装稳定版" />
             </StackPanel>
             <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding PcrUpdateStatus}" TextWrapping="Wrap" />
             <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" IsVisible="{Binding PcrUpdateDownloading}">
                 <ProgressBar Value="{Binding PcrUpdateProgress}" Maximum="100" Height="10" VerticalAlignment="Center" />
                 <Button Grid.Column="1" Command="{Binding CancelPcrDownloadCommand}" Margin="8,0,0,0"
                         Content="{fluent:FluentIcon Icon=Dismiss, IconSize=Size16}"
-                        Width="40" Height="40" ToolTip.Tip="取消下载" />
+                        Width="40" Height="40" Padding="0" ToolTip.Tip="取消下载" />
             </Grid>
         </Grid>
         <DockPanel>
             <Button DockPanel.Dock="Right" Command="{Binding UpdateResourceFromLocalPackageCommand}"
-                    IsEnabled="{Binding PcrCanInstall}" Width="40" Height="40"
+                    IsEnabled="{Binding PcrCanInstall}" Width="40" Height="40" Padding="0"
                     Content="{fluent:FluentIcon Icon=FolderArrowUp, IconSize=Size16}" ToolTip.Tip="导入 Maa-PCR 更新 ZIP" />
             <TextBlock Text="离线更新包" VerticalAlignment="Center" />
         </DockPanel>
         <DockPanel IsVisible="{Binding PcrRecoveryRequired}">
             <Button DockPanel.Dock="Right" Command="{Binding RecoverPcrUpdateCommand}"
-                    IsEnabled="{Binding PcrCanInstall}" Width="40" Height="40"
+                    IsEnabled="{Binding PcrCanInstall}" Width="40" Height="40" Padding="0"
                     Content="{fluent:FluentIcon Icon=ArrowUndo, IconSize=Size16}" ToolTip.Tip="恢复上次中断的更新" />
             <TextBlock Text="恢复中断更新" VerticalAlignment="Center" />
         </DockPanel>

@@ -1815,8 +1815,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/VersionUpdateSettingsUserControl.axaml",
-      "size": 4601,
-      "sha256": "963da8d509db1c6e87ce88250db7f9a593da41ff34bf39fd898fbf7729358798"
+      "size": 4661,
+      "sha256": "a83441c442b723be793031fc7c7253f5729ca299f8b5b306edfde8a24dc7fd8c"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Views/UserControls/Settings/VersionUpdateSettingsUserControl.axaml.cs",
