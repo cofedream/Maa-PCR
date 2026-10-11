@@ -134,15 +134,20 @@ def test_recovery_bootstrap_uses_coherent_verified_old_runtime(online_case):
     assert not list(Path(worker['workspace']).rglob('unknown.json'))
 
 
-def test_recovery_worker_restarts_only_gui_after_old_manifest_verifies(online_case):
+@pytest.mark.parametrize('old_revision', [38, 39])
+def test_recovery_worker_restarts_only_gui_after_old_manifest_verifies(online_case, old_revision):
     case = online_case
+    old_manifest = json.loads(case['old_bytes'])
+    old_manifest['update']['revision'] = old_revision
+    case['old_bytes'] = encode(old_manifest)
+    (case['player'] / maintenance.MANIFEST).write_bytes(case['old_bytes'])
     interrupted(case['player'], case['old'], case['new'], case['old_bytes'], case['target_bytes'], complete=True)
     launches = []
     result = updater.run_worker(case['player'], recover=True, process_probe=lambda _: [],
         popen=lambda args, **kwargs: launches.append(args) or SimpleNamespace(pid=123))
-    assert result['status'] == 'rolled_back' and result['revision'] == 39
+    assert result['status'] == 'rolled_back' and result['revision'] == old_revision
     assert result['gui_started'] is True and result['game_tasks_started'] is False
-    assert launches == [[str(case['player'] / 'MFAAvalonia.exe'), '--pcr-after-update']]
+    assert launches == [[str(case['player'] / 'MFAAvalonia.exe')]]
     assert (case['player'] / maintenance.MANIFEST).read_bytes() == case['old_bytes']
 
 

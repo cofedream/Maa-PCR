@@ -470,7 +470,7 @@ def _run_worker(player, archive=None, *, recover=False, parent_pid=None, archive
         validate_archive(player, archive)
         result = maintenance.apply_update(player, archive, process_probe=probe)
     _require(not probe(player), 'player_reopened_before_restart')
-    (popen or subprocess.Popen)([str(player / 'MFAAvalonia.exe'), '--pcr-after-update'],
+    (popen or subprocess.Popen)([str(player / 'MFAAvalonia.exe')],
         cwd=str(player), stdin=subprocess.DEVNULL, close_fds=True,
         creationflags=0x08000000 if os.name == 'nt' else 0)
     return {**result, 'gui_started': True, 'game_tasks_started': False}

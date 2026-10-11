@@ -56,6 +56,8 @@ jobs:
             .runtime/ci/build/*.log
             .runtime/ci/build/Maa-PCR-*-win-x64.zip
             .runtime/ci/build/Maa-PCR-*-source.zip
+            .runtime/ci/build/Maa-PCR-R38-to-R39.patch.zip
+            .runtime/ci/build/Maa-PCR-R38-to-R39-bootstrap.zip
           if-no-files-found: warn
   source-scan:
     runs-on: ubuntu-latest

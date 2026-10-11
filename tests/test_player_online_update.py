@@ -436,7 +436,7 @@ def test_worker_updates_runtime_then_restarts_only_gui(online_case):
     for name, data in case['private'].items():
         assert (case['player'] / name).read_bytes() == data
     assert len(calls) == 1
-    assert list(map(str, calls[0][0])) == [str(case['player'] / 'MFAAvalonia.exe'), '--pcr-after-update']
+    assert list(map(str, calls[0][0])) == [str(case['player'] / 'MFAAvalonia.exe')]
     assert result['game_tasks_started'] is False
 
 
