@@ -14,6 +14,16 @@ PROBES = {
 EXIT_CHECK = 'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'
 
 
+def test_token_check_is_manual_read_only_and_never_publishes():
+    text = (ROOT / '.github/workflows/release-token-check.yml').read_text(encoding='utf-8')
+    assert '\non: workflow_dispatch\n' in text
+    assert '\n  contents: read\n  actions: read\n' in text
+    assert 'GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}' in text
+    assert 'p.fetch_metadata(' in text and "str(exc) != 'accepted_source_changed'" in text
+    assert 'tests/test_release_promotion.py tests/test_runtime_workflows.py' in text
+    assert 'write' not in text and 'gh release' not in text and 'build_release.py' not in text
+
+
 @pytest.mark.parametrize('name,folder,evidence,candidate_step', [
     ('ci.yml', 'ci', 'Publish Build Evidence', 'Build Portable Candidate'),
     ('release.yml', 'release', 'Publish Runtime Test Evidence', 'Promote Accepted CI Artifact'),

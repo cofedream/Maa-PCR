@@ -118,7 +118,7 @@ def fetch_metadata(acceptance, tag, repository, output_dir):
     output_dir = Path(output_dir)
     maintenance._require(not output_dir.exists() and not output_dir.is_symlink(), 'metadata_output_exists')
     token = os.environ.get('GH_TOKEN', '')
-    maintenance._require(re.fullmatch('[A-Za-z0-9_]{1,4096}', token) is not None,
+    maintenance._require(len(token) <= 4096 and re.fullmatch(r'[A-Za-z0-9._~+/-]+=*', token) is not None,
                          'github_token_missing_or_invalid')
     base = 'https://api.github.com/repos/' + binding['repository'] + '/actions/'
     urls = (base + 'runs/' + str(binding['run_id']) + '/attempts/' + str(binding['run_attempt']),

@@ -1,0 +1,58 @@
+name: Release Token Compatibility
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.16'
+      - name: Install Locked Test Dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Release Metadata Regression
+        run: |
+          python -X utf8 -B -m pytest tests/test_release_promotion.py tests/test_runtime_workflows.py -q --basetemp .runtime/token-tests --junitxml .runtime/token-tests.xml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Read Accepted Metadata With Workflow Token
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          @'
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          import promote_release_candidate as p
+          acceptance = Path('delivery/acceptance.json')
+          tag = json.loads(acceptance.read_text(encoding='utf-8'))['expected_version']
+          output = Path('.runtime/token-metadata')
+          try:
+              result = p.fetch_metadata(acceptance, tag, p.REPOSITORY, output)
+          except ValueError as exc:
+              # Maintenance differs from the released source; keep the promotion gate closed.
+              if str(exc) != 'accepted_source_changed':
+                  raise
+              assert not output.exists()
+              print('Workflow token fetched exact metadata; changed-source promotion refused.')
+          else:
+              assert result['status'] == 'accepted_ci_metadata_verified'
+              print('Workflow token fetched and verified exact metadata.')
+          '@ | python -X utf8 -B -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Retain Targeted Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-token-tests
+          include-hidden-files: true
+          path: .runtime/token-tests.xml

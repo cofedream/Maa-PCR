@@ -479,14 +479,14 @@ class MetadataResponse:
         pass
 
 
-def stub_metadata(candidate, monkeypatch, transform=None):
+def stub_metadata(candidate, monkeypatch, transform=None, token='synthetic_token_not_credentials'):
     calls = []
-    monkeypatch.setenv('GH_TOKEN', 'synthetic_token_not_credentials')
+    monkeypatch.setenv('GH_TOKEN', token)
 
     class Opener:
         def open(self, request, timeout):
             assert timeout == 30
-            assert request.get_header('Authorization') == 'Bearer synthetic_token_not_credentials'
+            assert request.get_header('Authorization') == 'Bearer ' + token
             assert request.get_header('X-github-api-version') == '2022-11-28'
             index = len(calls)
             calls.append(request.full_url)
@@ -504,8 +504,10 @@ def stub_metadata(candidate, monkeypatch, transform=None):
     return calls
 
 
-def test_fetch_metadata_uses_only_fixed_attempt_and_artifact_endpoints(candidate, monkeypatch):
-    calls = stub_metadata(candidate, monkeypatch)
+@pytest.mark.parametrize('token', ['synthetic_token_not_credentials',
+    'ghs_123_synthetic.header-payload.signature', 'synthetic-._~+/=='])
+def test_fetch_metadata_uses_only_fixed_attempt_and_artifact_endpoints(candidate, monkeypatch, token):
+    calls = stub_metadata(candidate, monkeypatch, token=token)
     output = candidate['root'] / '.runtime/metadata'
     result = promotion.fetch_metadata(candidate['acceptance'], 'v0.1.0', promotion.REPOSITORY, output)
     assert calls == ['https://api.github.com/repos/shiwandehongbai/Maa-PCR/actions/runs/123/attempts/2',
@@ -513,7 +515,7 @@ def test_fetch_metadata_uses_only_fixed_attempt_and_artifact_endpoints(candidate
     assert result['run_attempt'] == 2
     assert json.loads((output / 'run.json').read_bytes()) == candidate['run']
     assert json.loads((output / 'artifact.json').read_bytes()) == candidate['artifact']
-    assert all(b'synthetic_token_not_credentials' not in path.read_bytes() for path in output.iterdir())
+    assert all(token.encode() not in path.read_bytes() for path in output.iterdir())
 
 
 @pytest.mark.parametrize('index', [0, 1])
@@ -552,9 +554,12 @@ def test_pending_metadata_does_not_read_token_or_open_network(candidate, monkeyp
     assert not output.exists()
 
 
-@pytest.mark.parametrize('token', ['', 'not\na\nheader'])
+@pytest.mark.parametrize('token', ['', 'not\na\nheader', 'not\ra\rheader', 'has space',
+    'has\ttab', '中文', '"quoted"', 'embedded=padding', '=' * 2, 'a' * 4097])
 def test_metadata_token_absent_or_invalid_is_never_echoed(candidate, monkeypatch, capsys, token):
     monkeypatch.setenv('GH_TOKEN', token)
+    monkeypatch.setattr(promotion.urllib.request, 'build_opener',
+                        lambda *args: pytest.fail('invalid token attempted network'))
     output = candidate['root'] / '.runtime/metadata'
     assert promotion.main(['fetch-metadata', '--acceptance', str(candidate['acceptance']),
         '--tag', 'v0.1.0', '--repository', promotion.REPOSITORY, '--output-dir', str(output)]) == 1
