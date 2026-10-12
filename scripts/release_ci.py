@@ -36,10 +36,10 @@ def main():
         baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
         if baseline_path is None or digest(baseline_path) != R39_MANIFEST_SHA256:
             raise ValueError('R41_requires_exact_R39_patch_base')
-    if revision == 43:
+    if revision == 45:
         baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
         if baseline_path is None or digest(baseline_path) != R41_MANIFEST_SHA256:
-            raise ValueError('R43_requires_exact_R41_patch_base')
+            raise ValueError('R45_requires_exact_R41_patch_base')
     args.output.mkdir(parents=True, exist_ok=False)
     prepared = args.output / 'prepared-source'
     prepare(ROOT, prepared, revision=revision, player_manifest=manifest_path)

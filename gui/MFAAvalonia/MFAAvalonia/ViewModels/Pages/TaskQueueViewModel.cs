@@ -1424,6 +1424,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public bool IsDailyProfile => IsPcrMode && !IsLabyrinthProfile;
     private PcrLabyrinthSettings? _labyrinthSettings;
     public PcrLabyrinthSettings LabyrinthSettings => _labyrinthSettings ??= new(this);
+    internal void HideLabyrinthCredentials() => _labyrinthSettings?.HideCredentials();
 
     // Selection in the editor is independent of the checked execution subsequence.
     [ObservableProperty]

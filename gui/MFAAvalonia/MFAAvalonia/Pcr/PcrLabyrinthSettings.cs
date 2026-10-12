@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Configuration;
@@ -21,8 +23,10 @@ public partial class PcrLabyrinthGoal(int id, string name) : ObservableObject {
 }
 public partial class PcrLabyrinthSettings : ObservableObject {
     public const string Key = "PcrLabyrinthSettingsV1";
+    public const string CredentialsKey = "PcrLabyrinthCredentialsV1";
     private readonly TaskQueueViewModel vm;
     private bool ready;
+    private bool credentialsDirty;
     private string? saved;
     private int? loadedMaxSeconds;
     private string? loadedMaxMinutes;
@@ -72,6 +76,12 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string expectedPlayerId = "";
     [ObservableProperty] private string username = "";
     [ObservableProperty] private string password = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CredentialMask), nameof(CredentialsVisibilityText))]
+    private bool showCredentials;
+    public char CredentialMask => ShowCredentials ? '\0' : '*';
+    public string CredentialsVisibilityText => ShowCredentials ? "隐藏" : "查看";
+    [ObservableProperty] private string credentialsStatus = "玩家 ID 与账号凭据自动加密保存到本机当前 Windows 用户。";
     [ObservableProperty] private string status = "设置自动保存；从尚未推进的新开局开始。";
     [ObservableProperty] private string progress = "尚未开始";
     public PcrLabyrinthSettings(TaskQueueViewModel owner) {
@@ -122,16 +132,55 @@ public partial class PcrLabyrinthSettings : ObservableObject {
                 if (d["route"]?["area3_bosses"] is JArray b3) Area3BossIds=string.Join(",",b3.Values<int>());
                 if (d["route"]?["area5_bosses"] is JArray b5) Area5BossIds=string.Join(",",b5.Values<int>());
                 foreach (var g in Goals) { var row=(d["draft_goals"] ?? d["goals"])?.FirstOrDefault(x=>(int?)x["guild_id"]==g.GuildId); g.Enabled=(bool?)row?["enabled"] ?? row!=null; g.Clears=row?["clears"]?.ToString() ?? "1"; g.TargetMode=(string?)row?["mode"]=="attempts" ? g.TargetModes[1]:g.TargetModes[0]; }
-                Status="已载入黎明界设置；玩家 ID 与账号凭据仅用于当前会话。";
+                Status="已载入黎明界设置。";
             } catch { saved=null; Status="保存的黎明界设置无法读取，请核对后重新保存。原文件已保留。"; }
         }
+        LoadCredentials();
         foreach (var g in Goals) g.PropertyChanged+=(_,_)=>Save();
         ready=true;
     }
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
-        if (ready) vm.NotifyPcrSelectionChanged();
-        if (ready && e.PropertyName is not (nameof(Status) or nameof(Progress) or nameof(ExpectedPlayerId) or nameof(Username) or nameof(Password))) Save();
+        if (!ready || e.PropertyName is nameof(ShowCredentials) or nameof(CredentialMask) or nameof(CredentialsVisibilityText) or nameof(CredentialsStatus)) return;
+        vm.NotifyPcrSelectionChanged();
+        if (e.PropertyName is nameof(ExpectedPlayerId) or nameof(Username) or nameof(Password)) {
+            credentialsDirty=true;
+            if (vm.CanEditPcrTarget) SaveCredentials();
+        }
+        else if (e.PropertyName is not (nameof(Status) or nameof(Progress))) Save();
+    }
+    [RelayCommand] public void ToggleCredentials() => ShowCredentials=!ShowCredentials;
+    public void HideCredentials() => ShowCredentials=false;
+    private void LoadCredentials() {
+        var encrypted=vm.Processor.InstanceConfiguration.GetValue(CredentialsKey, "");
+        if (string.IsNullOrEmpty(encrypted)) return;
+        try {
+            if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+            var bytes=ProtectedData.Unprotect(Convert.FromBase64String(encrypted),null,DataProtectionScope.CurrentUser);
+            try {
+                var data=JObject.Parse(Encoding.UTF8.GetString(bytes));
+                if ((int?)data["version"]!=1 || new[]{"expected_player_id","username","password"}.Any(key=>data[key]?.Type!=JTokenType.String))
+                    throw new InvalidOperationException();
+                ExpectedPlayerId=(string)data["expected_player_id"]!;
+                Username=(string)data["username"]!;
+                Password=(string)data["password"]!;
+                CredentialsStatus="已载入本机加密保存的账号凭据；点击查看可显示。";
+            } finally { CryptographicOperations.ZeroMemory(bytes); }
+        } catch { CredentialsStatus="账号凭据无法解密，原有保存内容已保留；请在原 Windows 用户下打开，或重新填写。"; }
+    }
+    private void SaveCredentials() {
+        if (!credentialsDirty) return;
+        try {
+            if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+            var bytes=Encoding.UTF8.GetBytes(new JObject { ["version"]=1,["expected_player_id"]=ExpectedPlayerId,
+                ["username"]=Username,["password"]=Password }.ToString(Formatting.None));
+            string encrypted;
+            try { encrypted=Convert.ToBase64String(ProtectedData.Protect(bytes,null,DataProtectionScope.CurrentUser)); }
+            finally { CryptographicOperations.ZeroMemory(bytes); }
+            vm.Processor.InstanceConfiguration.SetValueAndPersist(CredentialsKey,encrypted);
+            credentialsDirty=false;
+            CredentialsStatus="账号凭据已加密保存；重开软件自动载入。";
+        } catch { CredentialsStatus="账号凭据保存失败，原有保存内容已保留；请重试。输入内容仍可用于本次运行。"; }
     }
     private static int Number(string s,int min,int max,string label) {
         if (!int.TryParse(s,NumberStyles.None,CultureInfo.InvariantCulture,out var n) || n<min || n>max) throw new InvalidOperationException($"{label}请输入 {min}–{max} 的整数。");
@@ -219,14 +268,15 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [RelayCommand] public void Save() {
         if (!ready || !vm.CanEditPcrTarget) return;
         vm.NotifyPcrSelectionChanged();
+        SaveCredentials();
         try {
             var data=Snapshot();
             data["draft_goals"]=new JArray(Goals.Select(g=>new JObject { ["guild_id"]=g.GuildId,["enabled"]=g.Enabled,["clears"]=g.Clears,["mode"]=g.TargetMode==g.TargetModes[0] ? "clears":"attempts" }));
             var value=data.ToString(Formatting.None);
             if (value==saved) return;
-            vm.Processor.InstanceConfiguration.SetValue(Key,value);
+            vm.Processor.InstanceConfiguration.SetValueAndPersist(Key,value);
             if (InstanceConfiguration.ReadValueFromFile(vm.Processor.InstanceId,Key)!=value) throw new InvalidOperationException("设置未写入磁盘，请重新保存。");
-            saved=value; Status="黎明界设置已保存。玩家 ID 与账号密码不会保存。";
+            saved=value; Status="黎明界设置已保存。";
         } catch (Exception ex) { Status=ex.Message; }
     }
 }

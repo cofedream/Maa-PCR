@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Packaging.Targets": {
+        "type": "Direct",
+        "requested": "[0.1.232, )",
+        "resolved": "0.1.232",
+        "contentHash": "4FqQN8mn4BzmiGIGYuPQWWMGOkozZoXz5bfbR1yabn3Q7iThb5PLSRynIBliJ/9vVxnRkv9ph43uh5myisev/g=="
+      }
+    }
+  }
+}

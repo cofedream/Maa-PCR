@@ -1,5 +1,4 @@
 #type: ignore
-from re import T
 from typing import Generic, TypeVar, Optional
 from pydantic import BaseModel
 from pydantic.generics import GenericModel

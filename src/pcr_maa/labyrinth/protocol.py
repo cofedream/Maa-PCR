@@ -18,6 +18,9 @@ from .routes import Node
 class ProtocolFailure(RuntimeError):
     pass
 
+SDK_LOGIN_TIMEOUT_SECONDS = 40
+AUTH_REQUEST_TIMEOUT_SECONDS = 20
+
 class Endpoint(Enum):
     TOP='labyrinth/top'
     ENTER='labyrinth/enter'
@@ -94,7 +97,9 @@ class LabyrinthClient:
 
     async def _auth_request(self,request,expected_viewer_id):
         self._check_open()
-        result=await self.auth.request(request)
+        try:result=await asyncio.wait_for(self.auth.request(request),AUTH_REQUEST_TIMEOUT_SECONDS)
+        except TimeoutError:
+            self.close();raise ProtocolFailure('protocol_login_timeout') from None
         # The read-only primitive can update headers while a close is pending.
         self._check_open()
         viewer=self.auth.viewer_id
@@ -137,14 +142,14 @@ class LabyrinthClient:
             self._phase='authenticating'
             self.auth.viewer_id=0
             try:
-                response=await login1(self.auth.username,self.auth.password)
+                response=await asyncio.wait_for(login1(self.auth.username,self.auth.password),SDK_LOGIN_TIMEOUT_SECONDS)
                 self._check_open()
                 if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
                 if response.get('code')==200000:
                     response.clear()
                     proof=await self._verify_captcha('sdk')
                     self._check_open()
-                    response=await login2(self.auth.username,self.auth.password,proof.challenge,proof.gt_user_id,proof.validate)
+                    response=await asyncio.wait_for(login2(self.auth.username,self.auth.password,proof.challenge,proof.gt_user_id,proof.validate),SDK_LOGIN_TIMEOUT_SECONDS)
                     self._check_open()
                     proof=None
                     if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
@@ -181,6 +186,8 @@ class LabyrinthClient:
                 self.close();raise
             except asyncio.CancelledError:
                 self.close();raise
+            except TimeoutError:
+                self.close();raise ProtocolFailure('sdk_login_timeout') from None
             except Exception:
                 self.close();raise ProtocolFailure('login_failed') from None
             finally:

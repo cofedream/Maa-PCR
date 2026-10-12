@@ -27,6 +27,12 @@ internal static class PcrLabyrinthOwner
     }
     private static Run? current;
     internal static bool IsActive => Volatile.Read(ref current) != null;
+    internal static TimeSpan? StartupWait(string? stage) => stage switch {
+        "validating" or "dependencies"=>TimeSpan.FromSeconds(30),
+        "resources"=>TimeSpan.FromSeconds(120), "connecting"=>TimeSpan.FromSeconds(45),
+        "authenticating"=>TimeSpan.FromSeconds(200),
+        "ready" or "opening" or "handoff" or "playing" or "cleared" or "moving" or "team" or "battle" or "shop" or "reward"
+            =>Timeout.InfiniteTimeSpan, _=>null };
     internal static void Stop(TaskQueueViewModel vm) {
         lock (PcrProfileRunGate.StartGate) {
             if (current?.ViewModel != vm) return;
@@ -54,6 +60,7 @@ internal static class PcrLabyrinthOwner
             try {
                 if (!vm.IsLabyrinthProfile) throw new InvalidOperationException("黎明界配置入口无效。");
                 var settings=vm.LabyrinthSettings;
+                settings.HideCredentials();
                 settings.Save();
                 var snapshot=settings.Snapshot();
                 if (!long.TryParse(settings.ExpectedPlayerId,NumberStyles.None,CultureInfo.InvariantCulture,out var accountId) || accountId<=0)
@@ -63,7 +70,6 @@ internal static class PcrLabyrinthOwner
                 request=new JObject { ["version"]=1,["settings"]=snapshot,["account_id"]=accountId,
                     ["connection"]=new JObject { ["adb_path"]=path,["serial"]=serial },
                     ["credentials"]=new JObject { ["username"]=settings.Username,["password"]=settings.Password } };
-                settings.Username=""; settings.Password="";
                 current=run=new Run(vm);
                 vm.IsRunning=true;
                 settings.Progress="正在校验黎明界配置与运行资源…";
@@ -76,19 +82,20 @@ internal static class PcrLabyrinthOwner
         }
         var released=false;
         var cancelled=false;
+        using var timeout=new CancellationTokenSource(TimeSpan.FromHours(24));
+        using var startup=new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var cancel=CancellationTokenSource.CreateLinkedTokenSource(run.Cancel.Token,timeout.Token,startup.Token);
         try {
             var root=PcrAlphaOwner.Repository;
             PcrRuntimePaths.RequireUpdateComplete(AppContext.BaseDirectory,root);
             var script=Path.Combine(root,"scripts","start-labyrinth-owned-agent.py");
             if (!File.Exists(script)) throw new InvalidOperationException("黎明界执行组件缺失，请重新解压完整候选包。");
-            run.Cancel.Token.ThrowIfCancellationRequested();
+            cancel.Token.ThrowIfCancellationRequested();
             run.Child=new PcrWindowsChild();
             run.Child.Start(PcrRuntimePaths.ResolvePython(root),root,"-X","utf8","-B","-u",script);
-            await run.Child.Send(request.ToString(Formatting.None));
+            await run.Child.Send(request.ToString(Formatting.None)).WaitAsync(cancel.Token);
             request.Remove("credentials");
             bool receipt=false;
-            using var timeout=new CancellationTokenSource(TimeSpan.FromHours(24));
-            using var cancel=CancellationTokenSource.CreateLinkedTokenSource(run.Cancel.Token,timeout.Token);
             await foreach (var line in run.Child.Lines.Reader.ReadAllAsync(cancel.Token)) {
                 if (line.Error) continue; // never display SDK exception text or tokens
                 JObject value;
@@ -106,13 +113,20 @@ internal static class PcrLabyrinthOwner
                         if (!ReferenceEquals(current,run) || !vm.IsRunning || run.Child==null || run.Child.Exited)
                             throw new InvalidOperationException("人工验证码等待已结束，本次任务已停止。");
                         captcha!.OpenPage(UrlUtilities.OpenUrl);
+                        // Retain the 300-second human wait plus the bounded remaining login requests.
+                        startup.CancelAfter(TimeSpan.FromSeconds(600));
                         vm.LabyrinthSettings.Progress="请在浏览器中手动完成验证码；正在等待验证结果…";
                     }
                     continue;
                 }
                 if (kind=="progress") {
                     var stage=(string?)value["stage"];
+                    if (StartupWait(stage) is { } wait) startup.CancelAfter(wait);
                     vm.LabyrinthSettings.Progress=stage switch {
+                        "validating"=>"正在校验黎明界配置…", "dependencies"=>"正在加载黎明界执行组件…",
+                        "resources"=>"正在加载本地识别资源…", "connecting"=>"正在连接所选设备…",
+                        "authenticating"=>"正在登录协议账号并核对游戏玩家 ID…",
+                        "ready"=>"协议账号核对完成，正在准备本次任务…",
                         "opening"=>"正在读取和筛选新开局…", "handoff"=>"正在恢复客户端并核对账号、地图…",
                         "playing"=>"正在执行黎明界路线…", "cleared"=>"已确认本局通关。",
                         "moving"=>"正在移动到路线目标…", "team"=>"正在选择并核对队伍…",
@@ -132,6 +146,9 @@ internal static class PcrLabyrinthOwner
                         "defeated"=>"已确认战败，本次批次结束。", "stopped"=>"已停止本次任务。",
                         "account_mismatch"=>"协议账号与期望游戏玩家 ID 不一致，本次已停止。",
                         "runtime_components_missing"=>"黎明界运行组件或依赖缺失，请核对完整候选包。",
+                        "runtime_resources_timeout"=>"本地识别资源加载超时，本次已停止。请核对完整程序包与本机资源占用。",
+                        "controller_connection_timeout" or "controller_connection_failed"=>"连接所选设备失败或超时，本次已停止。请核对设备与 ADB 目标。",
+                        "sdk_login_timeout" or "protocol_login_timeout"=>"协议账号登录网络超时，本次已停止；不会自动重试。请检查网络后重新点击开始。",
                         "complete"=>"已完成本次目标。", _=>"本次未确认完成，请查看独立黎明界运行记录。" };
                     vm.LabyrinthSettings.Progress+=ProgressCount(value,request);
                     break; // Terminal receipt; the owned Job closes descendant pipes in finally.
@@ -140,8 +157,10 @@ internal static class PcrLabyrinthOwner
             if (!receipt) throw new InvalidOperationException("黎明界执行组件未返回有效结果，任务未确认完成。");
         } catch (OperationCanceledException) {
             cancelled=true;
+            var timedOut=startup.IsCancellationRequested && !run.Cancel.IsCancellationRequested;
+            var waiting=vm.LabyrinthSettings.Progress.TrimEnd('…');
             vm.LabyrinthSettings.Progress="已请求停止；正在回收执行组件…";
-            vm.LabyrinthSettings.Status="已停止本次任务。";
+            vm.LabyrinthSettings.Status=timedOut ? waiting+"等待超时，本次已停止。" : "已停止本次任务。";
             if (run.Child is { Exited: false }) {
                 try {
                     await run.Child.Send("{\"kind\":\"stop\"}").WaitAsync(TimeSpan.FromSeconds(1));

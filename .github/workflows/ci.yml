@@ -34,6 +34,16 @@ jobs:
           $evidence = [IO.Path]::GetFullPath((Join-Path (Get-Location) '.runtime/ci/gui-checks'))
           dotnet run --project gui/MFAAvalonia/PcrUpdate.Tests/PcrUpdate.Tests.csproj --configuration Release --runtime win-x64 -p:Platform=x64 -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -p:UsedAvaloniaProducts= -- $evidence | Tee-Object -FilePath .runtime/ci/gui-checks.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Labyrinth GUI Contract Checks
+        run: |
+          $evidence = [IO.Path]::GetFullPath((Join-Path (Get-Location) '.runtime/ci/labyrinth-checks'))
+          $source = [IO.Path]::GetFullPath((Get-Location).Path)
+          $core = [IO.Path]::GetFullPath((Join-Path (Get-Location) '.runtime/ci/build/player/libs'))
+          $native = [IO.Path]::GetFullPath((Join-Path (Get-Location) '.runtime/ci/build/player/runtimes/win-x64/native'))
+          dotnet run --project gui/MFAAvalonia/PcrLabyrinthCredentials.Tests/PcrLabyrinthCredentials.Tests.csproj --configuration Release -p:PcrCoreDirectory=$core -p:PcrNativeDirectory=$native -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -- $evidence $source | Tee-Object -FilePath .runtime/ci/credentials-checks.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet run --project gui/MFAAvalonia/PcrProfileSwitch.Tests/PcrProfileSwitch.Tests.csproj --configuration Release -p:PcrCoreDirectory=$core -p:PcrNativeDirectory=$native -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true | Tee-Object -FilePath .runtime/ci/profile-checks.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Bundled Runtime Checks
         run: |
           $env:PCR_PLAYER_PACKAGE_ROOT = [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE '.runtime/ci/build/player'))
@@ -52,11 +62,13 @@ jobs:
             .runtime/ci/bundled-runtime.xml
             .runtime/ci/bundled-runtime-temp/
             .runtime/ci/gui-checks.log
+            .runtime/ci/credentials-checks.log
+            .runtime/ci/profile-checks.log
             .runtime/ci/build/*.json
             .runtime/ci/build/*.log
             .runtime/ci/build/Maa-PCR-*-win-x64.zip
             .runtime/ci/build/Maa-PCR-*-source.zip
-            .runtime/ci/build/Maa-PCR-R41-to-R43.patch.zip
+            .runtime/ci/build/Maa-PCR-R41-to-R45.patch.zip
           if-no-files-found: warn
   source-scan:
     runs-on: ubuntu-latest

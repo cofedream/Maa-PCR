@@ -264,6 +264,7 @@
             <!-- 展开按钮（固定最左边） -->
             <Button Grid.Column="0"
                     x:Name="DropdownButton"
+                    IsEnabled="{Binding ActiveTab.TaskQueueViewModel.CanEditPcrTarget}"
                     Classes="DropdownToggle"
                     Classes.Open="{Binding IsDropdownOpen}"
                     Theme="{StaticResource DropdownToggleButton}"
@@ -279,6 +280,7 @@
                                           x:Name="TabsControl"
                                           Margin="0,4,0,0"
                                           ItemsSource="{Binding Tabs}"
+                                          IsEnabled="{Binding ActiveTab.TaskQueueViewModel.CanEditPcrTarget}"
                                           SelectedItem="{Binding ActiveTab, Mode=TwoWay}"
                                           AddItemCommand="{Binding AddInstanceCommand}"
                                           CloseItemCommand="{Binding CloseInstanceCommand}"

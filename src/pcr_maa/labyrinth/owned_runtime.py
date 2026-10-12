@@ -157,7 +157,8 @@ class OwnedRuntime:
             self.tasker.post_stop()
 
     def _progress(self, value):
-        stages = {'opening','handoff','playing','cleared','moving','battle','shop','reward','team'}
+        stages = {'dependencies','resources','connecting','authenticating','ready',
+            'opening','handoff','playing','cleared','moving','battle','shop','reward','team'}
         stage = value.get('stage')
         stage = {'map':'moving','move_confirmation':'moving',
             'normal_challenge':'team','ex_challenge':'team','boss_challenge':'team',
@@ -184,6 +185,7 @@ class OwnedRuntime:
 
     def run(self):
         if self.stop():return dict(outcome='stopped',batch_complete=False)
+        self._progress(dict(stage='dependencies'))
         from .batch import Batch, Binding, BatchStopped
         from ..preset_execution import Journal
         from .protocol import LabyrinthClient, ProtocolFailure
@@ -216,14 +218,19 @@ class OwnedRuntime:
                 if not callable(getattr(MaaSceneRuntime,'observe',None)) or not callable(getattr(AutoplayRunner,'play',None)):
                     raise BatchStopped('runtime_components_missing')
                 native.RUNTIME=area/'runs'/self.run_id/'native'
-                resource=native.load_resource(self.root/'assets/resource')
+                self._progress(dict(stage='resources'))
+                try:resource=native.load_resource(self.root/'assets/resource')
+                except TimeoutError:raise BatchStopped('runtime_resources_timeout') from None
                 self._checkpoint()
                 connection=self.request.connection
+                self._progress(dict(stage='connecting'))
                 self.controller=AdbController(connection['adb_path'],connection['serial'],
                     MaaAdbScreencapMethodEnum.Encode,MaaAdbInputMethodEnum.AdbShell)
                 if not self.controller.set_screenshot_target_short_side(720):
                     raise BatchStopped('controller_configuration_failed')
-                if not native.wait_job(self.controller.post_connection(),seconds=30).succeeded:
+                try:connected=native.wait_job(self.controller.post_connection(),seconds=30).succeeded
+                except TimeoutError:raise BatchStopped('controller_connection_timeout') from None
+                if not connected:
                     raise BatchStopped('controller_connection_failed')
                 self._checkpoint()
                 self.tasker=Tasker()
@@ -236,6 +243,7 @@ class OwnedRuntime:
                 version=metadata['content_version']
                 if type(version) is not str or re.fullmatch(r'[0-9]{12}',version) is None:
                     raise BatchStopped('protocol_version_invalid')
+                self._progress(dict(stage='authenticating'))
                 self.client=LabyrinthClient(self.request.username,self.request.password,
                     content_version=version,manual_captcha=HumanCaptcha(
                         lambda url,stage:self.emit(captcha_message(url,stage))))
@@ -248,6 +256,7 @@ class OwnedRuntime:
                 self.port.game=MaaGamePort(self.tasker,self.port.stamp)
                 self._authenticate(binding)
                 self._checkpoint()
+                self._progress(dict(stage='ready'))
                 result=self._run_batch(binding,journal)
                 self.native_timings.finish_native_trace()
                 return result
@@ -277,9 +286,13 @@ class OwnedRuntime:
 def run_owned(request, stream, emit, *, runtime_factory=OwnedRuntime):
     stop=StopSignal(stream)
     runtime=runtime_factory(request,stop,emit)
-    stop.start()
     try:
         with contextlib.redirect_stdout(Discard()),contextlib.redirect_stderr(Discard()):
+            if sys.platform == 'win32':
+                # NumPy's first import can deadlock while another thread reads redirected Windows stdin.
+                try:import numpy
+                except ImportError:return dict(outcome='runtime_components_missing',batch_complete=False)
+            stop.start()
             return runtime.run()
     finally:
         stop.finish()

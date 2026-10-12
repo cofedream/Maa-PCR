@@ -6,12 +6,12 @@
     {
       "source": "autopcr/model/modelbase.py",
       "destination": "autopcr_sync/model/modelbase.py",
-      "sha256": "5a76278761a9676ccef491d8eda97286739a85b5a1a415ca299085a4defbe4f3",
-      "modified": false,
+      "modified": true,
+      "changes": "Remove unused re.T import, which was removed in Python 3.13; retain the original model validation and wire schema.",
       "source_sha256": {
         "autopcr/model/modelbase.py": "5a76278761a9676ccef491d8eda97286739a85b5a1a415ca299085a4defbe4f3"
       },
-      "adopted_sha256": "5a76278761a9676ccef491d8eda97286739a85b5a1a415ca299085a4defbe4f3"
+      "adopted_sha256": "a2d01285d5d84801b6c824046b7632dcfc5526c96dca6fab791ce106325aa9f8"
     },
     {
       "source": "autopcr/model/enums.py",

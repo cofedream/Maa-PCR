@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": 43,
+  "revision": 45,
   "expected_version": "v0.1.3",
   "status": "pending",
   "accepted_owned_payload_sha256": null,
@@ -12,7 +12,7 @@
   "gui_verified": false,
   "clean_build_verified": false,
   "reviewed_evidence_scope": {
-    "release_scope": "Update confirmation null handling, operation guard, global progress and exact R41 patch baseline.",
+    "release_scope": "Update confirmation and global progress; encrypted Labyrinth credentials, profile switch guard and Windows NumPy startup ordering.",
     "new_human_gui_clicks": false,
     "animation_timing_verified": false,
     "game_inputs": 0

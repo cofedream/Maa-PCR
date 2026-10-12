@@ -13,6 +13,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using MFAAvalonia.Controls.Events;
+using MFAAvalonia.ViewModels.Other;
 
 namespace MFAAvalonia.Controls;
 
@@ -76,6 +77,11 @@ public class InstanceTabsControl : TabControl
     public InstanceTabsControl()
     {
         if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled) SetCurrentValue(ShowDefaultAddButtonProperty, false);
+        SelectionChanged += (_, _) =>
+        {
+            if (DataContext is InstanceTabBarViewModel vm && vm.ActiveTab != null && !ReferenceEquals(SelectedItem, vm.ActiveTab))
+                Dispatcher.UIThread.Post(() => SetCurrentValue(SelectedItemProperty, vm.ActiveTab));
+        };
         AddHandler(DragTabItem.DragStarted, ItemDragStarted, handledEventsToo: true);
         AddHandler(DragTabItem.DragDelta, ItemDragDelta);
         AddHandler(DragTabItem.DragCompleted, ItemDragCompleted, handledEventsToo: true);

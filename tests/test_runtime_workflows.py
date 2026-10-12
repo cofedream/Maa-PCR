@@ -59,7 +59,7 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
         assert len(archives) == 3 and set(archives) == {
             '.runtime/ci/build/Maa-PCR-*-win-x64.zip',
             '.runtime/ci/build/Maa-PCR-*-source.zip',
-            '.runtime/ci/build/Maa-PCR-R41-to-R43.patch.zip',
+            '.runtime/ci/build/Maa-PCR-R41-to-R45.patch.zip',
         }
         assert '--base-manifest delivery/baselines/r41-package-manifest.json' in text
 

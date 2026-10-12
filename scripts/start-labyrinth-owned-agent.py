@@ -22,6 +22,7 @@ def main(*, runner=run_owned):
             raise ConfigurationError('invalid_configuration')
         value=json.loads(line,object_pairs_hook=unique_object)
         line=None
+        emit(dict(kind='progress',stage='validating'))
         request=parse_request(value)
         value=None
         result=runner(request,sys.stdin,emit)

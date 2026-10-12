@@ -78,11 +78,13 @@
      <ItemsControl ItemsSource="{Binding LabyrinthSettings.Goals}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="pcr:PcrLabyrinthGoal"><StackPanel Spacing="5" Margin="0,0,0,10"><TextBlock Text="{Binding Name}" /><TextBox Text="{Binding OpeningRoster, Mode=TwoWay}" Watermark="1075 / 1351 / 1059" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
     </StackPanel></Expander>
     <Expander Header="协议辅助 · 国服 B 服账号" IsExpanded="False"><StackPanel Spacing="8" Margin="0,8">
-     <TextBlock Text="完整地图与刷开局需要登录；同一批次内复用登录状态。账号必须与模拟器中的游戏一致；玩家 ID 与凭据只在当前会话使用，不会保存。" TextWrapping="Wrap" />
+     <TextBlock Text="完整地图与刷开局需要登录；同一批次内复用登录状态。账号必须与模拟器中的游戏一致；玩家 ID 与凭据在本机加密保存，重开自动载入，默认隐藏。" TextWrapping="Wrap" />
+     <Button Content="{Binding LabyrinthSettings.CredentialsVisibilityText}" Command="{Binding LabyrinthSettings.ToggleCredentialsCommand}" HorizontalAlignment="Left" />
      <TextBlock Text="游戏玩家 ID（个人简介，非B站 UID）" TextWrapping="Wrap" />
-     <TextBox Name="ExpectedPlayerIdInput" Text="{Binding LabyrinthSettings.ExpectedPlayerId, Mode=TwoWay}" MaxLength="19" Watermark="请输入个人简介中的数字 ID" />
-     <TextBlock Text="登录账号" /><TextBox Text="{Binding LabyrinthSettings.Username, Mode=TwoWay}" />
-     <TextBlock Text="密码" /><TextBox PasswordChar="●" Text="{Binding LabyrinthSettings.Password, Mode=TwoWay}" />
+     <TextBox Name="ExpectedPlayerIdInput" PasswordChar="{Binding LabyrinthSettings.CredentialMask}" Text="{Binding LabyrinthSettings.ExpectedPlayerId, Mode=TwoWay}" MaxLength="19" Watermark="请输入个人简介中的数字 ID" />
+     <TextBlock Text="登录账号" /><TextBox PasswordChar="{Binding LabyrinthSettings.CredentialMask}" Text="{Binding LabyrinthSettings.Username, Mode=TwoWay}" />
+     <TextBlock Text="密码" /><TextBox PasswordChar="{Binding LabyrinthSettings.CredentialMask}" Text="{Binding LabyrinthSettings.Password, Mode=TwoWay}" />
+     <TextBlock Text="{Binding LabyrinthSettings.CredentialsStatus}" TextWrapping="Wrap" FontSize="12" />
     </StackPanel></Expander>
     <TextBlock Text="{Binding LabyrinthSettings.Status}" TextWrapping="Wrap" />
     <Button Content="保存黎明界设置" Command="{Binding LabyrinthSettings.SaveCommand}" HorizontalAlignment="Left" />

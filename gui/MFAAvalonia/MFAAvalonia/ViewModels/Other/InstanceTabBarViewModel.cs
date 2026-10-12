@@ -35,7 +35,26 @@ public partial class InstanceTabBarViewModel : ViewModelBase
     private bool _isReloading;
     private readonly HashSet<string> _closingInstanceIds = new(StringComparer.Ordinal);
 
-    [ObservableProperty] private InstanceTabViewModel? _activeTab;
+    private InstanceTabViewModel? _activeTab;
+    public InstanceTabViewModel? ActiveTab
+    {
+        get => _activeTab;
+        set
+        {
+            if (ReferenceEquals(_activeTab, value)) return;
+            if (!_isReloading && _activeTab != null && MFAAvalonia.Pcr.PcrProfileRunGate.Busy)
+            {
+                // Restore the selector without sending a reverse switch through this setter.
+                DispatcherHelper.PostOnMainThread(() => OnPropertyChanged(nameof(ActiveTab)));
+                return;
+            }
+            var previous = _activeTab;
+            OnPropertyChanging(nameof(ActiveTab));
+            _activeTab = value;
+            OnActiveTabChanged(previous, value);
+            OnPropertyChanged(nameof(ActiveTab));
+        }
+    }
     [ObservableProperty] private bool _isDropdownOpen;
     [ObservableProperty] private bool _hasInstancePresets;
     [ObservableProperty] private List<MaaInterface.MaaInterfacePreset>? _instancePresets;
@@ -334,12 +353,8 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         MaaProcessorManager.Instance.UpdateInstanceOrder(orderedIds);
     }
 
-    partial void OnActiveTabChanged(InstanceTabViewModel? oldValue, InstanceTabViewModel? newValue)
+    private void OnActiveTabChanged(InstanceTabViewModel? oldValue, InstanceTabViewModel? newValue)
     {
-        if (!_isReloading && newValue != null && oldValue != null && newValue != oldValue && MFAAvalonia.Pcr.PcrProfileRunGate.Busy) {
-            DispatcherHelper.PostOnMainThread(() => { if (ActiveTab == newValue) ActiveTab = oldValue; });
-            return;
-        }
         var monitorLiveViewOverrideActive =
             Instances.TryGetResolved<MonitorViewModel>(out var monitorViewModel)
             && monitorViewModel.IsLiveViewOverrideActive;
@@ -347,6 +362,7 @@ public partial class InstanceTabBarViewModel : ViewModelBase
         if (oldValue != null)
         {
             oldValue.IsActive = false;
+            oldValue.TaskQueueViewModel?.HideLabyrinthCredentials();
             if (!monitorLiveViewOverrideActive)
                 oldValue.TaskQueueViewModel?.PauseLiveView();
         }

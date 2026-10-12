@@ -153,7 +153,7 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
 
 @pytest.mark.parametrize('trusted', [True, False])
 @pytest.mark.parametrize('base_revision,target_revision,base_version,target_version', [
-    (39, 41, 'v0.1.0', 'v0.1.2'), (41, 43, 'v0.1.2', 'v0.1.3'),
+    (39, 41, 'v0.1.0', 'v0.1.2'), (41, 45, 'v0.1.2', 'v0.1.3'),
 ])
 def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revision, target_revision, base_version, target_version):
     base, target, _, _, _ = case
@@ -179,7 +179,7 @@ def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revisio
     assert (base / builder.maintenance.MANIFEST).read_bytes() == (target / builder.maintenance.MANIFEST).read_bytes()
 
 
-@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (43, 'v0.1.3', 41)])
+@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41)])
 def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, version, base_revision):
     _, target, _, _, _ = case
     metadata = builder.maintenance._read_json(target / builder.maintenance.MANIFEST)
