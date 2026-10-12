@@ -103,6 +103,7 @@ def test_release_promotes_only_the_exact_reviewed_ci_artifact_without_rebuilding
     assert '--run-metadata .runtime/release/metadata/run.json --artifact-metadata .runtime/release/metadata/artifact.json' in promote
     assert '--artifact-root .runtime/release/accepted-ci/build --player .runtime/release/build/player' in promote
     assert '--acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG' in steps['Seal Matching Assets']
+    assert '.runtime/release/assets/SOURCE_ALIGNMENT.json' in steps['Create GitHub Release']
     upload = steps['Publish Runtime Test Evidence']
     assert '.runtime/release/accepted-ci/' not in upload
     assert '.runtime/release/build/' not in upload
