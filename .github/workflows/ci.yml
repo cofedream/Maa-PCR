@@ -27,7 +27,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build Portable Candidate
         run: |
-          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r38-package-manifest.json
+          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r39-package-manifest.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: GUI Update Contract Checks
         run: |
@@ -56,8 +56,7 @@ jobs:
             .runtime/ci/build/*.log
             .runtime/ci/build/Maa-PCR-*-win-x64.zip
             .runtime/ci/build/Maa-PCR-*-source.zip
-            .runtime/ci/build/Maa-PCR-R38-to-R39.patch.zip
-            .runtime/ci/build/Maa-PCR-R38-to-R39-bootstrap.zip
+            .runtime/ci/build/Maa-PCR-R39-to-R41.patch.zip
           if-no-files-found: warn
   source-scan:
     runs-on: ubuntu-latest

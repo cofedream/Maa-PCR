@@ -1,59 +1,19 @@
 {
   "schema_version": 1,
-  "revision": 39,
-  "expected_version": "v0.1.0",
-  "status": "passed",
-  "accepted_owned_payload_sha256": "9540a6b44031c0816cd0606366c2676808ffb19b3d85d4aef1feccc08947c015",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 38150945777,
-    "run_attempt": 1,
-    "artifact_id": 11706987544,
-    "source_commit": "cf7bc135a4a320418625790ea2ebe798ae26d2e7",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.0-win-x64.zip",
-      "size": 309357326,
-      "sha256": "a06b5781debf91d239cb21f2c3de51afd93f0a95bcfe5030173f5d21dd55577c"
-    }
-  },
+  "revision": 41,
+  "expected_version": "v0.1.2",
+  "status": "pending",
+  "accepted_owned_payload_sha256": null,
   "live_valid_game_days": 0,
   "candidate_to_baseline_ratio": null,
   "meaningful_speedup_reviewed": false,
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
   "reviewed_evidence_scope": {
-    "offline_tests": "C11: 2100 passed, 303 skipped, 92 private replay deselected; local policy regression 146 passed.",
-    "gui": "C10 logo/startup/normal exit and C8 configuration load; unchanged C11 GUI source/resources reviewed. No new C11 human clicks claimed.",
-    "isolated_update": "C7 synthetic in-software update/recovery and earlier interruption/full fallback evidence reused only for unchanged behavior. Real Release network update pending.",
-    "clean_build": "Exact C11 successful CI artifact, source, four archives, owned payload and bundled runtime verified.",
-    "proofs": [
-      {
-        "name": "CLOUD_ELEVENTH_ARTIFACT_VERIFIED.json",
-        "sha256": "a5dc33298796da9523b1dc8db8b84bbb52a0f1b5ad2fd065719cb7101ac88701"
-      },
-      {
-        "name": "CLOUD_ELEVENTH_SCOPE_REUSE_CHECK.json",
-        "sha256": "9a0454f947e010a51dd737a0d17e5418958eee2ae81808abb22e5e7f5119e38d"
-      },
-      {
-        "name": "ROOT_COMPILED_GUI_PROVENANCE_REVIEW.json",
-        "sha256": "bb17b6a773276f567bb222717a62898a0597c9c9f48ff7cee958be54654a3a7f"
-      },
-      {
-        "name": "ROOT_PROTECTED_STATE_AFTER_POLICY.json",
-        "sha256": "37b6b083969404bdbacc2f6aafa910ed9e694301ca8c42d457fe6fb8695544cf"
-      },
-      {
-        "name": "ROOT_GUI_LOGO_ACCEPTANCE_COMPLETE.json",
-        "sha256": "fe94dc50e866eb3b98373bcbf0b2506bd6f883a2eccd5502e86b19cce00e5c38"
-      },
-      {
-        "name": "CLOUD7_SYNTHETIC_GUI_ACCEPTANCE_COMPLETE.json",
-        "sha256": "c5a2ab229880da104b13965986695d727242af7347f8a3c70b05152e73ed0d3b"
-      }
-    ],
+    "release_scope": "GitHub update fetch/error fix and release version/base metadata only; pending exact R41 CI archive review. R40/v0.1.1 was local-only.",
+    "gui": "Pending unchanged GUI reuse review; no new human GUI clicks.",
     "live_performance_measured": false,
     "real_release_download_update_verified": false,
     "third_party_rights_independently_verified": false

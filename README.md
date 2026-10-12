@@ -4,7 +4,7 @@ Windows x64 的 PCR 国服日常与黎明界自动化。提供独立的“日常
 
 ## 当前状态
 
-此源码对应 **v0.1.0 / R39**，实际发布状态以 [GitHub Releases](https://github.com/shiwandehongbai/Maa-PCR/releases) 为准。速度优化已实现，整体日常提速和新完整游戏链实机对照尚未验证，不宣称提速百分比。实机性能对照、六个游戏日和40%均不作为发布前置条件；发布仍要求离线检查、两配置GUI、软件内更新/恢复、干净构建和精确载荷绑定通过。证据范围见 [R39 验收](docs/R39_ACCEPTANCE.md) 和 `delivery/acceptance.json`，未完成项如实保留。
+此源码对应 **v0.1.2 / R41**，实际发布状态以 [GitHub Releases](https://github.com/shiwandehongbai/Maa-PCR/releases) 为准。本次修复 GitHub 更新检查的匿名 API 限流，直接读取官方 Release 清单；R40/v0.1.1 仅为本地维护候选，R41 使用更高修订号支持其继续升级。速度优化已实现，整体日常提速和新完整游戏链实机对照尚未验证，不宣称提速百分比。实机性能对照、六个游戏日和40%均不作为发布前置条件；发布仍要求离线检查、两配置GUI、软件内更新/恢复、干净构建和精确载荷绑定通过。历史证据范围见 [R39 验收](docs/R39_ACCEPTANCE.md)，本次精确绑定与复用范围见 `delivery/acceptance.json`，未完成项如实保留。
 
 日常只运行玩家选定的已支持项目，不包括自动购买、付费扭蛋、重置或推图；`daily_complete=false` 不会因版本发布改成“覆盖全游戏”。黎明界保留完整功能并标为测试版，继承 R38 难度5真实通关证据；同批双成功及随机分支缺口见 [验收范围](docs/RELEASE_STATUS.md)。
 

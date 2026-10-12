@@ -2,7 +2,7 @@
   "interface_version": 2,
   "name": "PCRAlpha",
   "label": "PCR Alpha",
-  "version": "0.1.0-alpha",
+  "version": "0.1.2-alpha",
   "description": "选择本次模块，设置预设槽位与次数后点开始。不会自动购买或重置；资源不足或结果不明时停止。",
   "controller": [
     {

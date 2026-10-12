@@ -56,12 +56,12 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
     if name == 'ci.yml':
         assert 'retention-days: 30' in upload
         archives = [line.strip() for line in upload.splitlines() if line.strip().endswith('.zip')]
-        assert len(archives) == 4 and set(archives) == {
+        assert len(archives) == 3 and set(archives) == {
             '.runtime/ci/build/Maa-PCR-*-win-x64.zip',
             '.runtime/ci/build/Maa-PCR-*-source.zip',
-            '.runtime/ci/build/Maa-PCR-R38-to-R39.patch.zip',
-            '.runtime/ci/build/Maa-PCR-R38-to-R39-bootstrap.zip',
+            '.runtime/ci/build/Maa-PCR-R39-to-R41.patch.zip',
         }
+        assert '--base-manifest delivery/baselines/r39-package-manifest.json' in text
 
 
 def test_release_promotes_only_the_exact_reviewed_ci_artifact_without_rebuilding():

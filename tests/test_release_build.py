@@ -151,6 +151,48 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
     assert result['bootstrap'] == builder.asset_record(output / 'Maa-PCR-R38-to-R39-bootstrap.zip')
 
 
+@pytest.mark.parametrize('trusted', [True, False])
+def test_r39_to_r41_patch_requires_pinned_baseline(case, monkeypatch, trusted):
+    base, target, _, _, _ = case
+    for player, revision, version in ((base, 39, 'v0.1.0'), (target, 41, 'v0.1.2')):
+        metadata = builder.maintenance._read_json(player / builder.maintenance.MANIFEST)
+        metadata['update'].update(revision=revision, version=version)
+        save_manifest(player, metadata)
+    baseline = base / builder.maintenance.MANIFEST
+    monkeypatch.setattr(builder, 'R39_MANIFEST_SHA256', builder.digest(baseline) if trusted else '0' * 64)
+    output = target.parent / 'artifacts'
+    output.mkdir()
+    if not trusted:
+        with pytest.raises(ValueError, match='baseline_manifest_hash_mismatch'):
+            builder.package_outputs(target, output, base_manifest=baseline)
+        assert not (output / 'Maa-PCR-R39-to-R41.patch.zip').exists()
+        return
+    result = builder.package_outputs(target, output, base_manifest=baseline)
+    assert 'bootstrap' not in result
+    assert result['patches'][0]['base_manifest_sha256'] == builder.digest(baseline)
+    assert result['patches'][0]['name'] == 'Maa-PCR-R39-to-R41.patch.zip'
+    builder.maintenance.apply_update(base, output / result['patches'][0]['name'], process_probe=lambda _: [])
+    assert (base / builder.maintenance.MANIFEST).read_bytes() == (target / builder.maintenance.MANIFEST).read_bytes()
+
+
+def test_r41_release_requires_r39_baseline_before_sealing(case, monkeypatch):
+    _, target, _, _, _ = case
+    metadata = builder.maintenance._read_json(target / builder.maintenance.MANIFEST)
+    metadata['update'].update(revision=41, version='v0.1.2')
+    save_manifest(target, metadata)
+    check = target.parent / 'reviewed-acceptance.json'
+    builder.save(check, dict(accepted(), revision=41, expected_version='v0.1.2',
+                            accepted_owned_payload_sha256=owned_payload_sha256(metadata)))
+    output = target.parent / 'release-output'
+    monkeypatch.setattr(sys, 'argv', ['release_ci.py', '--player', str(target),
+                                    '--acceptance', str(check), '--tag', 'v0.1.2', '--output', str(output)])
+    before = (target / builder.maintenance.MANIFEST).read_bytes()
+    with pytest.raises(ValueError, match='R41_requires_exact_R39_patch_base'):
+        release_ci.main()
+    assert not output.exists()
+    assert (target / builder.maintenance.MANIFEST).read_bytes() == before
+
+
 def test_download_metadata_hash_shape_is_checked_before_network(tmp_path):
     with pytest.raises(ValueError, match='invalid_download_digest'):
         builder.download({'url': 'https://example.invalid/runtime.zip', 'sha256': 'invented'}, tmp_path)
