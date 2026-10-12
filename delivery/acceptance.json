@@ -2,19 +2,80 @@
   "schema_version": 1,
   "revision": 45,
   "expected_version": "v0.1.3",
-  "status": "pending",
-  "accepted_owned_payload_sha256": null,
+  "status": "passed",
+  "accepted_owned_payload_sha256": "94a8bf0f88b62c58072096f9e011ef50173e2cae4be5315b9474f200591e8259",
   "live_valid_game_days": 0,
   "candidate_to_baseline_ratio": null,
   "meaningful_speedup_reviewed": false,
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
   "reviewed_evidence_scope": {
-    "release_scope": "Update confirmation and global progress; encrypted Labyrinth credentials, profile switch guard and Windows NumPy startup ordering.",
-    "new_human_gui_clicks": false,
+    "release_scope": "Update confirmation/global progress and Labyrinth encrypted credentials/profile guard/Windows startup ordering.",
+    "public_tests": {
+      "tests": 2485,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 303
+    },
+    "bundled_runtime_tests": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "local_tests": "216 passed and 17 subtests; synthetic DPAPI credentials 26 and profile switch 37 passed against R44 Core.",
+    "gui": "Exact candidate Core: CI update 31/dependency 52, credentials 26/profile switch 37 and five static progress states plus real confirmation close-to-null cancellation passed.",
+    "isolated_update": "Exact candidate R41 delta and R44 full fallback; three synthetic settings/unknown/log sentinels preserved; repeat updates refused; real process protection retained.",
+    "clean_build": "Successful exact main push CI, runtime owned hashes and all matching source/GUI inputs verified; release promotes this payload without rebuilding.",
+    "reused_local_r44_live_startup": {
+      "elapsed_seconds_including_manual_captcha": 52.923,
+      "scope": "Local R44 matching production sources: saved credentials reload, idle profile return and busy selection guard; protocol ready only, no batch/game input.",
+      "receipt_sha256": "83346cf083dc83151a33f171d0ba75952905ef4b6d91d34b0098dc6b43f29774",
+      "owned_runtime_sha256": "0ba51b695ca13a5061dab3a587c9ed10972fc5b0a7647708c78fae11177c1952",
+      "formal_candidate_live_login_repeated": false
+    },
+    "proofs": [
+      {
+        "name": "CI_ARTIFACT_VERIFIED.json",
+        "sha256": "55b74a083d4b81d5ab57ded486822c604bf17232799881f5350ad2a7e623677f"
+      },
+      {
+        "name": "CI_RUN.json",
+        "sha256": "89c16795a3fc63967d70999060dfef799c6feb6363a17b4c3f016cc51644d14a"
+      },
+      {
+        "name": "CI_ARTIFACT.json",
+        "sha256": "fffe458d3d16fab7718511f4f4552f5b1fd4ddce8390cb83ee7fb814a955eb26"
+      },
+      {
+        "name": "EXACT_CI_VISUAL_VERIFIED.json",
+        "sha256": "226f6d614bd176de297d57dfa99ab1d27d50ab85e90a652e4add02b493c81bae"
+      },
+      {
+        "name": "PACKAGED_NUMPY_COLD_VERIFIED.json",
+        "sha256": "bc627805a37cd1793ebcac79be14834a26bb8e60c9d094665bb752725fcc4a13"
+      }
+    ],
     "animation_timing_verified": false,
+    "full_human_update_click_flow_verified": false,
+    "continuous_batch_or_new_live_recovery_verified": false,
+    "live_performance_measured": false,
+    "real_release_download_update_verified": false,
+    "new_human_gui_clicks": false,
     "game_inputs": 0
+  },
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 38276106675,
+    "run_attempt": 1,
+    "artifact_id": 11760326911,
+    "source_commit": "cec4a601d44ca11c36fbd9cd4558b73b818b9fb0",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.3-win-x64.zip",
+      "size": 309365425,
+      "sha256": "27656af1c43e02b109e67a9d7cb899f59b4e564f04b79070d65fdc7279008699"
+    }
   }
 }
