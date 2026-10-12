@@ -5,7 +5,7 @@ import io
 import json
 from pathlib import Path
 from types import SimpleNamespace
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 import zipfile
 
@@ -106,15 +106,9 @@ def online_case(tmp_path):
     index_bytes = encode(index)
     blobs = {index['full']['name']: full, index['patches'][0]['name']: delta,
              'update-index.json': index_bytes}
-    release = {
-        'tag_name': 'v0.1.1', 'prerelease': False, 'draft': False,
-        'assets': [{'name': name, 'size': len(data),
-                    'browser_download_url': download_url(name)}
-                   for name, data in blobs.items()],
-    }
     return {'player': player, 'old': old, 'new': new, 'private': private,
             'old_bytes': old_bytes, 'target_bytes': target_bytes, 'index': index,
-            'release': release, 'blobs': blobs, 'tmp_path': tmp_path}
+            'blobs': blobs, 'tmp_path': tmp_path}
 
 
 def assert_original(case):
@@ -137,7 +131,7 @@ class Response(io.BytesIO):
 def fake_opener(case, *, replacements=None, failure_url=None):
     calls = []
     routes = {download_url(name): data for name, data in case['blobs'].items()}
-    routes['https://api.github.com/repos/shiwandehongbai/Maa-PCR/releases/latest'] = encode(case['release'])
+    routes[updater.INDEX_URL] = encode(case['index'])
     routes.update(replacements or {})
 
     def open_response(request, timeout=30):
@@ -153,7 +147,7 @@ def fake_opener(case, *, replacements=None, failure_url=None):
 
 def test_exact_manifest_selects_patch_and_uses_business_revision(online_case):
     case = online_case
-    result = updater.validate_index(case['index'], case['release'], case['old_bytes'])
+    result = updater.validate_index(case['index'], case['old_bytes'])
     assert result['status'] == 'update_available'
     assert result['current_revision'] == 39 and result['revision'] == 40
     assert result['current_version'] == 'v0.1.0'
@@ -170,7 +164,7 @@ def test_patch_requires_exact_revision_and_manifest_otherwise_full(online_case, 
         old['update']['revision'] = 38
     current = json.dumps(old, separators=(',', ':')).encode('utf-8')
     assert current != case['old_bytes']
-    result = updater.validate_index(case['index'], case['release'], current)
+    result = updater.validate_index(case['index'], current)
     assert result['status'] == 'update_available'
     assert result['asset']['kind'] == 'full'
     assert result['asset']['name'] == case['index']['full']['name']
@@ -181,50 +175,46 @@ def test_equal_or_newer_installed_revision_is_up_to_date(online_case, revision):
     case = online_case
     current = json.loads(case['old_bytes'])
     current['update']['revision'] = revision
-    result = updater.validate_index(case['index'], case['release'], encode(current))
+    result = updater.validate_index(case['index'], encode(current))
     assert result['status'] == 'up_to_date'
 
 
 @pytest.mark.parametrize('fault', [
     'schema_bool', 'product', 'platform', 'revision_bool', 'tag_mismatch',
-    'full_size_bool', 'full_hash', 'unsafe_name', 'asset_size',
-    'wrong_repo_url', 'http_url', 'prerelease', 'draft',
+    'full_size_bool', 'full_hash', 'unsafe_name', 'extra_url', 'prerelease',
+    'duplicate_name', 'tag_type',
 ])
-def test_untrusted_index_or_release_is_rejected(online_case, fault):
+def test_untrusted_static_index_is_rejected(online_case, fault):
     case = online_case
-    index, release = deepcopy(case['index']), deepcopy(case['release'])
-    full_asset = next(row for row in release['assets'] if row['name'] == index['full']['name'])
+    index = deepcopy(case['index'])
     if fault == 'schema_bool': index['schema_version'] = True
     if fault == 'product': index['product'] = 'other-player'
     if fault == 'platform': index['platform'] = 'linux-x64'
     if fault == 'revision_bool': index['revision'] = True
-    if fault == 'tag_mismatch': release['tag_name'] = 'v9.9.9'
+    if fault == 'tag_mismatch': index['tag'] = 'v9.9.9'
     if fault == 'full_size_bool': index['full']['size'] = True
     if fault == 'full_hash': index['full']['sha256'] = 'not-a-sha256'
     if fault == 'unsafe_name': index['full']['name'] = '../outside.zip'
-    if fault == 'asset_size': full_asset['size'] += 1
-    if fault == 'wrong_repo_url': full_asset['browser_download_url'] = full_asset['browser_download_url'].replace('shiwandehongbai', 'someone-else')
-    if fault == 'http_url': full_asset['browser_download_url'] = full_asset['browser_download_url'].replace('https:', 'http:')
-    if fault == 'prerelease': release['prerelease'] = True
-    if fault == 'draft': release['draft'] = True
+    if fault == 'extra_url': index['full']['url'] = 'https://foreign.example/update.zip'
+    if fault == 'prerelease': index['tag'] = index['version'] = 'v0.1.1-beta'
+    if fault == 'duplicate_name': index['patches'][0]['name'] = index['full']['name']
+    if fault == 'tag_type': index['tag'] = None
     with pytest.raises(ValueError):
-        updater.validate_index(index, release, case['old_bytes'])
+        updater.validate_index(index, case['old_bytes'])
     assert_original(case)
 
 
 @pytest.mark.parametrize('fault', ['duplicate_base', 'base_revision_bool', 'base_hash'])
 def test_patch_metadata_cannot_ambiguously_select_a_base(online_case, fault):
     case = online_case
-    index, release = deepcopy(case['index']), deepcopy(case['release'])
+    index = deepcopy(case['index'])
     if fault == 'duplicate_base':
         duplicate = {**index['patches'][0], 'name': 'duplicate-base.zip'}
         index['patches'].append(duplicate)
-        release['assets'].append({'name': duplicate['name'], 'size': duplicate['size'],
-                                  'browser_download_url': download_url(duplicate['name'])})
     if fault == 'base_revision_bool': index['patches'][0]['base_revision'] = True
     if fault == 'base_hash': index['patches'][0]['base_manifest_sha256'] = 'invalid-hash'
     with pytest.raises(ValueError):
-        updater.validate_index(index, release, case['old_bytes'])
+        updater.validate_index(index, case['old_bytes'])
     assert_original(case)
 
 
@@ -232,10 +222,7 @@ def test_check_uses_only_own_release_metadata_and_never_downloads_package(online
     opener, calls = fake_opener(online_case)
     result = updater.check_update(online_case['player'], opener=opener)
     assert result['status'] == 'update_available' and result['revision'] == 40
-    assert calls == [
-        'https://api.github.com/repos/shiwandehongbai/Maa-PCR/releases/latest',
-        download_url('update-index.json'),
-    ]
+    assert calls == [updater.INDEX_URL]
     assert_original(online_case)
 
 
@@ -253,25 +240,79 @@ def test_previous_interruption_is_reported_without_network(online_case):
     assert_original(online_case)
 
 
+def test_shared_api_limit_does_not_affect_direct_index_check(online_case):
+    regular, calls = fake_opener(online_case)
+
+    def opener(request, timeout=30):
+        if 'api.github.com' in request.full_url:
+            raise HTTPError(request.full_url, 403, 'rate limit exceeded',
+                            {'X-RateLimit-Remaining': '0'}, None)
+        return regular(request, timeout)
+
+    assert updater.check_update(online_case['player'], opener=opener)['status'] == 'update_available'
+    assert calls == [updater.INDEX_URL]
+    assert_original(online_case)
+
+
+def test_oversized_or_duplicate_key_metadata_cannot_reach_download(online_case):
+    for data in (b' ' * (updater.MAX_METADATA + 1), b'{"tag":"v0.1.1","tag":"v9.9.9"}'):
+        calls = []
+
+        def opener(request, timeout=30):
+            calls.append(request.full_url)
+            return Response(data, updater.INDEX_URL)
+
+        with pytest.raises(ValueError):
+            updater.check_update(online_case['player'], opener=opener)
+        assert calls == [updater.INDEX_URL]
+        assert_original(online_case)
+
+
+@pytest.mark.parametrize('error,expected', [
+    (HTTPError(updater.INDEX_URL, 403, 'not printed', {'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': '1791802698'}, None), '可重试时间'),
+    (HTTPError(updater.INDEX_URL, 429, 'not printed', {}, None), '暂时限流'),
+    (HTTPError(updater.INDEX_URL, 404, 'not printed', {}, None), '不存在'),
+    (HTTPError(updater.INDEX_URL, 403, 'not printed', {}, None), 'HTTP 403'),
+    (URLError('secret proxy detail must not be printed'), '无法连接 GitHub'),
+    (TimeoutError('secret detail'), '无法连接 GitHub'),
+])
+def test_cli_reports_safe_network_guidance_without_retry_or_changes(online_case, monkeypatch, capsys, error, expected):
+    calls = []
+
+    def fail(*args, **kwargs):
+        calls.append(args)
+        raise error
+
+    monkeypatch.setattr(updater, 'check_update', fail)
+    assert updater.main(['check', '--player', str(online_case['player'])]) == 1
+    output = json.loads(capsys.readouterr().out)
+    assert output['status'] == 'failed' and expected in output['error']
+    assert 'secret' not in output['error'] and 'not printed' not in output['error']
+    assert len(calls) == 1
+    assert_original(online_case)
+
+
 def test_offline_check_preserves_current_installation(online_case):
     opener, _ = fake_opener(online_case,
-        failure_url='https://api.github.com/repos/shiwandehongbai/Maa-PCR/releases/latest')
+        failure_url=updater.INDEX_URL)
     with pytest.raises((URLError, ValueError, RuntimeError)):
         updater.check_update(online_case['player'], opener=opener)
     assert_original(online_case)
 
 
-@pytest.mark.parametrize('stage', ['release', 'index', 'package'])
+@pytest.mark.parametrize('stage', ['index', 'package'])
 @pytest.mark.parametrize('redirect', [
     'http://github.com/untrusted', 'https://foreign.example/untrusted',
     'https://user:password@github.com/untrusted',
+    'https://github.com/someone-else/Maa-PCR/releases/download/v0.1.1/update-index.json',
+    'https://github.com:8443/shiwandehongbai/Maa-PCR/releases/download/v0.1.1/update-index.json',
 ])
 def test_http_foreign_or_credential_redirect_is_rejected(online_case, stage, redirect):
     case = online_case
     regular, _ = fake_opener(case)
     target = {
-        'release': 'https://api.github.com/repos/shiwandehongbai/Maa-PCR/releases/latest',
-        'index': download_url('update-index.json'),
+        'index': updater.INDEX_URL,
         'package': download_url(case['index']['patches'][0]['name']),
     }[stage]
     responses = []
@@ -295,8 +336,7 @@ def test_github_https_release_asset_redirect_remains_supported(online_case):
 
     def opener(request, timeout=30):
         response = regular(request, timeout)
-        if request.full_url != 'https://api.github.com/repos/shiwandehongbai/Maa-PCR/releases/latest':
-            response.url = 'https://release-assets.githubusercontent.com/synthetic?' + 'signature' + '=test'
+        response.url = 'https://release-assets.githubusercontent.com/synthetic?' + 'signature' + '=test'
         return response
 
     assert updater.download_update(case['player'], opener=opener)['status'] == 'downloaded'
@@ -343,7 +383,7 @@ def test_offline_packet_uses_same_manifest_validation(online_case, kind):
 def test_archive_rejects_bad_inventory_or_expected_target(online_case, fault):
     case = online_case
     payload = dict(case['new'])
-    expected = updater.validate_index(case['index'], case['release'], case['old_bytes'])
+    expected = updater.validate_index(case['index'], case['old_bytes'])
     if fault == 'unsafe': payload['../outside.txt'] = b'never install'
     if fault == 'extra': payload['not-owned.txt'] = b'never install'
     target = case['target_bytes']

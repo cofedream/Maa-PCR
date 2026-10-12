@@ -1,6 +1,7 @@
 """Stable Maa-PCR Release updates; stdout is one JSON result, never game input."""
 import argparse
 from contextlib import contextmanager
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -11,7 +12,8 @@ import subprocess
 import sys
 import tempfile
 import time
-from urllib.parse import unquote, urlsplit
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote, unquote, urlsplit
 from urllib.request import Request, urlopen
 from uuid import uuid4
 import zipfile
@@ -19,8 +21,8 @@ import zipfile
 from . import player_maintenance as maintenance
 
 REPOSITORY = 'shiwandehongbai/Maa-PCR'
-RELEASE_URL = 'https://api.github.com/repos/' + REPOSITORY + '/releases/latest'
 INDEX_NAME = 'update-index.json'
+INDEX_URL = 'https://github.com/' + REPOSITORY + '/releases/latest/download/' + INDEX_NAME
 MAX_METADATA = 1024 * 1024
 BOOTSTRAP = ('scripts/player-update.py', 'scripts/player-maintenance.py',
     'scripts/recover-player-update.ps1',
@@ -55,33 +57,15 @@ def _asset_url(url, tag, name):
     return url
 
 
-def _release_assets(release):
-    _require(type(release) is dict and release.get('draft') is False
-        and release.get('prerelease') is False and type(release.get('tag_name')) is str
-        and re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', release['tag_name'])
-        and type(release.get('assets')) is list, 'invalid_stable_release')
-    assets = {}
-    for asset in release['assets']:
-        _require(type(asset) is dict and type(asset.get('name')) is str
-            and asset['name'] not in assets and type(asset.get('size')) is int
-            and 0 < asset['size'] <= maintenance.MAX_PAYLOAD, 'invalid_release_assets')
-        name = asset['name']
-        maintenance._name(name)
-        _require('/' not in name, 'invalid_release_asset_name')
-        _asset_url(asset.get('browser_download_url'), release['tag_name'], name)
-        assets[name] = asset
-    return assets
-
-
-def validate_index(index, release, old_manifest_bytes):
+def validate_index(index, old_manifest_bytes):
     """Bind every selected file to this stable Release and the exact installed base."""
-    assets = _release_assets(release)
     _require(type(index) is dict and set(index) == {'schema_version', 'product', 'platform',
         'tag', 'version', 'revision', 'target_manifest_sha256', 'full', 'patches'}
         and type(index.get('schema_version')) is int and index['schema_version'] == 1
         and index.get('product') == maintenance.PRODUCT and index.get('platform') == 'win-x64'
-        and index.get('tag') == release['tag_name'] and type(index.get('version')) is str
-        and re.fullmatch('[A-Za-z0-9][A-Za-z0-9._+-]{0,95}', index['version'])
+        and type(index.get('tag')) is str and len(index['tag']) <= 96
+        and re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', index['tag'])
+        and index.get('version') == index['tag']
         and type(index.get('revision')) is int and index['revision'] > 0
         and _digest(index.get('target_manifest_sha256'))
         and type(index.get('patches')) is list and len(index['patches']) <= 1000,
@@ -95,8 +79,7 @@ def validate_index(index, release, old_manifest_bytes):
             and type(record.get('size')) is int and 0 < record['size'] <= maintenance.MAX_PAYLOAD
             and _digest(record.get('sha256')), 'invalid_update_asset')
         maintenance._name(record['name'])
-        _require(record['name'] not in seen and record['name'] in assets
-            and assets[record['name']]['size'] == record['size'], 'update_asset_missing_or_mismatched')
+        _require(record['name'] not in seen, 'duplicate_update_asset')
         seen.add(record['name'])
         if delta:
             _require(type(record.get('base_revision')) is int
@@ -105,7 +88,8 @@ def validate_index(index, release, old_manifest_bytes):
             base = (record['base_revision'], record['base_manifest_sha256'])
             _require(base not in bases, 'duplicate_patch_base')
             bases.add(base)
-        return {**record, 'url': assets[record['name']]['browser_download_url'],
+        url = 'https://github.com/' + REPOSITORY + '/releases/download/' + index['tag'] + '/' + quote(record['name'], safe='')
+        return {**record, 'url': _asset_url(url, index['tag'], record['name']),
             'kind': 'delta' if delta else 'full'}
 
     full = asset(index['full'])
@@ -124,13 +108,14 @@ def validate_index(index, release, old_manifest_bytes):
 
 
 def _open(url, opener=None):
-    request = Request(url, headers={'Accept': 'application/vnd.github+json' if url == RELEASE_URL
-        else 'application/octet-stream', 'User-Agent': 'Maa-PCR-player-updater/1'})
+    request = Request(url, headers={'Accept': 'application/octet-stream',
+        'User-Agent': 'Maa-PCR-player-updater/1'})
     response = (opener or urlopen)(request, timeout=30)
     final = urlsplit(response.geturl())
-    allowed = {'api.github.com'} if url == RELEASE_URL else {
-        'github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'}
-    if final.scheme != 'https' or final.hostname not in allowed or final.username or final.password:
+    allowed = {'github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'}
+    if (final.scheme != 'https' or final.hostname not in allowed or final.username or final.password
+        or final.netloc not in (final.hostname, str(final.hostname) + ':443')
+        or (final.hostname == 'github.com' and not unquote(final.path).startswith('/' + REPOSITORY + '/releases/'))):
         response.close()
         raise ValueError('unsafe_update_redirect')
     return response
@@ -150,11 +135,8 @@ def check_update(player, *, opener=None):
     if marker.exists():
         return {'status': 'recovery_required', 'current_revision': installed['revision'],
             'current_version': installed['version'], 'recovery_required': True}
-    release = _metadata(RELEASE_URL, opener=opener)
-    assets = _release_assets(release)
-    _require(INDEX_NAME in assets and assets[INDEX_NAME]['size'] <= MAX_METADATA, 'update_index_missing')
-    index = _metadata(assets[INDEX_NAME]['browser_download_url'], opener=opener)
-    return validate_index(index, release, old_bytes)
+    index = _metadata(INDEX_URL, opener=opener)
+    return validate_index(index, old_bytes)
 
 
 def validate_archive(player, archive, *, expected=None):
@@ -504,6 +486,22 @@ def main(argv=None):
                 parent_pid=args.parent_pid, archive_sha256=args.archive_sha256, wait_seconds=args.wait_seconds)
         print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return 0
+    except HTTPError as error:
+        if error.code == 429 or (error.code == 403 and error.headers.get('X-RateLimit-Remaining') == '0'):
+            message = 'GitHub 暂时限流，请稍后重试'
+            reset = error.headers.get('X-RateLimit-Reset', '')
+            if re.fullmatch('[0-9]{1,10}', reset):
+                retry = datetime.fromtimestamp(int(reset), timezone.utc).astimezone()
+                message += '（可重试时间：' + retry.strftime('%Y-%m-%d %H:%M:%S %z') + '）'
+        elif error.code == 404:
+            message = 'GitHub 更新清单或更新包不存在，请稍后重试或导入离线更新包'
+        else:
+            message = 'GitHub 返回 HTTP ' + str(error.code) + '，请稍后重试或导入离线更新包'
+        print(json.dumps({'status': 'failed', 'error': message}, ensure_ascii=False))
+        return 1
+    except (URLError, TimeoutError):
+        print(json.dumps({'status': 'failed', 'error': '无法连接 GitHub，请检查网络或导入离线更新包'}, ensure_ascii=False))
+        return 1
     except Exception as error:
         code = str(error) if re.fullmatch('[a-z][a-z0-9_]{2,127}', str(error)) else type(error).__name__
         print(json.dumps({'status': 'failed', 'error': code}, ensure_ascii=False))
