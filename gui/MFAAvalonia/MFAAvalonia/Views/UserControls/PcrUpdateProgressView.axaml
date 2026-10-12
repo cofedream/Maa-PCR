@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="clr-namespace:MFAAvalonia.ViewModels.UsersControls.Settings"
+             x:Class="MFAAvalonia.Views.UserControls.PcrUpdateProgressView"
+             x:DataType="settings:VersionUpdateSettingsUserControlModel">
+    <Border Margin="16,12,16,4" Padding="16,12" CornerRadius="12"
+            Background="{DynamicResource SukiCardBackground}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Maa-PCR 稳定版更新" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding PcrUpdateStatus}" TextWrapping="Wrap" />
+                <ProgressBar Minimum="0" Maximum="100" Height="8"
+                             Value="{Binding PcrUpdateProgress}"
+                             IsIndeterminate="{Binding PcrUpdateIndeterminate}"
+                             IsVisible="{Binding !PcrCanCheck}"
+                             AutomationProperties.Name="Maa-PCR 更新进度" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8">
+                <Button Content="取消下载" Command="{Binding CancelPcrDownloadCommand}"
+                        IsVisible="{Binding PcrUpdateDownloading}" />
+                <Button Content="重试更新" Command="{Binding InstallPcrUpdateCommand}"
+                        IsVisible="{Binding PcrCanInstallOnline}" />
+                <Button Content="关闭提示" Command="{Binding DismissPcrUpdateCommand}"
+                        IsVisible="{Binding !PcrUpdateDownloading}" IsEnabled="{Binding PcrCanCheck}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

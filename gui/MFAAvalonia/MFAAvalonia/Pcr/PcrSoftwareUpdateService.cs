@@ -110,13 +110,15 @@ public static class PcrSoftwareUpdateService
 
     public static async Task InstallOnlineAsync()
     {
-        if (!ViewModel.PcrUpdateAvailable || !await ConfirmInstallAsync(false)) return;
         if (Interlocked.CompareExchange(ref operation, 1, 0) != 0) return;
         try
         {
+            if (!ViewModel.PcrUpdateAvailable || !await ConfirmInstallAsync(false)) return;
+            ViewModel.PcrUpdateVisible = true;
             ViewModel.PcrUpdateDownloading = true;
             ViewModel.PcrUpdateProgress = 0;
-            ViewModel.PcrUpdateStatus = "正在下载并校验更新…";
+            ViewModel.PcrUpdateIndeterminate = true;
+            ViewModel.PcrUpdateStatus = "正在连接 GitHub，准备下载更新…";
             using var cancellation = new CancellationTokenSource();
             downloadCancellation = cancellation;
             var result = await RunAsync("download", cancellation.Token);
@@ -133,6 +135,7 @@ public static class PcrSoftwareUpdateService
         {
             downloadCancellation = null;
             ViewModel.PcrUpdateDownloading = false;
+            ViewModel.PcrUpdateIndeterminate = false;
             Interlocked.Exchange(ref operation, 0);
             ViewModel.RefreshPcrUpdateAvailability();
         }
@@ -225,9 +228,12 @@ public static class PcrSoftwareUpdateService
             ToastHelper.Warn("Maa-PCR 更新", "请选择 Maa-PCR 完整运行包或补丁 ZIP。");
             return;
         }
-        if (!await ConfirmInstallAsync(false)) return;
         if (Interlocked.CompareExchange(ref operation, 1, 0) != 0) return;
-        try { await LaunchInstallerAsync(Path.GetFullPath(archive), false); }
+        try
+        {
+            if (!await ConfirmInstallAsync(false)) return;
+            await LaunchInstallerAsync(Path.GetFullPath(archive), false);
+        }
         catch (Exception ex) { ReportFailure(ex); }
         finally
         {
@@ -238,9 +244,12 @@ public static class PcrSoftwareUpdateService
 
     public static async Task RecoverAsync()
     {
-        if (!await ConfirmInstallAsync(true)) return;
         if (Interlocked.CompareExchange(ref operation, 1, 0) != 0) return;
-        try { await LaunchInstallerAsync(null, true); }
+        try
+        {
+            if (!await ConfirmInstallAsync(true)) return;
+            await LaunchInstallerAsync(null, true);
+        }
         catch (Exception ex) { ReportFailure(ex); }
         finally
         {
@@ -264,8 +273,11 @@ public static class PcrSoftwareUpdateService
             ActionButtonsPreset = SukiMessageBoxButtons.YesNo,
             IconPreset = SukiMessageBoxIcons.Information
         }, new SukiMessageBoxOptions { Title = recovery ? "恢复 Maa-PCR 更新" : "安装 Maa-PCR 稳定版" });
-        return result.Equals(SukiMessageBoxResult.Yes);
+        return InstallConfirmed(result);
     }
+
+    // Closing a Suki confirmation window returns null, which means cancel.
+    public static bool InstallConfirmed(object? result) => result is SukiMessageBoxResult.Yes;
 
     private static async Task LaunchInstallerAsync(string? archive, bool recovery)
     {
@@ -280,6 +292,8 @@ public static class PcrSoftwareUpdateService
         var launched = false;
         try
         {
+            ViewModel.PcrUpdateVisible = true;
+            ViewModel.PcrUpdateIndeterminate = true;
             ViewModel.PcrUpdateStatus = "正在准备外置维护器，完成后软件将关闭…";
             var args = recovery ? new[] { "--recover", "--parent-pid", Environment.ProcessId.ToString() }
                 : new[] { "--archive", archive!, "--parent-pid", Environment.ProcessId.ToString() };
@@ -294,6 +308,7 @@ public static class PcrSoftwareUpdateService
         {
             if (!launched)
             {
+                ViewModel.PcrUpdateIndeterminate = false;
                 lock (PcrProfileRunGate.StartGate) PcrProfileRunGate.UpdatePending = false;
                 Instances.RootViewModel.SetUpdating(false);
                 PcrProfileRunGate.Notify();
@@ -303,6 +318,9 @@ public static class PcrSoftwareUpdateService
 
     private static void ReportFailure(Exception ex)
     {
+        LoggerHelper.Warning($"PCR 更新操作失败：{ex.Message}");
+        ViewModel.PcrUpdateVisible = true;
+        ViewModel.PcrUpdateIndeterminate = false;
         ViewModel.PcrUpdateStatus = $"更新未启动或未完成，请查看更新记录。[{ex.Message}]";
         ToastHelper.Warn("Maa-PCR 更新", ViewModel.PcrUpdateStatus);
         RefreshRecoveryState();
@@ -389,7 +407,15 @@ public static class PcrSoftwareUpdateService
             {
                 var progress = JObject.Parse(line);
                 if (DownloadProgress(progress) is { } value)
-                    DispatcherHelper.PostOnMainThread(() => ViewModel.PcrUpdateProgress = value);
+                    DispatcherHelper.PostOnMainThread(() =>
+                    {
+                        if (!ViewModel.PcrUpdateDownloading) return;
+                        ViewModel.PcrUpdateProgress = value;
+                        ViewModel.PcrUpdateIndeterminate = value >= 100;
+                        ViewModel.PcrUpdateStatus = value >= 100
+                            ? "下载完成，正在校验更新文件…"
+                            : $"正在下载更新：{value:F0}%（{(long)progress["bytes"]! / 1048576.0:F1} / {(long)progress["total"]! / 1048576.0:F1} MiB）";
+                    });
             }
             catch (Newtonsoft.Json.JsonException) { }
         }

@@ -152,42 +152,47 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
 
 
 @pytest.mark.parametrize('trusted', [True, False])
-def test_r39_to_r41_patch_requires_pinned_baseline(case, monkeypatch, trusted):
+@pytest.mark.parametrize('base_revision,target_revision,base_version,target_version', [
+    (39, 41, 'v0.1.0', 'v0.1.2'), (41, 43, 'v0.1.2', 'v0.1.3'),
+])
+def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revision, target_revision, base_version, target_version):
     base, target, _, _, _ = case
-    for player, revision, version in ((base, 39, 'v0.1.0'), (target, 41, 'v0.1.2')):
+    for player, revision, version in ((base, base_revision, base_version), (target, target_revision, target_version)):
         metadata = builder.maintenance._read_json(player / builder.maintenance.MANIFEST)
         metadata['update'].update(revision=revision, version=version)
         save_manifest(player, metadata)
     baseline = base / builder.maintenance.MANIFEST
-    monkeypatch.setattr(builder, 'R39_MANIFEST_SHA256', builder.digest(baseline) if trusted else '0' * 64)
+    monkeypatch.setattr(builder, f'R{base_revision}_MANIFEST_SHA256', builder.digest(baseline) if trusted else '0' * 64)
+    patch_name = f'Maa-PCR-R{base_revision}-to-R{target_revision}.patch.zip'
     output = target.parent / 'artifacts'
     output.mkdir()
     if not trusted:
         with pytest.raises(ValueError, match='baseline_manifest_hash_mismatch'):
             builder.package_outputs(target, output, base_manifest=baseline)
-        assert not (output / 'Maa-PCR-R39-to-R41.patch.zip').exists()
+        assert not (output / patch_name).exists()
         return
     result = builder.package_outputs(target, output, base_manifest=baseline)
     assert 'bootstrap' not in result
     assert result['patches'][0]['base_manifest_sha256'] == builder.digest(baseline)
-    assert result['patches'][0]['name'] == 'Maa-PCR-R39-to-R41.patch.zip'
+    assert result['patches'][0]['name'] == patch_name
     builder.maintenance.apply_update(base, output / result['patches'][0]['name'], process_probe=lambda _: [])
     assert (base / builder.maintenance.MANIFEST).read_bytes() == (target / builder.maintenance.MANIFEST).read_bytes()
 
 
-def test_r41_release_requires_r39_baseline_before_sealing(case, monkeypatch):
+@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (43, 'v0.1.3', 41)])
+def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, version, base_revision):
     _, target, _, _, _ = case
     metadata = builder.maintenance._read_json(target / builder.maintenance.MANIFEST)
-    metadata['update'].update(revision=41, version='v0.1.2')
+    metadata['update'].update(revision=revision, version=version)
     save_manifest(target, metadata)
     check = target.parent / 'reviewed-acceptance.json'
-    builder.save(check, dict(accepted(), revision=41, expected_version='v0.1.2',
+    builder.save(check, dict(accepted(), revision=revision, expected_version=version,
                             accepted_owned_payload_sha256=owned_payload_sha256(metadata)))
     output = target.parent / 'release-output'
     monkeypatch.setattr(sys, 'argv', ['release_ci.py', '--player', str(target),
-                                    '--acceptance', str(check), '--tag', 'v0.1.2', '--output', str(output)])
+                                    '--acceptance', str(check), '--tag', version, '--output', str(output)])
     before = (target / builder.maintenance.MANIFEST).read_bytes()
-    with pytest.raises(ValueError, match='R41_requires_exact_R39_patch_base'):
+    with pytest.raises(ValueError, match=f'R{revision}_requires_exact_R{base_revision}_patch_base'):
         release_ci.main()
     assert not output.exists()
     assert (target / builder.maintenance.MANIFEST).read_bytes() == before

@@ -1,70 +1,20 @@
 {
   "schema_version": 1,
-  "revision": 41,
-  "expected_version": "v0.1.2",
-  "status": "passed",
-  "accepted_owned_payload_sha256": "a5d4d7369680383168a3e866b83e74aa5d69b990b10e0d4b289f8915746a635e",
+  "revision": 43,
+  "expected_version": "v0.1.3",
+  "status": "pending",
+  "accepted_owned_payload_sha256": null,
   "live_valid_game_days": 0,
   "candidate_to_baseline_ratio": null,
   "meaningful_speedup_reviewed": false,
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
   "reviewed_evidence_scope": {
-    "release_scope": "GitHub official Release index/error fix, release version labels, exact R39 patch base and release receipt upload only.",
-    "offline_tests": "Exact R41 CI public regression and bundled runtime probes passed; counts below. Local release/updater regression: 231 passed plus 17 subtests; final workflow upload contract: 4 passed.",
-    "public_tests": {
-      "tests": 2467,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 303
-    },
-    "bundled_runtime_tests": {
-      "tests": 3,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0
-    },
-    "gui": "R39 reviewed GUI acceptance reused for unchanged GUI source/build inputs; R41 GUI update contract checks passed in CI. Interface version label changed to 0.1.2-alpha. No new human button clicks or visual acceptance claimed.",
-    "reused_r39_acceptance_sha256": "f656dd7a6f04b30e3eb36d63f7622aa5486c3fe126aa634d527d2cca65031a30",
-    "unchanged_gui_build_source_rows": 840,
-    "isolated_update": "Exact R41 CI R39 delta and R40 full fallback applied in isolated directories, three synthetic private sentinels preserved and repeat delta refused. No real player state changed.",
-    "clean_build": "Exact successful main push CI artifact and matching source verified, owned program source/GUI inputs and archive hashes bound below; release promotes this payload without rebuilding.",
-    "proofs": [
-      {
-        "name": "CI_ARTIFACT_VERIFIED.json",
-        "sha256": "452491001222671e2ae11d648dda811655b6cea4992f23ba45a1537303cb7a74"
-      },
-      {
-        "name": "CI_RUN.json",
-        "sha256": "3abdb73b5400ed5a6b9aa9cb2548f442ec38387d7e563e250aeee6d94764325c"
-      },
-      {
-        "name": "CI_ARTIFACT.json",
-        "sha256": "0fbefa8e94a509be8fcf74a25a87853b466344386fe3aeb5ddb7bca36b6fedc7"
-      },
-      {
-        "name": "BASELINE_VERIFIED.json",
-        "sha256": "00f193ce4971fb3f82e68afe07aa622ae9c46a83793dacb3c129d3fdaa9cc73c"
-      }
-    ],
-    "live_performance_measured": false,
-    "real_release_download_update_verified": false,
-    "third_party_rights_independently_verified": false,
+    "release_scope": "Update confirmation null handling, operation guard, global progress and exact R41 patch baseline.",
     "new_human_gui_clicks": false,
+    "animation_timing_verified": false,
     "game_inputs": 0
-  },
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 38246138709,
-    "run_attempt": 1,
-    "artifact_id": 11745819954,
-    "source_commit": "6e2e74143fca5f3799ba34787d496820473ce3d5",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.2-win-x64.zip",
-      "size": 309358324,
-      "sha256": "0bdbf700a49854e24d33eef2bef2367459516e1eb3bd1b2c60704d1aa32abce2"
-    }
   }
 }

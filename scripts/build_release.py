@@ -25,6 +25,7 @@ from pcr_maa import player_maintenance as maintenance
 SDK_VERSION = '10.0.101'
 R38_MANIFEST_SHA256 = '59fa329ba5ac76de8e51ee10765573a7be737b81228137aa2aaf0cac55726668'
 R39_MANIFEST_SHA256 = 'b009f708728937026ef66828aef4e7c5d924f4de248f7eaaf7792dd168cdd6bd'
+R41_MANIFEST_SHA256 = '792ec2058f6ecb196832c996de9f188b159f0ecc33673a1f83054bda77f7cbd4'
 GUI_PROJECT = 'gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj'
 PAYLOAD_DIRS = ('src', 'vendor', 'assets', 'third_party', 'licenses', 'docs')
 PAYLOAD_SCRIPTS = ('pcr.py', 'validate-alpha-config.py', 'start-alpha-agent.py',
@@ -291,7 +292,8 @@ def package_outputs(player, output, base=None, base_manifest=None):
         if base:
             result = patcher.build_patch(base, player, patch)
         else:
-            expected = {38: R38_MANIFEST_SHA256, 39: R39_MANIFEST_SHA256}.get(base_version['revision'])
+            expected = {38: R38_MANIFEST_SHA256, 39: R39_MANIFEST_SHA256,
+                        41: R41_MANIFEST_SHA256}.get(base_version['revision'])
             if expected is None:
                 raise ValueError('unsupported_patch_baseline')
             result = patcher.build_patch_from_manifest(base_path, player, patch, expected)
@@ -470,8 +472,8 @@ def build(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--revision', type=int, default=41)
-    parser.add_argument('--version', default='v0.1.2')
+    parser.add_argument('--revision', type=int, default=43)
+    parser.add_argument('--version', default='v0.1.3')
     parser.add_argument('--dotnet', type=Path)
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--nuget-source', type=Path, help='optional official package cache/feed for offline builds')
@@ -479,7 +481,7 @@ def main(argv=None):
     parser.add_argument('--wheelhouse', type=Path, help='optional directory of hash-locked official wheels')
     baseline = parser.add_mutually_exclusive_group()
     baseline.add_argument('--base', type=Path, help='immutable exact manifest-bound patch baseline')
-    baseline.add_argument('--base-manifest', type=Path, help='exact public R38 or R39 manifest; installation verifies old files')
+    baseline.add_argument('--base-manifest', type=Path, help='exact public R38, R39 or R41 manifest; installation verifies old files')
     args = parser.parse_args(argv)
     try:
         print(json.dumps(build(args), ensure_ascii=False))

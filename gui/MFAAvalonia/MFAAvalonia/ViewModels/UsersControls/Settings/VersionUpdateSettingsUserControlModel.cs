@@ -61,6 +61,8 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(PcrCanCheck), nameof(PcrCanInstall), nameof(PcrCanInstallOnline))] private bool _pcrUpdateChecking;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(PcrCanCheck), nameof(PcrCanInstall), nameof(PcrCanInstallOnline))] private bool _pcrUpdateDownloading;
     [ObservableProperty] private double _pcrUpdateProgress;
+    [ObservableProperty] private bool _pcrUpdateVisible;
+    [ObservableProperty] private bool _pcrUpdateIndeterminate;
     public bool PcrCanCheck => !PcrUpdateChecking && !PcrUpdateDownloading && !PcrProfileRunGate.UpdatePending;
     public bool PcrCanInstall => PcrCanCheck && !PcrProfileRunGate.Busy;
     public bool PcrCanInstallOnline => PcrCanInstall && PcrUpdateAvailable && !PcrRecoveryRequired;
@@ -74,6 +76,10 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
     [RelayCommand] private Task CheckPcrUpdate() => PcrSoftwareUpdateService.CheckAsync();
     [RelayCommand] private Task InstallPcrUpdate() => PcrSoftwareUpdateService.InstallOnlineAsync();
     [RelayCommand] private void CancelPcrDownload() => PcrSoftwareUpdateService.CancelDownload();
+    [RelayCommand] private void DismissPcrUpdate()
+    {
+        if (PcrCanCheck) PcrUpdateVisible = false;
+    }
     [RelayCommand] private Task RecoverPcrUpdate() => PcrSoftwareUpdateService.RecoverAsync();
 
     public void RefreshDebugActionsVisibility()

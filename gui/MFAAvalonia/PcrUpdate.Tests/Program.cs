@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MFAAvalonia.Pcr;
 using Newtonsoft.Json.Linq;
+using SukiUI.MessageBox;
 
 if (args.Length != 1 || !Path.IsPathFullyQualified(args[0]))
 {
@@ -26,6 +27,20 @@ void Rejected(string json)
     catch (InvalidOperationException) { count++; return; }
     throw new InvalidOperationException("invalid_update_response_accepted");
 }
+Require(!PcrSoftwareUpdateService.InstallConfirmed(null), "closed_confirmation_cancels_without_null_reference");
+Require(PcrSoftwareUpdateService.InstallConfirmed(SukiMessageBoxResult.Yes), "explicit_yes_confirms_install");
+Require(!PcrSoftwareUpdateService.InstallConfirmed(SukiMessageBoxResult.No), "no_cancels_install");
+Require(!PcrSoftwareUpdateService.InstallConfirmed(SukiMessageBoxResult.Close), "close_cancels_install");
+Require(!PcrSoftwareUpdateService.InstallConfirmed("Yes"), "untyped_confirmation_is_not_authorization");
+var operation = typeof(PcrSoftwareUpdateService).GetField("operation", BindingFlags.Static | BindingFlags.NonPublic)!;
+operation.SetValue(null, 1);
+try
+{
+    await PcrSoftwareUpdateService.InstallOnlineAsync();
+    await PcrSoftwareUpdateService.RecoverAsync();
+    Require((int)operation.GetValue(null)! == 1, "busy_update_does_not_open_another_confirmation");
+}
+finally { operation.SetValue(null, 0); }
 PcrSoftwareUpdateService.RequireCheckResponse(JObject.Parse("{\"status\":\"up_to_date\",\"current_revision\":39}"));
 count++;
 PcrSoftwareUpdateService.RequireCheckResponse(JObject.Parse("{\"status\":\"update_available\",\"current_revision\":39,\"revision\":40,\"version\":\"v0.1.1\",\"asset\":{}}"));
