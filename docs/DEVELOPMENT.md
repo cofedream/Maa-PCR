@@ -4,7 +4,7 @@
 
 ## 版本与发布边界
 
-当前开发基线为 **v0.1.3 / R45**。本轮结构整理属于未发布修改，常用安装和正式发行资产保持不变。
+当前开发候选为 **v0.1.4 / R46**，正式基线为 v0.1.3 / R45。候选保持 release_staging / distribution_ready=false；常用 R45 和正式发行资产保持不变，候选验证通过后再安排升级。
 
 - `pyproject.toml` 是 Python 项目的版本元数据。
 - `scripts/build_release.py` 的 `--version`、`--revision` 决定候选包身份；当前默认值对应上述基线，不代表修改后的源码已经正式验收。
