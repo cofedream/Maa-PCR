@@ -1,7 +1,8 @@
 """Retain unknown outcomes while admitting a freshly confirmed daily cycle.
 
 This is a root-journal lifecycle record, never a claim of old game settlement.
-The caller holds the existing root lock. No controller or input is created here.
+The caller holds the existing root lock. Result closure uses only its guarded send;
+no controller is created here and old consumers are never dispatched.
 """
 from datetime import date, datetime
 from hashlib import sha256
@@ -117,3 +118,53 @@ def verify_historical_unknown(journal, original, end, game_day, device):
     require(sha256(actions.read_bytes()).hexdigest() == end['original_actions_sha256'],
             'recovery_actions_changed')
     verify_observation(end['recovery'], original, game_day, device)
+
+
+def load_execution_history(journal, game_day, device, gui_start_intent, report):
+    """Read history under the caller root lock; unknown outcomes stay unresolved."""
+    unresolved_evidence = original = None
+    from .onekey_history import read_history
+    try:
+        prior_complete, retry_of, prior_input_evidence = read_history(journal, game_day, device)
+    except ValueError as exc:
+        if str(exc) == 'unsettled_intent_any_day_no_resend':
+            from .onekey_reconcile import blocked_recovery
+            try:
+                report['recovery'] = blocked_recovery(journal)
+            except Exception as diagnostic_error:
+                report['recovery'] = dict(recovery_state='evidence_insufficient',
+                    execution_permitted=False, gaps=[str(diagnostic_error)])
+        from .onekey_history import stable_device
+        if (str(exc) != 'unsettled_intent_any_day_no_resend'
+                or not gui_start_intent or not stable_device(device)):
+            raise
+        report.update(original_execution_unresolved=True, retry_permitted=False,
+                      settlement_verified=False)
+        from .onekey_history import unresolved_observation_history
+        unresolved_evidence, original = unresolved_observation_history(journal, game_day, device)
+        report.update(original_intent_id=original['intent_id'], original_run_id=original['invocation_id'])
+        report['recovery'].update(current_input_state='readonly_navigation_only',
+            message='本次仅允许只读日程导航；原消费结果仍未知，原记录不结案，禁止重发消费者。')
+        prior_complete, retry_of, prior_input_evidence = set(), None, None
+    return prior_complete, retry_of, prior_input_evidence, unresolved_evidence, original
+
+
+def close_unresolved_dungeon(page, journal, original, reader, send):
+    """Close only the prior dungeon result; never settle or replay its consumer."""
+    # Only the dedicated dungeon reward page may be closed. Generic
+    # confirmations and an unassociated sweep summary remain blocked.
+    from .preset_execution import Journal as ActionJournal
+    previous = ActionJournal(journal.directory / 'actions' / original['intent_id']).events()
+    if previous[-1]['operation'] not in ('dungeon_confirm', 'dungeon_finish'):
+        raise ValueError('recovery_result_not_bound_to_dungeon')
+    reader.recovery_result_actions = {'dungeon_finish'}
+    page = send('dungeon_finish', page, targets=('sweep_result', 'schedule', 'home'))
+    if page['state'] == 'sweep_result':
+        reader.recovery_result_actions = {'dungeon_result'}
+        page = send('dungeon_result', page, targets=('schedule', 'home'))
+    reader.recovery_result_actions.clear()
+    if page['state'] == 'schedule':
+        page = send('close', page)
+    if page['state'] != 'home':
+        raise ValueError('recovery_requires_manual_return_home')
+    return page

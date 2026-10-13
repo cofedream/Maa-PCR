@@ -301,6 +301,8 @@ def build(app, output, *, bind_checkout=False, vc_redist=None, revision=8, playe
     required = {'Core', 'AppInterface',
         'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrRuntimePaths.cs',
         'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.cs',
+        'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.Session.cs',
+        'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrStartConsent.cs',
         'gui/MFAAvalonia/MFAAvalonia.Desktop/Program.cs'}
     if not required.issubset(fingerprints):
         raise ValueError('gui_fingerprint_incomplete')

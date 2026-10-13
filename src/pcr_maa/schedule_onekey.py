@@ -15,6 +15,7 @@ from maa.define import AlgorithmEnum
 from . import native
 from .game_day import BEIJING, current_game_day
 from .schedule import section_counts
+from .onekey_flow import scan_rows, execute_pending
 # Public compatibility alias; implementation lives in the history reader.
 from .onekey_history import settled_history
 
@@ -1047,63 +1048,12 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
                                 image_sha256=after['image_sha256'], native_task_id=receipt['task_id']))
             return after
 
-    def scan(page, *, expected=None):
-        catalog, count = {}, None
-        anchored = False
-        for _ in range(12):
-            if page['state'] != 'schedule':
-                raise ValueError('list_replaced_by_unknown_page')
-            if 'delegated' in page['sections']:
-                candidate = page['sections']['delegated']
-                if candidate['total'] != 9 or (count is not None and count != candidate):
-                    raise ValueError('delegated_scope_or_count_changed')
-                count, anchored = candidate, True
-            if anchored:
-                for key, row in sorted(page['rows'].items(), key=lambda pair: pair[1]['y']):
-                    state = row['state']
-                    if key in catalog and catalog[key] != state:
-                        raise ValueError('row_changed_during_scan')
-                    catalog[key] = state
-                if page['bottom']:
-                    if list(catalog) != list(ITEMS):
-                        raise ValueError('nine_row_inventory_incomplete_or_changed')
-                    if sum(s == 'complete' for s in catalog.values()) != count['completed']:
-                        raise ValueError('row_marks_counter_disagree')
-                    if expected is not None and catalog != expected:
-                        raise ValueError('nine_row_settlement_not_complete')
-                    return catalog, page
-            direction = 'down' if anchored or 'notifications' in page['sections'] else 'up'
-            index = sum(s.startswith(('down:', 'up:')) for s in report['sent'])
-            if index >= 24:
-                raise ValueError('scroll_budget_exhausted')
-            page = send(direction + ':' + str(index), page)
-        raise ValueError('inventory_scan_budget_exhausted')
-
     try:
         with journal.locked():
-            from .onekey_history import read_history
-            try:
-                prior_complete, retry_of, prior_input_evidence = read_history(journal, game_day, device)
-            except ValueError as exc:
-                if str(exc) == 'unsettled_intent_any_day_no_resend':
-                    from .onekey_reconcile import blocked_recovery
-                    try:
-                        report['recovery'] = blocked_recovery(journal)
-                    except Exception as diagnostic_error:
-                        report['recovery'] = dict(recovery_state='evidence_insufficient',
-                            execution_permitted=False, gaps=[str(diagnostic_error)])
-                from .onekey_history import stable_device
-                if (str(exc) != 'unsettled_intent_any_day_no_resend'
-                        or not gui_start_intent or not stable_device(device)):
-                    raise
-                report.update(original_execution_unresolved=True, retry_permitted=False,
-                              settlement_verified=False)
-                from .onekey_history import unresolved_observation_history
-                unresolved_evidence, original = unresolved_observation_history(journal, game_day, device)
-                report.update(original_intent_id=original['intent_id'], original_run_id=original['invocation_id'])
-                report['recovery'].update(current_input_state='readonly_navigation_only',
-                    message='本次仅允许只读日程导航；原消费结果仍未知，原记录不结案，禁止重发消费者。')
-                prior_complete, retry_of, prior_input_evidence = set(), None, None
+            from .schedule_recovery import load_execution_history
+            prior_complete, retry_of, prior_input_evidence, unresolved_evidence, original = (
+                load_execution_history(journal, game_day, device, gui_start_intent, report))
+            if unresolved_evidence is not None:
                 reader.readonly_unresolved = True
             if prior_input_evidence == 'parent_assisted_completed':
                 # The fixed historical completion is read-only on its game day.
@@ -1147,22 +1097,8 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
                     raise ValueError('context_observation_budget_setup_failed')
             page = read()
             if unresolved_evidence is not None and page['state'] == 'dungeon_finish':
-                # Only the dedicated dungeon reward page may be closed. Generic
-                # confirmations and an unassociated sweep summary remain blocked.
-                from .preset_execution import Journal as ActionJournal
-                previous = ActionJournal(journal.directory / 'actions' / original['intent_id']).events()
-                if previous[-1]['operation'] not in ('dungeon_confirm', 'dungeon_finish'):
-                    raise ValueError('recovery_result_not_bound_to_dungeon')
-                reader.recovery_result_actions = {'dungeon_finish'}
-                page = send('dungeon_finish', page, targets=('sweep_result', 'schedule', 'home'))
-                if page['state'] == 'sweep_result':
-                    reader.recovery_result_actions = {'dungeon_result'}
-                    page = send('dungeon_result', page, targets=('schedule', 'home'))
-                reader.recovery_result_actions.clear()
-                if page['state'] == 'schedule':
-                    page = send('close', page)
-                if page['state'] != 'home':
-                    raise ValueError('recovery_requires_manual_return_home')
+                from .schedule_recovery import close_unresolved_dungeon
+                page = close_unresolved_dungeon(page, journal, original, reader, send)
                 report['result_recovery'] = dict(sent=list(report['sent']), receipts=list(report['receipts']),
                                                 home_verified=True, original_settlement_verified=False)
                 report['sent'].clear()
@@ -1178,7 +1114,7 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
             # Settings are player-managed. Only the explicit diagnostic opens
             # them; this path observes fresh rows and requires this invocation's
             # explicit scope attestation before a pending batch can dispatch.
-            before, page = scan(page)
+            before, page = scan_rows(page, send, report['sent'])
             report['before_rows'] = before
             if any(before[k] != 'complete' for k in prior_complete):
                 raise ValueError('same_day_completed_row_regressed')
@@ -1204,34 +1140,8 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
                 raise ValueError('pending_items_not_authorized:' + ','.join(sorted(set(pending)-set(authorizations)))
                     + '；游戏原生一键不能跳过这些未授权项目。请补充本次对应项目的授权，或先在游戏内完成它们后重新开始；本次未发送一键。')
             if pending:
-                page = send('onekey', page, targets=post_consumer_targets(pending))
-                for item, stage in (('dungeon_skip', 'dungeon'), ('mana_skip', 'mana'), ('exp_skip', 'exp')):
-                    if item not in pending:
-                        continue
-                    if page['state'] != stage + '_confirm':
-                        raise ValueError('expected_specific_confirmation:' + stage)
-                    report.setdefault('quotes', {})[stage] = page.get('quote')
-                    page = send(stage + '_confirm', page, targets=(
-                        ('dungeon_finish', 'sweep_result') if stage == 'dungeon' else ('sweep_result',)))
-                    if stage == 'dungeon' and page['state'] == 'dungeon_finish':
-                        # The per-floor reward page is not the final sweep summary.
-                        # Close it once, then observe the existing summary/next page.
-                        next_targets = post_consumer_targets(pending, after=stage)
-                        page = send('dungeon_finish', page, targets=('sweep_result',) + next_targets)
-                        if page['state'] in next_targets:
-                            continue
-                    if page['state'] != 'sweep_result':
-                        raise ValueError('settlement_missing_no_resend:' + stage)
-                    page = send(stage + '_result', page, targets=post_consumer_targets(pending, after=stage))
-                if 'guild_like' in pending:
-                    if page['state'] != 'like_result':
-                        raise ValueError('expected_like_result')
-                    report['like_ap'] = page['quote']
-                    page = send('like_result', page, targets=('item_result', 'schedule'))
-                # Optional only once: some or all reward rows may already be done.
-                if page['state'] == 'item_result':
-                    page = send('item_result', page, targets=('schedule',))
-                after, page = scan(page, expected={key: 'complete' for key in ITEMS})
+                page = execute_pending(page, pending, send, report)
+                after, page = scan_rows(page, send, report['sent'], expected={key: 'complete' for key in ITEMS})
             else:
                 after = before
             report.update(after_rows=after, nine_rows_verified=True)
@@ -1247,6 +1157,7 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
                 if report['resources']['ap_delta'] != 0:
                     raise ValueError('unresolved_readonly_ap_changed')
                 check()
+                from .onekey_history import unresolved_observation_history
                 unresolved_observation_history(journal, game_day, device)
                 report.update(home_verified=True, outcome='current_complete_readonly',
                     current_observation_verified=True, input_evidence='current_readonly_observation',

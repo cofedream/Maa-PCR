@@ -4,9 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Layout;
-using Avalonia.Platform.Storage;
 using MaaFramework.Binding;
 using MaaFramework.Binding.Buffers;
 using MFAAvalonia.Extensions.MaaFW;
@@ -18,14 +15,12 @@ using Newtonsoft.Json.Linq;
 
 namespace MFAAvalonia.Pcr;
 
-public sealed record PcrStartConsent(string GameDay, string CountContext,
-    string[] ScheduleAuthorizations, bool AttestCurrentPlan, bool ConfirmNewCycle = false);
 public enum PcrDisplayRead { Activity, Input }
 public enum PcrManagerRead { Info, AppInfo, Instances }
 
 /// <summary>Single process owner. Each explicit button press creates a fresh child,
 /// controller and grant. Saved instance data can never create this object.</summary>
-public static class PcrAlphaOwner
+public static partial class PcrAlphaOwner
 {
     private static readonly object Gate = new();
     private static Session? current;
@@ -209,7 +204,7 @@ public static class PcrAlphaOwner
                 : Confirm != null ? await Confirm(prompt) : null;
             RequirePendingStart(attempt);
             if (consent == null) return;
-            consent = ValidateConsent(selection, (JObject)JObject.Parse(snapshot.Json)["config"]!, consent);
+            consent = PcrStartConsent.Validate(selection, (JObject)JObject.Parse(snapshot.Json)["config"]!, consent);
             var nowNode = vm.Processor.PreviewPcrTask();
             if (!JToken.DeepEquals(JToken.Parse(node.Param!), JToken.Parse(nowNode.Param!)))
                 throw new InvalidOperationException("Selection changed during confirmation; Start again");
@@ -564,15 +559,6 @@ public static class PcrAlphaOwner
             || target.Serial != (string?)connection["serial"])
             throw new InvalidOperationException("GUI 目标与当前 v3 配置不一致，请重新选择并核对");
     }
-    private static async Task<string?> SelectConfigurationDialog()
-    {
-        var storage = Instances.StorageProvider ?? throw new InvalidOperationException("本机配置文件选择器不可用");
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions {
-            Title = "选择独立 v3 MuMu 配置（只读核对，不迁移旧配置）", AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("JSON 配置") { Patterns = ["*.json"] }] });
-        return files.Count == 1 ? files[0].TryGetLocalPath() : null;
-    }
-
     // The snapshot contains only immutable text. Every consumer gets a fresh parse.
     private sealed record ValidatedConfig(string Json)
     {
@@ -826,283 +812,5 @@ public static class PcrAlphaOwner
             s.RawVerified = true;
             if (s.Mapping != null) s.MappingWatch = Task.Run(() => WatchMappingAsync(s));
         }
-    }
-    private sealed class Session(MaaProcessor processor, JObject selection, ValidatedConfig config, PcrStartConsent consent)
-    {
-        // Capture the test-only construction seam per session. Changing static
-        // hooks later cannot turn a production session into an offline one.
-        public readonly Func<JObject, MaaController>? OfflineControllerBuilder = OfflineAgentScript != null ? ControllerBuilder : null;
-        public readonly Func<string, string, AdbScreencapMethods, AdbInputMethods, string, MaaCustomController>? MuMuFactory = OfflineMuMuFactory;
-        public readonly string? AgentScript = OfflineAgentScript;
-        public readonly Func<PcrDisplayRead, CancellationToken, Task<string>>? DisplayReader = OfflineDisplayReader;
-        public readonly CancellationTokenSource Cancel = new();
-        public bool ValidatePhysicalViewport { get; init; } = true;
-        public PcrMuMuDisplay.Mapping? Mapping;
-        public TimeSpan MappingChecked;
-        public Task? MappingWatch;
-        public GuiTarget? Target;
-        public bool Preparing;
-        public bool IsOffline => AgentScript != null && ((OfflineControllerBuilder != null) ^ (MuMuFactory != null));
-        public readonly MaaProcessor Processor = processor;
-        public readonly JObject Selection = (JObject)selection.DeepClone();
-        public readonly ValidatedConfig Config = config;
-        public string? SelectedConfigPath { get; init; }
-        public string? ConfigFileHash { get; init; }
-        public bool PreparationOnly { get; init; }
-        public readonly PcrStartConsent Consent = consent;
-        public readonly Stopwatch Watch = Stopwatch.StartNew();
-        public readonly string Invocation = Guid.NewGuid().ToString("N");
-        public bool Revoked, Started, Appending, Consumed, RawVerified, ConstructionAttempted;
-        public long Root;
-        public string Uuid = "";
-        public MaaController? Controller;
-        public MaaTasker? BoundTasker;
-        public MaaResource? BoundResource;
-        public ChildSession? Child;
-    }
-    private sealed class ChildSession : IPlatformAgentSession, IPlatformAgentStartupStatus
-    {
-        private readonly PcrWindowsChild process = new();
-        private readonly Session session;
-        private int disposed;
-        private readonly object exitGate = new();
-        public string? StartupFailure
-        {
-            get
-            {
-                lock (exitGate)
-                    return disposed != 0 ? "PCR Agent session disposed" : process.StartupFailure;
-            }
-        }
-        public void CompleteStartup()
-        {
-            lock (exitGate)
-            {
-                if (disposed != 0) throw new ObjectDisposedException(nameof(ChildSession));
-                process.VerifyMembership();
-                if (StartupFailure is { } failure) throw new InvalidOperationException(failure);
-            }
-        }
-        public void RevokeAuthorization()
-        {
-            lock (exitGate)
-            {
-                // Existing grants are rejected by the next live source probe
-                // and native Stop. Keep EOF in the established disposal order;
-                // killing the server before AgentClient.Disconnect can deadlock.
-                if (disposed == 0 && !process.RevokeGrants()) Dispose();
-            }
-        }
-        public void RevokeInput()
-        {
-            lock (exitGate)
-            {
-                session.Revoked = true;
-                if (disposed == 0) { process.CloseInput(); RevokeAuthorization(); }
-            }
-        }
-        public ChildSession(Session owner, PlatformAgentStartRequest request, string root, string script)
-        {
-            session = owner;
-            // Publish before the first native allocation: even a failed constructor
-            // must leave an owner that Release can retry, blocking a new Start.
-            owner.Child = this;
-            void RevokeChannel(Task ended)
-            {
-                _ = ended.Exception;
-                try
-                {
-                    lock (Gate) { owner.Revoked = true; Monitor.PulseAll(Gate); RevokeAuthorization(); }
-                }
-                catch (Exception ex) { request.Output("error: PCR owner revoke: " + ex.GetType().Name); }
-            }
-            try
-            {
-                var arguments = owner.SelectedConfigPath is { } selectedPath
-                    ? new[] { "-B", script, request.Identifier, selectedPath }
-                    : new[] { "-B", script, request.Identifier };
-                process.Start(PcrRuntimePaths.ResolvePython(root), root, arguments);
-                _ = process.Send(owner.Config.Json).ContinueWith(RevokeChannel,
-                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-            }
-            catch
-            {
-                owner.Revoked = true;
-                Dispose(); // throws and retains this owner if exit/EOF is unproved
-                throw;
-            }
-            // Revocation must not wait for stderr EOF. These continuations are
-            // separate from the pipe tasks that Dispose waits on under Gate.
-            _ = process.StdoutCompletion.ContinueWith(RevokeChannel, TaskScheduler.Default);
-            _ = process.StderrCompletion.ContinueWith(RevokeChannel,
-                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    // Pipe pumps never enter Gate or call GUI code. Release may
-                    // hold Gate while waiting for native exit and both pipe EOFs.
-                    await foreach (var (error, line) in process.Lines.Reader.ReadAllAsync())
-                    {
-                        if (error) request.Output("error: " + line);
-                        else if (line.StartsWith("pcr-owner-request:", StringComparison.Ordinal))
-                        {
-                            var reply = Consume(JObject.Parse(line[18..]));
-                            await ((bool?)reply["ok"] == true
-                                ? process.SendGrant(reply.ToString(Formatting.None))
-                                : process.Send(reply.ToString(Formatting.None)));
-                        }
-                        else if (line.StartsWith("pcr-owner-source:", StringComparison.Ordinal))
-                        {
-                            var reply = CheckSource(JObject.Parse(line[17..]));
-                            await ((bool?)reply["ok"] == true
-                                ? process.SendGrant(reply.ToString(Formatting.None))
-                                : process.Send(reply.ToString(Formatting.None)));
-                        }
-                        else if (line.StartsWith("info:") || line.StartsWith("error:") || line.StartsWith("warning:")) request.Output(line);
-                    }
-                }
-                catch (Exception ex) { request.Output("error: PCR owner channel: " + ex.GetType().Name); }
-                finally { RevokeChannel(Task.CompletedTask); }
-            });
-        }
-        private JObject CheckSource(JObject request)
-        {
-            lock (Gate)
-            {
-                var reply = (JObject)request.DeepClone();
-                var valid = session == current && session.Consumed && !session.Revoked
-                    && session.Watch.Elapsed.TotalSeconds < 1800
-                    && (session.Mapping == null || (session.Watch.Elapsed - session.MappingChecked).TotalSeconds <= 15)
-                    && (long?)request["root_task_id"] == session.Root
-                    && (string?)request["controller_uuid"] == session.Uuid
-                    && (string?)request["invocation_id"] == session.Invocation
-                    && Guid.TryParseExact((string?)request["probe_id"], "N", out _)
-                    && BindingUnchanged(session);
-                if (!valid) session.Revoked = true;
-                reply["ok"] = valid;
-                return reply;
-            }
-        }
-        private JObject Consume(JObject request)
-        {
-            lock (Gate)
-            {
-                // Callback can precede AppendTask's managed return. Never call the
-                // SDK under this lock; registration has a bounded wait, no retry.
-                var wait = Stopwatch.StartNew();
-                while (session.Root == 0 && !session.Revoked && wait.Elapsed.TotalSeconds < 2)
-                    Monitor.Wait(Gate, 20);
-                if (session != current || session.PreparationOnly || session.Preparing || !session.IsOffline && session.Mapping == null || session.Revoked || session.Consumed || session.Root == 0
-                    || session.Mapping != null && (session.Watch.Elapsed - session.MappingChecked).TotalSeconds > 15
-                    || !BindingUnchanged(session)
-                    || session.Watch.Elapsed.TotalSeconds >= 1800
-                    || (long?)request["root_task_id"] != session.Root || (string?)request["controller_uuid"] != session.Uuid
-                    || !JToken.DeepEquals(request["combination"], session.Selection))
-                { session.Revoked = true; return new JObject { ["ok"] = false }; }
-                session.Consumed = true; Grants++;
-                var binding = session.Config.Binding();
-                var reply = new JObject { ["ok"] = true, ["fixed_binding"] = true, ["invocation_id"] = session.Invocation,
-                    ["root_task_id"] = session.Root, ["controller_uuid"] = session.Uuid,
-                    ["serial"] = binding["connection"]!["serial"],
-                    ["combination"] = session.Selection.DeepClone(), ["execute"] = true,
-                    ["game_day"] = session.Consent.GameDay, ["count_context"] = session.Consent.CountContext,
-                    ["remaining_seconds"] = 1800 - session.Watch.Elapsed.TotalSeconds,
-                    ["schedule_authorizations"] = new JArray(session.Consent.ScheduleAuthorizations),
-                    ["schedule_attest_current_plan"] = session.Consent.AttestCurrentPlan,
-                    ["schedule_confirm_new_cycle"] = session.Consent.ConfirmNewCycle };
-                if (binding["controller"] != null) reply["controller"] = binding["controller"]!.DeepClone();
-                else if (binding["mumu"] != null) reply["mumu"] = binding["mumu"]!.DeepClone();
-                else
-                {
-                    reply["input_display"] = binding["device"]!["input_display"];
-                    reply["screenshot_display"] = binding["device"]!["screenshot_display"];
-                }
-                return reply;
-            }
-        }
-        public void Dispose()
-        {
-            lock (exitGate)
-            {
-                if (disposed != 0) return;
-                session.Revoked = true;
-                process.Dispose();
-                disposed = 1; // only after Job zero, original root Wait and dual EOF
-            }
-        }
-    }
-    private static readonly string[] ScheduleItems = {"arena_coins", "princess_arena_coins", "dungeon_skip", "mana_skip", "exp_skip", "normal_gacha_free", "guild_like", "house_items", "memorial_rewards"};
-
-    private static (bool Day, bool Count, bool Schedule) ConsentRequirements(JObject selection, JObject config)
-    {
-        var modules = selection["selected_modules"]!.Values<string>().ToArray();
-        bool schedule = modules.Contains("schedule_onekey");
-        bool sweep = modules.Contains("event") || modules.Contains("abyss") || config["presets"]!.Any(p =>
-            (string?)p["kind"] != "normal" && modules.Contains((string?)p["kind"]) && (int?)p["target_per_stage"] > 0);
-        return (sweep || schedule, sweep, schedule);
-    }
-
-    private static PcrStartConsent ValidateConsent(JObject selection, JObject config, PcrStartConsent consent)
-    {
-        var needs = ConsentRequirements(selection, config);
-        // GUI requests fresh counter/completion observations, never a human
-        // assertion. Python derives the bookkeeping day with its game-day tool.
-        bool currentState = consent.CountContext == "gui-current-state";
-        if (currentState && ((int?)config["version"] is not (3 or 4) || consent.GameDay != ""))
-            throw new InvalidOperationException("当前状态语义只适用于本机 GUI 配置，日期由内部工具生成");
-        if (!currentState && (needs.Day && !DateOnly.TryParseExact(consent.GameDay, "yyyy-MM-dd", out _)
-            || needs.Count && consent.CountContext != "user-reported-unreset"))
-            throw new InvalidOperationException("本次游戏日及未重置次数声明无效");
-        if (consent.ConfirmNewCycle && (!currentState || !needs.Schedule))
-            throw new InvalidOperationException("日程恢复确认只适用于本次 GUI 日程启动。");
-        var auth = consent.ScheduleAuthorizations;
-        if (auth == null || (needs.Schedule
-            ? (!currentState && !consent.AttestCurrentPlan) || auth.Length == 0 || auth.Distinct().Count() != auth.Length || auth.Any(n => !ScheduleItems.Contains(n))
-            : consent.AttestCurrentPlan || auth.Length != 0))
-            throw new InvalidOperationException(needs.Schedule ? "日程设置：请至少选择一个有效且不重复的本次项目；CLI 仍须当前计划声明。" : "未选择日程：不能附带日程许可或声明。");
-        // An omitted reward-only date is derived and labelled by supported_daily.
-        // Never turn an irrelevant saved/checked field into a user assertion.
-        return consent with { GameDay = needs.Day ? consent.GameDay : "",
-            CountContext = needs.Count || currentState && needs.Schedule ? consent.CountContext : "" };
-    }
-
-    private static async Task<PcrStartConsent?> ConfirmDialog(JObject summary)
-    {
-        var panel = new StackPanel { Spacing = 8, Margin = new Avalonia.Thickness(16) };
-        string[] moduleIds = {"schedule_onekey", "event", "abyss", "deep", "rewards", "very_hard", "hard", "normal"};
-        string[] moduleNames = {"日程一键", "活动困难", "深渊前哨扫荡", "深域", "每日任务与礼物", "高难", "困难", "普通（本次次数）"};
-        var selected = summary["combination"]!["selected_modules"]!.Values<string>()
-            .Select(id => moduleNames[Array.IndexOf(moduleIds, id)]).ToList();
-        if ((bool?)summary["combination"]!["rewards_final"] == true) selected.Add("末尾补领");
-        var identity = summary["controller"] is { } controller ? $"标准 ADB；包：{controller["app_package"]}"
-            : summary["mumu"] is { } mumu
-            ? $"MuMu 实例：{mumu["index"]}；包：{mumu["app_package"]}；克隆：{mumu["app_cloned_index"]}"
-            : $"输入 display：{summary["device"]!["input_display"]}；截图 display：{summary["device"]!["screenshot_display"]}";
-        panel.Children.Add(new TextBlock { Text = $"设备：{summary["connection"]!["serial"]}\nADB：{summary["connection"]!["adb_path"]}\n{identity}\n本次选集：{string.Join(" → ", selected)}\n允许处理当次授权的未完成项目，不改玩家设置、已完成跳过。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
-        if (summary["configuration"] is { } configuration)
-        {
-            panel.Children.Add(new TextBlock { Text = $"本次配置：{summary["configuration_path"]}\n{configuration.ToString(Formatting.Indented)}",
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap });
-            panel.Children.Add(new TextBlock { Text = "确认后将只读核对当前 PCR 显示映射，连接所选设备并抓取新鲜画面。核对一致后会运行本次选集并产生业务输入（含获准领取或扫荡）；映射变化、断连或未知结算即停止，不重发。显示映射和本次许可仅用于当前会话，不保存。",
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap });
-        }
-        var needs = ConsentRequirements((JObject)summary["combination"]!,
-            (JObject)(summary["configuration"] ?? summary));
-        bool schedule = needs.Schedule;
-        string[] names = {"竞技场金币", "公主竞技场金币", "地下城跳过", "玛那探索", "经验探索", "普通免费扭蛋", "公会点赞", "公会之家道具", "追忆战场奖励"};
-        var checks = names.Select(n => new CheckBox { Content = "本次授权：" + n, IsChecked = false }).ToArray();
-        if (schedule) { foreach (var c in checks) panel.Children.Add(c); }
-        var window = new Window { Title = "PCR Alpha — 仅授权本次开始", Width = 620, Height = 740, Content = new ScrollViewer { Content = panel } };
-        var accept = new Button { Content = "确认当前配置与选集，请求本次 Start", HorizontalAlignment = HorizontalAlignment.Stretch };
-        var missing = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-        panel.Children.Add(missing);
-        accept.Click += (_, _) => {
-            if (schedule && !checks.Any(c => c.IsChecked == true))
-            { missing.Text = "日程设置：请至少选择一个本次项目；原生整组如有未选未完成项，将在一键前提示冲突。"; return; }
-            window.Close(new PcrStartConsent("", needs.Day ? "gui-current-state" : "", schedule ? ScheduleItems.Where((_, i) => checks[i].IsChecked == true).ToArray() : Array.Empty<string>(), false));
-        };
-        panel.Children.Add(accept);
-        return await window.ShowDialog<PcrStartConsent?>(Instances.RootView);
     }
 }

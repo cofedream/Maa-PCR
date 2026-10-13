@@ -132,6 +132,7 @@ try
     Dispatcher.UIThread.RunJobs();
     Require(ReferenceEquals(viewModel.ActiveTab, labyrinth) && labyrinth.IsActive && !daily.IsActive, "normal_selection_can_return_to_original");
     Require(PcrAlphaOwner.ControllerCreations == 0 && PcrAlphaOwner.AgentCreations == 0 && PcrAlphaOwner.Grants == 0 && PcrAlphaOwner.SessionCreations == 0, "no_device_or_run_created");
+    AlphaOwnerChecks.Run();
     Console.WriteLine($"PCR profile switch checks passed: {count}; final ActiveTab notifications={notifications}; device/controller/owner starts=0");
     return 0;
 }

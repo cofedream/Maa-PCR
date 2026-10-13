@@ -163,6 +163,8 @@ def crt_build_inputs(tmp_path, monkeypatch):
                     'AppInterface': hashlib.sha256((app/'interface.json').read_bytes()).hexdigest()}
     for name in ('gui/MFAAvalonia/MFAAvalonia/Pcr/PcrRuntimePaths.cs',
                  'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.cs',
+                 'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.Session.cs',
+                 'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrStartConsent.cs',
                  'gui/MFAAvalonia/MFAAvalonia.Desktop/Program.cs'):
         path = tmp_path/name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -252,6 +254,25 @@ def test_required_runtime_inputs_missing_does_not_create_output(crt_build_inputs
         candidate.build(app, output, vc_redist=crt)
 
     assert missing_name in str(error.value).replace('\\', '/')
+    assert not output.exists()
+
+
+@pytest.mark.parametrize('name', ['PcrAlphaOwner.Session.cs', 'PcrStartConsent.cs'])
+@pytest.mark.parametrize('fault', ['missing_fingerprint', 'changed_source'])
+def test_split_owner_sources_must_match_candidate(crt_build_inputs, name, fault):
+    app, output, crt = crt_build_inputs
+    relative = 'gui/MFAAvalonia/MFAAvalonia/Pcr/' + name
+    if fault == 'missing_fingerprint':
+        path = app.parent / 'fingerprints.json'
+        fingerprints = json.loads(path.read_text(encoding='utf-8'))
+        del fingerprints[relative]
+        path.write_text(json.dumps(fingerprints), encoding='utf-8')
+        expected = 'gui_fingerprint_incomplete'
+    else:
+        (candidate.ROOT / relative).write_bytes(b'changed after compilation')
+        expected = 'gui_source_or_payload_changed'
+    with pytest.raises(ValueError, match=expected):
+        candidate.build(app, output, vc_redist=crt)
     assert not output.exists()
 
 
