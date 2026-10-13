@@ -18,8 +18,13 @@ using MFAAvalonia.ViewModels.Pages;
 
 try
 {
-// Exercise the real two-way selector and ViewModel without constructing a
-// controller, starting an owner, or reading the player's installed settings.
+if (args.Length != 3)
+    throw new ArgumentException("Usage: PcrProfileSwitch.Tests <source-root> <isolated-fixture-directory> <development-python>");
+// Initialize rendering services for log themes without creating a window or the product App.
+AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
+Application.Current!.Styles.Add(new SukiUI.SukiTheme());
+// Exercise the real selector and Owner using isolated fixtures without allocating
+// a controller or reading the player's installed settings.
 var viewModel = (InstanceTabBarViewModel)RuntimeHelpers.GetUninitializedObject(typeof(InstanceTabBarViewModel));
 var labyrinth = (InstanceTabViewModel)RuntimeHelpers.GetUninitializedObject(typeof(InstanceTabViewModel));
 var daily = (InstanceTabViewModel)RuntimeHelpers.GetUninitializedObject(typeof(InstanceTabViewModel));
@@ -133,12 +138,13 @@ try
     Require(ReferenceEquals(viewModel.ActiveTab, labyrinth) && labyrinth.IsActive && !daily.IsActive, "normal_selection_can_return_to_original");
     Require(PcrAlphaOwner.ControllerCreations == 0 && PcrAlphaOwner.AgentCreations == 0 && PcrAlphaOwner.Grants == 0 && PcrAlphaOwner.SessionCreations == 0, "no_device_or_run_created");
     AlphaOwnerChecks.Run();
-    Console.WriteLine($"PCR profile switch checks passed: {count}; final ActiveTab notifications={notifications}; device/controller/owner starts=0");
+    AlphaOwnerAsyncChecks.Run(processor, taskViewModel, manager, CheckBlocked, args);
+    Console.WriteLine($"PCR profile switch checks passed: {count}; final ActiveTab notifications={notifications}; controller/agent/grant starts=0");
     return 0;
 }
 catch (Exception error)
 {
-    Console.Error.WriteLine("PCR profile switch checks failed: " + error.Message);
+    Console.Error.WriteLine("PCR profile switch checks failed: " + error);
     return 1;
 }
 finally

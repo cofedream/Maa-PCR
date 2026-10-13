@@ -9,5 +9,6 @@
   <ItemGroup>
     <Reference Include="$(PcrCoreDirectory)/*.dll" />
     <Content Include="$(PcrNativeDirectory)/*.dll" Link="runtimes/win-x64/native/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(PcrCoreDirectory)/libSkiaSharp.dll;$(PcrCoreDirectory)/libHarfBuzzSharp.dll;$(PcrCoreDirectory)/av_libglesv2.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

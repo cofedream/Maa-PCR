@@ -42,7 +42,8 @@ jobs:
           $native = [IO.Path]::GetFullPath((Join-Path (Get-Location) '.runtime/ci/build/player/runtimes/win-x64/native'))
           dotnet run --project gui/MFAAvalonia/PcrLabyrinthCredentials.Tests/PcrLabyrinthCredentials.Tests.csproj --configuration Release -p:PcrCoreDirectory=$core -p:PcrNativeDirectory=$native -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -- $evidence $source | Tee-Object -FilePath .runtime/ci/credentials-checks.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet run --project gui/MFAAvalonia/PcrProfileSwitch.Tests/PcrProfileSwitch.Tests.csproj --configuration Release -p:PcrCoreDirectory=$core -p:PcrNativeDirectory=$native -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true | Tee-Object -FilePath .runtime/ci/profile-checks.log
+          $python = (Get-Command python).Source
+          dotnet run --project gui/MFAAvalonia/PcrProfileSwitch.Tests/PcrProfileSwitch.Tests.csproj --configuration Release -p:PcrCoreDirectory=$core -p:PcrNativeDirectory=$native -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -- $source $evidence $python | Tee-Object -FilePath .runtime/ci/profile-checks.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Bundled Runtime Checks
         run: |

@@ -14,21 +14,32 @@
 
 ## 本地检查
 
-使用 CPython 3.13 和 `global.json` 固定的 .NET SDK。Python 开发依赖从 `requirements-dev.txt` 安装并校验哈希；GUI 使用 Release 锁文件。复用匹配的本地环境和缓存即可，无需修改玩家运行时。
+使用完整的 **CPython 3.13**（CI 为 3.13.16）和 `global.json` 固定的 .NET SDK。Python 开发依赖按 `requirements-dev.txt` 校验哈希安装；GUI 依赖预先准备到本地 NuGet 缓存。不要使用玩家的嵌入式 Python 做完整开发测试，它可能缺少 `venv` 或忽略子进程的 `PYTHONPATH`。
+
+统一入口为 `scripts/verify.py`，默认执行公开 Python 回归：
 
 ```powershell
-python -X utf8 -B -m pytest -p scripts.public_test_policy -m "not private_replay"
-dotnet build gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj -c Release -r win-x64 -p:Platform=x64 -p:RestoreLockedMode=true -p:UsedAvaloniaProducts=
-dotnet run --project gui/MFAAvalonia/PcrUpdate.Tests/PcrUpdate.Tests.csproj -c Release -r win-x64 -p:Platform=x64 -p:RestoreLockedMode=true -p:UsedAvaloniaProducts= -- "$((Get-Location).Path)/.runtime/gui-checks"
+python -X utf8 -B scripts/verify.py public
+python -X utf8 -B scripts/verify.py gui
+python -X utf8 -B scripts/verify.py all
 ```
 
-涉及启动 owner、配置或凭据时，还要运行 `PcrProfileSwitch.Tests`（包含 owner 契约）和 `PcrLabyrinthCredentials.Tests`。这两个检查引用上一步生成的 Core，使用 Release 锁文件且不传 `--runtime`；完整参数与 CI 顺序见 [Windows 检查工作流](../.github/workflows/ci.yml)。凭据检查使用隔离的合成配置和当前 Windows 用户的 DPAPI。
+- `public` 使用 `scripts.public_test_policy`，明确排除 `private_replay`，不要求 .NET。
+- `gui` 校验 SDK 精确版本，依次离线锁定恢复、Release 构建桌面程序，运行 `PcrUpdate.Tests`、`PcrProfileSwitch.Tests`（包括 owner 契约）和 `PcrLabyrinthCredentials.Tests`。每组检查使用的 Core 哈希必须与桌面构建一致。
+- `all` 执行上述两组；前置条件或任一步失败就停止并返回非零退出码。`passed` 只表示所选范围的命令成功，不把跳过、未选中或缺失的私有回放计作通过。
 
-测试禁止发现或构造真实 ADB 控制器。私有截图缺失与未选回放不算通过。GUI 构建、离线契约检查和真实游戏验收是不同证据；本轮只进行前两者。构建与测试输出保留在 checkout 的 `.runtime` 或 GUI 已忽略的 `bin/obj`，不复制到玩家安装。
+入口固定使用所在 checkout 作为源码根目录，不依赖调用方当前目录。通过 `--dotnet` 指定 SDK 可执行文件，通过 `--nuget-cache` 指定已有包缓存；不指定时分别使用 PATH 和 `NUGET_PACKAGES`（未设置则为用户 `.nuget/packages`）。入口不安装依赖、不联网恢复、不打包、不连接设备、不复制到玩家安装。缺依赖时先按锁文件单独准备环境，再重新运行。
+
+每次运行的命令、退出码、日志、公开测试 XML 和 `result.json` 保存在 `.runtime/verification/<UTC时间>/`；入口创建的合成配置和临时环境也在该目录；现有 Python 夹具仍复用 `.runtime/confirmation-timing-work` 保存原生日志和部分临时文件。GUI 编译产物使用源码工程已忽略的 `bin/obj`。凭据检查需要当前 Windows 用户的 DPAPI，使用合成凭据；若运行权限环境不支持 DPAPI，保留失败日志并在正常用户上下文重跑，不能标成通过。
+
+启动边界测试调用真实 RequestStartAsync 和 Toggle 停止入口，覆盖映射读取期间的停止、设备/配置切换阻止、目标或配置漂移拒绝、取消后重启；断言控制器、Agent 和授权均未创建。它使用合成显示信息与配置，不覆盖已运行任务的后台 StopInternal 清理。
+
+测试禁止发现或构造真实 ADB 控制器。GUI 构建、离线契约检查和真实游戏验收是不同证据。此入口覆盖前两者；发行候选、内置运行时检查和实机验收仍按 [Windows 检查工作流](../.github/workflows/ci.yml) 及发行流程执行。
 
 ## 核心职责
 
 - `schedule_onekey.py`：公开入口、当前会话观察、输入守卫与原子账本生命周期。
+- `onekey_page.py`：同帧页面识别、行与设置标签、一次性输入守卫；日期校验继续使用调度模块的同一历史上下文。旧模块的类与常量导入保持兼容。
 - `onekey_flow.py`：九行清点及正常日程后继顺序；只通过调用方的受保护 `send` 执行。
 - `schedule_recovery.py`：历史未知状态、受限结果关闭、新周期证明；不把旧未知改成已结算。
 - `PcrAlphaOwner.cs`：唯一启动 owner 与权限生命周期。
