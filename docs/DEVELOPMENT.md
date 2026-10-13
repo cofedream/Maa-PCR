@@ -4,12 +4,12 @@
 
 ## 版本与发布边界
 
-当前开发候选为 **v0.1.4 / R46**，正式基线为 v0.1.3 / R45。候选保持 release_staging / distribution_ready=false；常用 R45 和正式发行资产保持不变，候选验证通过后再安排升级。
+当前源码版本为 **v0.1.4 / R46**，升级基线为 v0.1.3 / R45。新构建保持 release_staging / distribution_ready=false；精确载荷验收通过后才封装发布。已安装版本以安装目录的 manifest 为准。
 
 - `pyproject.toml` 是 Python 项目的版本元数据。
-- `scripts/build_release.py` 的 `--version`、`--revision` 决定候选包身份；当前默认值对应上述基线，不代表修改后的源码已经正式验收。
+- `scripts/build_release.py` 的 `--version`、`--revision` 决定候选包身份；当前默认值对应上述源码版本，不代表修改后的源码已经正式验收。
 - `package-manifest.json` 的 `update.version` / `update.revision` 决定玩家实际安装版本；MFAAvalonia 的 2.16.x 是上游 GUI 组件版本。
-- `delivery/acceptance.json` 只证明绑定的精确旧提交和载荷。新改动不得借用旧验收晋级；后续正式发行需要新的修订号、候选及受影响验证。
+- `delivery/acceptance.json` 只证明其中修订号对应的精确提交和载荷。新改动不得借用旧验收晋级；后续正式发行需要新的修订号、候选及受影响验证。
 - 已发布范围见 [发布说明](RELEASE_STATUS.md)，历史记录保留当时的版本，不批量替换。
 
 ## 本地检查
