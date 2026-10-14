@@ -70,6 +70,8 @@ class OneKeyPage(CustomRecognition):
         self.gui_start_intent = gui_start_intent is True
         self.onekey_guard_used = False
         self.dungeon_finish_guard_used = False
+        self.exploration_stage = None
+        self.exploration_skip_used = set()
         self.readonly_unresolved = False
         self.recovery_result_actions = set()
 
@@ -116,7 +118,7 @@ class OneKeyPage(CustomRecognition):
         import json
         kind = json.loads(argv.custom_recognition_param)
         permitted = self.allowed_action == kind
-        if kind != 'observe':
+        if kind not in ('observe', 'skip_result_ready'):
             self.allowed_action = None  # Any failed/unknown guard consumes this dispatch.
         detail = dict(state='unknown', reason='unverified', evidence={})
         try:
@@ -142,6 +144,13 @@ class OneKeyPage(CustomRecognition):
                 return None
         if kind == 'observe':
             return self.AnalyzeResult([0, 0, 1280, 720], detail)
+        if kind == 'skip_result_ready':
+            if (self.allowed_action in ('mana_skip_finish', 'exp_skip_finish')
+                    and self.exploration_stage == self.allowed_action.split('_')[0]
+                    and detail['state'] == 'sweep_result'
+                    and detail.get('evidence', {}).get('OneKeyGuard_sweep_result', {}).get('hit') is True):
+                return self.AnalyzeResult([0, 0, 1280, 720], detail)
+            return None
         required_state = {
             'enter': 'home', 'onekey': 'schedule', 'close': 'schedule',
             'up': 'schedule', 'down': 'schedule', 'settings_open': 'schedule',
@@ -150,6 +159,7 @@ class OneKeyPage(CustomRecognition):
             'exp_confirm': 'exp_confirm', 'dungeon_result': 'sweep_result',
             'dungeon_finish': 'dungeon_finish',
             'mana_result': 'sweep_result', 'exp_result': 'sweep_result',
+            'mana_skip_finish': 'sweep_animation', 'exp_skip_finish': 'sweep_animation',
             'like_result': 'like_result', 'item_result': 'item_result',
         }.get(kind)
         if kind == 'dungeon_finish':
@@ -177,6 +187,16 @@ class OneKeyPage(CustomRecognition):
         if (not permitted or not matches
                 or required_state is None or detail['state'] != required_state):
             return None
+        if kind in ('mana_skip_finish', 'exp_skip_finish'):
+            stage = kind.split('_')[0]
+            if self.exploration_stage != stage or stage in self.exploration_skip_used:
+                return None
+            self.exploration_skip_used.add(stage)
+            return self.AnalyzeResult(detail['skip_box'], detail)
+        if kind in ('mana_confirm', 'exp_confirm'):
+            self.exploration_stage = kind.split('_')[0]
+        elif kind in ('mana_result', 'exp_result'):
+            self.exploration_stage = None
         return self.AnalyzeResult([0, 0, 1280, 720], detail)
 
     def read(self, context, image, detail):
@@ -194,6 +214,13 @@ class OneKeyPage(CustomRecognition):
             if not reco(name).hit:
                 raise ValueError('unverified:' + name)
 
+        if reco('HomeDataConnection').hit:
+            raise ValueError('page_connection_in_progress')
+        if self.exploration_stage is not None:
+            animation = reco('ExecSweepSkipGuard')
+            if animation.hit:
+                detail.update(state='sweep_animation', reason=None, skip_box=list(animation.box))
+                return
         words = words_from(reco('OneKeyOCR'))
         detail['words'] = words
         def region_number(pattern, roi):
@@ -201,8 +228,6 @@ class OneKeyPage(CustomRecognition):
             if not word:
                 raise ValueError('unreadable_number_in:' + str(roi))
             return text(word).replace(',', '')
-        if reco('HomeDataConnection').hit:
-            raise ValueError('page_connection_in_progress')
         titles = {text(w) for w in words if w['score'] >= .8}
         if one(words, '计划整理', [530, 30, 230, 60]):
             self.read_settings(words, reco, require, detail)

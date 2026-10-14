@@ -23,6 +23,8 @@ INPUTS = {
     'OneKeyQuickDungeonConfirm': ([785, 493], 1),
     'OneKeyQuickManaConfirm': ([785, 493], 1),
     'OneKeyQuickExpConfirm': ([785, 493], 1),
+    'OneKeyQuickManaSkipFinish': ([502, 608, 275, 60], 1),
+    'OneKeyQuickExpSkipFinish': ([502, 608, 275, 60], 1),
     'OneKeyQuickDungeonFinish': ([640, 640], 1),
     'OneKeyQuickSweepResult': ([640, 640], 3),
     'OneKeyQuickLimitedShopCancel': ([790, 634], 3),
@@ -98,6 +100,7 @@ def verified(result, *, game_day, device, authorizations, invocation_id=None):
             return False
         counts = dict.fromkeys(INPUTS, 0)
         shop_after_sweep = False
+        exploration_stage, skip_awaiting_result = None, False
         passive = {'OneKeyQuickPrepare', 'OneKeyQuickReady', 'OneKeyQuickUnavailable',
                    'OneKeyQuickCloseOnly', 'OneKeyQuickFinished', 'OneKeyQuickHome',
                    'OneKeyQuickHomeReady'}
@@ -111,16 +114,31 @@ def verified(result, *, game_day, device, authorizations, invocation_id=None):
                 if (node['completed'] is not True or action.get('name') != name
                         or action.get('success') is not True):
                     return False
+                if skip_awaiting_result and name != 'OneKeyQuickSweepResult':
+                    return False
                 if name not in INPUTS:
                     if name not in passive or action.get('raw') not in (None, {}):
                         return False
                     continue
                 point, limit = INPUTS[name]
                 counts[name] += 1
-                if (counts[name] > limit
-                        or action['raw'] != dict(point=point, contact=0, pressure=1)):
+                if name in ('OneKeyQuickManaSkipFinish', 'OneKeyQuickExpSkipFinish'):
+                    stage = 'mana' if name == 'OneKeyQuickManaSkipFinish' else 'exp'
+                    if exploration_stage != stage:
+                        return False
+                    skip_awaiting_result = True
+                    # The same-frame OCR box supplies this animation button.
+                    actual = action['raw'].get('point')
+                    if (type(actual) is not list or len(actual) != 2
+                            or not all(type(v) is int for v in actual)
+                            or not (point[0] <= actual[0] < point[0] + point[2]
+                                    and point[1] <= actual[1] < point[1] + point[3])):
+                        return False
+                    point = actual
+                if counts[name] > limit or action['raw'] != dict(point=point, contact=0, pressure=1):
                     return False
                 if name == 'OneKeyQuickSweepResult':
+                    exploration_stage, skip_awaiting_result = None, False
                     shop_after_sweep = True
                 elif name == 'OneKeyQuickLimitedShopCancel':
                     if not shop_after_sweep:
@@ -128,8 +146,13 @@ def verified(result, *, game_day, device, authorizations, invocation_id=None):
                     shop_after_sweep = False
                 else:
                     shop_after_sweep = False
+                    if name == 'OneKeyQuickManaConfirm':
+                        exploration_stage = 'mana'
+                    elif name == 'OneKeyQuickExpConfirm':
+                        exploration_stage = 'exp'
         return (counts['OneKeyQuickStart'] == int(executed)
                 and counts['OneKeyQuickClose'] == 1
+                and not skip_awaiting_result
                 and (executed or not any(counts[n] for n in INPUTS
                     if n not in ('OneKeyQuickEnter', 'OneKeyQuickAdventureHome', 'OneKeyQuickClose'))))
     except (KeyError, TypeError, ValueError, AttributeError):

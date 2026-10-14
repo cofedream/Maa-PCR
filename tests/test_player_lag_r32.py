@@ -78,12 +78,32 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
   'schedule_onekey.json':'fb967f075c3f724c37d86132d8591aa16aebae65a82d7354965c5c596e9f6d97',
   'schedule_quick.json':'995834f93c4c3278fbf3899576923de9ac69c2377a0029b8214f082f71bdf6c4',
  }
+ # R50 adds guarded result-only branches; all existing guard fields stay frozen.
+ additions={
+  'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish'},
+  'preset_execution.json':{'ExecSweepSkipButton','ExecSweepAnimationRound','ExecSweepAnimationExp',
+                           'ExecSweepAnimationPanel','ExecSweepSkipGuard','ExecSweepSkipFinish'},
+  'schedule_onekey.json':{'OneKeyDo_mana_skip_finish','OneKeyDo_exp_skip_finish',
+                         'OneKeyInput_mana_skip_finish','OneKeyInput_exp_skip_finish','OneKeySkipResultReady'},
+  'schedule_quick.json':{'OneKeyQuickManaSkipFinish','OneKeyQuickExpSkipFinish'},
+ }
+ branches={'preset_execution.json':{'ExecResultStart':'ExecSweepSkipFinish'},
+           'schedule_quick.json':{'OneKeyQuickManaConfirm':'OneKeyQuickManaSkipFinish',
+                                 'OneKeyQuickExpConfirm':'OneKeyQuickExpSkipFinish'}}
  fields=('max_hit','repeat','threshold','action','target','next','on_error')
  for filename,expected in baseline.items():
   pipeline=json.loads((native.RESOURCE/'pipeline'/filename).read_text(encoding='utf-8'))
+  added=additions.get(filename,set())
+  assert added<=pipeline.keys()
+  for name in added:
+   if pipeline[name].get('action')=='Click':
+    assert pipeline[name].get('max_hit')==1,name
   guards={name:{field:node.get(field) for field in fields}
           | ({'timeout':60000} if node.get('timeout')==60000 else {})
           for name,node in pipeline.items()
-          if isinstance(node,dict) and name!='PresetReadbackStart'}
+          if isinstance(node,dict) and name!='PresetReadbackStart' and name not in added}
+  for name,branch in branches.get(filename,{}).items():
+   assert guards[name]['next'].count(branch)==1
+   guards[name]['next']=[target for target in guards[name]['next'] if target!=branch]
   encoded=json.dumps(guards,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()
   assert hashlib.sha256(encoded).hexdigest()==expected,filename

@@ -1337,6 +1337,7 @@ class CharacterRecognition(CustomRecognition):
                 for name in ('LabyRoleRewardTitle','LabyRoleRewardRemaining'):
                     seen=context.run_recognition(name,argv.image)
                     if seen is None or not seen.hit:return None
+                remaining_result=seen
                 slot=params.get('expected_slot');names={}
                 for index in range(3) if slot is None else (slot,):
                     seen=context.run_recognition('LabyRoleRewardName'+str(index),argv.image)
@@ -1344,7 +1345,7 @@ class CharacterRecognition(CustomRecognition):
                     names[index]=None if seen is None else raw.get('filtered',()) if seen.hit and type(raw) is dict else ()
                 observation=self.recognizer.reward_offers(argv.image,slot=slot,name_words=names)
                 if slot is None:
-                    remaining=_native_word(context.run_recognition('LabyRoleRewardRemaining',argv.image))
+                    remaining=_native_word(remaining_result)
                     match=re.fullmatch(r'还剩([1-9][0-9]*)次',remaining['text']) if remaining else None
                     if match is None:return None
                     observation['remaining']=int(match.group(1))

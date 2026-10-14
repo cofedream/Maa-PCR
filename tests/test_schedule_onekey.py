@@ -1517,7 +1517,7 @@ def test_process_restart_without_authorization_cannot_execute():
 def test_pipeline_inputs_are_one_shot_native_guards_and_default_readonly():
     pipeline = json.loads((native.RESOURCE / 'pipeline/schedule_onekey.json').read_text(encoding='utf-8'))
     inputs = {k: v for k, v in pipeline.items() if v.get('action') in ('Click', 'Swipe')}
-    assert len(inputs) == 17
+    assert len(inputs) == 19
     for name, node in inputs.items():
         assert name.startswith('OneKeyInput_')
         assert node['recognition'] == 'Custom' and node['custom_recognition'] == 'OneKeyPage'

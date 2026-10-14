@@ -605,7 +605,7 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
             if observation_source() != source:
                 raise ValueError('unresolved_observation_source_changed')
 
-    def run(entry, *, limit=None):
+    def run(entry, *, limit=None, reset_hits=()):
         nonlocal last_capture
         check()
         read_deadline = min(deadline, limit) if limit is not None else deadline
@@ -613,7 +613,7 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
             raise ValueError('audit_transition_read_budget_exhausted')
         token = native.RUN_DEADLINE.set(min(native.RUN_DEADLINE.get(), read_deadline))
         try:
-            result = native.run(tasker, entry)
+            result = native.run(tasker, entry, reset_hits=reset_hits) if reset_hits else native.run(tasker, entry)
         finally:
             native.RUN_DEADLINE.reset(token)
         report['receipts'].append(dict(entry=entry, native=result, reading=reader.last))
@@ -684,9 +684,19 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
             if base == 'onekey':
                 report['one_key_attempted'] = True
             report['native_input_state'] = 'unknown'
-            receipt = run('OneKeyDo_' + base)
+            receipt = run('OneKeyDo_' + base, reset_hits=(
+                ('OneKeyInput_' + base, 'OneKeySkipResultReady')
+                if base in ('mana_skip_finish', 'exp_skip_finish') else ()))
+            result_already_ready = (base in ('mana_skip_finish', 'exp_skip_finish')
+                and completed(receipt, 'OneKeySkipResultReady')
+                and (reader.last or {}).get('state') == 'sweep_result'
+                and (reader.last or {}).get('evidence', {}).get('OneKeyGuard_sweep_result', {}).get('hit') is True
+                and all(node['completed'] and (node.get('action') or {}).get('name') == node['name']
+                        and (node.get('action') or {}).get('success') is True
+                        and (node.get('action') or {}).get('raw') == {} for node in receipt['nodes']))
             try:
-                native.require_native_input(receipt, ('OneKeyInput_' + base,))
+                if not result_already_ready:
+                    native.require_native_input(receipt, ('OneKeyInput_' + base,))
             except native.NativeInputNotSent as exc:
                 # Only this action was refused; earlier batch consumers remain unresolved.
                 report.update(failed_input_operation=action, failed_input_receipt=exc.receipt,
@@ -697,7 +707,7 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
             except RuntimeError as exc:
                 # Historical abort verifiers match this existing unknown reason.
                 raise ValueError('input_unverified_no_retry:' + action) from exc
-            if not completed(receipt, 'OneKeyInput_' + base):
+            if not result_already_ready and not completed(receipt, 'OneKeyInput_' + base):
                 raise ValueError('input_unverified_no_retry:' + action)
             observed_before = before
             observed_targets = targets
@@ -708,15 +718,17 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
                     and reader.dungeon_summary_advanced(reader.signature(before), reader.signature(reader.last))):
                 observed_before = reader.last
                 observed_targets = tuple(state for state in targets if state != 'sweep_result')
-            report['native_input_state'] = 'completed'
+            report['native_input_state'] = 'not_sent' if result_already_ready else 'completed'
             if attempt is not None:
                 attempt['native_input_state'] = 'completed'
-            report['input_evidence'] = 'native_input_completed_result_unconfirmed'
+            report['input_evidence'] = ('native_input_not_needed_result_already_visible' if result_already_ready
+                                        else 'native_input_completed_result_unconfirmed')
             after = (observe_nonconsuming(reader, action, before, read_once, deadline)
                      if base in NONCONSUMING_TARGET else
                      observe_post_consumer(reader, action, observed_before, read_once, deadline, observed_targets))
             record_action(dict(state='settled', operation=action, game_day=game_day,
-                                image_sha256=after['image_sha256'], native_task_id=receipt['task_id']))
+                                image_sha256=after['image_sha256'], native_task_id=receipt['task_id'],
+                                **({'input_execution': 'not_sent'} if result_already_ready else {})))
             return after
 
     try:

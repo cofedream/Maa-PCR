@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 import sys
 from .routes import Node
+from .timing import Timings
 
 class ProtocolFailure(RuntimeError):
     pass
@@ -28,7 +29,7 @@ class Endpoint(Enum):
     RETIRE='labyrinth/retire'
 
 class LabyrinthClient:
-    def __init__(self,username,password,*,content_version,http=None,manual_captcha=None,captcha_http=None):
+    def __init__(self,username,password,*,content_version,http=None,manual_captcha=None,captcha_http=None,timings=None):
         # Package belongs to this checkout/player. Never search arbitrary PATHs.
         vendor=Path(__file__).resolve().parents[3]/'vendor/autopcr_sync'
         if str(vendor) not in sys.path: sys.path.insert(0,str(vendor))
@@ -44,6 +45,11 @@ class LabyrinthClient:
         self._sdk_uid=self._sdk_access_key=''
         self._expected_viewer_id=None
         self._session_generation=None
+        self.timings=timings or Timings()
+
+    async def _timed_auth(self,label,operation):
+        with self.timings.measure('protocol_request',label=label):
+            return await operation
 
     @property
     def phase(self):
@@ -97,7 +103,7 @@ class LabyrinthClient:
 
     async def _auth_request(self,request,expected_viewer_id):
         self._check_open()
-        try:result=await asyncio.wait_for(self.auth.request(request),AUTH_REQUEST_TIMEOUT_SECONDS)
+        try:result=await self._timed_auth('authentication',asyncio.wait_for(self.auth.request(request),AUTH_REQUEST_TIMEOUT_SECONDS))
         except TimeoutError:
             self.close();raise ProtocolFailure('protocol_login_timeout') from None
         # The read-only primitive can update headers while a close is pending.
@@ -142,14 +148,14 @@ class LabyrinthClient:
             self._phase='authenticating'
             self.auth.viewer_id=0
             try:
-                response=await asyncio.wait_for(login1(self.auth.username,self.auth.password),SDK_LOGIN_TIMEOUT_SECONDS)
+                response=await self._timed_auth('sdk_login',asyncio.wait_for(login1(self.auth.username,self.auth.password),SDK_LOGIN_TIMEOUT_SECONDS))
                 self._check_open()
                 if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
                 if response.get('code')==200000:
                     response.clear()
                     proof=await self._verify_captcha('sdk')
                     self._check_open()
-                    response=await asyncio.wait_for(login2(self.auth.username,self.auth.password,proof.challenge,proof.gt_user_id,proof.validate),SDK_LOGIN_TIMEOUT_SECONDS)
+                    response=await self._timed_auth('sdk_login',asyncio.wait_for(login2(self.auth.username,self.auth.password,proof.challenge,proof.gt_user_id,proof.validate),SDK_LOGIN_TIMEOUT_SECONDS))
                     self._check_open()
                     proof=None
                     if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
@@ -245,6 +251,13 @@ class LabyrinthClient:
             return await self._request_locked(endpoint,fields)
 
     async def _request_locked(self,endpoint,fields):
+        with self.timings.measure('protocol_request',label=endpoint.value) as sample:
+            try:return await self._request_wire(endpoint,fields)
+            except ProtocolFailure as error:
+                sample['outcome']='unknown' if str(error) in ('network_failed','network_or_protocol_failed','session_closed') else 'failed'
+                raise
+
+    async def _request_wire(self,endpoint,fields):
         # Caller owns the one operation lock, including retire's readback.
         self._check_open()
         if not self.logged_in:raise ProtocolFailure('not_authenticated')

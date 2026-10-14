@@ -138,6 +138,7 @@ try
     Require(ReferenceEquals(viewModel.ActiveTab, labyrinth) && labyrinth.IsActive && !daily.IsActive, "normal_selection_can_return_to_original");
     Require(PcrAlphaOwner.ControllerCreations == 0 && PcrAlphaOwner.AgentCreations == 0 && PcrAlphaOwner.Grants == 0 && PcrAlphaOwner.SessionCreations == 0, "no_device_or_run_created");
     AlphaOwnerChecks.Run();
+    ModuleOrderChecks.Run(taskViewModel, args[1]);
     AlphaOwnerAsyncChecks.Run(processor, taskViewModel, manager, CheckBlocked, args);
     Console.WriteLine($"PCR profile switch checks passed: {count}; final ActiveTab notifications={notifications}; controller/agent/grant starts=0");
     return 0;

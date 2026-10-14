@@ -812,7 +812,14 @@
       313
     ],
     "duration": 1000,
-    "post_delay": 500,
+    "post_delay": 0,
+    "post_wait_freezes": {
+      "time": 200,
+      "target": [55, 134, 1176, 315],
+      "threshold": 0.98,
+      "rate_limit": 100,
+      "timeout": 2500
+    },
     "max_hit": 8,
     "next": [
       "ExecUnsafeStop",
@@ -948,13 +955,70 @@
   },
   "ExecResultStart": {
     "next": [
-      "ExecResultConfirm"
+      "ExecResultConfirm",
+      "ExecSweepSkipFinish"
     ],
     "timeout": 60000,
     "rate_limit": 300,
     "on_error": [
       "UnknownStop"
     ]
+  },
+  "ExecSweepSkipButton": {
+    "recognition": "OCR",
+    "roi": [502, 608, 275, 60],
+    "expected": "^跳过完毕$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecSweepAnimationRound": {
+    "recognition": "OCR",
+    "roi": [360, 331, 160, 250],
+    "expected": "^第[1-9][0-9]*次$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecSweepAnimationExp": {
+    "recognition": "OCR",
+    "roi": [566, 331, 115, 250],
+    "expected": "^经验值",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecSweepAnimationPanel": {
+    "recognition": "ColorMatch",
+    "roi": [345, 586, 585, 15],
+    "method": 40,
+    "lower": [0, 0, 225],
+    "upper": [179, 40, 255],
+    "count": 7000,
+    "connected": false,
+    "next": []
+  },
+  "ExecSweepSkipGuard": {
+    "recognition": "And",
+    "all_of": [
+      "ExecSweepSkipButton",
+      "ExecSweepAnimationPanel",
+      "ExecSweepAnimationRound",
+      "ExecSweepAnimationExp"
+    ],
+    "next": [],
+    "attach": {
+      "calibration": "event-sweep-result.png; original 1920x1080 animation frame, Maa 720 short side"
+    }
+  },
+  "ExecSweepSkipFinish": {
+    "recognition": "And",
+    "all_of": ["ExecSweepSkipGuard"],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 0,
+    "next": ["ExecResultConfirm"],
+    "timeout": 60000,
+    "rate_limit": 300,
+    "on_error": ["UnknownStop"]
   },
   "ExecResultConfirm": {
     "recognition": "And",

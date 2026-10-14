@@ -47,7 +47,9 @@ def execute_pending(page, pending, send, report):
             raise ValueError('expected_specific_confirmation:' + stage)
         report.setdefault('quotes', {})[stage] = page.get('quote')
         page = send(stage + '_confirm', page, targets=(
-            ('dungeon_finish', 'sweep_result') if stage == 'dungeon' else ('sweep_result',)))
+            ('dungeon_finish', 'sweep_result') if stage == 'dungeon' else ('sweep_result', 'sweep_animation')))
+        if stage != 'dungeon' and page['state'] == 'sweep_animation':
+            page = send(stage + '_skip_finish', page, targets=('sweep_result',))
         if stage == 'dungeon' and page['state'] == 'dungeon_finish':
             # The per-floor reward page is not the final sweep summary.
             # Close it once, then observe the existing summary/next page.

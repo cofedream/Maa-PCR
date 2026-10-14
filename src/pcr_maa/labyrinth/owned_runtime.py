@@ -167,10 +167,12 @@ def public_result(value):
 
 class OwnedRuntime:
     def __init__(self, request, stop, emit, *, root=None):
+        from .timing import Timings
         self.request, self.stop, self.emit = request, stop, emit
         self.root = Path(root or Path(__file__).resolve().parents[3])
         self.client = self.port = self.tasker = self.controller = self.native_timings = None
         self.run_id = uuid4().hex
+        self.timings = Timings()
 
     def _checkpoint(self):
         from .batch import BatchStopped
@@ -197,6 +199,7 @@ class OwnedRuntime:
             'clear_reward_animation':'reward','clear_chest_animation':'reward','role_reward':'reward','relic_reward':'reward','link_reward':'reward',
             'joined':'reward','event':'playing'}.get(stage,stage)
         if stage in stages:
+            self.timings.transition(stage)
             result = dict(kind='progress',stage=stage)
             completed=value.get('completed')
             if (type(completed) is dict and all(str(k) in {'1','2','3','4','5'}
@@ -218,6 +221,10 @@ class OwnedRuntime:
         from .restart import prepare_restart
         prepare_restart(self.request, self.port, journal, self.stop, self._progress)
 
+    def _finish_timings(self):
+        if self.native_timings is not None:self.native_timings.finish_native_trace()
+        self.timings.transition(None)
+
     def run(self):
         if self.stop():return dict(outcome='stopped',batch_complete=False)
         self._progress(dict(stage='dependencies'))
@@ -228,7 +235,7 @@ class OwnedRuntime:
         from .captcha import HumanCaptcha
         from .owner_messages import captcha_message
         from .game_port import MaaGamePort
-        from .timing import Timings, NativeTimings
+        from .timing import NativeTimings
         from .. import native
         from maa.controller import AdbController
         from maa.tasker import Tasker
@@ -275,7 +282,7 @@ class OwnedRuntime:
                 self.tasker=Tasker()
                 if not self.tasker.bind(resource,self.controller) or not self.tasker.inited:
                     raise BatchStopped('controller_connection_failed')
-                timings=Timings()
+                timings=self.timings
                 self.native_timings=NativeTimings(self.tasker,self.controller,timings,
                     trace_path=native.RUNTIME/'maa/maafw.log')
                 metadata=json.loads((self.root/'assets/labyrinth/protocol-version.json').read_text(encoding='utf-8'))
@@ -284,14 +291,14 @@ class OwnedRuntime:
                     raise BatchStopped('protocol_version_invalid')
                 self._progress(dict(stage='authenticating'))
                 self.client=LabyrinthClient(self.request.username,self.request.password,
-                    content_version=version,manual_captcha=HumanCaptcha(
+                    content_version=version,timings=timings,manual_captcha=HumanCaptcha(
                         lambda url,stage:self.emit(captcha_message(url,stage))))
                 self.request.clear()
                 self._checkpoint()
                 binding=Binding(self.request.account_id,connection['serial'])
                 self.port=ProtocolAcquisitionPort(self.client,None,binding,stopped=self.stop)
                 self.port.timings=timings
-                self.port.finish_timings=self.native_timings.finish_native_trace
+                self.port.finish_timings=self._finish_timings
                 self.port.game=MaaGamePort(self.tasker,self.port.stamp)
                 self._authenticate(binding)
                 self._checkpoint()
@@ -300,7 +307,7 @@ class OwnedRuntime:
                 self._checkpoint()
                 self._progress(dict(stage='ready'))
                 result=self._run_batch(binding,journal)
-                self.native_timings.finish_native_trace()
+                self._finish_timings()
                 return result
         except BatchStopped as error:
             return dict(outcome=str(error),batch_complete=False)
@@ -311,6 +318,7 @@ class OwnedRuntime:
         except Exception:
             return dict(outcome='adapter_failed',batch_complete=False)
         finally:
+            self.timings.transition(None)
             self.request.clear()
             if self.tasker is not None:
                 try:

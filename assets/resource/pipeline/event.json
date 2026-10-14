@@ -830,7 +830,14 @@
       350
     ],
     "duration": 1000,
-    "post_delay": 500,
+    "post_delay": 0,
+    "post_wait_freezes": {
+      "time": 200,
+      "target": [50, 188, 1185, 315],
+      "threshold": 0.98,
+      "rate_limit": 100,
+      "timeout": 2500
+    },
     "max_hit": 8,
     "timeout": 30000,
     "on_error": [
@@ -860,7 +867,14 @@
       460
     ],
     "duration": 1000,
-    "post_delay": 500,
+    "post_delay": 0,
+    "post_wait_freezes": {
+      "time": 200,
+      "target": [50, 188, 1185, 315],
+      "threshold": 0.98,
+      "rate_limit": 100,
+      "timeout": 2500
+    },
     "max_hit": 2,
     "timeout": 30000,
     "on_error": [

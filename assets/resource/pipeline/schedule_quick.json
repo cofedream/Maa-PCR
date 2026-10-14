@@ -305,6 +305,7 @@
     "timeout": 30000,
     "rate_limit": 250,
     "next": [
+      "OneKeyQuickManaSkipFinish",
       "OneKeyQuickDungeonConfirm",
       "OneKeyQuickExpConfirm",
       "OneKeyQuickDungeonFinish",
@@ -332,6 +333,7 @@
     "timeout": 30000,
     "rate_limit": 250,
     "next": [
+      "OneKeyQuickExpSkipFinish",
       "OneKeyQuickDungeonConfirm",
       "OneKeyQuickManaConfirm",
       "OneKeyQuickDungeonFinish",
@@ -343,6 +345,30 @@
     "on_error": [
       "OneKeyQuickStop"
     ]
+  },
+  "OneKeyQuickManaSkipFinish": {
+    "recognition": "And",
+    "all_of": ["ExecSweepSkipGuard"],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 0,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": ["OneKeyQuickSweepResult"],
+    "on_error": ["OneKeyQuickStop"]
+  },
+  "OneKeyQuickExpSkipFinish": {
+    "recognition": "And",
+    "all_of": ["ExecSweepSkipGuard"],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 0,
+    "timeout": 30000,
+    "rate_limit": 250,
+    "next": ["OneKeyQuickSweepResult"],
+    "on_error": ["OneKeyQuickStop"]
   },
   "OneKeyQuickDungeonFinish": {
     "recognition": "And",

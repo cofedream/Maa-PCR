@@ -675,6 +675,10 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     elapsed_start = time.monotonic()
+    from .labyrinth.timing import Timings, NativeTimings
+    timings = Timings()
+    native_timings = None
+    timing_collection = 'unavailable'
     report = dict(control_version=1, run_id=directory.name,
         schedule_attest_current_plan=schedule_attest_current_plan,
         schedule_gui_start_intent=current_state and has_schedule,
@@ -714,6 +718,16 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
             raise ValueError('existing_report_cannot_restart')
         save()
     try:
+        try:
+            controller = getattr(tasker, 'controller', None)
+            if controller is not None and callable(getattr(tasker, 'add_context_sink', None)):
+                from . import native
+                native_timings = NativeTimings(tasker, controller, timings,
+                    trace_path=native.RUNTIME / 'maa/maafw.log', measure_page_wait=True,
+                    collect_input_evidence=False)
+                timing_collection = 'attached'
+        except Exception:
+            timing_collection = 'unavailable'
         for index, step in enumerate(report['steps']):
             reason = boundary_error()
             if reason:
@@ -774,6 +788,15 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
             if step['status'] == 'running':
                 step.update(status=report['outcome'], finished_at=time.time(), error='control_or_report_io_failed')
     finally:
+        if native_timings is not None:
+            try:
+                native_timings.finish_native_trace()
+                timing_collection = 'collected'
+            except Exception:
+                timing_collection = 'incomplete'
+            finally:
+                try:native_timings.close()
+                except Exception:timing_collection = 'incomplete'
         report['finished_at'] = time.time()
         elapsed = time.monotonic() - elapsed_start
         module_elapsed = sum(step.get('elapsed_seconds', 0) for step in report['steps'])
@@ -781,7 +804,8 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
             module_elapsed_seconds=module_elapsed, orchestration_seconds=max(0, elapsed - module_elapsed),
             module_seconds={step['name']: step['elapsed_seconds'] for step in report['steps']
                             if 'elapsed_seconds' in step},
-            totals_policy='module durations are exclusive; nested component phases are not added')
+            native_timings=timings.payload(), native_timing_collection=timing_collection,
+            totals_policy='module durations are exclusive; page_wait includes screenshot, recognition and input; swipe is an input subset; nested durations are not added')
         with _control_lock(directory):
             save()
     return report

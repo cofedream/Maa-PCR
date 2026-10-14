@@ -139,11 +139,19 @@ def verify_execution(result, start, end, actions, *, invocation_id=None):
             require(entry.startswith('OneKeyDo_'), reason)
             op = entry[len('OneKeyDo_'):]
             name = 'OneKeyInput_' + op
-            require(completed(native, name), reason)
-            nodes = [n for n in native['nodes'] if n.get('name') == name]
-            require(len(nodes) == 1 and nodes[0]['action'].get('name') == name
-                    and isinstance(nodes[0]['action'].get('raw'), dict)
-                    and bool(nodes[0]['action']['raw']), reason)
+            already_ready = (op in ('mana_skip_finish', 'exp_skip_finish')
+                and completed(native, 'OneKeySkipResultReady')
+                and page.get('state') == 'sweep_result'
+                and page.get('evidence', {}).get('OneKeyGuard_sweep_result', {}).get('hit') is True
+                and all(node['completed'] and (node.get('action') or {}).get('name') == node['name']
+                        and (node.get('action') or {}).get('success') is True
+                        and (node.get('action') or {}).get('raw') == {} for node in native['nodes']))
+            if not already_ready:
+                require(completed(native, name), reason)
+                nodes = [n for n in native['nodes'] if n.get('name') == name]
+                require(len(nodes) == 1 and nodes[0]['action'].get('name') == name
+                        and isinstance(nodes[0]['action'].get('raw'), dict)
+                        and bool(nodes[0]['action']['raw']), reason)
             if op == 'onekey':
                 require(nodes[0]['action']['raw'] == dict(point=[880,640],contact=0,pressure=1), reason)
             inputs.append((op, task, page['image_sha256']))
@@ -192,8 +200,19 @@ def verify_execution(result, start, end, actions, *, invocation_id=None):
                             and any(n.get('name') == 'OneKeyInput_dungeon_finish'
                                     and n['action']['raw'] == dict(point=[640,640],contact=0,pressure=1)
                                     for n in receipts[index]['native']['nodes']))
+        skip_not_sent = (op in ('mana_skip_finish', 'exp_skip_finish')
+            and completed(receipts[index]['native'], 'OneKeySkipResultReady')
+            and guard.get('evidence', {}).get('OneKeyGuard_sweep_result', {}).get('hit') is True
+            and expected == OneKeyPage.signature({'state': 'sweep_animation'})
+            and current == OneKeyPage.signature({'state': 'sweep_result'})
+            and all(node['completed'] and (node.get('action') or {}).get('name') == node['name']
+                    and (node.get('action') or {}).get('success') is True
+                    and (node.get('action') or {}).get('raw') == {}
+                    for node in receipts[index]['native']['nodes']))
+        if skip_not_sent:
+            require(b.get('input_execution') == 'not_sent', reason)
         require(OneKeyPage.navigation_matches(expected, current) if op in ('up','down','close')
-                else expected == current or summary_advanced, reason)
+                else expected == current or summary_advanced or skip_not_sent, reason)
         following = []
         for receipt in receipts[index+1:]:
             if receipt['entry'] != 'OneKeyExecRead':
@@ -564,8 +583,8 @@ def unresolved_observation_history(journal, game_day, device):
                 'unresolved_action_binding_mismatch')
         op = event.get('operation')
         require(isinstance(op, str) and (op in ('enter', 'onekey', 'dungeon_confirm',
-            'dungeon_finish', 'dungeon_result', 'mana_confirm', 'mana_result', 'exp_confirm',
-            'exp_result', 'like_result', 'item_result', 'close')
+            'dungeon_finish', 'dungeon_result', 'mana_confirm', 'mana_skip_finish', 'mana_result', 'exp_confirm',
+            'exp_skip_finish', 'exp_result', 'like_result', 'item_result', 'close')
             or re.fullmatch('(up|down):([0-9]|1[0-9]|2[0-3])', op)),
             'unresolved_action_scope_invalid')
         require(isinstance(event.get('image_sha256'), str)

@@ -832,6 +832,49 @@
     ],
     "timeout": 30000
   },
+  "OneKeyDo_mana_skip_finish": {
+    "action": "DoNothing",
+    "post_delay": 0,
+    "next": ["OneKeySkipResultReady", "OneKeyInput_mana_skip_finish"],
+    "on_error": ["OneKeyStop"],
+    "timeout": 30000
+  },
+  "OneKeyInput_mana_skip_finish": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "mana_skip_finish",
+    "max_hit": 1,
+    "post_delay": 0,
+    "action": "Click",
+    "target": true,
+    "next": []
+  },
+  "OneKeyDo_exp_skip_finish": {
+    "action": "DoNothing",
+    "post_delay": 0,
+    "next": ["OneKeySkipResultReady", "OneKeyInput_exp_skip_finish"],
+    "on_error": ["OneKeyStop"],
+    "timeout": 30000
+  },
+  "OneKeyInput_exp_skip_finish": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "exp_skip_finish",
+    "max_hit": 1,
+    "post_delay": 0,
+    "action": "Click",
+    "target": true,
+    "next": []
+  },
+  "OneKeySkipResultReady": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "skip_result_ready",
+    "action": "DoNothing",
+    "max_hit": 1,
+    "post_delay": 0,
+    "next": []
+  },
   "OneKeyInput_mana_result": {
     "recognition": "Custom",
     "custom_recognition": "OneKeyPage",

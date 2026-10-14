@@ -261,7 +261,7 @@ def test_native_unknown_result_no_close_no_navigation_no_resend(frames, tmp_path
     port, controller = build_port(frames, unknown=True)
     # Bound the static negative fixture only; production waits 15 seconds for
     # a real animation. All guards and once-only actions are unchanged.
-    assert port.tasker.resource.override_pipeline({'AbyssResultClose': {'timeout': 500}})
+    assert port.tasker.resource.override_pipeline({'AbyssResultStart': {'timeout': 500}})
     journal = Journal(tmp_path / 'private-unknown-ledger')
     result = run(port, journal, device, execute=True)
     save_result(tmp_path, 'unknown-result', result, controller)

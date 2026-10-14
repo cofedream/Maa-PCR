@@ -482,12 +482,19 @@ class RouteTargetRecognition(CustomRecognition):
     def analyze(self,context,argv):
         try:
             if self.stopped() or context.tasker.stopping or self.route is None: return None
-            from .scene import NODE
-            scene=context.run_recognition(NODE,argv.image)
+            from .scene import NODE,_RULES
+            # Short-circuit anchor rules, retaining every overlay that can cover MAP.
+            scene=context.run_recognition(NODE,argv.image,
+                {NODE:dict(custom_recognition_param=dict(probe_kinds=sorted(_RULES)))})
             raw=_detail(scene.raw_detail) if scene is not None and scene.hit else None
             mode=json.loads(argv.custom_recognition_param or '{}').get('mode','read')
             if type(raw) is not dict:return None
             if raw.get('kind')!='map' or raw.get('payload',{}).get('area')!=self.current.area:
+                if mode=='read':
+                    # Unexpected pages keep the original full scene/control receipt.
+                    scene=context.run_recognition(NODE,argv.image,{NODE:dict(custom_recognition_param={})})
+                    raw=_detail(scene.raw_detail) if scene is not None and scene.hit else None
+                    if type(raw) is not dict:return None
                 return self.AnalyzeResult([0,0,1,1] if mode=='read' else None,dict(status='scene_changed',scene=raw,
                     frame_pixel_sha256=raw.get('payload',{}).get('frame_pixel_sha256')))
             index=self.route.nodes.index(self.current)

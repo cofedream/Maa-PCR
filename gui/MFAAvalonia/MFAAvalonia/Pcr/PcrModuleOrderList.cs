@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -10,6 +15,7 @@ using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using MFAAvalonia.Extensions.MaaFW;
@@ -33,6 +39,22 @@ public sealed class PcrModuleOrderList : ListBox
     private int pressedIndex = -1;
     private ListBoxItem? pressedRow;
     private bool dragging;
+    private bool animateDrag;
+    private Size dragBounds;
+    private readonly List<DragRow> dragRows = new();
+    private readonly List<Visual> visibilityParents = new();
+    private sealed class DragRow
+    {
+        public required ListBoxItem Row;
+        public required MaaInterface.MaaInterfaceOptionCase Module;
+        public required Rect Bounds;
+        public required ITransform? OriginalTransform;
+        public required double OriginalOpacity;
+        public required int OriginalZIndex;
+        public readonly TranslateTransform Transform = new();
+        public CancellationTokenSource? Animation;
+        public double TargetX, TargetY;
+    }
     public ObservableCollection<MaaInterface.MaaInterfaceOptionCase> OrderedModules { get; } = new();
 
     public PcrModuleOrderList(TaskQueueViewModel viewModel, MaaInterface.MaaInterfaceSelectOption selection,
@@ -88,9 +110,23 @@ public sealed class PcrModuleOrderList : ListBox
         AddHandler(PointerPressedEvent, Pressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerMovedEvent, Moved, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, Released, RoutingStrategies.Tunnel, handledEventsToo: true);
-        AddHandler(PointerCaptureLostEvent, (_, _) => CancelDrag(), RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(PointerCaptureLostEvent, (_, _) => CancelDrag(), RoutingStrategies.Direct, handledEventsToo: true);
         AddHandler(KeyDownEvent, (_, e) => { if (e.Key == Key.Escape && pressedPointer != null) { CancelDrag(); e.Handled = true; } });
-        DetachedFromVisualTree += (_, _) => CancelDrag();
+        LayoutUpdated += (_, _) =>
+        {
+            if (pressedPointer == null || !dragging) return;
+            if (Bounds.Size != dragBounds || dragRows.Any(visual => visual.Row.Bounds.Size != visual.Bounds.Size
+                || visual.Row.GetVisualParent()?.TranslatePoint(visual.Row.Bounds.Position, this) != visual.Bounds.Position)) CancelDrag();
+        };
+        AttachedToVisualTree += (_, _) =>
+        {
+            foreach (var parent in this.GetVisualAncestors()) { visibilityParents.Add(parent); parent.PropertyChanged += AncestorChanged; }
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            foreach (var parent in visibilityParents) parent.PropertyChanged -= AncestorChanged;
+            visibilityParents.Clear(); CancelDrag();
+        };
         SelectionChanged += (_, _) =>
         {
             if (SelectedItem is MaaInterface.MaaInterfaceOptionCase { Name: { } id }) editModule?.Invoke(id);
@@ -101,7 +137,13 @@ public sealed class PcrModuleOrderList : ListBox
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == IsEnabledProperty && !IsEnabled || change.Property == IsVisibleProperty && !IsVisible) CancelDrag();
+        if (change.Property == IsEffectivelyEnabledProperty && !IsEffectivelyEnabled
+            || change.Property == IsVisibleProperty && !IsVisible) CancelDrag();
+    }
+
+    private void AncestorChanged(object? sender, AvaloniaPropertyChangedEventArgs change)
+    {
+        if (change.Property == IsVisibleProperty && sender is Visual { IsVisible: false }) CancelDrag();
     }
 
     private void PersistSelection()
@@ -129,16 +171,87 @@ public sealed class PcrModuleOrderList : ListBox
     private void Moved(object? sender, PointerEventArgs e)
     {
         if (pressedPointer != e.Pointer) return;
-        if (!vm.CanEditPcrTarget || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { CancelDrag(); return; }
+        if (!vm.CanEditPcrTarget || !IsEffectivelyEnabled || !IsEffectivelyVisible
+            || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { CancelDrag(); return; }
         var point = e.GetPosition(this); var dx = point.X - pressedPosition.X; var dy = point.Y - pressedPosition.Y;
-        if (!dragging && dx * dx + dy * dy >= 36) { dragging = true; if (pressedRow != null) pressedRow.Opacity = 0.55; }
+        if (!dragging && dx * dx + dy * dy >= 36)
+        {
+            dragging = true;
+            animateDrag = ClientAnimationsEnabled();
+            CaptureDragRows();
+            if (pressedRow != null) { pressedRow.Opacity *= 0.75; pressedRow.ZIndex = dragRows.Max(row => row.OriginalZIndex) + 1; }
+        }
+        if (dragging)
+        {
+            var insertion = InsertionIndex(point);
+            var target = insertion > pressedIndex ? insertion - 1 : insertion;
+            foreach (var visual in dragRows)
+            {
+                var index = OrderedModules.IndexOf(visual.Module);
+                if (index == pressedIndex) _ = SetPosition(visual, dx, dy, false);
+                else
+                {
+                    var shift = target < pressedIndex && index >= target && index < pressedIndex ? pressedRow!.Bounds.Height
+                        : target > pressedIndex && index <= target && index > pressedIndex ? -pressedRow!.Bounds.Height : 0;
+                    _ = SetPosition(visual, 0, shift, animateDrag);
+                }
+            }
+        }
         e.Handled = true;
+    }
+
+    private void CaptureDragRows()
+    {
+        dragBounds = Bounds.Size;
+        for (var i = 0; i < OrderedModules.Count; i++)
+        {
+            if (ContainerFromIndex(i) is not ListBoxItem row || !row.IsEffectivelyVisible
+                || row.GetVisualParent()?.TranslatePoint(row.Bounds.Position, this) is not { } top) continue;
+            var visual = new DragRow { Row = row, Module = OrderedModules[i], Bounds = new Rect(top, row.Bounds.Size),
+                OriginalTransform = row.RenderTransform, OriginalOpacity = row.Opacity, OriginalZIndex = row.ZIndex };
+            dragRows.Add(visual);
+            row.RenderTransform = visual.Transform;
+        }
+    }
+
+    private async Task SetPosition(DragRow visual, double x, double y, bool animate)
+    {
+        if (Math.Abs(visual.TargetX - x) < 0.1 && Math.Abs(visual.TargetY - y) < 0.1) return;
+        var startX = visual.Transform.X; var startY = visual.Transform.Y;
+        visual.Animation?.Cancel(); visual.Animation?.Dispose(); visual.Animation = null;
+        visual.TargetX = x; visual.TargetY = y;
+        visual.Transform.X = x; visual.Transform.Y = y;
+        if (!animate) return;
+        var cancel = visual.Animation = new CancellationTokenSource();
+        var animation = new Animation { Duration = TimeSpan.FromMilliseconds(160), Easing = new CubicEaseOut(),
+            Children = {
+                new KeyFrame { Cue = new Cue(0), Setters = {
+                    new Setter(TranslateTransform.XProperty, startX), new Setter(TranslateTransform.YProperty, startY) } },
+                new KeyFrame { Cue = new Cue(1), Setters = {
+                    new Setter(TranslateTransform.XProperty, x), new Setter(TranslateTransform.YProperty, y) } } } };
+        try { await animation.RunAsync(visual.Row, cancel.Token); }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            if (visual.Animation == cancel) { visual.Animation = null; cancel.Dispose(); }
+        }
     }
 
     private int? InsertionIndex(Point point)
     {
         if (!new Rect(Bounds.Size).Contains(point)) return null;
         int? last = null;
+        if (dragging)
+        {
+            // Hit testing must use the layout before preview transforms move the rows.
+            foreach (var visual in dragRows)
+            {
+                var index = OrderedModules.IndexOf(visual.Module);
+                if (point.Y < visual.Bounds.Center.Y) return index;
+                last = index + 1;
+            }
+            return last;
+        }
         for (var i = 0; i < OrderedModules.Count; i++)
         {
             if (ContainerFromIndex(i) is not ListBoxItem row || !row.IsEffectivelyVisible) continue;
@@ -154,24 +267,72 @@ public sealed class PcrModuleOrderList : ListBox
     {
         if (pressedPointer != e.Pointer) return;
         var from = pressedIndex;
-        var isClick = !dragging && vm.CanEditPcrTarget && pressedRow != null
+        var editable = vm.CanEditPcrTarget && IsEffectivelyEnabled && IsEffectivelyVisible;
+        var isClick = !dragging && editable && pressedRow != null
             && new Rect(pressedRow.Bounds.Size).Contains(e.GetPosition(pressedRow));
-        var target = dragging && vm.CanEditPcrTarget ? InsertionIndex(e.GetPosition(this)) : null;
+        var target = dragging && editable ? InsertionIndex(e.GetPosition(this)) : null;
+        var positions = dragRows.ToDictionary(item => item.Module,
+            item => item.Bounds.Position + new Vector(item.Transform.X, item.Transform.Y));
+        var animate = animateDrag;
         CancelDrag(); e.Handled = true;
         if (isClick && from >= 0 && from < OrderedModules.Count) SelectedItem = OrderedModules[from];
         if (target == null || from < 0 || from >= OrderedModules.Count) return;
         var to = target.Value > from ? target.Value - 1 : target.Value;
-        if (to >= 0 && to < OrderedModules.Count && to != from) OrderedModules.Move(from, to);
+        if (to >= 0 && to < OrderedModules.Count)
+        {
+            if (to != from) OrderedModules.Move(from, to);
+            if (animate && IsEffectivelyVisible && IsEffectivelyEnabled)
+            {
+                UpdateLayout();
+                CaptureDragRows();
+                var movements = new List<Task>();
+                foreach (var visual in dragRows)
+                {
+                    if (!positions.TryGetValue(visual.Module, out var before)) continue;
+                    _ = SetPosition(visual, before.X - visual.Bounds.X, before.Y - visual.Bounds.Y, false);
+                    movements.Add(SetPosition(visual, 0, 0, true));
+                }
+                FinishDrop(dragRows.ToArray(), movements);
+            }
+        }
+    }
+
+    private async void FinishDrop(DragRow[] settlingRows, List<Task> movements)
+    {
+        await Task.WhenAll(movements);
+        if (settlingRows.Length > 0 && dragRows.SequenceEqual(settlingRows)) ResetDragRows();
+    }
+
+    private void ResetDragRows()
+    {
+        var restoringRows = dragRows.ToArray();
+        dragRows.Clear();
+        foreach (var visual in restoringRows)
+        {
+            var cancel = visual.Animation;
+            visual.Animation = null;
+            cancel?.Cancel(); cancel?.Dispose();
+            visual.Row.RenderTransform = visual.OriginalTransform;
+            visual.Row.Opacity = visual.OriginalOpacity;
+            visual.Row.ZIndex = visual.OriginalZIndex;
+        }
     }
 
     private void CancelDrag()
     {
         var pointer = pressedPointer;
         pressedPointer = null; pressedIndex = -1; dragging = false;
-        if (pressedRow != null) pressedRow.Opacity = 1;
+        ResetDragRows();
         pressedRow = null;
         if (pointer?.Captured == this) pointer.Capture(null);
     }
+
+    private static bool ClientAnimationsEnabled() => !OperatingSystem.IsWindows()
+        || !SystemParametersInfo(0x1042, 0, out var enabled, 0) || enabled != 0;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SystemParametersInfo(uint action, uint parameter, out int value, uint flags);
 
     public static string ApplySelectionOrder(string entry, string parameters, IReadOnlyList<string> selected)
     {

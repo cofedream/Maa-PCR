@@ -419,8 +419,8 @@ class NativeAbyss:
             images = []
             with _reader(self.tasker.resource, 'AbyssResultPage', AbyssResultPage(quote, images,
                     getattr(self, '_result_checkpoint', None), receipt)):
-                result = native.run(self.tasker, 'AbyssResultClose',
-                    reset_hits=('AbyssResultClose', 'AbyssLimitedShopCancel'))
+                result = native.run(self.tasker, 'AbyssResultStart',
+                    reset_hits=('AbyssResultClose', 'AbyssLimitedShopCancel', 'AbyssSweepSkipFinish'))
             report.update(result_evidence=result, result_images=images,
                           result_verified=action_completed(result, 'AbyssResultClose') and len(images) == 1,
                           abyss_return_verified=completed(result, 'AbyssHomeArrived'))
