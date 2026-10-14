@@ -44,8 +44,9 @@ try
         typeof(TaskQueueViewModel).GetField("_processorField", fields)!.SetValue(owner, processor);
         return owner;
     }
-    PcrLabyrinthSettings Reload() => new(Owner(new InstanceConfiguration("credential-fixture")));
-    var config = new InstanceConfiguration("credential-fixture");
+    const string fixtureId = "pcr-labyrinth-v1";
+    PcrLabyrinthSettings Reload() => new(Owner(new InstanceConfiguration(fixtureId)));
+    var config = new InstanceConfiguration(fixtureId);
     var firstOwner = Owner(config);
     Require(firstOwner.CanEditPcrTarget, "isolated_owner_allows_settings_edits");
     var probe = Encoding.UTF8.GetBytes("DPAPI-fixture-only");
@@ -54,6 +55,12 @@ try
     try { Require(probe.SequenceEqual(decodedProbe), "windows_current_user_dpapi_available"); }
     finally { CryptographicOperations.ZeroMemory(probe); CryptographicOperations.ZeroMemory(decodedProbe); }
     var settings = new PcrLabyrinthSettings(firstOwner);
+    Require(!settings.KeepOldRun, "keep_old_run_defaults_off_for_old_and_new_config");
+    settings.KeepOldRun = true;
+    Require(Reload().KeepOldRun, "keep_old_run_switch_is_persisted");
+    Require(!settings.Snapshot().ContainsKey("keep_old_run"), "restart_policy_does_not_change_old_batch_goal_snapshot");
+    settings.KeepOldRun = false;
+    Require(!Reload().KeepOldRun, "keep_old_run_can_be_saved_off");
     Require(!settings.ShowCredentials && settings.CredentialMask == '*', "fresh_credentials_masked");
     const string player = "98765432123456789", username = "fixture-CRED-username", password = "fixture-CRED-password";
     settings.ExpectedPlayerId = player;
@@ -106,7 +113,7 @@ try
     Require(loaded.ExpectedPlayerId == "" && loaded.Username == "" && loaded.Password == ""
         && loaded.CredentialsStatus.Contains("无法解密"), "invalid_ciphertext_is_not_exposed");
     loaded.Save();
-    Require(InstanceConfiguration.ReadValueFromFile("credential-fixture", PcrLabyrinthSettings.CredentialsKey)
+    Require(InstanceConfiguration.ReadValueFromFile(fixtureId, PcrLabyrinthSettings.CredentialsKey)
         == "invalid-ciphertext-fixture", "task_save_preserves_unreadable_ciphertext");
     loaded.ExpectedPlayerId = player;
     loaded.Username = username;
@@ -120,9 +127,19 @@ try
         == "{Binding LabyrinthSettings.CredentialMask}"), "all_three_ui_fields_use_mask_binding");
     Require(view.Descendants(avalonia + "Button").Any(node => (string?)node.Attribute("Command")
         == "{Binding LabyrinthSettings.ToggleCredentialsCommand}"), "ui_view_button_is_connected");
-    var liveOwner = Owner(new InstanceConfiguration("credential-fixture"));
+    var liveOwner = Owner(new InstanceConfiguration(fixtureId));
     var liveView = new PcrLabyrinthView { DataContext = liveOwner };
     Dispatcher.UIThread.RunJobs();
+    var keepToggle = liveView.GetLogicalDescendants().OfType<CheckBox>().Single(control => control.Name == "KeepOldRunToggle");
+    Require(keepToggle.IsChecked == false && (string?)keepToggle.Content == "保留旧局", "real_keep_old_run_control_defaults_off_with_accessible_label");
+    keepToggle.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+    Dispatcher.UIThread.RunJobs();
+    Require(liveOwner.LabyrinthSettings.KeepOldRun && Reload().KeepOldRun, "real_switch_control_change_updates_and_persists_policy");
+    liveOwner.LabyrinthSettings.KeepOldRun = false;
+    Dispatcher.UIThread.RunJobs();
+    Require(keepToggle.IsChecked == false, "real_switch_model_update_restores_off: " + keepToggle.IsChecked);
+    Require(!Reload().KeepOldRun, "real_switch_restart_restores_off: " + liveOwner.LabyrinthSettings.Status);
+    Require(liveOwner.LabyrinthSettings.Status == "黎明界设置已保存。", "real_switch_persistence_verified_at_actual_profile_path");
     var liveInputs = liveView.GetLogicalDescendants().OfType<TextBox>()
         .Where(input => new[] { player, username, password }.Contains(input.Text)).ToArray();
     Require(liveInputs.Length == 3 && liveInputs.All(input => input.PasswordChar == '*'),

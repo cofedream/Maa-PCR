@@ -6,7 +6,7 @@ import sys
 
 sys.dont_write_bytecode = True
 from assemble_release import seal, require_acceptance, owned_payload_sha256
-from build_release import ROOT, R38_MANIFEST_SHA256, R39_MANIFEST_SHA256, R41_MANIFEST_SHA256, R45_MANIFEST_SHA256, package_outputs, save, digest
+from build_release import ROOT, R38_MANIFEST_SHA256, R39_MANIFEST_SHA256, R41_MANIFEST_SHA256, R45_MANIFEST_SHA256, R46_MANIFEST_SHA256, package_outputs, save, digest
 from source_delivery import prepare, pack, refresh_player_snapshot
 from source_gate import gate
 
@@ -44,6 +44,10 @@ def main():
         baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
         if baseline_path is None or digest(baseline_path) != R45_MANIFEST_SHA256:
             raise ValueError('R46_requires_exact_R45_patch_base')
+    if revision == 49:
+        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
+        if baseline_path is None or digest(baseline_path) != R46_MANIFEST_SHA256:
+            raise ValueError('R49_requires_exact_R46_patch_base')
     args.output.mkdir(parents=True, exist_ok=False)
     prepared = args.output / 'prepared-source'
     prepare(ROOT, prepared, revision=revision, player_manifest=manifest_path)

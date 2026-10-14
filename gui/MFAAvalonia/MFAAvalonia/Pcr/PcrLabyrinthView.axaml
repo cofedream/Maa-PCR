@@ -22,7 +22,9 @@
      <TextBlock Text="路线筛选" /><ComboBox ItemsSource="{Binding LabyrinthSettings.RouteModes}" SelectedItem="{Binding LabyrinthSettings.RouteMode}" HorizontalAlignment="Stretch" />
     </StackPanel></Grid>
     <CheckBox Content="启用刷开局：允许放弃不符合条件的开局" IsChecked="{Binding LabyrinthSettings.Reroll}" />
-    <TextBlock Text="从尚未开局的黎明界开始。账号协议读取完整地图并筛选路线，Maa 执行游戏操作；半途局需按当前可读状态处理；未知动作结果仍会停止。" TextWrapping="Wrap" FontSize="12" />
+    <CheckBox Name="KeepOldRunToggle" Content="保留旧局" IsChecked="{Binding LabyrinthSettings.KeepOldRun, Mode=TwoWay}" />
+    <TextBlock Text="默认关闭：再次开始会先放弃旧局，确认结束后新开。开启后保留旧局；已推进且无法续跑时，可手动完成旧局，或关闭此开关重新开始。" TextWrapping="Wrap" FontSize="12" />
+    <TextBlock Text="账号协议读取完整地图并筛选路线，Maa 执行游戏操作；网络异常或未知结果会先核对，不重复发送原操作。" TextWrapping="Wrap" FontSize="12" />
     <Grid ColumnDefinitions="*,*" ColumnSpacing="16"><StackPanel Spacing="6">
      <TextBlock Text="每局最多刷取次数" /><TextBox Text="{Binding LabyrinthSettings.MaxAttempts, Mode=TwoWay}" />
     </StackPanel><StackPanel Grid.Column="1" Spacing="6">

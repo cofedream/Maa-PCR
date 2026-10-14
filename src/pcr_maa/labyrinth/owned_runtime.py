@@ -35,6 +35,7 @@ class OwnedRequest:
     connection: dict
     username: str = field(repr=False)
     password: str = field(repr=False)
+    keep_old_run: bool = False
 
     def clear(self):
         self.username = self.password = ''
@@ -43,9 +44,13 @@ class OwnedRequest:
 def parse_request(value):
     credentials = value.pop('credentials', None) if type(value) is dict else None
     try:
-        if (type(value) is not dict or set(value) != {'version', 'settings', 'account_id', 'connection'}
+        if (type(value) is not dict or set(value) - {'version', 'settings', 'account_id', 'connection', 'keep_old_run'}
+                or not {'version', 'settings', 'account_id', 'connection'} <= set(value)
                 or type(value['version']) is not int or value['version'] != 1
                 or type(value['account_id']) is not int or not 0 < value['account_id'] <= 2**63-1):
+            raise ConfigurationError('invalid_configuration')
+        keep_old_run = value.get('keep_old_run', False)
+        if type(keep_old_run) is not bool:
             raise ConfigurationError('invalid_configuration')
         settings = Settings.parse(value['settings'])
         from ..device import validate_connection
@@ -57,7 +62,7 @@ def parse_request(value):
                 or '\x00' in credentials['password']):
             raise ConfigurationError('invalid_configuration')
         return OwnedRequest(settings, value['account_id'], connection,
-                            credentials['username'], credentials['password'])
+                            credentials['username'], credentials['password'], keep_old_run)
     except (KeyError, TypeError, ValueError):
         raise ConfigurationError('invalid_configuration') from None
     finally:
@@ -80,6 +85,8 @@ class StopSignal:
         self.callbacks = []
         self.lock = threading.RLock()
         self.finished = False
+        self.transaction_thread = None
+        self.transaction_depth = 0
         self.thread = threading.Thread(target=self._read, daemon=True,
                                        name='labyrinth-owner-stop')
 
@@ -87,12 +94,34 @@ class StopSignal:
         self.thread.start()
 
     def __call__(self):
-        return self.event.is_set()
+        with self.lock:
+            return self.event.is_set() and self.transaction_thread != threading.get_ident()
+
+    @contextlib.contextmanager
+    def defer(self):
+        # Finish the already-started input and persist its ACK before cancelling it.
+        from .batch import BatchStopped
+        with self.lock:
+            if self.event.is_set() and not self.transaction_depth:
+                raise BatchStopped('stopped')
+            self.transaction_thread = threading.get_ident()
+            self.transaction_depth += 1
+        try:
+            yield
+        finally:
+            with self.lock:
+                self.transaction_depth -= 1
+                if not self.transaction_depth:
+                    self.transaction_thread = None
+                callbacks = tuple(self.callbacks) if not self.transaction_depth and self.event.is_set() else ()
+            for callback in callbacks:
+                try: callback()
+                except Exception: pass
 
     def on_stop(self, callback):
         with self.lock:
             self.callbacks.append(callback)
-            stopped = self.event.is_set()
+            stopped = self.event.is_set() and not self.transaction_depth
         if stopped:
             callback()
 
@@ -101,7 +130,7 @@ class StopSignal:
             if self.finished or self.event.is_set():
                 return
             self.event.set()
-            callbacks = tuple(self.callbacks)
+            callbacks = () if self.transaction_depth else tuple(self.callbacks)
         for callback in callbacks:
             try:
                 callback()
@@ -158,7 +187,7 @@ class OwnedRuntime:
 
     def _progress(self, value):
         stages = {'dependencies','resources','connecting','authenticating','ready',
-            'opening','handoff','playing','cleared','moving','battle','shop','reward','team'}
+            'opening','handoff','playing','cleared','moving','battle','shop','reward','team','recovering','retiring'}
         stage = value.get('stage')
         stage = {'map':'moving','move_confirmation':'moving',
             'normal_challenge':'team','ex_challenge':'team','boss_challenge':'team',
@@ -181,7 +210,13 @@ class OwnedRuntime:
     def _run_batch(self, binding, journal):
         from .batch import Batch
         return Batch(self.request.settings,self.port,journal,binding,
-                     stopped=self.stop,progress=self._progress,resume=True).run()
+                     stopped=self.stop,progress=self._progress,resume=True,
+                     keep_old_run=self.request.keep_old_run,
+                     require_fresh_start=not self.request.keep_old_run).run()
+
+    def _prepare_restart(self, journal):
+        from .restart import prepare_restart
+        prepare_restart(self.request, self.port, journal, self.stop, self._progress)
 
     def run(self):
         if self.stop():return dict(outcome='stopped',batch_complete=False)
@@ -208,9 +243,13 @@ class OwnedRuntime:
             with lease.locked():
                 self._checkpoint()
                 with journal.locked():
-                    events=journal.events()
-                    if events and events[-1]['state']=='in_flight':
-                        return dict(outcome='blocked_in_flight',batch_complete=False)
+                    from .restart import pending_intent
+                    target_binding = Binding(self.request.account_id, self.request.connection['serial'])
+                    pending_intent(journal, target_binding)
+                with Journal(journal.directory/'restart').locked() as recovery:
+                    retiring = pending_intent(recovery, target_binding)
+                    if retiring is not None and retiring['operation'] != 'restart_retire':
+                        raise BatchStopped('restart_records_invalid')
                 # Import the complete adapter before allocating a device/client.
                 # A partially assembled checkout reports a missing component.
                 from .scene import MaaSceneRuntime
@@ -255,6 +294,9 @@ class OwnedRuntime:
                 self.port.finish_timings=self.native_timings.finish_native_trace
                 self.port.game=MaaGamePort(self.tasker,self.port.stamp)
                 self._authenticate(binding)
+                self._checkpoint()
+                self._progress(dict(stage='recovering'))
+                self._prepare_restart(journal)
                 self._checkpoint()
                 self._progress(dict(stage='ready'))
                 result=self._run_batch(binding,journal)

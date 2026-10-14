@@ -1,82 +1,11 @@
 {
   "schema_version": 1,
-  "revision": 46,
-  "expected_version": "v0.1.4",
-  "status": "passed",
-  "accepted_owned_payload_sha256": "1067b1ee72dc6a4e50096af9e0b70ab614fa69ac6d57746dbd840b9c73ddee52",
-  "live_valid_game_days": 0,
-  "candidate_to_baseline_ratio": null,
-  "meaningful_speedup_reviewed": false,
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 38347152943,
-    "run_attempt": 1,
-    "artifact_id": 11789884242,
-    "source_commit": "7577d620f54c67c56c9cb49501c31591a011202a",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.4-win-x64.zip",
-      "size": 309368918,
-      "sha256": "9e0c7a3ce6f1c0556ff05f663ce1488c71661b69abb0570ae0c22ac995614be7"
-    }
-  },
-  "reviewed_evidence_scope": {
-    "release_scope": "Development entry and version documentation; behavior-preserving extraction of OneKey flow, history, page and recovery modules; GUI startup stop/device/profile guards.",
-    "public_tests": {
-      "tests": 2520,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 303,
-      "passed": 2217
-    },
-    "bundled_runtime_tests": {
-      "tests": 3,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0,
-      "passed": 3
-    },
-    "gui": "Exact CI Core: owner 38, async startup 53, profile switch 87, synthetic encrypted credentials 26, update 31 and dependencies 52; five headless update states visually reviewed and confirmation close-to-null cancellation verified.",
-    "runtime": "Exact CI bundled runtime: three original package tests, OneKey compatibility imports, cold NumPy startup obeying Stop and EOF; all six groups passed.",
-    "isolated_update": "Exact R45 full and delta preflight/update/repeat refusal; full and delta write-failure rollback, interrupted partial/committed recovery and external-conflict refusal; default process inspection and ordinary independent copies; three synthetic private-state sentinels retained.",
-    "clean_build": "Successful main push CI with exact runtime/source inventories, GUI inputs, archive integrity and privacy verified. Release promotes this payload without recompiling.",
-    "proofs": [
-      {
-        "name": "CI_ARTIFACT_VERIFIED.json",
-        "sha256": "0836efe5c8e769729c73fd66cd67259f9b7e000e3deca15840760e4d6a8d879f"
-      },
-      {
-        "name": "CI_RUN.json",
-        "sha256": "319142de8441101e4ed42b56c0517b047263c4802713351f7d8438e465275edf"
-      },
-      {
-        "name": "CI_ARTIFACT.json",
-        "sha256": "253a5bfff438e92dfa75b29f3c593d0b3c0241bd882da806f99b01e1c7bd9b58"
-      },
-      {
-        "name": "gui-ci-checks/FINAL_GUI_CHECKS.json",
-        "sha256": "82e969fb48fe40aa675aa1b7a9449a91c160b57f79139752f17697495db3ab20"
-      },
-      {
-        "name": "runtime-ci-checks/FINAL_RUNTIME_CHECKS.json",
-        "sha256": "33a3ef60a20c98141229de6b02e0412df0ac04bf56a6ed23617dea5a9578ff32"
-      },
-      {
-        "name": "upgrade-ci-checks/FINAL_UPGRADE_CHECKS.json",
-        "sha256": "d3e5dfa70706302837fd754216f6e71548d326fa571e66e00c8e72a97b1a89ec"
-      }
-    ],
-    "actual_installed_gui_acceptance_in_this_record": false,
-    "local_install_validation": "Performed after this immutable acceptance is sealed; recorded separately and required before tag publication.",
-    "animation_timing_verified": false,
-    "full_human_update_click_flow_verified": false,
-    "continuous_batch_or_new_live_recovery_verified": false,
-    "live_performance_measured": false,
-    "new_live_login_verified": false,
-    "new_human_gui_clicks": false,
-    "game_inputs": 0
-  }
+  "revision": 49,
+  "expected_version": "v0.1.5",
+  "status": "pending",
+  "accepted_owned_payload_sha256": null,
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false
 }

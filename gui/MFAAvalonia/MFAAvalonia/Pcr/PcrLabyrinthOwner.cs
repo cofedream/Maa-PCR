@@ -31,13 +31,14 @@ internal static class PcrLabyrinthOwner
         "validating" or "dependencies"=>TimeSpan.FromSeconds(30),
         "resources"=>TimeSpan.FromSeconds(120), "connecting"=>TimeSpan.FromSeconds(45),
         "authenticating"=>TimeSpan.FromSeconds(200),
+        "recovering" or "retiring"=>TimeSpan.FromSeconds(120),
         "ready" or "opening" or "handoff" or "playing" or "cleared" or "moving" or "team" or "battle" or "shop" or "reward"
             =>Timeout.InfiniteTimeSpan, _=>null };
     internal static void Stop(TaskQueueViewModel vm) {
         lock (PcrProfileRunGate.StartGate) {
             if (current?.ViewModel != vm) return;
             current.Cancel.Cancel();
-            vm.LabyrinthSettings.Progress = "正在停止并等待设备与子进程退出…";
+            vm.LabyrinthSettings.Progress = "正在等待当前操作记账，然后停止执行组件…";
         }
     }
     private static string ProgressCount(JObject value,JObject request) {
@@ -68,6 +69,7 @@ internal static class PcrLabyrinthOwner
                 if (vm.CurrentDevice is not AdbDeviceInfo device || !AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(device.AdbPath,device.AdbSerial,out var path,out var serial))
                     throw new InvalidOperationException("请先在设备栏选择有效的本机 ADB 目标。");
                 request=new JObject { ["version"]=1,["settings"]=snapshot,["account_id"]=accountId,
+                    ["keep_old_run"]=settings.KeepOldRun,
                     ["connection"]=new JObject { ["adb_path"]=path,["serial"]=serial },
                     ["credentials"]=new JObject { ["username"]=settings.Username,["password"]=settings.Password } };
                 current=run=new Run(vm);
@@ -126,6 +128,8 @@ internal static class PcrLabyrinthOwner
                         "validating"=>"正在校验黎明界配置…", "dependencies"=>"正在加载黎明界执行组件…",
                         "resources"=>"正在加载本地识别资源…", "connecting"=>"正在连接所选设备…",
                         "authenticating"=>"正在登录协议账号并核对游戏玩家 ID…",
+                        "recovering"=>"正在核对上次停止后的旧局状态…",
+                        "retiring"=>"正在放弃旧局，确认结束后开始新局…",
                         "ready"=>"协议账号核对完成，正在准备本次任务…",
                         "opening"=>"正在读取和筛选新开局…", "handoff"=>"正在恢复客户端并核对账号、地图…",
                         "playing"=>"正在执行黎明界路线…", "cleared"=>"已确认本局通关。",
@@ -142,7 +146,14 @@ internal static class PcrLabyrinthOwner
                     vm.LabyrinthSettings.Status=(string?)value["outcome"] switch {
                         "execution_not_qualified"=>"候选尚未完成地图交接、编组和连续执行验收；本次未连接或操作设备。",
                         "blocked_in_flight"=>"上次存在结果未知的操作，请先核对原记录；不会自动重发。",
-                        "mid_run_not_supported"=>"当前已有进行中的黎明界，本次未接管。请从尚未开局状态开始。",
+                        "mid_run_not_supported" or "kept_existing_run"=>"已保留旧局，当前状态无法续跑。可手动完成旧局，或关闭“保留旧局”后再次开始。",
+                        "kept_run_unknown"=>"已保留旧局，上次操作结果尚未确认。可手动处理旧局，或关闭“保留旧局”后再次开始。",
+                        "restart_retire_unknown"=>"上次撤退结果尚未确认，本次没有重复撤退或开新局。请稍后再次开始核对；若仍有旧局，请在游戏里手动撤退后再次开始。",
+                        "restart_state_unknown"=>"旧局状态未确认，本次没有开新局。请检查网络和游戏状态后再次开始。",
+                        "restart_state_changed"=>"准备期间出现了新的活动局，本次没有再次撤退。请确认没有其他人或程序在操作，再次开始。",
+                        "restart_target_mismatch"=>"上次未结束任务属于其他账号或设备。请切回对应账号和设备后再次开始。",
+                        "restart_records_invalid"=>"上次任务记录无法核对，本次没有开新局。请导出诊断记录，保留原数据。",
+                        "network_or_protocol_failed" or "top_invalid"=>"旧局状态或网络请求未确认，本次没有开新局。请检查网络后再次开始核对。",
                         "defeated"=>"已确认战败，本次批次结束。", "stopped"=>"已停止本次任务。",
                         "account_mismatch"=>"协议账号与期望游戏玩家 ID 不一致，本次已停止。",
                         "runtime_components_missing"=>"黎明界运行组件或依赖缺失，请核对完整候选包。",
@@ -164,7 +175,8 @@ internal static class PcrLabyrinthOwner
             if (run.Child is { Exited: false }) {
                 try {
                     await run.Child.Send("{\"kind\":\"stop\"}").WaitAsync(TimeSpan.FromSeconds(1));
-                    await Task.WhenAll(run.Child.StdoutCompletion,run.Child.StderrCompletion).WaitAsync(TimeSpan.FromSeconds(3));
+                    // Allow the bounded 90-second native action and 20-second cleanup to finish.
+                    await Task.WhenAll(run.Child.StdoutCompletion,run.Child.StderrCompletion).WaitAsync(TimeSpan.FromSeconds(120));
                 } catch { /* The private Job enforces final exit below. */ }
             }
         } catch (Exception ex) {
@@ -177,7 +189,7 @@ internal static class PcrLabyrinthOwner
                 if (run.Child!=null) await Task.Run(run.Child.Dispose);
                 released=true;
             } catch {
-                vm.LabyrinthSettings.Status="停止后尚未确认执行组件全部退出；暂时保持运行锁，请保留现场。";
+                vm.LabyrinthSettings.Status="执行组件退出尚未确认，请退出 Maa PCR 后重新打开。原记录会保留，下次开始时会核对旧局状态。";
             }
             if (released) {
                 if (cancelled) vm.LabyrinthSettings.Progress="本次任务已停止。";

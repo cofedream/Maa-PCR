@@ -37,6 +37,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     public string[] ThirdChoices { get; } = { "必须遗物", "必须事件", "两者都行" };
     [ObservableProperty] private string difficulty = "1";
     [ObservableProperty] private bool reroll;
+    [ObservableProperty] private bool keepOldRun;
     [ObservableProperty] private string maxAttempts = "100";
     [ObservableProperty] private string maxMinutes = "30";
     [ObservableProperty] private bool buyRelics = true;
@@ -82,7 +83,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     public char CredentialMask => ShowCredentials ? '\0' : '*';
     public string CredentialsVisibilityText => ShowCredentials ? "隐藏" : "查看";
     [ObservableProperty] private string credentialsStatus = "玩家 ID 与账号凭据自动加密保存到本机当前 Windows 用户。";
-    [ObservableProperty] private string status = "设置自动保存；从尚未推进的新开局开始。";
+    [ObservableProperty] private string status = "设置自动保存；默认再次开始会放弃旧局后新开。";
     [ObservableProperty] private string progress = "尚未开始";
     public PcrLabyrinthSettings(TaskQueueViewModel owner) {
         vm=owner; Goals[0].Enabled=true;
@@ -91,6 +92,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             try {
                 var d=JObject.Parse(saved);
                 Difficulty=d["difficulty"]?.ToString() ?? "1"; Reroll=(bool?)d["reroll"] ?? false;
+                KeepOldRun=(bool?)d["keep_old_run"] ?? false;
                 MaxAttempts=d["max_attempts"]?.ToString() ?? "100";
                 MaxMinutes=(((int?)d["max_seconds"] ?? 1800)/60).ToString(CultureInfo.InvariantCulture);
                 loadedMaxSeconds=(int?)d["max_seconds"];loadedMaxMinutes=MaxMinutes;
@@ -271,6 +273,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         SaveCredentials();
         try {
             var data=Snapshot();
+            data["keep_old_run"]=KeepOldRun;
             data["draft_goals"]=new JArray(Goals.Select(g=>new JObject { ["guild_id"]=g.GuildId,["enabled"]=g.Enabled,["clears"]=g.Clears,["mode"]=g.TargetMode==g.TargetModes[0] ? "clears":"attempts" }));
             var value=data.ToString(Formatting.None);
             if (value==saved) return;

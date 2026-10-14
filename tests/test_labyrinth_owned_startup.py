@@ -148,6 +148,7 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
     monkeypatch.setattr(timing, 'NativeTimings', lambda *args, **kwargs:
         NS(finish_native_trace=lambda: None, close=lambda: None))
     owned._authenticate = lambda binding: calls.append('authenticate')
+    owned._prepare_restart = lambda journal: calls.append('restart_check')
     def batch(*args):
         assert events[-1] == dict(kind='progress', stage='ready')
         calls.append('batch')
@@ -160,7 +161,8 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     owned, events, calls = runtime(tmp_path, monkeypatch)
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
     assert [value['stage'] for value in events] == [
-        'dependencies', 'resources', 'connecting', 'authenticating', 'ready']
+        'dependencies', 'resources', 'connecting', 'authenticating', 'recovering', 'ready']
+    assert calls.index('authenticate') < calls.index('restart_check') < calls.index('batch')
     assert calls.index('authenticate') < calls.index('batch')
     assert 'client_close' in calls and 'native_stop' in calls
     assert owned.request.username == owned.request.password == ''

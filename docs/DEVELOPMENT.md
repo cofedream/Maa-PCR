@@ -4,7 +4,7 @@
 
 ## 版本与发布边界
 
-当前源码版本为 **v0.1.4 / R46**，升级基线为 v0.1.3 / R45。新构建保持 release_staging / distribution_ready=false；精确载荷验收通过后才封装发布。已安装版本以安装目录的 manifest 为准。
+当前源码版本为 **v0.1.5 / R49**，升级基线为 v0.1.4 / R46。新构建保持 release_staging / distribution_ready=false；精确载荷验收通过后才封装发布。已安装版本以安装目录的 manifest 为准。
 
 - `pyproject.toml` 是 Python 项目的版本元数据。
 - `scripts/build_release.py` 的 `--version`、`--revision` 决定候选包身份；当前默认值对应上述源码版本，不代表修改后的源码已经正式验收。

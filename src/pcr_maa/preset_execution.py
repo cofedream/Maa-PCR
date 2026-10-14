@@ -137,9 +137,25 @@ class Journal:
         if any(not isinstance(e, dict) or e.get('state') not in ('in_flight', 'settled', 'historical_unknown') for e in events):
             raise ValueError('Journal malformed; parent reconciliation required')
         for index, event in enumerate(events):
+            closed_run = False
+            if index % 2 and event.get('recovery_scope') == 'labyrinth_restart':
+                from .labyrinth.restart import is_closed_run_history
+                closed_run = is_closed_run_history(event, events[index - 1])
+            retired_invitation = (index % 2 and event.get('state') == 'historical_unknown'
+                and event.get('operation') == 'opening_invite'
+                and event.get('resolution') == 'user_confirmed_retired'
+                and event.get('original_result_unknown') is True
+                and event.get('replay_forbidden') is True
+                and type(event.get('enter_id')) is int and event['enter_id'] > 0
+                and type(event.get('evidence')) is dict
+                and event.get('evidence', {}).get('source') == 'user_confirmation'
+                and event.get('evidence', {}).get('retired') is True
+                and all(event.get(key) == events[index - 1].get(key) for key in
+                        ('operation', 'operation_id', 'binding', 'enter_id', 'expected_roles')))
             if (event['state'] != ('in_flight' if index % 2 == 0 else 'settled')
                     and not (index % 2 and event['state'] == 'historical_unknown'
-                             and event.get('operation') == 'schedule_onekey')):
+                             and event.get('operation') == 'schedule_onekey')
+                    and not retired_invitation and not closed_run):
                 raise ValueError('Journal sequence invalid')
         return events
 

@@ -4,6 +4,7 @@ The journal is shared by both bot acquisition modes. An unresolved operation
 stops subsequent invocations; changing guild/configuration does not reset it.
 """
 from dataclasses import dataclass
+from contextlib import nullcontext
 from time import monotonic
 from uuid import uuid4
 from .routes import select_route,Route
@@ -59,7 +60,7 @@ class GameRunSession:
     accepted_frame: int
 
 class Batch:
-    def __init__(self, settings, port, journal, binding, *, stopped=lambda:False, clock=monotonic, progress=lambda v:None,resume=False):
+    def __init__(self, settings, port, journal, binding, *, stopped=lambda:False, clock=monotonic, progress=lambda v:None,resume=False,keep_old_run=False,require_fresh_start=False):
         self.settings,self.port,self.journal,self.binding=settings,port,journal,binding
         self.stopped,self.clock,self.progress=stopped,clock,progress
         self.last_frame=-1
@@ -68,6 +69,9 @@ class Batch:
         self.completed={g.guild_id:0 for g in settings.goals}
         self._game_session=None;self._game_session_owner=None
         self._first_acquire_done=False;self.resume=resume;self.failed={g.guild_id:0 for g in settings.goals}
+        self.keep_old_run=keep_old_run
+        self.require_fresh_start=require_fresh_start
+        self._startup_acquire=True
 
     def invalidate_game_session(self):
         self._game_session=None;self._game_session_owner=None
@@ -118,26 +122,27 @@ class Batch:
         # Ledger failures and cancellation revoke the accepted game session too.
         from ..native import NativeInputNotSent
         try:
-            self.checkpoint()
-            events=self.journal.events()
-            if events and events[-1]['state']=='in_flight':
-                self.invalidate_game_session();raise BatchStopped('blocked_in_flight')
-            operation_id=operation_id or uuid4().hex
-            intent=dict(state='in_flight',operation=operation,operation_id=operation_id,
-                        binding=self.binding.payload(),**expected)
-            self.journal.append(intent)
-            # An unresolved or partly written intent is never retried.
-            try:result=send(operation_id)
-            except NativeInputNotSent as error:
-                # Positive native completion evidence only; never reconcile old unknowns.
-                self.journal.append(dict(intent,state='settled',result=dict(
-                    operation_id=operation_id,binding=self.binding.payload(),
-                    input_execution='not_sent',input_action_verified=False,
-                    business_result_verified=False,native=error.receipt)))
-                raise BatchStopped('native_input_not_sent') from error
-            self.observation(result,operation_id=operation_id,**expected)
-            self.journal.append(dict(intent,state='settled',result=result))
-            return result
+            with self.stopped.defer() if hasattr(self.stopped,'defer') else nullcontext():
+                self.checkpoint()
+                events=self.journal.events()
+                if events and events[-1]['state']=='in_flight':
+                    self.invalidate_game_session();raise BatchStopped('blocked_in_flight')
+                operation_id=operation_id or uuid4().hex
+                intent=dict(state='in_flight',operation=operation,operation_id=operation_id,
+                            binding=self.binding.payload(),**expected)
+                self.journal.append(intent)
+                # An unresolved or partly written intent is never retried.
+                try:result=send(operation_id)
+                except NativeInputNotSent as error:
+                    # Positive native completion evidence only; never reconcile old unknowns.
+                    self.journal.append(dict(intent,state='settled',result=dict(
+                        operation_id=operation_id,binding=self.binding.payload(),
+                        input_execution='not_sent',input_action_verified=False,
+                        business_result_verified=False,native=error.receipt)))
+                    raise BatchStopped('native_input_not_sent') from error
+                self.observation(result,operation_id=operation_id,**expected)
+                self.journal.append(dict(intent,state='settled',result=result))
+                return result
         except BaseException as error:
             if not (isinstance(error,BatchStopped) and error.args==('native_input_not_sent',)
                     and isinstance(error.__cause__,NativeInputNotSent)):
@@ -168,8 +173,11 @@ class Batch:
 
     def acquire(self,guild_id):
         self.invalidate_game_session()
+        starting=self._startup_acquire;self._startup_acquire=False
         first=not self._first_acquire_done;self._first_acquire_done=True
         top=self.observation(self.port.top());started=self.clock();reused=None
+        if starting and self.require_fresh_start and top.get('fresh_start') is not True:
+            raise BatchStopped('restart_state_changed')
         if top.get('fresh_start') is not True:
             enter=top.get('enter_id')
             if type(enter) is not int or enter<=0:raise BatchStopped('top_unknown')
@@ -181,6 +189,7 @@ class Batch:
                     reused=self.transaction('existing_opening',dict(enter_id=enter,guild_id=guild_id,
                         difficulty=self.settings.difficulty),lambda oid:actual,operation_id=read_id)
             if reused is None:
+                if starting and self.keep_old_run:raise BatchStopped('kept_existing_run')
                 self.transaction('retire',dict(enter_id=enter),lambda oid:self.port.retire(enter,oid))
                 self.observation(self.port.top(),enter_id=0)
         for attempt in range(1,self.settings.max_attempts+1):
@@ -245,6 +254,8 @@ class Batch:
                     live['game_current_block_id'],live['game_area'],live['frame'])
                 self._game_session_owner=self._game_owner()
                 return route
+            if attempt==1 and reused is not None and starting and self.keep_old_run:
+                raise BatchStopped('kept_existing_run')
             if not self.settings.reroll: raise BatchStopped('opening_not_matching')
             if attempt>=self.settings.max_attempts: raise BatchStopped('reroll_attempt_limit')
             if self.clock()-started>=self.settings.max_seconds: raise BatchStopped('reroll_time_limit')
