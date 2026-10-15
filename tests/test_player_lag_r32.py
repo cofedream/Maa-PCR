@@ -78,18 +78,30 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
   'schedule_onekey.json':'fb967f075c3f724c37d86132d8591aa16aebae65a82d7354965c5c596e9f6d97',
   'schedule_quick.json':'995834f93c4c3278fbf3899576923de9ac69c2377a0029b8214f082f71bdf6c4',
  }
- # R50 adds guarded result-only branches; all existing guard fields stay frozen.
+ # R50/R51 add guarded result-only branches; all existing guard fields stay frozen.
  additions={
-  'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish'},
+  'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish','AbyssLevelUpDismiss'},
   'preset_execution.json':{'ExecSweepSkipButton','ExecSweepAnimationRound','ExecSweepAnimationExp',
-                           'ExecSweepAnimationPanel','ExecSweepSkipGuard','ExecSweepSkipFinish'},
+                           'ExecSweepAnimationPanel','ExecSweepSkipGuard','ExecSweepSkipFinish',
+                           'ExecLevelUpTitle','ExecLevelUpBody','ExecLevelUpButton','ExecLevelUpDismiss'},
+  'rewards.json':{'RewardsMissionsAfterClose','RewardsMissionsLevelUpDismiss',
+                  'RewardsGiftsAfterClose','RewardsGiftsLevelUpDismiss'},
   'schedule_onekey.json':{'OneKeyDo_mana_skip_finish','OneKeyDo_exp_skip_finish',
                          'OneKeyInput_mana_skip_finish','OneKeyInput_exp_skip_finish','OneKeySkipResultReady'},
-  'schedule_quick.json':{'OneKeyQuickManaSkipFinish','OneKeyQuickExpSkipFinish'},
+  'schedule_quick.json':{'OneKeyQuickManaSkipFinish','OneKeyQuickExpSkipFinish','OneKeyQuickLevelUpDismiss'},
  }
- branches={'preset_execution.json':{'ExecResultStart':'ExecSweepSkipFinish'},
+ branches={'abyss.json':{name:'AbyssLevelUpDismiss' for name in (
+              'AbyssResultClose','AbyssLimitedShopCancel','AbyssRecoverResultStart')},
+           'preset_execution.json':{'ExecResultStart':'ExecSweepSkipFinish',
+              **{name:'ExecLevelUpDismiss' for name in (
+                  'ExecPostResult','ExecAfterShop','ExecAfterClan','ExecRecoverResultStart')}},
+           'rewards.json':{'RewardsMissionsClose':'RewardsMissionsAfterClose',
+                           'RewardsGiftsClose':'RewardsGiftsAfterClose'},
            'schedule_quick.json':{'OneKeyQuickManaConfirm':'OneKeyQuickManaSkipFinish',
-                                 'OneKeyQuickExpConfirm':'OneKeyQuickExpSkipFinish'}}
+                                 'OneKeyQuickExpConfirm':'OneKeyQuickExpSkipFinish',
+              **{name:'OneKeyQuickLevelUpDismiss' for name in (
+                  'OneKeyQuickDungeonFinish','OneKeyQuickSweepResult',
+                  'OneKeyQuickLimitedShopCancel','OneKeyQuickItemResult')}}}
  fields=('max_hit','repeat','threshold','action','target','next','on_error')
  for filename,expected in baseline.items():
   pipeline=json.loads((native.RESOURCE/'pipeline'/filename).read_text(encoding='utf-8'))
@@ -97,7 +109,17 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
   assert added<=pipeline.keys()
   for name in added:
    if pipeline[name].get('action')=='Click':
-    assert pipeline[name].get('max_hit')==1,name
+    assert pipeline[name].get('max_hit')==(3 if name=='OneKeyQuickLevelUpDismiss' else 1),name
+   if name.endswith('LevelUpDismiss'):
+    assert pipeline[name]['recognition']=='And'
+    assert pipeline[name]['all_of']==['ExecLevelUpButton','ExecLevelUpTitle','ExecLevelUpBody']
+    assert pipeline[name]['action']=='Click' and pipeline[name]['target'] is True
+    assert pipeline[name]['post_delay']>=600
+  if filename=='preset_execution.json':
+   for name,expected_text in (('ExecLevelUpTitle','^等级提升$'),
+       ('ExecLevelUpBody','^体力回复了[！!]$'),('ExecLevelUpButton','^确认$')):
+    assert pipeline[name]['recognition']=='OCR' and pipeline[name]['threshold']==.9
+    assert pipeline[name]['expected']==expected_text and pipeline[name]['next']==[]
   guards={name:{field:node.get(field) for field in fields}
           | ({'timeout':60000} if node.get('timeout')==60000 else {})
           for name,node in pipeline.items()
@@ -105,5 +127,8 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
   for name,branch in branches.get(filename,{}).items():
    assert guards[name]['next'].count(branch)==1
    guards[name]['next']=[target for target in guards[name]['next'] if target!=branch]
+   if filename=='rewards.json':
+    assert guards[name]['next']==[]
+    guards[name]['next']=None
   encoded=json.dumps(guards,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()
   assert hashlib.sha256(encoded).hexdigest()==expected,filename
