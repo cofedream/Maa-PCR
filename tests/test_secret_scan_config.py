@@ -24,11 +24,15 @@ BENIGN_PATHS = (
 @pytest.fixture
 def benign_values():
     tree = ast.parse((ROOT / BENIGN_PATHS[0]).read_text(encoding='utf-8'))
-    baseline = [ast.literal_eval(value)
-                for node in ast.walk(tree) if isinstance(node, ast.Dict)
-                for key, value in zip(node.keys, node.values)
-                if isinstance(key, ast.Constant) and key.value == 'schedule_onekey.json']
+    baseline = [ast.literal_eval(node.value)
+                for node in ast.walk(tree) if isinstance(node, ast.Assign)
+                and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id == 'baseline' and isinstance(node.value, ast.Dict)]
     assert len(baseline) == 1
+    baseline = baseline[0]
+    assert baseline and all(isinstance(path, str) and path.endswith('.json')
+                            and isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value)
+                            for path, value in baseline.items())
     manifest = json.loads((ROOT / BENIGN_PATHS[1]).read_text(encoding='utf-8'))
     source = [row['source_sha256']['autopcr/core/apiclient.py']
               for row in manifest['files']
@@ -41,7 +45,7 @@ def benign_values():
                 for key, value in zip(node.keys, node.values)
                 if isinstance(key, ast.Constant) and key.value == 'RES-KEY']
     assert len(protocol) == 1
-    return dict(zip(BENIGN_PATHS, (baseline[0], source[0], protocol[0])))
+    return dict(zip(BENIGN_PATHS, (baseline['schedule_onekey.json'], source[0], protocol[0])))
 
 
 def test_only_exact_rule_specific_value_and_path_exceptions(benign_values):
