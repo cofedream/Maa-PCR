@@ -2,10 +2,82 @@
   "schema_version": 1,
   "revision": 51,
   "expected_version": "v0.1.7",
-  "status": "pending",
-  "accepted_owned_payload_sha256": null,
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false
+  "status": "passed",
+  "accepted_owned_payload_sha256": "ec1f8db18a479ec6fd72be788d5fab653655acd7be1e6017fcbc4a970b445ae9",
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 38704626930,
+    "run_attempt": 1,
+    "artifact_id": 11958499327,
+    "source_commit": "206a53b1a58a04febdccba42d9da1dcc8d0a56f2",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.7-win-x64.zip",
+      "size": 309400428,
+      "sha256": "835eae4d1bfcecf12bc65cb6977669eac177127381baebfb7a9ac635849dae7d"
+    }
+  },
+  "live_valid_game_days": 0,
+  "candidate_to_baseline_ratio": null,
+  "meaningful_speedup_reviewed": false,
+  "reviewed_evidence_scope": {
+    "release_scope": "R51: MuMu missing-info_source compatibility with completed-player and identity checks; same-frame player level-up dismissal in shared sweeps, abyss outpost, rewards and GUI schedule; exact-hash local candidate promotion with nondecreasing base semver. Unknown/no-resend and durable ledgers retained.",
+    "public_tests": {
+      "tests": 2835,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 308,
+      "passed": 2527
+    },
+    "bundled_runtime_tests": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 3
+    },
+    "gui": "Exact CI Core loaded and hashed in each harness: channels 59, log export/retention 26, owner 45, module drag 116, asynchronous owner 53, profile switch 87, synthetic encrypted credentials 35, update 31, dependencies 52.",
+    "runtime": "Exact CI bundled runtime: three original package checks, OneKey compatibility imports, cold NumPy startup obeying Stop and EOF; six groups passed.",
+    "isolated_update": "Exact public R50 to CI R51 full/delta preflight, upgrades, repeat refusal, write-failure rollback, interrupted partial/committed recovery and external-conflict refusal; four synthetic configuration/keep-run/unknown/log sentinels retained.",
+    "clean_build": "Successful main push CI; exact runtime/source inventory, GUI build inputs, archive CRC/SHA256 and public-source privacy verified. Tag release promotes these program bytes without recompilation.",
+    "proofs": [
+      {
+        "name": "CI_ARTIFACT_VERIFIED.json",
+        "sha256": "34e9b680114e0bc50eaec359d3d5e79f64c09f00726c3fec08b0ff56cf359b57"
+      },
+      {
+        "name": "CI_RUN.json",
+        "sha256": "6dce830b0205bc3f9f919d13dbeeb2bdb6969bb53d3f6c6397daf6641ccc7876"
+      },
+      {
+        "name": "CI_ARTIFACT.json",
+        "sha256": "12c5906cf27acbca3b6c3fdd4b8f584a0e7aa9533f60b618b3a21411bf3e94d6"
+      },
+      {
+        "name": "gui-ci-checks/FINAL_GUI_CHECKS.json",
+        "sha256": "a258b940752c614202902528cb12b1f9402a0f33d9f5fd9aa990498337ad1d29"
+      },
+      {
+        "name": "runtime-ci-checks/FINAL_RUNTIME_CHECKS.json",
+        "sha256": "7cf107d8e2724cd59236836872959a8fa87c4514a240a2c9e905c738255de2e1"
+      },
+      {
+        "name": "upgrade-ci-checks/FINAL_UPGRADE_CHECKS.json",
+        "sha256": "6b16873f17fda6214bcd757c67a83ea38996b4ae531f47aacb0ea8615261c51c"
+      }
+    ],
+    "actual_installed_gui_acceptance_in_this_record": false,
+    "new_human_gui_clicks": false,
+    "real_installation_upgraded_in_this_release_task": false,
+    "full_human_update_click_flow_verified": false,
+    "visual_checkbox_acceptance": false,
+    "continuous_batch_or_new_live_recovery_verified": false,
+    "real_network_loss_or_force_quit_verified": false,
+    "live_performance_measured": false,
+    "new_live_login_verified": false,
+    "game_inputs": 0
+  }
 }
