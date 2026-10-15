@@ -39,6 +39,8 @@ internal static class ModuleOrderChecks
             f.Press(0);
             f.Move(origin + new Vector(3, 2));
             Require(!f.IsDragging && f.Saves == 0, "below_threshold_is_click_preview");
+            f.Move(origin + new Vector(0, 8));
+            typeof(PcrModuleOrderList).GetField("animateDrag", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(f.List, true);
             f.Move(origin + new Vector(12, f.RowHeight * 2.2));
             Require(f.IsDragging && f.Order.SequenceEqual(Initial) && f.Saves == 0, "preview_does_not_reorder_or_save");
             Require(Math.Abs(((TranslateTransform)f.Row(0).RenderTransform!).Y - f.RowHeight * 2.2) < 0.1,
@@ -53,6 +55,7 @@ internal static class ModuleOrderChecks
             Require(f.Order.SequenceEqual(new[] { "hard", "normal", "deep", "event" }) && f.Saves == 1 && f.Updates == 1,
                 "downward_cross_row_drop_commits_once");
             f.Capture(Path.Combine(evidence, "landing.png"));
+            Require(f.HasLandingAnimation && f.Pointer.Captured == null, "second_drag_interrupts_active_landing_animation");
             f.Press(2); // Interrupt the landing transition with a second drag.
             f.Move(new Point(f.Center(2).X, 1));
             f.Release(new Point(f.Center(2).X, 1));
@@ -117,7 +120,8 @@ internal static class ModuleOrderChecks
             Require(((TranslateTransform)f.Row(1).RenderTransform!).Y == -f.RowHeight,
                 "reduced_motion_keeps_immediate_gap_feedback");
             f.Release(f.Center(1) + new Vector(0, 8));
-            Require(f.Order.SequenceEqual(new[] { "hard", "deep", "normal", "event" }) && f.Saves == 1,
+            f.Press(1); f.Release(f.Center(1));
+            Require(f.Order.SequenceEqual(new[] { "hard", "deep", "normal", "event" }) && f.Saves == 1 && f.Edited == "deep",
                 "unchecked_position_move_does_not_resave_unchanged_selection");
             f.RequireReset("reduced_motion_drop");
         }
@@ -148,6 +152,9 @@ internal static class ModuleOrderChecks
         internal string? Edited;
         internal IEnumerable<string> Order => List.OrderedModules.Select(row => row.Name!);
         internal bool IsDragging => (bool)typeof(PcrModuleOrderList).GetField("dragging", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(List)!;
+        internal bool HasLandingAnimation => !IsDragging
+            && ((IList)typeof(PcrModuleOrderList).GetField("dragRows", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(List)!)
+                .Cast<object>().Any(row => row.GetType().GetField("Animation")!.GetValue(row) is CancellationTokenSource);
         internal double RowHeight => Row(0).Bounds.Height;
         private ulong timestamp;
 
@@ -181,6 +188,7 @@ internal static class ModuleOrderChecks
         private Point RootPosition(Point point) => List.TranslatePoint(point, Window)!.Value;
         internal void Press(int index)
         {
+            Window.UpdateLayout(); // Synthetic input needs the layout a real hit test would use after collection moves.
             var row = Row(index);
             row.RaiseEvent(new PointerPressedEventArgs(row, Pointer, Window, RootPosition(Center(index)), ++timestamp,
                 new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
