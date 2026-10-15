@@ -93,7 +93,12 @@ internal static class PcrMuMuIdentity
         if (package["error_code"] != null && (package["error_code"]?.Type != JTokenType.Integer
             || package["error_code"]!.ToString() != "0"))
             throw new InvalidOperationException("schedule_manager_app_vendor_error");
-        if ((string?)row["info_source"] != "rpc" || row["is_android_started"]?.Type != JTokenType.Boolean
+        var source = row["info_source"];
+        var sourceMissing = source == null || source.Type == JTokenType.Null;
+        // Some MuMu Manager responses omit info_source; then require a finished player state.
+        if ((!sourceMissing && (source!.Type != JTokenType.String || (string?)source != "rpc"))
+            || (sourceMissing && (string?)row["player_state"] != "start_finished")
+            || row["is_android_started"]?.Type != JTokenType.Boolean
             || (bool?)row["is_android_started"] != true || row["is_process_started"]?.Type != JTokenType.Boolean
             || (bool?)row["is_process_started"] != true || (string?)package["state"] != "running")
             throw new InvalidOperationException("schedule_manager_target_not_running");

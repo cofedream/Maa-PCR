@@ -1040,13 +1040,44 @@
     "next": [
       "ExecReturnedPreset",
       "ExecLimitedShopCancel",
-      "ExecClanDismiss"
+      "ExecClanDismiss",
+      "ExecLevelUpDismiss"
     ],
     "timeout": 30000,
     "rate_limit": 300,
     "on_error": [
       "UnknownStop"
     ]
+  },
+  "ExecLevelUpTitle": {
+    "recognition": "OCR",
+    "roi": [565, 170, 155, 55],
+    "expected": "^等级提升$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecLevelUpBody": {
+    "recognition": "OCR",
+    "roi": [565, 340, 150, 50],
+    "expected": "^体力回复了[！!]$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecLevelUpButton": {
+    "recognition": "OCR",
+    "roi": [580, 460, 120, 75],
+    "expected": "^确认$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecLevelUpDismiss": {
+    "recognition": "And",
+    "all_of": ["ExecLevelUpButton", "ExecLevelUpTitle", "ExecLevelUpBody"],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": ["ExecPostResult"]
   },
   "ExecReturnedPreset": {
     "recognition": "And",
@@ -1131,7 +1162,8 @@
   "ExecAfterShop": {
     "next": [
       "ExecReturnedPreset",
-      "ExecClanDismiss"
+      "ExecClanDismiss",
+      "ExecLevelUpDismiss"
     ],
     "timeout": 30000,
     "rate_limit": 300,
@@ -1726,7 +1758,8 @@
   "ExecAfterClan": {
     "next": [
       "ExecReturnedPreset",
-      "ExecLimitedShopCancel"
+      "ExecLimitedShopCancel",
+      "ExecLevelUpDismiss"
     ],
     "timeout": 30000,
     "rate_limit": 300,
@@ -1832,7 +1865,8 @@
       "ObserveHome",
       "ExecReturnedPreset",
       "ExecResultConfirm",
-      "ExecLimitedShopCancel"
+      "ExecLimitedShopCancel",
+      "ExecLevelUpDismiss"
     ],
     "timeout": 30000,
     "rate_limit": 300,

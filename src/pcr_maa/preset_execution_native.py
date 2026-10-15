@@ -406,7 +406,7 @@ class NativePreset:
                 raise RuntimeError('Cannot register current transaction clan notice guard')
             # Exactly one result dispatch for this evidenced consumption.
             receipt = native.run(self.tasker, entry, reset_hits=(
-                'ExecResultConfirm', 'ExecLimitedShopCancel', 'ExecClanDismiss') + (
+                'ExecResultConfirm', 'ExecLimitedShopCancel', 'ExecClanDismiss', 'ExecLevelUpDismiss') + (
                 ('ExecSweepSkipFinish',) if entry == 'ExecResultStart' else ()))
             submission.update(result_evidence=receipt, result_images=evidence_images,
                               result_verified=action_completed(receipt, 'ExecResultConfirm'),

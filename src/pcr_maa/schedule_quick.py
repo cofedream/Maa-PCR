@@ -28,6 +28,7 @@ INPUTS = {
     'OneKeyQuickDungeonFinish': ([640, 640], 1),
     'OneKeyQuickSweepResult': ([640, 640], 3),
     'OneKeyQuickLimitedShopCancel': ([790, 634], 3),
+    'OneKeyQuickLevelUpDismiss': ([580, 460, 120, 75], 3),
     'OneKeyQuickLikeResult': ([640, 493], 1),
     'OneKeyQuickItemResult': ([640, 640], 1),
     'OneKeyQuickClose': ([370, 640], 1),
@@ -101,6 +102,7 @@ def verified(result, *, game_day, device, authorizations, invocation_id=None):
             return False
         counts = dict.fromkeys(INPUTS, 0)
         shop_after_sweep = False
+        level_up_after_result = False
         exploration_stage, skip_awaiting_result = None, False
         passive = {'OneKeyQuickPrepare', 'OneKeyQuickReady', 'OneKeyQuickUnavailable',
                    'OneKeyQuickCloseOnly', 'OneKeyQuickFinished', 'OneKeyQuickHome',
@@ -128,7 +130,8 @@ def verified(result, *, game_day, device, authorizations, invocation_id=None):
                     if exploration_stage != stage:
                         return False
                     skip_awaiting_result = True
-                    # The same-frame OCR box supplies this animation button.
+                if name in ('OneKeyQuickManaSkipFinish', 'OneKeyQuickExpSkipFinish', 'OneKeyQuickLevelUpDismiss'):
+                    # The same-frame OCR box supplies the button target.
                     actual = action['raw'].get('point')
                     if (type(actual) is not list or len(actual) != 2
                             or not all(type(v) is int for v in actual)
@@ -141,12 +144,18 @@ def verified(result, *, game_day, device, authorizations, invocation_id=None):
                 if name == 'OneKeyQuickSweepResult':
                     exploration_stage, skip_awaiting_result = None, False
                     shop_after_sweep = True
+                    level_up_after_result = True
+                elif name == 'OneKeyQuickLevelUpDismiss':
+                    if not level_up_after_result:
+                        return False
+                    level_up_after_result = False
                 elif name == 'OneKeyQuickLimitedShopCancel':
                     if not shop_after_sweep:
                         return False
                     shop_after_sweep = False
                 else:
                     shop_after_sweep = False
+                    level_up_after_result = name in ('OneKeyQuickDungeonFinish', 'OneKeyQuickItemResult')
                     if name == 'OneKeyQuickManaConfirm':
                         exploration_stage = 'mana'
                     elif name == 'OneKeyQuickExpConfirm':

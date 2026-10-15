@@ -638,7 +638,23 @@
       638
     ],
     "max_hit": 1,
-    "post_delay": 650
+    "post_delay": 650,
+    "next": ["RewardsMissionsAfterClose"]
+  },
+  "RewardsMissionsAfterClose": {
+    "next": ["RewardsMissionsReady", "RewardsMissionsEmpty", "RewardsMissionsLevelUpDismiss"],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": ["RewardsUnknown"]
+  },
+  "RewardsMissionsLevelUpDismiss": {
+    "recognition": "And",
+    "all_of": ["ExecLevelUpButton", "ExecLevelUpTitle", "ExecLevelUpBody"],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": ["RewardsMissionsAfterClose"]
   },
   "RewardsMissionsCloseStart": {
     "next": [
@@ -694,7 +710,23 @@
       638
     ],
     "max_hit": 1,
-    "post_delay": 650
+    "post_delay": 650,
+    "next": ["RewardsGiftsAfterClose"]
+  },
+  "RewardsGiftsAfterClose": {
+    "next": ["RewardsGiftsReady", "RewardsGiftsEmpty", "RewardsGiftsStaminaDeferred", "RewardsGiftsLevelUpDismiss"],
+    "timeout": 30000,
+    "rate_limit": 250,
+    "on_error": ["RewardsUnknown"]
+  },
+  "RewardsGiftsLevelUpDismiss": {
+    "recognition": "And",
+    "all_of": ["ExecLevelUpButton", "ExecLevelUpTitle", "ExecLevelUpBody"],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": ["RewardsGiftsAfterClose"]
   },
   "RewardsGiftsCloseStart": {
     "next": [

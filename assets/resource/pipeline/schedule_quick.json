@@ -385,6 +385,7 @@
     "timeout": 30000,
     "rate_limit": 250,
     "next": [
+      "OneKeyQuickLevelUpDismiss",
       "OneKeyQuickDungeonConfirm",
       "OneKeyQuickManaConfirm",
       "OneKeyQuickExpConfirm",
@@ -412,6 +413,7 @@
     "timeout": 30000,
     "rate_limit": 250,
     "next": [
+      "OneKeyQuickLevelUpDismiss",
       "OneKeyQuickLimitedShopCancel",
       "OneKeyQuickDungeonConfirm",
       "OneKeyQuickManaConfirm",
@@ -443,6 +445,7 @@
     "timeout": 30000,
     "rate_limit": 250,
     "next": [
+      "OneKeyQuickLevelUpDismiss",
       "OneKeyQuickDungeonConfirm",
       "OneKeyQuickManaConfirm",
       "OneKeyQuickExpConfirm",
@@ -498,6 +501,7 @@
     "timeout": 30000,
     "rate_limit": 250,
     "next": [
+      "OneKeyQuickLevelUpDismiss",
       "OneKeyQuickDungeonConfirm",
       "OneKeyQuickManaConfirm",
       "OneKeyQuickExpConfirm",
@@ -509,6 +513,26 @@
     "on_error": [
       "OneKeyQuickStop"
     ]
+  },
+  "OneKeyQuickLevelUpDismiss": {
+    "recognition": "And",
+    "all_of": ["ExecLevelUpButton", "ExecLevelUpTitle", "ExecLevelUpBody"],
+    "action": "Click",
+    "target": true,
+    "max_hit": 3,
+    "post_delay": 600,
+    "next": [
+      "OneKeyQuickLimitedShopCancel",
+      "OneKeyQuickDungeonConfirm",
+      "OneKeyQuickManaConfirm",
+      "OneKeyQuickExpConfirm",
+      "OneKeyQuickDungeonFinish",
+      "OneKeyQuickSweepResult",
+      "OneKeyQuickLikeResult",
+      "OneKeyQuickItemResult",
+      "OneKeyQuickFinished"
+    ],
+    "on_error": ["OneKeyQuickStop"]
   },
   "OneKeyQuickCloseOnly": {
     "action": "DoNothing",

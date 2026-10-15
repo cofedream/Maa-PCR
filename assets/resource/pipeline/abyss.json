@@ -1093,7 +1093,8 @@
     "action": "Click",
     "next": [
       "AbyssLimitedShopCancel",
-      "AbyssHomeArrived"
+      "AbyssHomeArrived",
+      "AbyssLevelUpDismiss"
     ],
     "timeout": 30000,
     "on_error": [],
@@ -1138,8 +1139,18 @@
     "timeout": 30000,
     "on_error": [],
     "next": [
-      "AbyssHomeArrived"
+      "AbyssHomeArrived",
+      "AbyssLevelUpDismiss"
     ]
+  },
+  "AbyssLevelUpDismiss": {
+    "recognition": "And",
+    "all_of": ["ExecLevelUpButton", "ExecLevelUpTitle", "ExecLevelUpBody"],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": ["AbyssHomeArrived", "AbyssLimitedShopCancel"]
   },
   "AbyssReturnHome": {
     "recognition": "And",
@@ -1162,7 +1173,8 @@
       "ObserveHome",
       "AbyssHomeArrived",
       "AbyssResultClose",
-      "AbyssLimitedShopCancel"
+      "AbyssLimitedShopCancel",
+      "AbyssLevelUpDismiss"
     ],
     "timeout": 30000,
     "rate_limit": 300,

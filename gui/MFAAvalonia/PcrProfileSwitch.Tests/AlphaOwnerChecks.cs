@@ -140,6 +140,37 @@ internal static class AlphaOwnerChecks
         }
         Require(PcrAlphaOwner.ControllerCreations == 0 && PcrAlphaOwner.AgentCreations == 0
             && PcrAlphaOwner.Grants == 0 && PcrAlphaOwner.SessionCreations == 0, "contracts_never_start_controller_agent_or_grant");
+
+        var parseIdentity = typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrMuMuIdentity")!
+            .GetMethod("Parse", hidden)!;
+        var connection = new JObject {
+            ["adb_path"] = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "mumu-compat-fixture",
+                "nx_device", "12.0", "shell", "adb.exe"),
+            ["serial"] = "127.0.0.1:16384"
+        };
+        var info = new JObject {
+            ["index"] = "0", ["is_android_started"] = true, ["is_process_started"] = true,
+            ["player_state"] = "start_finished", ["adb_host_ip"] = "127.0.0.1", ["adb_port"] = 16384,
+            ["error_code"] = 0, ["launch_err_code"] = 0, ["created_timestamp"] = 1712076133630062L
+        };
+        var app = new JObject { ["state"] = "running" };
+        JObject ParseIdentity() => (JObject)parseIdentity.Invoke(null, [info.ToString(), app.ToString(), connection])!;
+        Require((int?)ParseIdentity()["index"] == 0, "mumu_without_info_source_accepted_when_running");
+        info["info_source"] = JValue.CreateNull();
+        Require((int?)ParseIdentity()["index"] == 0, "mumu_null_info_source_accepted_when_running");
+        info["info_source"] = "rpc";
+        Require((int?)ParseIdentity()["index"] == 0, "mumu_rpc_source_still_accepted");
+        info["info_source"] = "cache";
+        Rejected(() => ParseIdentity(), "mumu_explicit_non_rpc_source_rejected");
+        info.Remove("info_source");
+        info["player_state"] = "starting_rom";
+        Rejected(() => ParseIdentity(), "mumu_missing_source_requires_finished_player");
+        info["player_state"] = "start_finished";
+        app["state"] = "stopped";
+        Rejected(() => ParseIdentity(), "mumu_stopped_app_still_rejected");
+        app["state"] = "running";
+        connection["serial"] = "127.0.0.1:16416";
+        Rejected(() => ParseIdentity(), "mumu_endpoint_mismatch_still_rejected");
         Console.WriteLine($"PCR alpha owner checks passed: {count}; controller/agent/grant starts=0");
     }
 }

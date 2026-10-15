@@ -95,10 +95,20 @@ def test_skip_failure_never_verifies_result_or_resends_consumer(fault):
     assert len(controller.clicks) == int(fault != 'button_only')
 
 
-def test_two_transactions_in_borrowed_context_reset_each_skip_budget():
+@pytest.mark.parametrize('level_up', [False, True])
+def test_two_transactions_in_borrowed_context_reset_each_skip_budget(level_up):
     from pcr_maa.agent_callbacks import AgentCallbacks
     resource = branch_resource()
-    controller = SavedImages([[scene(marker)] for marker in (1, 2, 1, 2)])
+    if level_up:
+        assert resource.override_pipeline({
+            'ExecPostResult': dict(next=['ExecReturnedPreset', 'ExecLevelUpDismiss'], timeout=500),
+            'ExecReturnedPreset': marker_node(0),
+            **{name: marker_node(3, (590, 480, 100, 30)) for name in (
+                'ExecLevelUpTitle', 'ExecLevelUpBody', 'ExecLevelUpButton')},
+            'ExecLevelUpDismiss': dict(post_delay=0),
+        })
+    markers = (1, 2, 3, 0) * 2 if level_up else (1, 2, 1, 2)
+    controller = SavedImages([[scene(marker)] for marker in markers])
     tasker = native.bind(resource, controller)
     results, errors = [], []
     registry = AgentCallbacks()
@@ -113,7 +123,11 @@ def test_two_transactions_in_borrowed_context_reset_each_skip_budget():
             try:
                 with registry.scope(context, deadline=time.monotonic() + 60,
                         owner_source=lambda original: original is context) as facade:
-                    for _ in range(2):
+                    for index in range(2):
+                        if level_up and index:
+                            # Simulate the next upstream transaction opening its animation.
+                            controller.stage += 1
+                            controller.frame = 0
                         results.append(finish(NativePreset(facade)))
                 return True
             except BaseException as exc:
@@ -125,11 +139,32 @@ def test_two_transactions_in_borrowed_context_reset_each_skip_budget():
     receipt = native.run(tasker, 'SweepOuter')
     assert not errors, errors
     assert receipt['native_ok'] and len(results) == 2
-    assert all(result['result_verified'] for result in results)
-    assert len(controller.clicks) == 4
+    assert all(result['result_verified'] and result['preset_return_verified'] for result in results)
+    assert len(controller.clicks) == 4 + 2 * int(level_up)
 
 
-def test_abyss_uses_its_result_chain_after_one_consumer_only(monkeypatch):
+@pytest.mark.parametrize('popup,returned,clicks', [(3, True, 2), (4, False, 1)])
+def test_level_up_after_result_only_dismisses_verified_popup(popup, returned, clicks):
+    resource = branch_resource()
+    assert resource.override_pipeline({
+        'ExecPostResult': dict(next=['ExecReturnedPreset', 'ExecLevelUpDismiss'], timeout=500, rate_limit=10),
+        'ExecReturnedPreset': marker_node(0),
+        'ExecLevelUpTitle': marker_node(3),
+        'ExecLevelUpBody': marker_node(3),
+        'ExecLevelUpButton': marker_node(3),
+        'ExecLevelUpDismiss': dict(post_delay=0),
+    })
+    controller = SavedImages([[scene(2)], [scene(popup)], [scene(0)]])
+    result = finish(NativePreset(native.bind(resource, controller)))
+    assert result['result_verified'] and result['preset_return_verified'] is returned
+    assert len(controller.clicks) == clicks and not controller.swipes
+    names = [node['name'] for node in result['result_evidence']['nodes']]
+    assert names.count('ExecLevelUpDismiss') == int(returned)
+    assert 'ExecConfirm' not in names
+
+
+@pytest.mark.parametrize('level_up', [False, True])
+def test_abyss_uses_its_result_chain_after_one_consumer_only(monkeypatch, level_up):
     from pcr_maa import abyss_native
     from pcr_maa.abyss_native import NativeAbyss
     from test_abyss import reading, quotation
@@ -146,18 +181,57 @@ def test_abyss_uses_its_result_chain_after_one_consumer_only(monkeypatch):
     # Only the upstream consumer/page return are synthetic; actual result callback stays intact.
     assert resource.override_pipeline({'AbyssTicketCommit': dict(
         recognition='DirectHit', action='Click', target=[785, 493], next=[], post_delay=0)})
-    controller = SavedImages([[scene(marker)] for marker in (0, 1, 2, 0)])
+    if level_up:
+        assert resource.override_pipeline({
+            'AbyssResultClose': dict(next=['AbyssHomeArrived', 'AbyssLevelUpDismiss']),
+            'AbyssHomeArrived': marker_node(0),
+            **{name: marker_node(3, (590, 480, 100, 30)) for name in (
+                'ExecLevelUpTitle', 'ExecLevelUpBody', 'ExecLevelUpButton')},
+            'AbyssLevelUpDismiss': dict(post_delay=0),
+        })
+    markers = (0, 1, 2, 3, 0) if level_up else (0, 1, 2, 0)
+    controller = SavedImages([[scene(marker)] for marker in markers])
     port = NativeAbyss(native.bind(resource, controller), start='abyss')
     quote = quotation()
     port._confirmed = (reading(), quote, time.monotonic())
     result = port.submit(quote)
     assert result['consumption_dispatched'] and result['result_verified'] and result['abyss_return_verified']
-    assert len(result['result_images']) == 1 and len(controller.clicks) == 3
+    assert len(result['result_images']) == 1 and len(controller.clicks) == 3 + int(level_up)
     names = [node['name'] for node in result['result_evidence']['nodes']]
     assert names.count('AbyssSweepSkipFinish') == 1 and 'AbyssTicketCommit' not in names
     with pytest.raises(native.NativeInputNotSent):
         port.submit(quote)
-    assert len(controller.clicks) == 3
+    assert len(controller.clicks) == 3 + int(level_up)
+
+
+@pytest.mark.parametrize('kind', ['Missions', 'Gifts'])
+@pytest.mark.parametrize('matches', [True, False])
+def test_rewards_close_handles_only_verified_level_up(kind, matches):
+    resource = branch_resource()
+    prefix = 'Rewards' + kind
+    overrides = {
+        prefix + 'Result': marker_node(2),
+        prefix + 'Ready': marker_node(99),
+        prefix + 'Empty': marker_node(0),
+        prefix + 'CloseStart': dict(timeout=200),
+        prefix + 'Close': dict(post_delay=0, timeout=200),
+        prefix + 'AfterClose': dict(timeout=200, rate_limit=10),
+        prefix + 'LevelUpDismiss': dict(post_delay=0),
+        **{name: marker_node(3, (590, 480, 100, 30)) for name in (
+            'ExecLevelUpTitle', 'ExecLevelUpBody', 'ExecLevelUpButton')},
+    }
+    if kind == 'Gifts':
+        overrides['RewardsGiftsStaminaDeferred'] = marker_node(99)
+    if not matches:
+        overrides['ExecLevelUpTitle'] = marker_node(99)
+    assert resource.override_pipeline(overrides)
+    controller = SavedImages([[scene(marker)] for marker in (2, 3, 0)])
+    receipt = native.run(native.bind(resource, controller), prefix + 'CloseStart')
+    assert len(controller.clicks) == 1 + int(matches)
+    names = [node['name'] for node in receipt['nodes']]
+    assert (prefix + 'LevelUpDismiss' in names) is matches
+    assert (prefix + 'Empty' in names) is matches
+    assert not any('Claim' in name for name in names)
 
 
 def test_result_recovery_cannot_reach_optional_skip_or_consumers():
@@ -277,7 +351,8 @@ def test_cli_animation_guard_is_current_stage_once_and_disabled_in_recovery(monk
 
 
 @pytest.mark.parametrize('animation', [False, True])
-def test_gui_two_explorations_skip_once_each_and_receipt_requires_results(tmp_path, animation):
+@pytest.mark.parametrize('level_up', [False, True])
+def test_gui_two_explorations_skip_once_each_and_receipt_requires_results(tmp_path, animation, level_up):
     from pcr_maa import schedule_quick as module
     from pcr_maa.game_day import current_game_day
     from pcr_maa.preset_execution import Journal
@@ -292,12 +367,15 @@ def test_gui_two_explorations_skip_once_each_and_receipt_requires_results(tmp_pa
         'OneKeyQuickSweepGuard': marker_node(2),
         'OneKeyQuickUnavailableGuard': marker_node(30),
         'OneKeyQuickHome': dict(recognition='DirectHit', next=[], post_delay=0),
+        **{name: marker_node(3, (590, 480, 100, 30)) for name in (
+            'ExecLevelUpTitle', 'ExecLevelUpBody', 'ExecLevelUpButton')},
         **{name: dict(post_delay=0, timeout=500, rate_limit=10) for name in (
             'OneKeyQuickStart', 'OneKeyQuickManaConfirm', 'OneKeyQuickExpConfirm',
             'OneKeyQuickManaSkipFinish', 'OneKeyQuickExpSkipFinish', 'OneKeyQuickSweepResult',
-            'OneKeyQuickFinished', 'OneKeyQuickClose')},
+            'OneKeyQuickFinished', 'OneKeyQuickClose', 'OneKeyQuickLevelUpDismiss')},
     })
-    markers = [0, 10] + ([1] if animation else []) + [2, 20] + ([1] if animation else []) + [2, 30, 40]
+    markers = ([0, 10] + ([1] if animation else []) + [2] + ([3] if level_up else [])
+        + [20] + ([1] if animation else []) + [2] + ([3] if level_up else []) + [30, 40])
     controller = SavedImages([[scene(marker)] for marker in markers])
     args = dict(game_day=current_game_day(), device=dict(serial='emulator-5556',
         source='gui_adb_session_v1', app_package='com.bilibili.priconne'),
@@ -306,10 +384,18 @@ def test_gui_two_explorations_skip_once_each_and_receipt_requires_results(tmp_pa
     assert report['outcome'] == 'executed', report
     verify_args = {key: value for key, value in args.items() if key != 'journal'}
     assert module.verified(report, **verify_args)
-    assert len(controller.clicks) == 6 + 2 * int(animation)
+    assert len(controller.clicks) == 6 + 2 * int(animation) + 2 * int(level_up)
     nodes = report['receipts'][-1]['native']['nodes']
     names = [node['name'] for node in nodes]
     assert names.count('OneKeyQuickSweepResult') == 2
+    assert names.count('OneKeyQuickLevelUpDismiss') == 2 * int(level_up)
+    if level_up:
+        forged = deepcopy(report)
+        forged_nodes = forged['receipts'][-1]['native']['nodes']
+        first = next(node for node in forged_nodes if node['name'] == 'OneKeyQuickLevelUpDismiss')
+        forged_nodes.remove(first)
+        forged_nodes.insert(1, first)
+        assert not module.verified(forged, **verify_args)
     for name in ('OneKeyQuickManaSkipFinish', 'OneKeyQuickExpSkipFinish'):
         assert names.count(name) == int(animation)
     if animation:
