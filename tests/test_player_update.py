@@ -103,11 +103,15 @@ def promoted_packet(case, **kwargs):
         'new_version': 'v0.1.6', **kwargs}, new_fields=fields)
 
 
-def test_same_revision_candidate_promotes_only_exact_accepted_release(update_case):
-    case = promoted_packet(update_case)
+@pytest.mark.parametrize('old_base,new_version', [
+    ('v0.1.6', 'v0.1.6'), ('v0.1.6', 'v0.1.7'), ('v0.1.9', 'v0.1.10')])
+def test_same_revision_candidate_promotes_only_exact_accepted_release(update_case,
+    old_base, new_version):
+    case = promoted_packet(update_case, old_version=f'{old_base}-r7-candidate',
+        new_version=new_version)
     result = maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
         candidate_replacement=case[7])
-    assert result['status'] == 'updated' and result['version'] == 'v0.1.6'
+    assert result['status'] == 'updated' and result['version'] == new_version
     assert (case[0] / maintenance.MANIFEST).read_bytes() == case[6]
     assert (Path(result['backup_path']) / maintenance.MANIFEST).read_bytes() == case[5]
     for name, data in case[3].items():
@@ -120,8 +124,10 @@ def test_same_revision_candidate_promotes_only_exact_accepted_release(update_cas
 
 @pytest.mark.parametrize('kwargs', [
     {'old_status': 'player_test_release', 'old_distribution': True, 'old_version': 'v0.1.6'},
-    {'old_version': 'v0.1.6-r8-candidate'}, {'old_version': 'v0.1.6-candidate'},
-    {'new_version': 'v0.1.7'}, {'new_version': 'v0.1.6-other'}, {'new_revision': 8},
+    {'old_version': 'v0.1.6-r8-candidate'}, {'old_version': 'v0.1.6-r07-candidate'},
+    {'old_version': 'v0.1.6-candidate'}, {'new_version': 'v0.1.5'},
+    {'old_version': 'v0.1.10-r7-candidate', 'new_version': 'v0.1.9'},
+    {'new_version': 'v0.1.6-other'}, {'new_revision': 8},
     {'new_layout': 'bound-checkout'},
     {'new_fields': {'status': 'release_staging'}},
     {'new_fields': {'distribution_ready': False}}, {'new_fields': {'blockers': ['not accepted']}},

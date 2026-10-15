@@ -151,10 +151,12 @@ def _same_revision_candidate(candidate_replacement, old, old_bytes, new, new_byt
         and new.get('distribution_ready') is False
         and old_version['version'] == new_version['version']
         and new_version['version'].endswith('-candidate'))
+    old_candidate = re.fullmatch(
+        rf'v(\d+)\.(\d+)\.(\d+)-r{old_version["revision"]}-candidate', old_version['version'])
+    new_release = re.fullmatch(r'v(\d+)\.(\d+)\.(\d+)', new_version['version'])
     checks = new.get('release_checks')
-    promoted = (old_version['version']
-        == f"{new_version['version']}-r{old_version['revision']}-candidate"
-        and re.fullmatch(r'v\d+\.\d+\.\d+', new_version['version']) is not None
+    promoted = (old_candidate is not None and new_release is not None
+        and tuple(map(int, new_release.groups())) >= tuple(map(int, old_candidate.groups()))
         and new.get('status') == 'player_test_release' and new.get('distribution_ready') is True
         and new.get('blockers') == [] and type(checks) is list and bool(checks)
         and all(type(check) is dict and set(check) == {'name', 'sha256'}
