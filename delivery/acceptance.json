@@ -2,10 +2,82 @@
   "schema_version": 1,
   "revision": 50,
   "expected_version": "v0.1.6",
-  "status": "pending",
-  "accepted_owned_payload_sha256": null,
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false
+  "status": "passed",
+  "accepted_owned_payload_sha256": "708376b166fe8cc38891699ee0119ce23bbc4a7a6f7a3a4b5f93b6b41929f0a8",
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 38678222579,
+    "run_attempt": 1,
+    "artifact_id": 11946738784,
+    "source_commit": "b0633ab5b85308b377e986f29198c53d10a031d2",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.6-win-x64.zip",
+      "size": 309399973,
+      "sha256": "db4337f6b677ac027449fe3d2744da4df9d5698be1214d1f910834ba81458434"
+    }
+  },
+  "live_valid_game_days": 0,
+  "candidate_to_baseline_ratio": null,
+  "meaningful_speedup_reviewed": false,
+  "reviewed_evidence_scope": {
+    "release_scope": "All R50 changes: daily drag and bounded recognition/sweep skip, seven verified channel presets, combined diagnostic log export and protected 30-day ordinary log retention, relic OCR fallback ordering, and exact-hash candidate-to-stable promotion; unknown/no-resend and durable ledgers retained.",
+    "public_tests": {
+      "tests": 2818,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 308,
+      "passed": 2510
+    },
+    "bundled_runtime_tests": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 3
+    },
+    "gui": "Exact CI Core loaded and hashed in each harness: channels 59, log export/retention 26, owner 38, module drag 116, asynchronous owner 53, profile switch 87, synthetic encrypted credentials 35, update 31, dependencies 52.",
+    "runtime": "Exact CI bundled runtime: three original package checks, OneKey compatibility imports, cold NumPy startup obeying Stop and EOF; six groups passed.",
+    "isolated_update": "Exact public R49 to CI R50 full/delta preflight, upgrades, repeat refusal, write-failure rollback, interrupted partial/committed recovery and external-conflict refusal; four synthetic configuration/keep-run/unknown/log sentinels retained.",
+    "clean_build": "Successful main push CI; exact runtime/source inventory, GUI build inputs, archive CRC/SHA256 and public-source privacy verified. Tag release promotes these program bytes without recompilation.",
+    "proofs": [
+      {
+        "name": "CI_ARTIFACT_VERIFIED.json",
+        "sha256": "22b6f6b71d133bfc4bea2c8683ad441b548e3b5ef792bc500dac77839e4fe0b3"
+      },
+      {
+        "name": "CI_RUN.json",
+        "sha256": "cce4e100e4a2804e022c225bb67fbe74e6fc32c30a27caabca817c13f0e9a47c"
+      },
+      {
+        "name": "CI_ARTIFACT.json",
+        "sha256": "6383852bc318bad280079009c5f30c6352f95ce4935d56e1ef6473f1208d4f23"
+      },
+      {
+        "name": "gui-ci-checks/FINAL_GUI_CHECKS.json",
+        "sha256": "2ffe97ed2818c59bc4ac413c19d2245062a92312490b1d8565df8e5eb5a0dcd5"
+      },
+      {
+        "name": "runtime-ci-checks/FINAL_RUNTIME_CHECKS.json",
+        "sha256": "3fd0db63545f000719d0d4ce3707da9659ee07c1ad2c49b1d94eb26439bcdc3f"
+      },
+      {
+        "name": "upgrade-ci-checks/FINAL_UPGRADE_CHECKS.json",
+        "sha256": "b09d63696814c5634e5c82085279df50914c93b978b8aff4bea6434ef8e98e90"
+      }
+    ],
+    "actual_installed_gui_acceptance_in_this_record": false,
+    "new_human_gui_clicks": false,
+    "real_installation_upgraded_in_this_release_task": false,
+    "full_human_update_click_flow_verified": false,
+    "visual_checkbox_acceptance": false,
+    "continuous_batch_or_new_live_recovery_verified": false,
+    "real_network_loss_or_force_quit_verified": false,
+    "live_performance_measured": false,
+    "new_live_login_verified": false,
+    "game_inputs": 0
+  }
 }
