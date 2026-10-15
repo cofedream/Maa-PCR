@@ -24,19 +24,38 @@ internal static class PcrMuMuDisplay
 
     internal static void RequireTransport(JObject binding)
     {
+        var controller = binding["controller"];
+        if ((string?)controller?["kind"] == "adb")
+            _ = ComponentPattern((string?)controller["app_package"] ?? "",
+                (string?)controller["app_activity"] ?? ".MainActivity");
         if (!MFAAvalonia.ViewModels.UsersControls.AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(
                 (string?)binding["connection"]?["adb_path"], (string?)binding["connection"]?["serial"], out _, out _)
             || ((string?)binding["mumu"]?["app_package"] != Package
-                && ((string?)binding["controller"]?["kind"] != "adb"
-                    || (string?)binding["controller"]?["app_package"] != Package)))
+                && (string?)controller?["kind"] != "adb"))
             throw new InvalidOperationException("Selected local ADB transport/package invalid");
+    }
+
+    internal static string ComponentPattern(string package, string activity)
+    {
+        const string identifier = @"[A-Za-z_][A-Za-z0-9_]*";
+        const string className = @"[A-Za-z_$][A-Za-z0-9_$]*";
+        if (package.Length > 255 || !Regex.IsMatch(package, @"\A" + identifier + @"(?:\." + identifier + @")+\z")
+            || activity.Length > 255 || !Regex.IsMatch(activity, @"\A(?:\." + className + @"(?:\." + className
+                + @")*|" + className + @"(?:\." + className + @")+)\z"))
+            throw new InvalidOperationException("渠道配置无效：请填写完整包名及相对或完整的运行 Activity。");
+        var full = activity.StartsWith('.') ? package + activity : activity;
+        var names = full.StartsWith(package + ".", StringComparison.Ordinal)
+            ? @"(?:" + Regex.Escape(full[package.Length..]) + "|" + Regex.Escape(full) + ")"
+            : Regex.Escape(full);
+        return Regex.Escape(package) + "/" + names;
     }
 
     // Parse only the current resumed/focused records, not Hist/last-paused or
     // the global ResumedActivity summary printed after the last Display #.
-    internal static Mapping ParseMapping(string activity, string input, bool validatePhysicalViewport = true)
+    internal static Mapping ParseMapping(string activity, string input, bool validatePhysicalViewport = true,
+        string package = Package, string appActivity = ".MainActivity")
     {
-        const string component = @"com\.bilibili\.priconne/(?:\.MainActivity|com\.bilibili\.priconne\.MainActivity)";
+        var component = ComponentPattern(package, appActivity);
         Match[] Matches(string text, string pattern) => Regex.Matches(text, pattern, RegexOptions.Multiline,
             TimeSpan.FromSeconds(1)).Cast<Match>().ToArray();
         int Id(string text) => int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var id)
@@ -44,7 +63,7 @@ internal static class PcrMuMuDisplay
         if (activity.Length > 2_000_000 || input.Length > 2_000_000)
             throw new InvalidOperationException("Display readback too large");
         if (!Regex.IsMatch(activity, @"^\s*topResumedActivity=", RegexOptions.Multiline))
-            return ParseAndroid9Default(activity, input, validatePhysicalViewport);
+            return ParseAndroid9Default(activity, input, validatePhysicalViewport, component);
         var active = Matches(activity, @"^Display #([^\s]+) \(activities from top to bottom\):([\s\S]*?)(?=^Display #|^ActivityTaskSupervisor state:|\z)")
             .SelectMany(block => Matches(block.Groups[2].Value, @"^\s*topResumedActivity=ActivityRecord\{(\S+) u\d+ " + component + @" t\d+\}")
                 .Select(record => (Logical: Id(block.Groups[1].Value), Record: record.Groups[1].Value))).ToArray();
@@ -100,9 +119,8 @@ internal static class PcrMuMuDisplay
     // Android 9 has single global input focus. Accept only its uniquely verified
     // default display. Formats follow AOSP android-9.0.0_r61 AM/InputDispatcher/
     // InputReader; frame dimensions and transport ports never choose the target.
-    private static Mapping ParseAndroid9Default(string activity, string input, bool validatePhysicalViewport)
+    private static Mapping ParseAndroid9Default(string activity, string input, bool validatePhysicalViewport, string component)
     {
-        const string component = @"com\.bilibili\.priconne/(?:\.MainActivity|com\.bilibili\.priconne\.MainActivity)";
         Match[] Matches(string text, string pattern) => Regex.Matches(text, pattern, RegexOptions.Multiline,
             TimeSpan.FromSeconds(1)).Cast<Match>().ToArray();
         var resumed = Matches(activity, @"^Display #([^\s]+) \(activities from top to bottom\):([\s\S]*?)(?=^Display #|^ActivityStackSupervisor state:|\z)")

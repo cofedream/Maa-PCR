@@ -137,6 +137,8 @@ try
     Dispatcher.UIThread.RunJobs();
     Require(ReferenceEquals(viewModel.ActiveTab, labyrinth) && labyrinth.IsActive && !daily.IsActive, "normal_selection_can_return_to_original");
     Require(PcrAlphaOwner.ControllerCreations == 0 && PcrAlphaOwner.AgentCreations == 0 && PcrAlphaOwner.Grants == 0 && PcrAlphaOwner.SessionCreations == 0, "no_device_or_run_created");
+    ChannelConfigChecks.Run(args.Length > 1 ? args[1] : System.IO.Path.GetTempPath());
+    LogExportChecks.Run(args[1]);
     AlphaOwnerChecks.Run();
     ModuleOrderChecks.Run(taskViewModel, args[1]);
     AlphaOwnerAsyncChecks.Run(processor, taskViewModel, manager, CheckBlocked, args);

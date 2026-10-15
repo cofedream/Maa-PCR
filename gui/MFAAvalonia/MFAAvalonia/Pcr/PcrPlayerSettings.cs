@@ -49,6 +49,21 @@ public partial class PcrPlayerSettings : ObservableObject
     [ObservableProperty] private string normalSlot = "";
     [ObservableProperty] private string? normalCount = "0";
     [ObservableProperty] private bool validateDisplayMapping;
+    [ObservableProperty] private string gamePackage = PcrMuMuDisplay.Package;
+    [ObservableProperty] private string gameActivity = ".MainActivity";
+    public System.Collections.Generic.IReadOnlyList<PcrChannelPreset> Channels => PcrChannelCatalog.All;
+    public PcrChannelPreset? SelectedChannel
+    {
+        get => PcrChannelCatalog.Find(GamePackage, GameActivity);
+        set {
+            if (value == null) return;
+            if (!Channels.Contains(value)) throw new InvalidOperationException("请选择已收录的渠道。");
+            GamePackage = value.Package;
+            GameActivity = value.Activity;
+        }
+    }
+    public string ChannelStatus => SelectedChannel is { } channel ? "已选择：" + channel.Label
+        : "原渠道配置尚未收录，请选择已收录渠道；原设置和历史记录保留。";
     [ObservableProperty] private bool collectGiftStamina;
     [ObservableProperty] private bool unreset;
     [ObservableProperty] private bool attestPlan;
@@ -87,6 +102,10 @@ public partial class PcrPlayerSettings : ObservableObject
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
+        if (e.PropertyName is nameof(GamePackage) or nameof(GameActivity)) {
+            base.OnPropertyChanged(new PropertyChangedEventArgs(nameof(SelectedChannel)));
+            base.OnPropertyChanged(new PropertyChangedEventArgs(nameof(ChannelStatus)));
+        }
         if (ready && e.PropertyName != nameof(Status) && e.PropertyName != nameof(Summary) && vm != null)
         {
             PcrAlphaOwner.Revoke(vm.Processor);
@@ -109,6 +128,7 @@ public partial class PcrPlayerSettings : ObservableObject
         ["hardSlot"] = HardSlot, ["hardCount"] = HardCount,
         ["normalSlot"] = NormalSlot, ["normalCount"] = NormalCount,
         ["validateDisplayMapping"] = ValidateDisplayMapping,
+        ["gamePackage"] = GamePackage, ["gameActivity"] = GameActivity,
         ["collectGiftStamina"] = CollectGiftStamina,
         ["ledgerIdentity"] = ledgerIdentity?.DeepClone(), ["identityConnection"] = identityConnection?.DeepClone(),
         ["managerIdentity"] = managerIdentity?.DeepClone(), ["managerConnection"] = managerConnection?.DeepClone(),
@@ -128,6 +148,8 @@ public partial class PcrPlayerSettings : ObservableObject
             ? p["validateDisplayMapping"]!.Value<bool>()
             : throw new InvalidOperationException("多显示屏映射校验设置必须为布尔值");
         CollectGiftStamina = ReadGiftStamina(p, "collectGiftStamina");
+        GamePackage = (string?)p["gamePackage"] ?? PcrMuMuDisplay.Package;
+        GameActivity = (string?)p["gameActivity"] ?? ".MainActivity";
         Unreset = false; AttestPlan = false;
         ledgerIdentity = p["ledgerIdentity"] as JObject;
         identityConnection = p["identityConnection"] as JObject;
@@ -146,6 +168,8 @@ public partial class PcrPlayerSettings : ObservableObject
         $"普通本次 {NormalCount}" }.Select(x => x.EndsWith(" 0") ? x + "（本次跳过）" : x));
     private JObject Config(string[]? selected = null)
     {
+        if (SelectedChannel == null)
+            throw new InvalidOperationException("该渠道配置尚未收录，请在高级设置选择已收录渠道；原设置和历史记录保留。");
         JObject Preset(string kind, string label, string slot, string? count)
         {
             if (selected != null && !selected.Contains(kind))
@@ -159,10 +183,14 @@ public partial class PcrPlayerSettings : ObservableObject
         var presets = new JArray(Preset("deep", "深域", DeepSlot, DeepCount), Preset("very_hard", "高难", VeryHardSlot, VeryHardCount), Preset("hard", "困难", HardSlot, HardCount), Preset("normal", "普通", NormalSlot, NormalCount));
         var slots = presets.Select(x => (int?)x["slot"]).Where(x => x.HasValue).ToArray();
         if (slots.Distinct().Count() != slots.Length) throw new InvalidOperationException("已配置的预设槽位不可重复。");
-        var controller = new JObject { ["kind"] = "adb", ["app_package"] = PcrMuMuDisplay.Package };
-        if (ledgerIdentity != null && JToken.DeepEquals(connection, identityConnection))
+        _ = PcrMuMuDisplay.ComponentPattern(GamePackage, GameActivity);
+        var controller = new JObject { ["kind"] = "adb", ["app_package"] = GamePackage };
+        if (GameActivity != ".MainActivity") controller["app_activity"] = GameActivity;
+        if (ledgerIdentity != null && (string?)ledgerIdentity["app_package"] == GamePackage
+            && JToken.DeepEquals(connection, identityConnection))
             controller["ledger_identity"] = ledgerIdentity.DeepClone();
-        if (managerIdentity != null && JToken.DeepEquals(connection, managerConnection))
+        if (managerIdentity != null && (string?)managerIdentity["app_package"] == GamePackage
+            && JToken.DeepEquals(connection, managerConnection))
             controller["manager_identity"] = managerIdentity.DeepClone();
         // GUI one-key is scoped to this explicit Start, not the legacy CLI ledger.
         // The Owner verifies transport, current package/display and native objects.
@@ -263,8 +291,15 @@ public partial class PcrPlayerSettings : ObservableObject
         var identity = version == 3 ? config["mumu"] as JObject : config["controller"]?["ledger_identity"] as JObject;
         if (version == 3 && identity == null) throw new InvalidOperationException("v3 导入缺少 mumu 身份。");
         var importedGiftStamina = ReadGiftStamina(config, "collect_gift_stamina");
+        var importedPackage = version == 3 ? (string?)identity?["app_package"]
+            : (string?)config["controller"]?["app_package"];
+        var importedActivity = (string?)config["controller"]?["app_activity"] ?? ".MainActivity";
+        _ = PcrMuMuDisplay.ComponentPattern(importedPackage ?? "", importedActivity);
+        if (PcrChannelCatalog.Find(importedPackage!, importedActivity) == null)
+            throw new InvalidOperationException("导入的渠道尚未收录，请反馈维护者补充；现有设置和历史记录保留。");
         ready = false;
         CollectGiftStamina = importedGiftStamina;
+        GamePackage = importedPackage!; GameActivity = importedActivity;
         connection = (JObject)importedConnection.DeepClone();
         ledgerIdentity = (JObject?)identity?.DeepClone();
         identityConnection = ledgerIdentity == null ? null : (JObject)connection.DeepClone();

@@ -78,6 +78,24 @@
                             <CheckBox
                                 Content="{Binding CustomLogLabel}"
                                 IsChecked="{Binding IncludeCustomLog}" />
+                            <CheckBox
+                                Content="黎明界运行日志"
+                                IsChecked="{Binding IncludeLabyrinthLog}" />
+                            <TextBlock Classes="export-section-caption" Text="{Binding LabyrinthLogDescription}" />
+                            <ComboBox
+                                AutomationProperties.Name="黎明界原生日志时间范围"
+                                HorizontalAlignment="Stretch"
+                                IsEnabled="{Binding IncludeLabyrinthLog}"
+                                ItemsSource="{Binding ImageTimeRangeOptions}"
+                                SelectedItem="{Binding SelectedLabyrinthLogTimeRange}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="usersControls:ExportLogTimeRangeOption">
+                                        <TextBlock Text="{Binding DisplayName}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Classes="export-section-caption" Text="{Binding StorageUsage}" />
+                            <TextBlock Classes="export-section-caption" Text="{Binding LogRetentionDescription}" />
                         </StackPanel>
                     </StackPanel>
                 </Border>

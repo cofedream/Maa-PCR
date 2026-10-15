@@ -159,6 +159,7 @@ public static partial class PcrAlphaOwner
             // MuMu continuity remains checked where its Manager source exists;
             // generic ADB must not fabricate or inherit a historical instance identity.
             if (!PcrFormalPreflight.Enabled && playerSettings && selection["selected_modules"]!.Values<string>().Contains("schedule_onekey")
+                && vm.PcrSettings.GamePackage == PcrMuMuDisplay.Package
                 && PcrMuMuIdentity.HasManagerSource(new JObject { ["adb_path"] = selectedTarget!.AdbPath, ["serial"] = selectedTarget.Serial }))
             {
                 // Stop is available during the read. Restore editability only for
@@ -282,7 +283,7 @@ public static partial class PcrAlphaOwner
             else if (ex.Message == "schedule_manager_timeout")
                 message += "\n读取所选 MuMu 信息超过 5 秒，任务尚未开始。请等模拟器启动完成，确认 PCR 已打开，再开始；仍超时时请保留日志。";
             else if (ex.Message is "PCR resumed target missing or ambiguous" or "PCR activity focus mismatch" or "PCR input focus mismatch")
-                message += "\n无法确认所选模拟器中的 PCR 游戏画面，任务尚未开始。请打开并登录 PCR，切回游戏主页后再开始；仍提示冲突时请核对设备选择并保留日志。";
+                message += "\n无法确认所选模拟器中的 PCR 游戏画面，任务尚未开始。请打开并登录 PCR，切回游戏主页后再开始；请在高级设置选择正确渠道，未收录渠道请反馈维护者，仍提示冲突时请核对设备选择并保留日志。";
             else if (ex.Message.StartsWith("schedule_manager_", StringComparison.Ordinal))
                 message += "\n无法核验所选模拟器，任务尚未开始。请确认所选 MuMu 和 PCR 已打开并核对设备；仍失败时保留日志交维护端核查。";
             vm.Processor.AddLog(message, (Avalonia.Media.IBrush?)null);
@@ -406,7 +407,10 @@ public static partial class PcrAlphaOwner
         var activity = await Read(PcrDisplayRead.Activity).ConfigureAwait(false);
         var input = await Read(PcrDisplayRead.Input).ConfigureAwait(false);
         s.Cancel.Token.ThrowIfCancellationRequested();
-        return PcrMuMuDisplay.ParseMapping(activity, input, s.ValidatePhysicalViewport);
+        var target = s.Config.Binding();
+        return PcrMuMuDisplay.ParseMapping(activity, input, s.ValidatePhysicalViewport,
+            (string?)(target["controller"] ?? target["mumu"])?["app_package"] ?? PcrMuMuDisplay.Package,
+            (string?)target["controller"]?["app_activity"] ?? ".MainActivity");
     }
 
     private static async Task CheckMappingAsync(Session s)

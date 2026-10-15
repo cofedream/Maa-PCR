@@ -49,10 +49,11 @@ def validate_gui_device(device):
     from .device import validate_serial
     from .onekey_history import stable_device, validate_stable_device
     from .schedule_onekey import validate_fixed_device
+    from .daily import validate_app_target
     if type(device) is dict and set(device) == {'serial', 'source', 'app_package'}:
-        if (device['source'] != 'gui_adb_session_v1'
-                or device['app_package'] != 'com.bilibili.priconne'):
+        if device['source'] != 'gui_adb_session_v1':
             raise ValueError('gui_schedule_session_target_invalid')
+        validate_app_target(device['app_package'])
         validate_serial(device['serial'])
         if not device['serial'].startswith(('emulator-', '127.0.0.1:')):
             raise ValueError('gui_schedule_local_target_required')

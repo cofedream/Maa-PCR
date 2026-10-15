@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Helper;
+using MFAAvalonia.Pcr;
 using MFAAvalonia.ViewModels;
 using SukiUI.Dialogs;
 using System.Collections.Generic;
@@ -24,6 +25,16 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartExportCommand))]
     private bool _includeCustomLog = true;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartExportCommand))]
+    private bool _includeLabyrinthLog = true;
+
+    [ObservableProperty] private ExportLogTimeRangeOption _selectedLabyrinthLogTimeRange;
+    [ObservableProperty] private string _storageUsage = "正在统计日志占用…";
+
+    public string LogRetentionDescription => "启动时清理超过 30 天的普通日志。GUI 日志还受原有大小与文件数上限约束。黎明界账本、检查点及独立运行证据保留。";
+    public string LabyrinthLogDescription => "运行记录、账本和检查点完整附带；下方时间范围仅筛选原生日志。记录可能含玩家 ID、设备标识及游戏识别信息，请按需分享。";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartExportCommand))]
@@ -54,7 +65,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
         : LangKeys.ExportLogDialogStart.ToLocalization();
 
     public bool CanStartExport =>
-        !IsExporting && (IncludeMaaLog || IncludeGuiLog || IncludeCustomLog || IncludeOnErrorImages || IncludeVisionImages || IncludeOtherImages);
+        !IsExporting && (IncludeMaaLog || IncludeGuiLog || IncludeCustomLog || IncludeLabyrinthLog || IncludeOnErrorImages || IncludeVisionImages || IncludeOtherImages);
 
     public ExportLogDialogViewModel(ISukiDialog dialog)
     {
@@ -71,6 +82,18 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
         _selectedOnErrorImageTimeRange = ImageTimeRangeOptions[0];
         _selectedVisionImageTimeRange = ImageTimeRangeOptions[0];
         _selectedOtherImageTimeRange = ImageTimeRangeOptions[0];
+        _selectedLabyrinthLogTimeRange = ImageTimeRangeOptions[3];
+        _ = RefreshStorageUsage();
+    }
+
+    private async Task RefreshStorageUsage()
+    {
+        try
+        {
+            var usage = await Task.Run(() => PcrLogFiles.Usage(AppPaths.DataRoot));
+            StorageUsage = $"普通日志：{usage.Ordinary / 1048576d:F1} MiB；黎明界独立记录：{usage.Labyrinth / 1048576d:F1} MiB（压缩前，不含截图）。";
+        }
+        catch { StorageUsage = "日志占用统计未完成，部分文件无法访问。"; }
     }
 
     partial void OnIsExportingChanged(bool value) => OnPropertyChanged(nameof(StartExportLabel));
@@ -113,6 +136,8 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
             IncludeMaaLog = IncludeMaaLog,
             IncludeGuiLog = IncludeGuiLog,
             IncludeCustomLog = IncludeCustomLog,
+            IncludeLabyrinthLog = IncludeLabyrinthLog,
+            LabyrinthLogTimeRange = SelectedLabyrinthLogTimeRange.Value,
             IncludeOnErrorImages = IncludeOnErrorImages,
             IncludeVisionImages = IncludeVisionImages,
             IncludeOtherImages = IncludeOtherImages,

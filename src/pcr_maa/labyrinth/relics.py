@@ -33,9 +33,9 @@ def _ocr(expected, roi):
 
 
 def _name_nodes(name, expected, roi):
-    # Outlined names need either line recognition or native text detection.
+    # Detect outlined names first; line recognition can truncate a confident hit.
     nodes = {name+suffix: dict(_ocr(expected, roi), only_rec=line)
-             for suffix, line in (('Line', True), ('Detected', False))}
+             for suffix, line in (('Detected', False), ('Line', True))}
     nodes[name+'Native'] = dict(recognition='Or', any_of=list(nodes), action='DoNothing',
         next=[], timeout=1500, pre_delay=0, post_delay=0)
     # Keep each name's native OCR crop out of And's multi-card OCR batch cache.
@@ -288,7 +288,7 @@ def relic_offers(receipt):
             # Maa Or short-circuits: earlier OCR alternatives missed, last hit.
             if (not 1 <= len(name) <= 2 or any(type(r) is not dict or r.get('algorithm') != 'OCR'
                     or r.get('name') != f'LabyRelicName{slot}'+suffix
-                    for r, suffix in zip(name, ('Line', 'Detected')))
+                    for r, suffix in zip(name, ('Detected', 'Line')))
                     or any(r.get('box') is not None for r in name[:-1])):
                 raise BatchStopped('relic_offers_unknown')
             name = name[-1].get('detail')

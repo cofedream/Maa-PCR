@@ -8,7 +8,7 @@ import pytest
 
 from pcr_maa import player_maintenance as maintenance
 from pcr_maa import player_update as updater
-from test_player_update import assert_private, encode, manifest, update_case
+from test_player_update import assert_private, candidate_packet, encode, manifest, promoted_packet, update_case
 from test_player_online_update import online_case
 
 
@@ -120,6 +120,66 @@ def test_legacy_marker_without_target_remains_fail_closed(update_case):
         maintenance.recover_update(player, process_probe=lambda _: [])
     assert marker.read_bytes() == b'{"workspace":"keep-original-legacy-marker"}'
     assert_private(update_case)
+
+
+@pytest.mark.parametrize('packet', [candidate_packet, promoted_packet])
+def test_same_revision_candidate_recovery_requires_explicit_matching_tuple(update_case, packet):
+    case = packet(update_case)
+    work, _, marker = interrupted(case[0], case[2], case[3], case[5], case[6], complete=True)
+    marker_bytes = marker.read_bytes()
+    with pytest.raises(ValueError, match='invalid_recovery_versions'):
+        maintenance.recover_update(case[0], process_probe=lambda _: [])
+    assert marker.read_bytes() == marker_bytes
+    with pytest.raises(ValueError):
+        maintenance.recover_update(case[0], process_probe=lambda _: [],
+            candidate_replacement=('a' * 64, 'b' * 64))
+    assert marker.read_bytes() == marker_bytes
+    assert_private(update_case)
+
+
+@pytest.mark.parametrize('packet', [candidate_packet, promoted_packet])
+@pytest.mark.parametrize('complete', [False, True])
+def test_same_revision_candidate_recovery_rolls_back_and_is_reentrant(update_case, packet, complete):
+    case = packet(update_case)
+    work, _, marker = interrupted(case[0], case[2], case[3], case[5], case[6], complete=complete)
+    result = maintenance.recover_update(case[0], process_probe=lambda _: [],
+        candidate_replacement=case[7])
+    assert result['status'] == 'rolled_back' and result['revision'] == 7
+    assert not marker.exists()
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[5]
+    for name, data in case[2].items():
+        assert (case[0] / name).read_bytes() == data
+    assert_private(update_case)
+    assert maintenance.recover_update(case[0], process_probe=lambda _: [])['status'] == 'no_recovery_needed'
+    assert (work / 'before' / maintenance.MANIFEST).read_bytes() == case[5]
+
+
+@pytest.mark.parametrize('damage', ['backup', 'unknown'])
+def test_candidate_promotion_recovery_keeps_integrity_and_unknown_guards(update_case, damage):
+    case = promoted_packet(update_case)
+    work, changes, marker = interrupted(case[0], case[2], case[3], case[5], case[6], complete=True)
+    if damage == 'backup':
+        (work / 'before' / changes[0]).write_bytes(b'corrupt backup')
+    else:
+        (case[0] / changes[0]).write_bytes(b'unknown write must survive')
+    before = {name: (case[0] / name).read_bytes() for name in case[3]}
+    with pytest.raises(ValueError, match='payload_hash_mismatch|recovery_unknown_conflict'):
+        maintenance.recover_update(case[0], process_probe=lambda _: [],
+            candidate_replacement=case[7])
+    assert marker.exists()
+    for name, data in before.items():
+        assert (case[0] / name).read_bytes() == data
+    assert_private(case)
+
+
+def test_candidate_promotion_recovery_rejects_unaccepted_target(update_case):
+    case = promoted_packet(update_case, new_fields={'release_checks': []})
+    _, _, marker = interrupted(case[0], case[2], case[3], case[5], case[6], complete=True)
+    with pytest.raises(ValueError, match='candidate_replacement_not_allowed'):
+        maintenance.recover_update(case[0], process_probe=lambda _: [],
+            candidate_replacement=case[7])
+    assert marker.exists() and (case[0] / maintenance.MANIFEST).read_bytes() == case[6]
+    assert_private(case)
 
 
 def test_recovery_bootstrap_uses_coherent_verified_old_runtime(online_case):

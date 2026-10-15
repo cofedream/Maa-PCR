@@ -1,6 +1,7 @@
 using Avalonia.Platform.Storage;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
+using MFAAvalonia.Pcr;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -86,9 +87,7 @@ public static class FileLogExporter
                 string baseDirectory = AppPaths.DataRoot;
 
                 // 获取符合条件的日志文件和图片文件
-                var eligibleFiles = await Task.Run(() => options == null
-                    ? GetEligibleFiles(baseDirectory)
-                    : GetEligibleFiles(baseDirectory, options));
+                var eligibleFiles = await Task.Run(() => GetEligibleFiles(baseDirectory, options ?? new ExportLogPackageOptions()));
 
                 if (!eligibleFiles.Any())
                 {
@@ -119,6 +118,8 @@ public static class FileLogExporter
 
                             try
                             {
+                                if (!PcrLogFiles.IsRegularPath(baseDirectory, file.FullName))
+                                    throw new IOException("日志路径包含链接，已跳过。");
                                 var destDir = Path.Combine(tempDir, file.RelativePath ?? string.Empty);
                                 Directory.CreateDirectory(destDir);
                                 var destPath = Path.Combine(destDir, Path.GetFileName(file.FullName));
@@ -186,74 +187,6 @@ public static class FileLogExporter
         }
     }
 
-    // 获取符合条件的文件（日志+图片）
-    private static List<FileInfoEx> GetEligibleFiles(string baseDirectory)
-    {
-        var eligibleFiles = new List<FileInfoEx>();
-        var twoDaysAgo = DateTime.Now.AddDays(-5); // 日期限制：仅保留两天内的文件
-
-        // 1. 获取日志文件（.log 和 .txt）
-        var debugDir = Path.Combine(baseDirectory, "debug");
-        var logFiles = Directory.Exists(debugDir)
-            ? Directory.GetFiles(debugDir, "*.log", SearchOption.AllDirectories)
-                .Where(file => !file.Contains(ExcludedFolder, StringComparison.OrdinalIgnoreCase)) // 排除vision路径
-            : [];
-
-        var logsDir = Path.Combine(baseDirectory, "logs");
-        var txtFiles = Directory.Exists(logsDir)
-            ? Directory.GetFiles(logsDir, "*.log", SearchOption.AllDirectories)
-            : [];
-
-        // 2. 获取 debug 目录下的图片文件（指定扩展名）
-        var imageFiles = Directory.Exists(debugDir)
-            ? Directory.GetFiles(debugDir, "*.*", SearchOption.AllDirectories)
-                .Where(file =>
-                    ImageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()) && !file.Contains(ExcludedFolder, StringComparison.OrdinalIgnoreCase)) // 排除vision路径
-            : [];
-
-
-        // 合并所有文件并处理
-        var allFiles = logFiles.Concat(txtFiles).Concat(imageFiles).Distinct().ToArray();
-
-        foreach (var file in allFiles)
-        {
-            try
-            {
-                var fileInfo = new FileInfo(file);
-
-                // 过滤：仅保留两天内修改的文件
-                if (fileInfo.LastWriteTime < twoDaysAgo)
-                    continue;
-
-                // 计算相对路径（相对于应用基目录）
-                var relativePath = (Path.GetDirectoryName(file) ?? string.Empty)
-                    .Replace(baseDirectory, "")
-                    .TrimStart(Path.DirectorySeparatorChar);
-
-                // 判断是否为图片文件
-                var isImage = ImageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant());
-
-                // 日志文件需要计算行数，图片文件无需计算
-                var lineCount = isImage ? 0 : CountLines(file);
-
-                eligibleFiles.Add(new FileInfoEx
-                {
-                    FullName = file,
-                    RelativePath = relativePath,
-                    LineCount = lineCount,
-                    IsImage = isImage
-                });
-            }
-            catch (Exception ex)
-            {
-                LoggerHelper.Error($"处理文件 {file} 时出错: {ex}");
-                // 继续处理其他文件
-            }
-        }
-
-        return eligibleFiles;
-    }
-
     private static List<FileInfoEx> GetEligibleFiles(string baseDirectory, ExportLogPackageOptions options)
     {
         var eligibleFiles = new List<FileInfoEx>();
@@ -276,6 +209,19 @@ public static class FileLogExporter
         if (options.IncludeCustomLog)
         {
             foreach (var file in GetCustomLogFiles(baseDirectory))
+                candidateFiles.Add(file);
+        }
+
+        if (options.IncludeLabyrinthLog)
+        {
+            var days = options.LabyrinthLogTimeRange switch
+            {
+                ExportLogTimeRange.Last24Hours => 1,
+                ExportLogTimeRange.Last3Days => 3,
+                ExportLogTimeRange.Last7Days => 7,
+                _ => 0
+            };
+            foreach (var file in PcrLogFiles.LabyrinthFiles(baseDirectory, days == 0 ? DateTime.MinValue : DateTime.UtcNow.AddDays(-days)))
                 candidateFiles.Add(file);
         }
 
@@ -309,7 +255,9 @@ public static class FileLogExporter
         {
             var fileName = Path.GetFileName(file);
             return fileName.StartsWith("maa.log", StringComparison.OrdinalIgnoreCase)
-                   || fileName.StartsWith("maafw.log", StringComparison.OrdinalIgnoreCase);
+                   || fileName.StartsWith("maafw.log", StringComparison.OrdinalIgnoreCase)
+                   || fileName.StartsWith("maa.bak.", StringComparison.OrdinalIgnoreCase)
+                   || fileName.StartsWith("maafw.bak.", StringComparison.OrdinalIgnoreCase);
         });
 
         if (namedMaaLogs.Any())
@@ -394,9 +342,7 @@ public static class FileLogExporter
         try
         {
             var fileInfo = new FileInfo(file);
-            var relativePath = (Path.GetDirectoryName(file) ?? string.Empty)
-                .Replace(baseDirectory, "")
-                .TrimStart(Path.DirectorySeparatorChar);
+            var relativePath = Path.GetRelativePath(baseDirectory, Path.GetDirectoryName(file)!);
             var isImage = IsImageFile(file);
             var lineCount = isImage ? 0 : CountLines(file);
 
@@ -614,6 +560,8 @@ public static class FileLogExporter
 
 public sealed class ExportLogPackageOptions
 {
+    public bool IncludeLabyrinthLog { get; init; } = true;
+    public ExportLogTimeRange LabyrinthLogTimeRange { get; init; } = ExportLogTimeRange.Last7Days;
     public bool IncludeMaaLog { get; init; } = true;
     public bool IncludeGuiLog { get; init; } = true;
     public bool IncludeCustomLog { get; init; } = true;

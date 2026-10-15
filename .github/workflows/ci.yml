@@ -27,7 +27,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build Portable Candidate
         run: |
-          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r46-package-manifest.json
+          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r49-package-manifest.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: GUI Update Contract Checks
         run: |

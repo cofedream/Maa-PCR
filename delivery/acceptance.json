@@ -1,83 +1,11 @@
 {
   "schema_version": 1,
-  "revision": 49,
-  "expected_version": "v0.1.5",
-  "status": "passed",
-  "accepted_owned_payload_sha256": "4a4ba490e7afaae5c6c33485a5f3b42f0d8cd29121a87486dbe178942ce95974",
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 38530289990,
-    "run_attempt": 1,
-    "artifact_id": 11878203894,
-    "source_commit": "0fa84f9cec8c16f3a5bbb2859739c0b4ae5c01d0",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.5-win-x64.zip",
-      "size": 309373487,
-      "sha256": "de088af5083733f59eeafbaa8ea9e5d1f085372c5e6ef207470ab0f4242aaf7d"
-    }
-  },
-  "live_valid_game_days": 0,
-  "candidate_to_baseline_ratio": null,
-  "meaningful_speedup_reviewed": false,
-  "reviewed_evidence_scope": {
-    "release_scope": "Labyrinth Stop waits for active transaction acknowledgment; fresh-start recovery with a default-off persistent keep-old-run option; unknown actions and RETIRE results are never resent.",
-    "public_tests": {
-      "tests": 2579,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 303,
-      "passed": 2276
-    },
-    "bundled_runtime_tests": {
-      "tests": 3,
-      "failures": 0,
-      "errors": 0,
-      "skipped": 0,
-      "passed": 3
-    },
-    "gui": "Exact CI Core loaded and hashed in each harness: owner 38, asynchronous owner 53, profile switch 87, keep-run binding/persistence and synthetic encrypted credentials 35, update 31, dependencies 52.",
-    "runtime": "Exact CI bundled runtime: three original package checks, OneKey compatibility imports, cold NumPy startup obeying Stop and EOF; six groups passed.",
-    "isolated_update": "Exact public R46 to CI R49 full/delta preflight, upgrades, repeat refusal, write-failure rollback, interrupted partial/committed recovery and external-conflict refusal; four synthetic configuration/keep-run/unknown/log sentinels retained.",
-    "clean_build": "Successful main push CI; exact runtime/source inventory, GUI build inputs, archive CRC/SHA256 and public-source privacy verified. Tag release promotes these program bytes without recompilation.",
-    "proofs": [
-      {
-        "name": "CI_ARTIFACT_VERIFIED.json",
-        "sha256": "2f47cad45815863728dd2e0fd4514b41cc20b000c59d5a4ac5f16abd7fadba41"
-      },
-      {
-        "name": "CI_RUN.json",
-        "sha256": "0e78efa28292fc414c1d820a19fd7b346371e69c2ef9ccfd1d7fd8a73ad4bfab"
-      },
-      {
-        "name": "CI_ARTIFACT.json",
-        "sha256": "7d3e5be799d80330b336e53e0a073392285eb23189f7d73cb624054994c4505e"
-      },
-      {
-        "name": "gui-ci-checks/FINAL_GUI_CHECKS.json",
-        "sha256": "031d19cc86a671a82d926c94cabf58808b740526567ffc77236dc684efaf22f7"
-      },
-      {
-        "name": "runtime-ci-checks/FINAL_RUNTIME_CHECKS.json",
-        "sha256": "8384d66796e1b774a7d432c6baa370e6ffed6fa51f2d6448c15454cf4c6e45f9"
-      },
-      {
-        "name": "upgrade-ci-checks/FINAL_UPGRADE_CHECKS.json",
-        "sha256": "32fa3ab18d47f2851a9544adbbcec7fd5c3b9daa9c4ab556a1118bdab9ca42c3"
-      }
-    ],
-    "actual_installed_gui_acceptance_in_this_record": false,
-    "new_human_gui_clicks": false,
-    "real_installation_upgraded_in_this_release_task": false,
-    "full_human_update_click_flow_verified": false,
-    "visual_checkbox_acceptance": false,
-    "continuous_batch_or_new_live_recovery_verified": false,
-    "real_network_loss_or_force_quit_verified": false,
-    "live_performance_measured": false,
-    "new_live_login_verified": false,
-    "game_inputs": 0
-  }
+  "revision": 50,
+  "expected_version": "v0.1.6",
+  "status": "pending",
+  "accepted_owned_payload_sha256": null,
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false
 }

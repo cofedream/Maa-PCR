@@ -1,0 +1,67 @@
+[
+  {
+    "id": "bilibili",
+    "label": "B服（哔哩哔哩）",
+    "package": "com.bilibili.priconne",
+    "activity": ".MainActivity",
+    "source": "https://game.bilibili.com/pcr/",
+    "evidence": "existing_verified_bilibili_binding"
+  },
+  {
+    "id": "xiaomi",
+    "label": "小米渠道服",
+    "package": "com.bilibili.priconne.mi",
+    "activity": "com.bilibili.priconne.MainActivity",
+    "source": "https://app.mi.com/details?id=com.bilibili.priconne.mi",
+    "version": "11.7.2",
+    "manifest_sha256": "e73edacbdad3adc48f32446a278b3ed4bd15b7c8f39eeb5203c0a832f5212ba1"
+  },
+  {
+    "id": "tencent",
+    "label": "应用宝渠道服（腾讯）",
+    "package": "com.tencent.tmgp.bilibili.priconne",
+    "activity": "com.bilibili.priconne.MainActivity",
+    "source": "https://sj.qq.com/appdetail/com.tencent.tmgp.bilibili.priconne",
+    "version": "11.7.2",
+    "manifest_sha256": "e2390f543b0148f0ab568e20a170587db56f8881b6b324e5b6f816ad084337b2"
+  },
+  {
+    "id": "jiuyou",
+    "label": "九游渠道服",
+    "package": "com.bilibili.priconne.aligames",
+    "activity": "com.bilibili.priconne.MainActivity",
+    "source": "https://www.9game.cn/gongzhulianjieredi/",
+    "version": "11.7.2",
+    "manifest_sha256": "5a636e25ff132f292bc29b18c7044b38917ddc159dafbbd6fdb081840fb67a0d"
+  },
+  {
+    "id": "huawei",
+    "label": "华为渠道服",
+    "package": "com.bilibili.priconne.huawei",
+    "activity": "com.bilibili.priconne.MainActivity",
+    "source": "https://github.com/wbero/limingjie-assistant/blob/801db8bcbd970b573dd2e89cb9f2b0aab16789d8/android/docs/channel-servers.md",
+    "version": "11.7.2",
+    "manifest_sha256": "775575ef72f357456feec225b11e46f32990aea4d567c31d1bb35af40813592e",
+    "evidence": "mirror_apk_manifest_and_upstream_channel_record"
+  },
+  {
+    "id": "vivo",
+    "label": "vivo 渠道服",
+    "package": "com.bilibili.priconne.vivo",
+    "activity": "com.bilibili.priconne.MainActivity",
+    "source": "https://game.vivo.com.cn/api/searchGame?word=%E5%85%AC%E4%B8%BB%E8%BF%9E%E7%BB%93&pageIndex=1",
+    "version": "11.7.2",
+    "manifest_sha256": "a38fd54890a6fc66046d9bcf491f18a5c36fe2e581336b2811149fc29b7f19c9",
+    "evidence": "official_store_apk_manifest"
+  },
+  {
+    "id": "mumu",
+    "label": "MuMu 渠道服",
+    "package": "com.bilibili.priconne.yofun.mumu",
+    "activity": "com.bilibili.priconne.MainActivity",
+    "source": "https://mumu.163.com/games/17891.html",
+    "version": "11.7.2",
+    "manifest_sha256": "762824eece40807da54f8d485500cbbbb6e70dc5d2a0234dbfb5843e09e4e08f",
+    "evidence": "official_store_apk_manifest"
+  }
+]

@@ -7,6 +7,7 @@ import zipfile
 
 import pytest
 from pcr_maa import player_maintenance as maintenance
+from pcr_maa import player_update as updater
 
 
 def record(name, data):
@@ -65,6 +66,174 @@ def update_case(tmp_path):
 def assert_private(case):
     for name, data in case[4].items():
         assert (case[0] / name).read_bytes() == data
+
+
+def candidate_packet(case, *, old_revision=7, new_revision=7,
+    old_status='release_staging', new_status='release_staging',
+    old_distribution=False, new_distribution=False,
+    old_layout='portable-offline-validation', new_layout='portable-offline-validation',
+    old_version=None, new_version=None, new_fields=None):
+    player, packet, old, new = case[:4]
+    old_metadata = manifest(old, old_revision, layout=old_layout)
+    new_metadata = manifest(new, new_revision, layout=new_layout)
+    old_metadata['status'] = old_status
+    new_metadata['status'] = new_status
+    old_metadata['distribution_ready'] = old_distribution
+    new_metadata['distribution_ready'] = new_distribution
+    if old_version is not None:
+        old_metadata['update']['version'] = old_version
+    if new_version is not None:
+        new_metadata['update']['version'] = new_version
+    if new_fields is not None:
+        new_metadata.update(new_fields)
+    old_bytes = encode(old_metadata)
+    new_bytes = encode(new_metadata)
+    (player / maintenance.MANIFEST).write_bytes(old_bytes)
+    packet.unlink()
+    archive(packet, new, new_metadata)
+    return (player, packet, old, new, case[4], old_bytes, new_bytes,
+        (hashlib.sha256(old_bytes).hexdigest(), hashlib.sha256(new_bytes).hexdigest()))
+
+
+def promoted_packet(case, **kwargs):
+    fields = {'status': 'player_test_release', 'distribution_ready': True, 'blockers': [],
+        'release_checks': [{'name': 'acceptance.json', 'sha256': 'c' * 64}]}
+    fields.update(kwargs.pop('new_fields', {}))
+    return candidate_packet(case, **{'old_version': 'v0.1.6-r7-candidate',
+        'new_version': 'v0.1.6', **kwargs}, new_fields=fields)
+
+
+def test_same_revision_candidate_promotes_only_exact_accepted_release(update_case):
+    case = promoted_packet(update_case)
+    result = maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+        candidate_replacement=case[7])
+    assert result['status'] == 'updated' and result['version'] == 'v0.1.6'
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[6]
+    assert (Path(result['backup_path']) / maintenance.MANIFEST).read_bytes() == case[5]
+    for name, data in case[3].items():
+        assert (case[0] / name).read_bytes() == data
+    assert_private(case)
+    with pytest.raises(ValueError, match='candidate_replacement_manifest_mismatch'):
+        maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+            candidate_replacement=case[7])
+
+
+@pytest.mark.parametrize('kwargs', [
+    {'old_status': 'player_test_release', 'old_distribution': True, 'old_version': 'v0.1.6'},
+    {'old_version': 'v0.1.6-r8-candidate'}, {'old_version': 'v0.1.6-candidate'},
+    {'new_version': 'v0.1.7'}, {'new_version': 'v0.1.6-other'}, {'new_revision': 8},
+    {'new_layout': 'bound-checkout'},
+    {'new_fields': {'status': 'release_staging'}},
+    {'new_fields': {'distribution_ready': False}}, {'new_fields': {'blockers': ['not accepted']}},
+    {'new_fields': {'blockers': None}}, {'new_fields': {'release_checks': []}},
+    {'new_fields': {'release_checks': None}},
+    {'new_fields': {'release_checks': [{'name': 'acceptance.json', 'sha256': 'wrong'}]}},
+    {'new_fields': {'release_checks': [{'name': '', 'sha256': 'c' * 64}]}},
+    {'new_fields': {'release_checks': ['acceptance.json']}},
+])
+def test_candidate_promotion_rejects_wrong_versions_or_unaccepted_target(update_case, kwargs):
+    case = promoted_packet(update_case, **kwargs)
+    with pytest.raises(ValueError, match='candidate_replacement_not_allowed'):
+        maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+            candidate_replacement=case[7])
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[5]
+    assert_private(case)
+
+
+@pytest.mark.parametrize('replacement', [None, ('a' * 64, 'b' * 64)])
+def test_candidate_promotion_requires_explicit_exact_hashes(update_case, replacement):
+    case = promoted_packet(update_case)
+    with pytest.raises(ValueError, match='update_not_newer|candidate_replacement_manifest_mismatch'):
+        maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+            candidate_replacement=replacement)
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[5]
+    assert_private(case)
+
+
+def test_same_revision_candidate_replacement_preserves_private_state(update_case):
+    case = candidate_packet(update_case)
+    result = maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+        candidate_replacement=case[7])
+    assert result['status'] == 'updated' and result['revision'] == 7
+    for name, data in case[3].items():
+        assert (case[0] / name).read_bytes() == data
+    assert_private(update_case)
+
+
+@pytest.mark.parametrize('candidate_replacement', [None])
+def test_same_revision_without_explicit_candidate_replacement_stays_rejected(update_case,
+    candidate_replacement):
+    case = candidate_packet(update_case)
+    with pytest.raises(ValueError, match='update_not_newer'):
+        maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+            candidate_replacement=candidate_replacement)
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[5]
+    assert_private(update_case)
+
+
+def test_same_revision_without_candidate_argument_stays_rejected(update_case):
+    case = candidate_packet(update_case)
+    with pytest.raises(ValueError, match='update_not_newer'):
+        maintenance.apply_update(case[0], case[1], process_probe=lambda _: [])
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[5]
+    assert_private(update_case)
+
+
+@pytest.mark.parametrize('candidate_replacement', [
+    ('a' * 64,), ['a' * 64, 'b' * 64], ('A' * 64, 'b' * 64),
+    ('a' * 63, 'b' * 64), ('a' * 64, 'a' * 64),
+    ('b' * 64, 'a' * 64), ('a' * 64, 'b' * 64)])
+def test_candidate_replacement_requires_exact_old_and_new_hashes(update_case,
+    candidate_replacement):
+    case = candidate_packet(update_case)
+    with pytest.raises(ValueError):
+        maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+            candidate_replacement=candidate_replacement)
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[5]
+    assert_private(update_case)
+
+
+@pytest.mark.parametrize('kwargs', [
+    {'old_status': 'release_ready'}, {'new_status': 'release_ready'},
+    {'old_distribution': True}, {'new_distribution': True},
+    {'new_layout': 'bound-checkout'}, {'new_revision': 8},
+    {'new_version': 'r7-pilot-other'}, {'new_version': 'r7-pilot'}])
+def test_candidate_replacement_requires_staging_same_revision_and_version(update_case, kwargs):
+    case = candidate_packet(update_case, **kwargs)
+    with pytest.raises(ValueError):
+        maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+            candidate_replacement=case[7])
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[5]
+    assert_private(update_case)
+
+
+def test_online_validation_keeps_same_revision_candidate_rejected(update_case):
+    case = candidate_packet(update_case)
+    with pytest.raises(ValueError, match='update_not_newer'):
+        updater.validate_archive(case[0], case[1])
+
+
+@pytest.mark.parametrize('packet', [candidate_packet, promoted_packet])
+def test_same_revision_candidate_mid_write_failure_rolls_back(update_case, monkeypatch, packet):
+    case = packet(update_case)
+    replace = maintenance._replace
+    count = 0
+
+    def fail_once(source, destination):
+        nonlocal count
+        count += 1
+        if count == 3:
+            raise OSError('synthetic interrupted candidate replace')
+        return replace(source, destination)
+
+    monkeypatch.setattr(maintenance, '_replace', fail_once)
+    with pytest.raises(RuntimeError, match='update_failed_rolled_back'):
+        maintenance.apply_update(case[0], case[1], process_probe=lambda _: [],
+            candidate_replacement=case[7])
+    assert (case[0] / maintenance.MANIFEST).read_bytes() == case[5]
+    for name, data in case[2].items():
+        assert (case[0] / name).read_bytes() == data
+    assert_private(update_case)
 
 
 def test_complete_unicode_update_preserves_settings_unknown_and_evidence(update_case):

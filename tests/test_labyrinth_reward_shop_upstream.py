@@ -332,11 +332,49 @@ def test_effective_empty_notice_accepts_the_pinned_game_full_stop_only():
  assert all(not re.fullmatch(notice['expected'],text) for text in ('搜索到角色','未搜索到该角色？','有效效果不存在'))
 
 
+def relic_name_receipt(path):
+ from pcr_maa.labyrinth import relics
+ rows=[]
+ for name in relics.relic_pipeline()['LabyRelicObserved']['all_of']:
+  if name.endswith(('Title','Subtitle','Remaining')):
+   label=name.removeprefix('LabyRelic')
+   text,roi={'Title':('获得道具的机会!',relics.TITLE_ROI),'Subtitle':('请选择要获得的迷宫遗物。',relics.SUBTITLE_ROI),'Remaining':('还剩1次',relics.REMAINING_ROI)}[label]
+   detail=dict(filtered=[dict(text=text,box=list(roi),score=.99)])
+  else:
+   slot=int(name[-1]);kind=name[len('LabyRelic'):-1]
+   if kind=='Bright':detail=dict(filtered=[dict(box=list(relics.BRIGHT_ROIS[slot]),count=800)])
+   else:
+    text,roi={'Name':(('强化宝石','绝杀战戟','霹雳斩赤刃')[slot],relics.NAME_ROIS[slot]),'Attribute':('强化+1 当前0',relics.ATTRIBUTE_ROIS[slot]),'Button':('选择',relics.BUTTON_ROIS[slot])}[kind]
+    detail=dict(filtered=[dict(text=text,box=list(roi),score=.99)])
+    if kind=='Name':
+     hit=lambda suffix:dict(algorithm='OCR',name=name+suffix,box=list(roi),detail=detail)
+     miss=lambda suffix:dict(algorithm='OCR',name=name+suffix,box=None,detail={})
+     variants={'detected':[hit('Detected')],'line_fallback':[miss('Detected'),hit('Line')],'reversed':[miss('Line'),hit('Detected')],'prior_hit':[hit('Detected'),hit('Line')]}[path]
+     detail=dict(filtered=[dict(detail=variants)])
+  rows.append(dict(name=name,detail=detail))
+ return dict(native_ok=True,nodes=[dict(name='LabyRelicObserved',completed=True,recognition=rows)])
+
+
+@pytest.mark.parametrize('path',['detected','line_fallback','reversed','prior_hit'])
+def test_relic_name_or_receipt_follows_detection_first_short_circuit(path):
+ from pcr_maa.labyrinth import relics
+ value=relic_name_receipt(path)
+ if path in ('reversed','prior_hit'):
+  with pytest.raises(BatchStopped,match='^relic_offers_unknown$'):relics.relic_offers(value)
+ else:
+  offers=relics.relic_offers(value)
+  assert [offer.name for offer in offers]==['强化宝石','绝杀战戟','霹雳斩赤刃']
+  for nodes,prefix in ((relics.relic_pipeline(),'LabyRelicName1'),(relics.selection_override(offers,1),'LabyRelicGuardName10')):
+   assert nodes[prefix+'Native']['any_of']==[prefix+'Detected',prefix+'Line']
+   assert nodes[prefix+'Detected']['only_rec'] is False and nodes[prefix+'Line']['only_rec'] is True
+   assert all(nodes[prefix+suffix]['threshold']==.85 and nodes[prefix+suffix]['roi']==list(relics.NAME_ROIS[1]) for suffix in ('Detected','Line'))
+
+
 @pytest.mark.parametrize('hit',[True,False])
 def test_relic_name_read_uses_current_isolated_native_or_without_icon_state(hit):
  from pcr_maa.labyrinth import relics
  import json,numpy as np
- calls=[];raw=[dict(algorithm='OCR',name='LabyRelicName1Line',box=None,detail={}),dict(algorithm='OCR',name='LabyRelicName1Detected',box=[573,385,134,27],detail=dict(filtered=[dict(text='影刃剑幽影',box=[573,385,134,27],score=.96)]))]
+ calls=[];raw=[dict(algorithm='OCR',name='LabyRelicName1Detected',box=None,detail={}),dict(algorithm='OCR',name='LabyRelicName1Line',box=[573,385,134,27],detail=dict(filtered=[dict(text='影刃剑幽影',box=[573,385,134,27],score=.96)]))]
  def read(node,image):
   calls.append(node);return NS(hit=hit,box=[573,385,134,27],raw_detail=raw)
  capture=relics.RelicIconCapture()

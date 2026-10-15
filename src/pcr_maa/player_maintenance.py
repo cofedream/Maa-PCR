@@ -133,6 +133,42 @@ def _version(manifest, *, legacy=False):
     return update
 
 
+def _same_revision_candidate(candidate_replacement, old, old_bytes, new, new_bytes):
+    if candidate_replacement is None:
+        return False
+    _require(type(candidate_replacement) is tuple and len(candidate_replacement) == 2,
+             'invalid_candidate_replacement')
+    old_sha, new_sha = candidate_replacement
+    _require(type(old_sha) is str and type(new_sha) is str
+        and re.fullmatch('[0-9a-f]{64}', old_sha) is not None
+        and re.fullmatch('[0-9a-f]{64}', new_sha) is not None
+        and old_sha != new_sha, 'invalid_candidate_replacement')
+    _require(old_sha == hashlib.sha256(old_bytes).hexdigest()
+        and new_sha == hashlib.sha256(new_bytes).hexdigest(),
+        'candidate_replacement_manifest_mismatch')
+    old_version, new_version = _version(old), _version(new)
+    candidate = (new.get('status') == 'release_staging'
+        and new.get('distribution_ready') is False
+        and old_version['version'] == new_version['version']
+        and new_version['version'].endswith('-candidate'))
+    checks = new.get('release_checks')
+    promoted = (old_version['version']
+        == f"{new_version['version']}-r{old_version['revision']}-candidate"
+        and re.fullmatch(r'v\d+\.\d+\.\d+', new_version['version']) is not None
+        and new.get('status') == 'player_test_release' and new.get('distribution_ready') is True
+        and new.get('blockers') == [] and type(checks) is list and bool(checks)
+        and all(type(check) is dict and set(check) == {'name', 'sha256'}
+            and type(check['name']) is str and bool(check['name'])
+            and type(check['sha256']) is str
+            and re.fullmatch('[0-9a-f]{64}', check['sha256']) is not None for check in checks))
+    _require(old.get('status') == 'release_staging' and old.get('distribution_ready') is False
+        and old['layout'] == new['layout']
+        and old_version['revision'] == new_version['revision']
+        and (candidate or promoted),
+        'candidate_replacement_not_allowed')
+    return True
+
+
 def _sha(path):
     with path.open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
@@ -226,7 +262,7 @@ def _restore(source, destination):
             temporary.unlink()
 
 
-def apply_update(player, archive, *, process_probe=None):
+def apply_update(player, archive, *, process_probe=None, candidate_replacement=None):
     """Verify a full or base-bound delta ZIP; update owned files transactionally."""
     player = _root(player)
     archive = Path(archive).absolute()
@@ -266,7 +302,10 @@ def apply_update(player, archive, *, process_probe=None):
         new = _json(new_bytes)
         new_rows = _rows(new)
         new_version = _version(new)
-        _require(new_version['revision'] > old_version['revision'], 'update_not_newer')
+        candidate = _same_revision_candidate(candidate_replacement, old, old_bytes, new, new_bytes)
+        _require((candidate and new_version['revision'] == old_version['revision'])
+            or (not candidate and new_version['revision'] > old_version['revision']),
+            'update_not_newer')
         _require(new['layout'] == old['layout'], 'update_layout_mismatch')
         changed = sorted(name for name in new_rows if old_rows.get(name) != new_rows[name])
         removed = sorted(set(old_rows).difference(new_rows))
@@ -415,7 +454,7 @@ def _recovery_material(player):
     return marker, intent, work, backup, old_bytes, new_bytes, old, new
 
 
-def recover_update(player, *, process_probe=None):
+def recover_update(player, *, process_probe=None, candidate_replacement=None):
     """Roll back an interrupted update only when every owned byte has a known hash."""
     player = _root(player)
     probe = process_probe or _processes
@@ -426,7 +465,10 @@ def recover_update(player, *, process_probe=None):
     marker, intent, work, backup, old_bytes, new_bytes, old, new = material
     old_rows, new_rows = _rows(old), _rows(new)
     old_version, new_version = _version(old, legacy=True), _version(new)
-    _require(old['layout'] == new['layout'] and new_version['revision'] > old_version['revision'],
+    candidate = _same_revision_candidate(candidate_replacement, old, old_bytes, new, new_bytes)
+    _require(old['layout'] == new['layout']
+        and ((candidate and new_version['revision'] == old_version['revision'])
+        or (not candidate and new_version['revision'] > old_version['revision'])),
         'invalid_recovery_versions')
     changed = sorted(name for name in new_rows if old_rows.get(name) != new_rows[name])
     removed = sorted(set(old_rows).difference(new_rows))

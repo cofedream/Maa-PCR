@@ -1,0 +1,113 @@
+{
+  "checked_date": "2026-10-15",
+  "method": "APK_manifest_HTTP_ranges_with_per_channel_provenance",
+  "apk_installed_or_executed": false,
+  "real_channel_tested": false,
+  "total_bytes_received": 13423056,
+  "channels": [
+    {
+      "id": "xiaomi",
+      "source": "https://app.mi.com/details?id=com.bilibili.priconne.mi",
+      "package": "com.bilibili.priconne.mi",
+      "game_activity": "com.bilibili.priconne.MainActivity",
+      "launch_activity": "com.bilibili.priconne.bili.SplashActivity",
+      "unity_game_activity_declared": true,
+      "version": "11.7.2",
+      "manifest_sha256": "e73edacbdad3adc48f32446a278b3ed4bd15b7c8f39eeb5203c0a832f5212ba1",
+      "bytes_received": 2232311,
+      "apk_bytes": 1931539563,
+      "method": "official_store_apk_manifest",
+      "official_apk_distribution": true
+    },
+    {
+      "id": "tencent",
+      "source": "https://sj.qq.com/appdetail/com.tencent.tmgp.bilibili.priconne",
+      "package": "com.tencent.tmgp.bilibili.priconne",
+      "game_activity": "com.bilibili.priconne.MainActivity",
+      "launch_activity": "com.bilibili.priconne.bili.SplashActivity",
+      "unity_game_activity_declared": true,
+      "version": "11.7.2",
+      "manifest_sha256": "e2390f543b0148f0ab568e20a170587db56f8881b6b324e5b6f816ad084337b2",
+      "bytes_received": 2247115,
+      "apk_bytes": 1929256366,
+      "method": "official_store_apk_manifest",
+      "official_apk_distribution": true
+    },
+    {
+      "id": "jiuyou",
+      "source": "https://www.9game.cn/gongzhulianjieredi/",
+      "package": "com.bilibili.priconne.aligames",
+      "game_activity": "com.bilibili.priconne.MainActivity",
+      "launch_activity": "com.bilibili.priconne.bili.SplashActivity",
+      "unity_game_activity_declared": true,
+      "version": "11.7.2",
+      "manifest_sha256": "5a636e25ff132f292bc29b18c7044b38917ddc159dafbbd6fdb081840fb67a0d",
+      "bytes_received": 2219956,
+      "apk_bytes": 1932760429,
+      "method": "official_store_apk_manifest",
+      "official_apk_distribution": true
+    },
+    {
+      "id": "huawei",
+      "source": "https://github.com/wbero/limingjie-assistant/blob/801db8bcbd970b573dd2e89cb9f2b0aab16789d8/android/docs/channel-servers.md",
+      "package": "com.bilibili.priconne.huawei",
+      "game_activity": "com.bilibili.priconne.MainActivity",
+      "launch_activity": "com.bilibili.priconne.bili.SplashActivity",
+      "unity_game_activity_declared": true,
+      "version": "11.7.2",
+      "manifest_sha256": "775575ef72f357456feec225b11e46f32990aea4d567c31d1bb35af40813592e",
+      "bytes_received": 2225175,
+      "apk_bytes": 1925051856,
+      "method": "mirror_apk_manifest_and_upstream_channel_record",
+      "official_apk_distribution": false,
+      "artifact_source": "https://www.ddooo.com/softdown/175582.htm"
+    },
+    {
+      "id": "vivo",
+      "source": "https://game.vivo.com.cn/api/searchGame?word=%E5%85%AC%E4%B8%BB%E8%BF%9E%E7%BB%93&pageIndex=1",
+      "package": "com.bilibili.priconne.vivo",
+      "game_activity": "com.bilibili.priconne.MainActivity",
+      "launch_activity": "com.bilibili.priconne.bili.SplashActivity",
+      "unity_game_activity_declared": true,
+      "version": "11.7.2",
+      "manifest_sha256": "a38fd54890a6fc66046d9bcf491f18a5c36fe2e581336b2811149fc29b7f19c9",
+      "bytes_received": 2216117,
+      "apk_bytes": 1923688482,
+      "method": "official_store_apk_manifest",
+      "official_apk_distribution": true
+    },
+    {
+      "id": "mumu",
+      "source": "https://mumu.163.com/games/17891.html",
+      "package": "com.bilibili.priconne.yofun.mumu",
+      "game_activity": "com.bilibili.priconne.MainActivity",
+      "launch_activity": "com.bilibili.priconne.bili.SplashActivity",
+      "unity_game_activity_declared": true,
+      "version": "11.7.2",
+      "manifest_sha256": "762824eece40807da54f8d485500cbbbb6e70dc5d2a0234dbfb5843e09e4e08f",
+      "bytes_received": 2282382,
+      "apk_bytes": 1928145418,
+      "method": "official_store_apk_manifest",
+      "official_apk_distribution": true
+    }
+  ],
+  "excluded": [
+    {
+      "id": "oppo",
+      "reported_package": "com.bilibili.priconne.nearme.gamecenter",
+      "package_source": "https://github.com/wbero/limingjie-assistant/blob/801db8bcbd970b573dd2e89cb9f2b0aab16789d8/android/docs/channel-servers.md",
+      "reason": "no_observed_APK_game_activity_pair; third-party OPPO download returned aligames APK"
+    },
+    {
+      "id": "4399",
+      "reported_package": "com.bilibili.priconne.m4399",
+      "package_source": "https://a.4399.cn/mobile/122876.html",
+      "reason": "official package verified; APK manifest not obtained from accessible download"
+    }
+  ],
+  "upstream_reference": {
+    "url": "https://github.com/wbero/limingjie-assistant/blob/801db8bcbd970b573dd2e89cb9f2b0aab16789d8/android/docs/channel-servers.md",
+    "commit": "801db8bcbd970b573dd2e89cb9f2b0aab16789d8",
+    "scope": "package names and upstream-reported tests; not local real-game acceptance"
+  }
+}

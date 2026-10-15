@@ -1,6 +1,7 @@
 """One sequential read-only inspection; no scheduling or execution engine."""
 import copy
 import json
+import re
 import time
 from pathlib import Path
 
@@ -47,18 +48,35 @@ def validate_manager_identity(value):
     return copy.deepcopy(value)
 
 
+def validate_app_target(package, activity='.MainActivity'):
+    """Configuration syntax only; the GUI Owner separately verifies live focus."""
+    identifier = r'[A-Za-z_][A-Za-z0-9_]*'
+    class_name = r'[A-Za-z_$][A-Za-z0-9_$]*'
+    if (type(package) is not str or len(package) > 255
+            or not re.fullmatch(identifier + r'(?:\.' + identifier + r')+', package)):
+        raise ValueError('配置错误：渠道包名无效')
+    if (type(activity) is not str or len(activity) > 255
+            or not re.fullmatch(r'(?:\.' + class_name + r'(?:\.' + class_name + r')*|'
+                                + class_name + r'(?:\.' + class_name + r')+)', activity)):
+        raise ValueError('配置错误：渠道运行 Activity 无效')
+
+
 def validate_controller(value):
     """Validate a v4 static controller identity, not a discovered live target."""
     if type(value) is not dict or type(value.get('kind')) is not str:
         raise ValueError('配置错误：v4 controller 类型无效')
     if value['kind'] == 'adb':
-        if (not {'kind', 'app_package'} <= set(value) <= {'kind', 'app_package', 'ledger_identity', 'manager_identity'}
-                or value['app_package'] != 'com.bilibili.priconne'):
+        if not {'kind', 'app_package'} <= set(value) <= {'kind', 'app_package', 'app_activity', 'ledger_identity', 'manager_identity'}:
             raise ValueError('配置错误：v4 adb controller 字段或 package 无效')
+        validate_app_target(value['app_package'], value.get('app_activity', '.MainActivity'))
         if 'ledger_identity' in value:
             validate_mumu(value['ledger_identity'], bounded_index=False)
+            if value['ledger_identity']['app_package'] != value['app_package']:
+                raise ValueError('配置错误：渠道与旧账本身份不匹配')
         if 'manager_identity' in value:
             validate_manager_identity(value['manager_identity'])
+            if value['manager_identity']['app_package'] != value['app_package']:
+                raise ValueError('配置错误：渠道与模拟器历史身份不匹配')
     elif value['kind'] == 'mumu_extras':
         validate_mumu({key: item for key, item in value.items() if key != 'kind'},
                       bounded_index=False)

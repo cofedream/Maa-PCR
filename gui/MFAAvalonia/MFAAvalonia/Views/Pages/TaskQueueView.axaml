@@ -439,6 +439,17 @@
                     <suki:GlassCard Padding="12,4" IsAnimated="False">
                         <Expander x:Name="PcrAdvancedSettings" Header="高级设置" IsExpanded="False" HorizontalAlignment="Stretch">
                             <StackPanel Spacing="10" IsEnabled="{Binding CanEditPcrTarget}">
+                                <Expander x:Name="PcrChannelSettings" Header="渠道服配置" IsExpanded="False" HorizontalAlignment="Stretch">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="选择下载游戏时使用的渠道，设置自动保存。请自行登录并回到游戏主页再开始。" TextWrapping="Wrap" />
+                                        <ComboBox x:Name="PcrChannelSelector" ItemsSource="{Binding PcrSettings.Channels}"
+                                                  SelectedItem="{Binding PcrSettings.SelectedChannel, Mode=TwoWay}" HorizontalAlignment="Stretch" PlaceholderText="请选择已收录渠道">
+                                            <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="{Binding PcrSettings.ChannelStatus}" TextWrapping="Wrap" />
+                                        <TextBlock Text="渠道预设已核对包名和游戏 Activity，尚未实机验证。找不到对应渠道时请反馈维护者，暂不使用未核实配置。仅适用于日常与扫荡。" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource SukiLowText}" />
+                                    </StackPanel>
+                                </Expander>
                                 <CheckBox x:Name="PcrDisplayMappingCheckBox" Content="多显示屏映射校验" IsChecked="{Binding PcrSettings.ValidateDisplayMapping, Mode=TwoWay}" />
                                 <TextBlock Text="默认关闭，使用 Maa 默认屏幕。游戏位于非默认显示屏，或截图与输入屏幕需要单独对应时开启；无法确认映射时会停止。设备、游戏前台和停止保护始终保留。" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource SukiLowText}" />
                                 <TextBlock Text="资源与控制器" FontWeight="SemiBold" />

@@ -28,7 +28,7 @@ def test_real_abyss_routing_uses_gui_target_not_mumu(tmp_path,monkeypatch,serial
     assert result['outcome']=='skipped_goal_met' and result['home_verified']
     assert result['device']==gui_device(cfg)
 
-@pytest.mark.parametrize('change',['new_start','new_day','new_serial'])
+@pytest.mark.parametrize('change',['new_start','new_day','new_serial','new_package'])
 def test_ordinary_adb_unknown_keeps_original_ledger_and_blocks_new_start(tmp_path,change):
     cfg=config(tmp_path);device=gui_device(cfg);journal=Journal(tmp_path/'ledger')
     first=abyss.execute_abyss(Port(),journal,game_day=current_game_day(),context='gui-current-state',device=device,execute=True)
@@ -36,6 +36,7 @@ def test_ordinary_adb_unknown_keeps_original_ledger_and_blocks_new_start(tmp_pat
     before=journal.path.read_bytes();port=Port();day=current_game_day()
     if change=='new_day':day='2026-10-03'
     if change=='new_serial':device=gui_device(config(tmp_path,'emulator-5558'))
+    if change=='new_package':device=device|dict(app_package='example.channel.client')
     result=abyss.execute_abyss(port,journal,game_day=day,context='gui-current-state',device=device,execute=True)
     assert result['outcome']=='blocked_in_flight' and port.calls==[]
     assert journal.path.read_bytes()==before
@@ -51,7 +52,7 @@ def test_gui_target_drift_or_invalid_data_stops_before_navigation(tmp_path,targe
     from pcr_maa.schedule_quick import validate_gui_device
     target=gui_device(config(tmp_path))
     if target_change=='serial':target['serial']='remote.example:5555'
-    elif target_change=='package':target['app_package']='com.wrong.game'
+    elif target_change=='package':target['app_package']='invalid/package;command'
     else:target['manager']={}
     with pytest.raises(ValueError):validate_gui_device(target)
 
