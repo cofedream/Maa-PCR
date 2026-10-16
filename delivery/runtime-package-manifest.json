@@ -5211,8 +5211,8 @@
     },
     {
       "path": "docs/R53_PERFORMANCE.md",
-      "size": 6316,
-      "sha256": "16014223f7a6609b3fcad8db8b56da79997c8c792d008d083c253e53b22e41b3"
+      "size": 8384,
+      "sha256": "807a0586b82213114b40bcc68060ce841b2773e8abb853dce23135e91d26d386"
     },
     {
       "path": "docs/R54_TO_R52.md",
@@ -5276,8 +5276,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "size": 14339,
-      "sha256": "a9803c6c655000106a6d71c9b8f9dcc327240de2d2f1f58b7f3c9b88019c4de1"
+      "size": 15394,
+      "sha256": "c513ac5038495877eae75543372f541a5f5f811ee4769ea7b0f5674da97ded9d"
     },
     {
       "path": "docs/REPAIR_R34.md",
@@ -5527,12 +5527,12 @@
     {
       "path": "libs/ColorDocument.Avalonia.dll",
       "size": 53248,
-      "sha256": "589eb22192d42a117f43517540603b87cc480ddfe71f4f4f0918c0d22bb9861f"
+      "sha256": "ba3759ae8394415f44b65b1a5aa884658e7628276b36dee8edca7c6c5c82725d"
     },
     {
       "path": "libs/ColorTextBlock.Avalonia.dll",
       "size": 75264,
-      "sha256": "95234cc650c9ef924d1ba84533edf9d8184a005363d0f7a672e1c3455863ac33"
+      "sha256": "7e99d31054f1c56cbabc0f2a7971097f40f40a94be229b95eb7bf5df44bf240d"
     },
     {
       "path": "libs/CommunityToolkit.Mvvm.dll",
@@ -5662,7 +5662,7 @@
     {
       "path": "libs/locales/en-US/MFAAvalonia.Core.resources.dll",
       "size": 68096,
-      "sha256": "b49da8ce02b06e6b0bf60f10ef801125f6745ca5b93bff79c623ea3d7922a59e"
+      "sha256": "c9cb9b01ad3a79c290ab4f3f88d07b76e555226f74e71ac24247936b923bda3b"
     },
     {
       "path": "libs/locales/es/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -5707,7 +5707,7 @@
     {
       "path": "libs/locales/ja-JP/MFAAvalonia.Core.resources.dll",
       "size": 78336,
-      "sha256": "3a9823d6eb5f943ddd8cad68afe317463454fd14fff5364cd8f7d229b0d6e0fa"
+      "sha256": "2cfa760356109d2b8566e3a2b7222e2dd14e199af1a00eb36eecab0b276fe5af"
     },
     {
       "path": "libs/locales/ko/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -5777,7 +5777,7 @@
     {
       "path": "libs/locales/zh-Hant/MFAAvalonia.Core.resources.dll",
       "size": 65536,
-      "sha256": "2c17eb60f86a57089e00a9bdf294aa180b4cb50406ea24f839e57107991bfc82"
+      "sha256": "c9acfe14855bc7f1c936424bcfdaa8a42c91997171c34060b0a1d72720392f24"
     },
     {
       "path": "libs/locales/zh-Hant/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -6202,32 +6202,32 @@
     {
       "path": "libs/Markdown.Avalonia.dll",
       "size": 289792,
-      "sha256": "b730e22616e7023786c41cd7e8c5bfb96ee88edcd770f86105fad616b259a02a"
+      "sha256": "1e79070837003937694a768075b3d0d00c00d83ad962ece0af3722178a9c72fc"
     },
     {
       "path": "libs/Markdown.Avalonia.Full.dll",
       "size": 11264,
-      "sha256": "d86ade947a71e047c7d0b9ef4b649288462848e62a3e235f2f414f45d0d6b923"
+      "sha256": "2b320324e67db96b7750311f00c718c09f75822d78845f05d17cbd0a5ca47e05"
     },
     {
       "path": "libs/Markdown.Avalonia.Html.dll",
       "size": 95744,
-      "sha256": "23e94a95bbd3b7d1cd726bece7d8451bda1efdf7002afe3776d2bf035a0aa8bf"
+      "sha256": "b4a6077a51b3482c2f7c74aaf20d9e385049ad9ecf734976aa5b70424befa890"
     },
     {
       "path": "libs/Markdown.Avalonia.Math.dll",
       "size": 11776,
-      "sha256": "963f9d4a82e1468c057344b5a7f73e19496f4dc55b6bb3494994ad0903c5e57b"
+      "sha256": "e4569f15370ce1a4969f3bcd4a441f50eadc994288e27ce73803c5fa2824a349"
     },
     {
       "path": "libs/Markdown.Avalonia.Svg.dll",
       "size": 10240,
-      "sha256": "481fca7fbd16027abc43ca5b7ac9ee1cad1136440e2953e3466cf6ab649bfc35"
+      "sha256": "242819dd91e3e889c2fa8da4081673b6c7ce1a07588c88f28f02e56076984526"
     },
     {
       "path": "libs/Markdown.Avalonia.SyntaxHigh.dll",
       "size": 54272,
-      "sha256": "ec72b5d65451e213c46378861863de84af310791345c55adde4d9b88734083ef"
+      "sha256": "3e6d4916ea3a740d36d0224543d58c0b6c7ffad9265359a9119cc5c6cb7d241b"
     },
     {
       "path": "libs/MemoryPinning.dll",
@@ -6237,7 +6237,7 @@
     {
       "path": "libs/MFAAvalonia.Core.dll",
       "size": 3516416,
-      "sha256": "b7750ecece9cda772dd7c5732196684f15bc46e0c74bfa41b2fd924e0fd68360"
+      "sha256": "641cef529550cceddae19a14c48aa6bda984d4ff046f716d414ab4a53926de70"
     },
     {
       "path": "libs/MicroCom.Runtime.dll",
@@ -6452,7 +6452,7 @@
     {
       "path": "libs/SukiUI.dll",
       "size": 34912768,
-      "sha256": "a830983c05d10ed81a4d797cb8b832173545533ed0bbe532a666d01e6d3433d5"
+      "sha256": "98b7f2e7bedbf2a4fc77d1479b1725fd3520acd64a8150a92027fcc9fdd8bc2b"
     },
     {
       "path": "libs/SukiUI.xml",
@@ -6937,12 +6937,12 @@
     {
       "path": "MFAAvalonia.dll",
       "size": 288768,
-      "sha256": "f22b6cfdf15e5ad158970566df991c3e7311c0107705ddf4097603bf316dbafd"
+      "sha256": "e49058d37b13689898830224296a97c82f0972f735f44e7f59e686b7ce1587cc"
     },
     {
       "path": "MFAAvalonia.exe",
       "size": 299520,
-      "sha256": "62f5bd2e4c192b45847d557706938ebb5740d077312730402d37e54723f66a8d"
+      "sha256": "b05a5bd28e49b4d69cc57031e84669503ab4e3ce4c72d4cf561ea261efd5d649"
     },
     {
       "path": "MFAAvalonia.runtimeconfig.json",
@@ -17896,8 +17896,8 @@
     },
     {
       "path": "src/pcr_maa/abyss_native.py",
-      "size": 28155,
-      "sha256": "d14d5323b064d6f0cbf2281187b6580db7e2c4c9197926c9f64c645752f883f1"
+      "size": 28267,
+      "sha256": "41b73f29d43a1e7d1587e5eb789d6d4ab361cf07179ed0bff8af18cd5158d9bd"
     },
     {
       "path": "src/pcr_maa/abyss_reconcile.py",
@@ -17966,8 +17966,8 @@
     },
     {
       "path": "src/pcr_maa/event_native.py",
-      "size": 27862,
-      "sha256": "02f8e1210ab7b43bd3ca8e58e98b6ce5d7bbdce259a472f07a0ac45ec60ca627"
+      "size": 27986,
+      "sha256": "fe864a69ff098e7c9124f3469e029948710fa19207d125d56388adfc5e91ae44"
     },
     {
       "path": "src/pcr_maa/game_day.py",
@@ -18041,8 +18041,8 @@
     },
     {
       "path": "src/pcr_maa/labyrinth/character_recognition.py",
-      "size": 74399,
-      "sha256": "9c558adfaad7f688ed9988e30a7d83fcd4a644482588842ff8c5254ab482f721"
+      "size": 74772,
+      "sha256": "7860e3832175feface85ada869f63c3b20a3a71d0550a28b67a53d47498f85e7"
     },
     {
       "path": "src/pcr_maa/labyrinth/config.py",
@@ -18131,8 +18131,8 @@
     },
     {
       "path": "src/pcr_maa/labyrinth/owned_runtime.py",
-      "size": 17711,
-      "sha256": "9b2136fed6854b0477a979d52968143295290072a747951d7787c0fb0b975376"
+      "size": 17855,
+      "sha256": "fe673ec2fc1ed7cb13f0384c027aa6d34f0ff622d0ad1434aa88e8e1e9de4678"
     },
     {
       "path": "src/pcr_maa/labyrinth/owner_messages.py",
