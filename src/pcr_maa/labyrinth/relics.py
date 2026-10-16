@@ -741,16 +741,20 @@ class RelicBusinessRecognition(CustomRecognition):
         if tuple(argv.image.shape[:2])!=(720,1280):return None
         params=json.loads(argv.custom_recognition_param or '{}')
         if params.get('mode')=='map':
-            scene=context.run_recognition('LabySceneObserved',argv.image)
+            from .scene import NODE,_RULES
+            scene=context.run_recognition(NODE,argv.image,
+                {NODE:dict(custom_recognition_param=dict(probe_kinds=sorted(_RULES)))})
             page=_detail(getattr(scene,'raw_detail',None))
             if getattr(scene,'hit',False) is not True or not page or page.get('kind')!='map':return None
-            digits={}
+            digits={i:None for i in range(5)};skipped=[]
             for i,(x,y,w,h) in enumerate(MAP_DIGIT_ROIS):
+                if map_relic_mark(argv.image,MAP_MARK_ROIS[i]) is None:
+                    skipped.append(i);continue
                 cropped=cv2.resize(argv.image[y:y+h,x:x+w],(w*4,h*4),interpolation=cv2.INTER_LINEAR)
                 digits[i]=getattr(context.run_recognition('LabyRelicMapDigitScaled',cropped),'raw_detail',None)
             templates={i:map_small_counter(argv.image,roi) for i,roi in enumerate(MAP_TEMPLATE_DIGIT_ROIS)}
             value=map_relic_values(argv.image,digits,digit_rois=((0,0,128,128),)*5,templates=templates)
-            value.update(digit_native=digits,digit_templates=templates)
+            value.update(digit_native=digits,digit_templates=templates,digit_ocr_skipped_slots=skipped)
         elif params.get('mode')=='item':
             for suffix,roi,texts in (('Title',RESULT_TITLE_ROI,('获得道具',)),('Message',RESULT_MESSAGE_ROI,('获得了以下道具','获得了以下道具.')),('Close',RESULT_CLOSE_ROI,('关闭',))):
                 result=context.run_recognition('LabyRelicItemRead'+suffix,argv.image)

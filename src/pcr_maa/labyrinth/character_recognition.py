@@ -300,8 +300,11 @@ class IconMatcher:
 
 
 
-    def _scores(self,frame,box,mask,width):
+    def _scores(self,frame,box,mask,width,*,_prepared=None):
 
+        if _prepared is None:_prepared=dict(frame=frame)
+        if type(_prepared) is not dict or _prepared.get('frame') is not frame:
+            raise BatchStopped('character_frame_unknown')
         x,y,w,h=box;top=y+int(_round(h*20/128));height=max(16,int(_round(h*80/128)))
 
         if not _inside((x,top,w,height),frame.shape):return np.zeros(len(self.entries))
@@ -324,7 +327,8 @@ class IconMatcher:
 
         fx=x+_round(xr[kept]*(w-1));fy=top+_round(yr[kept]*(height-1))
 
-        rgb=frame[:,:,::-1].astype(np.int64)
+        if 'rgb' not in _prepared:_prepared['rgb']=frame[:,:,::-1].astype(np.int64)
+        rgb=_prepared['rgb']
 
         observed=rgb[fy,fx,:].astype(float)
 
@@ -332,7 +336,8 @@ class IconMatcher:
 
         if width==12:return color
 
-        lum=(rgb[:,:,0]*299+rgb[:,:,1]*587+rgb[:,:,2]*114+500)//1000
+        if 'lum' not in _prepared:_prepared['lum']=(rgb[:,:,0]*299+rgb[:,:,1]*587+rgb[:,:,2]*114+500)//1000
+        lum=_prepared['lum']
 
         actual_lum=lum[fy,fx].astype(float)
 
@@ -348,13 +353,16 @@ class IconMatcher:
 
 
 
-    def match(self,frame,box,*,mask=IconMask(),attribute=None,roster=None):
+    def match(self,frame,box,*,mask=IconMask(),attribute=None,roster=None,_prepared=None):
 
         if type(frame) is not np.ndarray or frame.dtype!=np.uint8 or not _inside(box,frame.shape):
 
             raise BatchStopped('character_frame_unknown')
 
-        coarse=self._scores(frame,box,mask,12)
+        if _prepared is None:_prepared=dict(frame=frame)
+        if type(_prepared) is not dict or _prepared.get('frame') is not frame:
+            raise BatchStopped('character_frame_unknown')
+        coarse=self._scores(frame,box,mask,12,_prepared=_prepared)
 
         allowed=np.array([attribute is None or e['attribute'] is None or e['attribute']==attribute for e in self.entries])
 
@@ -374,7 +382,7 @@ class IconMatcher:
 
             order=order[np.array([rank<64 or coarse[i]>=cutoff for rank,i in enumerate(order)])][:512]
 
-        fine=self._scores(frame,box,mask,20);by_id={}
+        fine=self._scores(frame,box,mask,20,_prepared=_prepared);by_id={}
 
         for index in order:
 
@@ -396,7 +404,10 @@ class IconMatcher:
 
 
 
-    def refine(self,frame,box,initial,*,fallback=None,**kwargs):
+    def refine(self,frame,box,initial,*,fallback=None,_prepared=None,**kwargs):
+        if _prepared is None:_prepared=dict(frame=frame)
+        if type(_prepared) is not dict or _prepared.get('frame') is not frame:
+            raise BatchStopped('character_frame_unknown')
         if initial.trusted:return initial
         # A failed border crop retains the existing fixed-strip hint. Every
         # crop's rivals still compete under the original confidence floors.
@@ -407,7 +418,7 @@ class IconMatcher:
             for d in deltas:rects.extend(((x+d,y+d,w-2*d,h-2*d),(x+d,y,w,h),(x,y+d,w,h)))
         by_id={}
 
-        for result in (initial,*(self.match(frame,r,**kwargs) for r in dict.fromkeys(rects) if _inside(r,frame.shape))):
+        for result in (initial,*(self.match(frame,r,_prepared=_prepared,**kwargs) for r in dict.fromkeys(rects) if _inside(r,frame.shape))):
 
             for candidate in result.candidates:
 
@@ -990,7 +1001,7 @@ class CharacterRecognizer:
         # Read all offers for strategy; guard only the selected current portrait.
         if slot is not None and (type(slot) is not int or slot not in (0,1,2)):
             raise BatchStopped('role_reward_profile_unknown')
-        cards=[]
+        cards=[];prepared=dict(frame=frame)
         for index,x in enumerate((195,566,935)):
             if slot is not None and index!=slot:continue
             if self.stopped():raise BatchStopped('stopped')
@@ -1014,8 +1025,8 @@ class CharacterRecognizer:
                 cards.append(named_card());continue
             box=(x,245,148,148);mask=IconMask(right=True,bottom_left=True)
             attribute=card_attribute(frame,box)
-            match=self.matcher.match(frame,box,mask=mask,attribute=attribute)
-            if not match.trusted:match=self.matcher.refine(frame,box,match,mask=mask,attribute=attribute)
+            match=self.matcher.match(frame,box,mask=mask,attribute=attribute,_prepared=prepared)
+            if not match.trusted:match=self.matcher.refine(frame,box,match,mask=mask,attribute=attribute,_prepared=prepared)
             if offer and match.character_id==offer.character_id:
                 cards.append(named_card())
             else:cards.append(dict(slot=index,**asdict(match),identity_source='portrait',ocr_state='completed' if name_words is not None else 'not_requested'))
@@ -1039,7 +1050,7 @@ class CharacterRecognizer:
 
         current_filter=current_filter or _selected_filter(frame,page)
 
-        scroll=scrollbar(frame,page);cards=[]
+        scroll=scrollbar(frame,page);cards=[];prepared=dict(frame=frame)
 
         previous=self.previous.get(page)
 
@@ -1091,11 +1102,11 @@ class CharacterRecognizer:
 
                 min_y=min(1,clipped_top/h) if page=='opening' else 0,max_y=min(1,visible/h) if page=='opening' and visible<h else 1)
 
-            match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster)
+            match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
 
             if page!='opening' and not match.trusted:
 
-                match=self.matcher.refine(frame,icon,match,mask=mask,attribute=attribute,roster=roster)
+                match=self.matcher.refine(frame,icon,match,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
 
             item=dict(slot_id=slots[box],box=list(box),icon_box=list(icon),attribute=attribute,selected=selected,**asdict(match))
 
@@ -1122,7 +1133,7 @@ class CharacterRecognizer:
                 x,y,w,h=box;icon=(x+6,y+6,w-14,w-14)
 
                 attribute=card_attribute(frame,box)
-                mask=IconMask(right=True,top_left=True);match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster)
+                mask=IconMask(right=True,top_left=True);match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
 
                 if not match.trusted:
                     hint=min(member_hints,key=lambda b:abs(b[0]-x),default=None)
@@ -1130,7 +1141,7 @@ class CharacterRecognizer:
                     if hint is not None:
                         hx,hy,hw,hh=hint;fallback=(hx+6,hy+6,hw-14,hw-14)
                     match=self.matcher.refine(frame,icon,match,fallback=fallback,
-                        mask=mask,attribute=attribute,roster=roster)
+                        mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
 
                 item=dict(box=list(box),icon_box=list(icon),selected=True,**asdict(match))
 
@@ -1335,13 +1346,13 @@ class CharacterRecognition(CustomRecognition):
                     if seen is None or not seen.hit:return None
                 # Upstream Joined uses the full icon pack at these three slots.
                 # Reuse measured card presence to ignore genuinely empty rows.
-                portraits=[];matcher=self.recognizer.matcher
+                portraits=[];matcher=self.recognizer.matcher;prepared=dict(frame=argv.image)
                 for slot,y in enumerate((233,327,421)):
                     box=(353,y,60,60)
                     if card_presence(argv.image,box)<.055:continue
                     mask=IconMask(right=True,top_left=True)
-                    match=matcher.match(argv.image,box,mask=mask)
-                    if not match.trusted:match=matcher.refine(argv.image,box,match,mask=mask)
+                    match=matcher.match(argv.image,box,mask=mask,_prepared=prepared)
+                    if not match.trusted:match=matcher.refine(argv.image,box,match,mask=mask,_prepared=prepared)
                     portrait=asdict(match)
                     if not match.trusted:
                         # Existing joined-name ROI/catalog resolves untrusted art;
