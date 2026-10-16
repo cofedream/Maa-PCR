@@ -81,9 +81,7 @@
     }
   ],
   "blockers": [
-    "offline_candidate_only",
-    "original_failure_frame_not_replayed",
-    "live_game_not_validated"
+    "offline_and_live_acceptance_pending"
   ],
   "files": [
     {
@@ -4663,8 +4661,8 @@
     },
     {
       "path": "assets/resource/pipeline/activity_navigation.json",
-      "size": 955,
-      "sha256": "b95a45388e92358c7ad96072ce785e5f0957ba1816d44a9447d938a52dd5b0d9"
+      "size": 1041,
+      "sha256": "7488c67e133b91cd60de4e24fa375bec271bfb0deadb889bdf38adfd346aa2ae"
     },
     {
       "path": "assets/resource/pipeline/alpha_entry.json",
@@ -4673,8 +4671,8 @@
     },
     {
       "path": "assets/resource/pipeline/event.json",
-      "size": 26506,
-      "sha256": "53fe23c1449c3cb8064854f818087e143195bf2ba938533596ca6ea2be0dda76"
+      "size": 27671,
+      "sha256": "235f5a5b81a2ffbcf34e686c10355d7df75cfab0baed18b7b7e701fe7c39f205"
     },
     {
       "path": "assets/resource/pipeline/home_text.json",
@@ -4688,28 +4686,28 @@
     },
     {
       "path": "assets/resource/pipeline/preset_execution.json",
-      "size": 33330,
-      "sha256": "cfa3ceb73bd6e91722ede346e09967fe0ab081e589d172b575e819e0874f52d1"
+      "size": 35265,
+      "sha256": "3993cd9466547f65a1ef59d2388dfe4d52652aed1f7004218bcaff8f2dca2b4a"
     },
     {
       "path": "assets/resource/pipeline/preset_scan.json",
-      "size": 9024,
-      "sha256": "6ac89f1f624b32b4b298c5deec67ec302440eca5fa0ad7fbb2d39d16ecd14cf2"
+      "size": 9413,
+      "sha256": "f55ad3a738432624e00aaccd8d8a1e548f823f2cb94bf063ea5b45910c5e06f6"
     },
     {
       "path": "assets/resource/pipeline/presets.json",
-      "size": 8527,
-      "sha256": "1cf3a536c3587c2cd025477fdde665d08a35a6c16da4267606ece5e85be76198"
+      "size": 8803,
+      "sha256": "4bc6100a44986f392cf4ad1a6fa08e04acb9819355f356fe5b9b195b6c3858eb"
     },
     {
       "path": "assets/resource/pipeline/return_home.json",
-      "size": 1838,
-      "sha256": "f04c8374fb5679a9b7d7cb7872531688806ccbde4a60041ffa6c5483cf87e317"
+      "size": 1942,
+      "sha256": "cc18689edd741f864637cec79a55a4b588cc85b7a1da392575a3d2d0b1418af5"
     },
     {
       "path": "assets/resource/pipeline/rewards.json",
-      "size": 18228,
-      "sha256": "667ac9f5b8ffb9d306494859378e7c85bbaa7a10c9d9d6dc88cf778c4b8d5d50"
+      "size": 19721,
+      "sha256": "52f1b0cb60b5bddfd94c96b87b636d047f380a678436b5bfee194d992c025603"
     },
     {
       "path": "assets/resource/pipeline/schedule.json",
@@ -4733,8 +4731,8 @@
     },
     {
       "path": "build-source-manifest.json",
-      "size": 169277,
-      "sha256": "77304060bf89c7514f2d074852b5e8942a2cc5e25516beba4172e7ca38948650"
+      "size": 169667,
+      "sha256": "895d1a8f6c29bb98f9708e3611b54510d0c57721ba841970abd7d8e4d3ef7c92"
     },
     {
       "path": "CONTRIBUTING.md",
@@ -5212,6 +5210,11 @@
       "sha256": "79f5e648b7dd9a72c25b395ff7d600a0809bb6876e06223bbf54a3dbd38e48eb"
     },
     {
+      "path": "docs/R53_PERFORMANCE.md",
+      "size": 4917,
+      "sha256": "fdc6c478f8a5ac7d57231d393a3b88ade4d4befedfc649f4630554269658ef72"
+    },
+    {
       "path": "docs/R54_TO_R52.md",
       "size": 3742,
       "sha256": "3c4dd9b15b248cec5684d33696208d93e8708fcd20b060ddc4f05011e59cf69d"
@@ -5273,8 +5276,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "size": 12198,
-      "sha256": "34cebbe7d9072c34eaf9fa190183a61d1d674188bc008411107e0aaaa1111a90"
+      "size": 13522,
+      "sha256": "cbc8f112560cdfffc848f45545d1796177c7e52867da7c00dd73e014d69e5bda"
     },
     {
       "path": "docs/REPAIR_R34.md",
@@ -5524,12 +5527,12 @@
     {
       "path": "libs/ColorDocument.Avalonia.dll",
       "size": 53248,
-      "sha256": "464b140099b9864413598d1251eb2f085a35f229662cf01dd27a250a73668e89"
+      "sha256": "7a32978ef7df1646e4378d36a9a4dde3bdb781e0f37a7b41564e84eff19955f2"
     },
     {
       "path": "libs/ColorTextBlock.Avalonia.dll",
       "size": 75264,
-      "sha256": "a896780507794f9185aa444267a3f1762e54be759c3b01012e3f931a6a791429"
+      "sha256": "a38c5a3db7f042455f69f5be1bf7a6d418d8375e0693e7bbca5faebf8cac8bac"
     },
     {
       "path": "libs/CommunityToolkit.Mvvm.dll",
@@ -5659,7 +5662,7 @@
     {
       "path": "libs/locales/en-US/MFAAvalonia.Core.resources.dll",
       "size": 68096,
-      "sha256": "f1b972bb1dadabfadab1266c72b511fff97aea9d42707401e0e2714aa73e8a98"
+      "sha256": "7686931f81f07ccf09b39334cbb9227e6ee8233095dfc3f05381dd41711884c9"
     },
     {
       "path": "libs/locales/es/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -5704,7 +5707,7 @@
     {
       "path": "libs/locales/ja-JP/MFAAvalonia.Core.resources.dll",
       "size": 78336,
-      "sha256": "6fdf634fe051ac9408fd58d64bfb8c350c67f1b66c05a55c4796bd4fa72f2bad"
+      "sha256": "66f1fd0c9e00bd214dbe80ac1728be61624ba309c8a27edd030a8563f68f1c0c"
     },
     {
       "path": "libs/locales/ko/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -5774,7 +5777,7 @@
     {
       "path": "libs/locales/zh-Hant/MFAAvalonia.Core.resources.dll",
       "size": 65536,
-      "sha256": "0e3d1d6956886549f005eca6674d02f26293025a77b7c5c12a208cada96dc710"
+      "sha256": "762fe828af3062c6f2989799387f703dc2538effebd664150cb349fda7a781e0"
     },
     {
       "path": "libs/locales/zh-Hant/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -6199,32 +6202,32 @@
     {
       "path": "libs/Markdown.Avalonia.dll",
       "size": 289792,
-      "sha256": "202d601bed6dab348a37426f68329cc4481d6ba482083cbdd4f473ed663b94b6"
+      "sha256": "5434f9eef1bb075960ba2ac67884431d820dc1a8b84a4b75f6605114d2951ff0"
     },
     {
       "path": "libs/Markdown.Avalonia.Full.dll",
       "size": 11264,
-      "sha256": "e61b9e0d0b1bbbb114ebaeb6f5b4cb4cb84286244cce8d8d223271f39b4a72d0"
+      "sha256": "0eb77c49448860bd036ad9a1a14c5a4db0dd8e0c9db57d726c3b1f97698c04ef"
     },
     {
       "path": "libs/Markdown.Avalonia.Html.dll",
       "size": 95744,
-      "sha256": "7c379c7c0f2b92fe1a3717af5ed0cd62f1993e49af46ac7fab5a3e0b2c956a0b"
+      "sha256": "fa53c080a150c89acaab86da8933aaed70805184017056e2f4753a6cb33a7c16"
     },
     {
       "path": "libs/Markdown.Avalonia.Math.dll",
       "size": 11776,
-      "sha256": "dc3ac3abefcfb4bb7913288fad4029eed94d6b8ae71f8a42b28af30e035a3d50"
+      "sha256": "64974eb4cada5b7ffa6317fd10cfdee8f6bd7aa5e24d5072187fc62e5291596b"
     },
     {
       "path": "libs/Markdown.Avalonia.Svg.dll",
       "size": 10240,
-      "sha256": "074d224870757f6ce328fcf5785c0ff840e502be6225365c2f74d2ed2d61eb21"
+      "sha256": "1901f7626c65000596d53e54b95c2d0caffbcc1ba32847ee39e7a47d8cc23bac"
     },
     {
       "path": "libs/Markdown.Avalonia.SyntaxHigh.dll",
       "size": 54272,
-      "sha256": "8bf97112a4b481fb4ff9a1148a3a8b41477297360b2ad63ad5c1744de1902e47"
+      "sha256": "b48a99a2fe4a8c064b2d175f1646a4136a5d37c6e86b61f0ef2087fc61407e27"
     },
     {
       "path": "libs/MemoryPinning.dll",
@@ -6233,8 +6236,8 @@
     },
     {
       "path": "libs/MFAAvalonia.Core.dll",
-      "size": 3506688,
-      "sha256": "a12fc07b9fc497bd523d3798496debf0fb8c97cee70c68d6571a2bcc7cbe50ab"
+      "size": 3515904,
+      "sha256": "aab28553013fa6649dd8ed6c073a38c4f87734f076c9b70f07df56f551195689"
     },
     {
       "path": "libs/MicroCom.Runtime.dll",
@@ -6449,7 +6452,7 @@
     {
       "path": "libs/SukiUI.dll",
       "size": 34912768,
-      "sha256": "e0f9418a47ae3f90ebf2c195e03d8209c0ada8d8bd1127cce6e4d042b36ef73d"
+      "sha256": "1fd4576ba5845bc7b381bc3cbc96d9ebf1495d271099a27b427bc2fb0ceb257b"
     },
     {
       "path": "libs/SukiUI.xml",
@@ -6933,13 +6936,13 @@
     },
     {
       "path": "MFAAvalonia.dll",
-      "size": 288256,
-      "sha256": "cd0741c26e32c46cf1945776e8f3ab89bb752b44c97d0b56120727af93fbf804"
+      "size": 288768,
+      "sha256": "890d5986ba9f8a9ab5129456a3531392dd6961da7dafcc2a92a61d36efcdd51a"
     },
     {
       "path": "MFAAvalonia.exe",
       "size": 299520,
-      "sha256": "2303524546bc071fefaa794e4c401842779645461e551696c8d9c63f74cb9e87"
+      "sha256": "f2328ec435bdc014e349a2bc9fc2077554883d6229de6ce96ec0725218be2c64"
     },
     {
       "path": "MFAAvalonia.runtimeconfig.json",
@@ -17927,6 +17930,11 @@
       "sha256": "182686c3910cf2207580c9b373ee9b07963f9badc0740e476c1f61b18ebe25ee"
     },
     {
+      "path": "src/pcr_maa/capture_performance.py",
+      "size": 6491,
+      "sha256": "b64080b26035f6d15cb55645aad78d9ff6157829405a6a69da5a592d6af973ec"
+    },
+    {
       "path": "src/pcr_maa/cli.py",
       "size": 27755,
       "sha256": "e4952a8d877ab4b4f39363b74e77ff0cbd5b8b057061526ff94af910d881368d"
@@ -17948,8 +17956,8 @@
     },
     {
       "path": "src/pcr_maa/device.py",
-      "size": 17227,
-      "sha256": "de517862d4911a1e618a13f228a24c35e35f8d091b70ab4c668ef9a42cb35f9e"
+      "size": 17859,
+      "sha256": "681996918a875156e4417c4d0afa2e81de05bb10fa64f555ffce6e77e590002b"
     },
     {
       "path": "src/pcr_maa/event.py",
@@ -18033,8 +18041,8 @@
     },
     {
       "path": "src/pcr_maa/labyrinth/character_recognition.py",
-      "size": 73325,
-      "sha256": "81ec8b4dc43438d5dbe81619a345883f1f080e05473826dffec360f04bc4d806"
+      "size": 74399,
+      "sha256": "9c558adfaad7f688ed9988e30a7d83fcd4a644482588842ff8c5254ab482f721"
     },
     {
       "path": "src/pcr_maa/labyrinth/config.py",
@@ -18123,8 +18131,8 @@
     },
     {
       "path": "src/pcr_maa/labyrinth/owned_runtime.py",
-      "size": 16656,
-      "sha256": "efab9e8a75e5e438371c568467631c480038605c2674205257cd470164932a5d"
+      "size": 17711,
+      "sha256": "9b2136fed6854b0477a979d52968143295290072a747951d7787c0fb0b975376"
     },
     {
       "path": "src/pcr_maa/labyrinth/owner_messages.py",
@@ -18163,8 +18171,8 @@
     },
     {
       "path": "src/pcr_maa/labyrinth/relics.py",
-      "size": 45008,
-      "sha256": "c94cd0eae9417b2ae505986a507e3a162b6c33eaf25c84dc86f588b3a5649167"
+      "size": 45314,
+      "sha256": "0e1e1173f0fe07f2a9b5b60f7e107f140a0f379506066ed6ffc8a627e5ed0f78"
     },
     {
       "path": "src/pcr_maa/labyrinth/restart.py",
@@ -18238,8 +18246,8 @@
     },
     {
       "path": "src/pcr_maa/labyrinth/timing.py",
-      "size": 12988,
-      "sha256": "c8537f07ad29b02022b317b4a238707cfcde126f3746df9b9060a7bd734ed903"
+      "size": 16621,
+      "sha256": "6fcee5582442e89c7d22b502cd7b1b3bc7d5124c32cdaeb27a0a322d70b32935"
     },
     {
       "path": "src/pcr_maa/labyrinth/visible_edges.py",
@@ -18318,8 +18326,8 @@
     },
     {
       "path": "src/pcr_maa/preset_confirmation.py",
-      "size": 12095,
-      "sha256": "cff0c5c539b032bc3635b8d7ca3f5ded777aa29d833f1038d6cc0f784ca28c2e"
+      "size": 12210,
+      "sha256": "507ce48be76b37e59dceafac7bc6547593ee25b7e6f444323b062d790382c511"
     },
     {
       "path": "src/pcr_maa/preset_execution.py",
@@ -18328,8 +18336,8 @@
     },
     {
       "path": "src/pcr_maa/preset_execution_native.py",
-      "size": 24857,
-      "sha256": "c64626dcdd5444cc3afc1d037b01d8db878766b0411ef5ae486f62dc805872e4"
+      "size": 26398,
+      "sha256": "39a60513e73f9fc51e1f619333e06fc8c25f300d195eb40b17875d0d440ebc5f"
     },
     {
       "path": "src/pcr_maa/preset_reconcile.py",
@@ -18358,8 +18366,8 @@
     },
     {
       "path": "src/pcr_maa/rewards.py",
-      "size": 7949,
-      "sha256": "745561a9eb06d97882ef3974e39e8251bf925ee83f5ef3383b55dc3476178529"
+      "size": 7913,
+      "sha256": "f52d263fbc740c2c0ab0a7e665a37c41fcc145565bc419e21fbf834ce7423708"
     },
     {
       "path": "src/pcr_maa/schedule.py",
@@ -19106,6 +19114,5 @@
       "size": 283,
       "sha256": "e81e878391a2e4d9dc14071615d785f3991acdcdc259e89c433fb48f491d5ed1"
     }
-  ],
-  "release_checks": []
+  ]
 }

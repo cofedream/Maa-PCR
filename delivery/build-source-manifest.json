@@ -1140,18 +1140,23 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.Session.cs",
-      "size": 11630,
-      "sha256": "4e62a3e9008520fbe52e9d603beba5427975cf351e7346e4ff5b38a5a4496e69"
+      "size": 11689,
+      "sha256": "d142596558f87fe236b50eb910ce27f1e54b7262e0588afe33918687fedf732d"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.cs",
-      "size": 50508,
-      "sha256": "b096cc0568c28c989116b91c26b46fd4d5f6b7a96c30ed5c6f38852d90fea05e"
+      "size": 50919,
+      "sha256": "8142f8b6d6ac7857908f6480611e48b202584f27bb691a255e0da31bc6d2bace"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaPolicy.cs",
       "size": 2707,
       "sha256": "8d65eea01d69f388379a07bd30aec08f2c211c6a61a214f2e1a4983558efb10d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrCapturePerformance.cs",
+      "size": 8263,
+      "sha256": "769c309d277c5f8e01b90a4efa707d1f526f88f219c82526050a8cb7c38cd18d"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrChannelCatalog.cs",
@@ -1205,8 +1210,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuDisplay.cs",
-      "size": 19103,
-      "sha256": "508d66e7565966da3ddd88c1ad41a3a28ddc002182058d241e851f4f8237accb"
+      "size": 19421,
+      "sha256": "aca47b5203b7b298d788cd56bd2afa458f59a31b7d0d8c9ce5c4a7d81f6ada47"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuIdentity.cs",
@@ -2849,9 +2854,14 @@
       "sha256": "43156220e614a81052929050cc8594a2e287aa1d65862de6aea67aa5400d5aba"
     },
     {
+      "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/CapturePerformanceChecks.cs",
+      "size": 6512,
+      "sha256": "129c6e389701fefa57d97b0bd47bb79b3efe10e3739adaf644016349f038de87"
+    },
+    {
       "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/ChannelConfigChecks.cs",
-      "size": 12225,
-      "sha256": "c8829ed45b90612f214acc96506c8dab15a0b1e5135b890b2329b499f9a6b46f"
+      "size": 12557,
+      "sha256": "2224ee296865028cbd5fbee9cd857d5d08ba7a788140c7b69f909daa36448742"
     },
     {
       "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/LogExportChecks.cs",
