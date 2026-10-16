@@ -3,5 +3,6 @@
   "revision": 53,
   "version": "v0.1.8-r53-candidate",
   "base_release_manifest_sha256": "a1aa22db44eb19f5a2e8279c337f1b20b8097d93b4f8ef666be4cec5492bd85e",
-  "reason": "Local offline candidate; no formal release acceptance or live-game claim."
+  "previous_candidate_manifest_sha256": "44f63c5c0dd2a8a63541aa8adbf3794b82dfc42ae820a3e6ecbb4486e6f97377",
+  "reason": "Local performance candidate; no formal release, real installation or live-game acceptance."
 }
