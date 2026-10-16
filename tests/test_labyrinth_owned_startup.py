@@ -119,7 +119,12 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
             raise TimeoutError('synthetic resource timeout')
         return object()
     class Controller:
-        def __init__(self, *args): calls.append('controller')
+        def __init__(self, *args, config):
+            assert int(args[2]) == 6 and int(args[3]) == 1
+            assert config == {'command': {
+                'ScreencapEncode': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap -p'],
+                'ScreencapRawWithGzip': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap | gzip -1']}}
+            calls.append('controller')
         def set_screenshot_target_short_side(self, size): return size == 720
         def post_connection(self):
             calls.append('connect')
@@ -485,3 +490,34 @@ def test_launcher_emits_configuration_stage_before_runner(tmp_path, monkeypatch)
     assert 'synthetic-password' not in messages.getvalue()
     assert json.loads(messages.getvalue().splitlines()[-1]) == dict(
         kind='result', outcome='stopped', batch_complete=False)
+
+
+def test_timing_read_failure_preserves_business_result_and_cleanup(tmp_path, monkeypatch):
+    from pcr_maa.labyrinth import timing
+    owned, events, calls = runtime(tmp_path, monkeypatch)
+    def unreadable():
+        raise OSError('synthetic trace read failure')
+    monkeypatch.setattr(timing, 'NativeTimings', lambda *args, **kwargs:
+        NS(finish_native_trace=unreadable, close=lambda: calls.append('timings_closed')))
+    expected = dict(outcome='completed', batch_complete=True)
+    owned._run_batch = lambda *args: dict(expected)
+    assert owned.run() == expected
+    assert owned.timing_collection == 'incomplete'
+    assert owned.timings.phase is None
+    assert {'timings_closed', 'native_stop', 'client_close'} <= set(calls)
+    assert owned.request.username == owned.request.password == ''
+
+
+def test_timing_sink_close_failure_preserves_result_and_client_cleanup(tmp_path, monkeypatch):
+    from pcr_maa.labyrinth import timing
+    owned, events, calls = runtime(tmp_path, monkeypatch)
+    def broken_close():
+        raise OSError('synthetic sink cleanup failure')
+    monkeypatch.setattr(timing, 'NativeTimings', lambda *args, **kwargs:
+        NS(finish_native_trace=lambda: None, close=broken_close))
+    expected = dict(outcome='completed', batch_complete=True)
+    owned._run_batch = lambda *args: dict(expected)
+    assert owned.run() == expected
+    assert owned.timing_collection == 'incomplete'
+    assert {'native_stop', 'client_close'} <= set(calls)
+    assert owned.request.username == owned.request.password == ''

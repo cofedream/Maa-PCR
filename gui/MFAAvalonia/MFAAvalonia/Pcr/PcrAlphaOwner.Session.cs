@@ -41,6 +41,7 @@ public static partial class PcrAlphaOwner
         public long Root;
         public string Uuid = "";
         public MaaController? Controller;
+        public PcrCapturePerformance? CapturePerformance;
         public MaaTasker? BoundTasker;
         public MaaResource? BoundResource;
         public ChildSession? Child;

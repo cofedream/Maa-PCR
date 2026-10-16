@@ -71,6 +71,7 @@ def fixed_config(input_display, screenshot_display, *, preset_list=False):
         "Monitor": base + ["shell", "cat"],
         "UUID": base + ["get-serialno"],
         "ScreencapEncode": base + ["exec-out", f"screencap -p -d {screenshot_display}"],
+        "ScreencapRawWithGzip": base + ["exec-out", f"screencap -d {screenshot_display} | gzip -1"],
         "Click": base + ["shell", f"input -d {input_display} tap {{X}} {{Y}}"],
     })
     if preset_list:
@@ -176,16 +177,25 @@ def navigate(input_display, screenshot_display, *, slot=None, schedule_start=Non
             dict(serial=serial, input_display=input_display, screenshot_display=str(screenshot_display)))
     config = fixed_config(input_display, screenshot_display, preset_list=slot is not None or schedule_start is not None or daily_config is not None or execution is not None or event is not None or supported is not None or onekey is not None or settings_audit is not None)
     resource = load_resource()
-    from .native import RUNTIME
+    from .native import RUNTIME, ROOT
+    from .capture_performance import begin_capture_report, finish_capture_report
     if not Path(adb_path).is_file():
         raise RuntimeError("Fixed MuMu adb executable missing")
-    controller = AdbController(adb_path, serial, MaaAdbScreencapMethodEnum.Encode,
+    capture_report = begin_capture_report(ROOT, RUNTIME.name, RUNTIME / 'maa/maafw.log',
+        options=config, serial=serial, display_binding=dict(basis='explicit_cli_display',
+            logical=input_display, physical=str(screenshot_display)))
+    controller = AdbController(adb_path, serial,
+                               MaaAdbScreencapMethodEnum.Encode | MaaAdbScreencapMethodEnum.RawWithGzip,
                                MaaAdbInputMethodEnum.AdbShell, config=config)
     tasker = Tasker()
     try:
         if not controller.set_screenshot_use_raw_size(True):
             raise RuntimeError("Cannot request raw screenshot")
-        if not wait_job(controller.post_connection()).succeeded:
+        try:
+            connected = wait_job(controller.post_connection()).succeeded
+        finally:
+            finish_capture_report(capture_report)
+        if not connected:
             raise RuntimeError("Existing fixed connection unavailable")
         capture = wait_job(controller.post_screencap())
         raw = capture.get() if capture.succeeded else None

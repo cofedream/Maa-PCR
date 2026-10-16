@@ -224,8 +224,13 @@ class OwnedRuntime:
         prepare_restart(self.request, self.port, journal, self.stop, self._progress)
 
     def _finish_timings(self):
-        if self.native_timings is not None:self.native_timings.finish_native_trace()
-        self.timings.transition(None)
+        try:
+            if self.native_timings is not None:self.native_timings.finish_native_trace()
+        except Exception:
+            # Performance evidence must not replace a completed business result.
+            self.timing_collection = 'incomplete'
+        finally:
+            self.timings.transition(None)
 
     def run(self):
         if self.stop():return dict(outcome='stopped',batch_complete=False)
@@ -272,12 +277,21 @@ class OwnedRuntime:
                 self._checkpoint()
                 connection=self.request.connection
                 self._progress(dict(stage='connecting'))
+                from ..capture_performance import begin_capture_report, finish_capture_report
+                capture_config={'command': {
+                    'ScreencapEncode': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap -p'],
+                    'ScreencapRawWithGzip': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap | gzip -1']}}
+                capture_report=begin_capture_report(self.root,self.run_id,native.RUNTIME/'maa/maafw.log',
+                    options=capture_config,serial=connection['serial'],
+                    display_binding=dict(basis='default_screen_only',logical=0,physical=None))
                 self.controller=AdbController(connection['adb_path'],connection['serial'],
-                    MaaAdbScreencapMethodEnum.Encode,MaaAdbInputMethodEnum.AdbShell)
+                    MaaAdbScreencapMethodEnum.Encode | MaaAdbScreencapMethodEnum.RawWithGzip,
+                    MaaAdbInputMethodEnum.AdbShell,config=capture_config)
                 if not self.controller.set_screenshot_target_short_side(720):
                     raise BatchStopped('controller_configuration_failed')
                 try:connected=native.wait_job(self.controller.post_connection(),seconds=30).succeeded
                 except TimeoutError:raise BatchStopped('controller_connection_timeout') from None
+                finally:finish_capture_report(capture_report)
                 if not connected:
                     raise BatchStopped('controller_connection_failed')
                 self._checkpoint()
@@ -337,7 +351,8 @@ class OwnedRuntime:
                 except Exception:
                     pass
             if self.native_timings is not None:
-                self.native_timings.close()
+                try:self.native_timings.close()
+                except Exception:self.timing_collection = 'incomplete'
             if self.port is not None:
                 self.port.close()
             elif self.client is not None:

@@ -739,6 +739,7 @@ public static partial class PcrAlphaOwner
             current.Cancel.Cancel();
             if (current.PreparationOnly || current.Preparing) return; // preparation finally owns disposal
             current.Child?.Dispose();
+            current.CapturePerformance?.Write();
             current = null; Monitor.PulseAll(Gate);
         }
     }
@@ -753,6 +754,9 @@ public static partial class PcrAlphaOwner
             current.ConstructionAttempted = true;
             var binding = current.Config.Binding();
             var builder = current.OfflineControllerBuilder;
+            if (!preparation && current.Mapping != null && !current.IsOffline)
+                current.CapturePerformance = PcrCapturePerformance.Begin(repository, current.Invocation,
+                    PcrMuMuDisplay.StandardOptions(current.Mapping), current.Mapping, (string)binding["connection"]!["serial"]!);
             var controller = preparation
                 ? PcrMuMuDisplay.CreatePreparationController(binding, Path.Combine(AppContext.BaseDirectory, "libs", "MaaAgentBinary"), current.MuMuFactory)
                 : current.Mapping != null
@@ -814,6 +818,7 @@ public static partial class PcrAlphaOwner
             Require(processor);
             if (current != s || !controller.IsConnected) throw new InvalidOperationException("Fresh frame session revoked");
             s.RawVerified = true;
+            s.CapturePerformance?.Write();
             if (s.Mapping != null) s.MappingWatch = Task.Run(() => WatchMappingAsync(s));
         }
     }

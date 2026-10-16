@@ -16,6 +16,7 @@ internal static class ChannelConfigChecks
 {
     internal static void Run(string fixtureDirectory)
     {
+        CapturePerformanceChecks.Run(fixtureDirectory);
         var count = 0;
         void Check(bool ok, string name) { if (!ok) throw new InvalidOperationException(name); count++; }
         var type = typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrMuMuDisplay")!;
@@ -45,7 +46,13 @@ ActivityTaskSupervisor state:
 """;
         void Mapping(string a, string i, string p, string c, bool expected)
         {
-            try { var result = parse.Invoke(null, [a, i, false, p, c]); Check(expected && result != null, "channel mapping accepted"); }
+            try
+            {
+                var result = parse.Invoke(null, [a, i, false, p, c]);
+                Check(expected && result != null, "channel mapping accepted");
+                Check((string?)result!.GetType().GetProperty("Basis")!.GetValue(result) == "logical_default_verified",
+                    "logical default mapping does not claim physical viewport verification");
+            }
             catch (TargetInvocationException ex) when (ex.InnerException is InvalidOperationException)
             { Check(!expected, "channel mapping rejected"); }
         }

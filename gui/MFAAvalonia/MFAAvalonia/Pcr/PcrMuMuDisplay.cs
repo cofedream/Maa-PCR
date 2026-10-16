@@ -13,7 +13,7 @@ namespace MFAAvalonia.Pcr;
 /// Extras candidate. Frame dimensions alone never authorize business input.</summary>
 internal static class PcrMuMuDisplay
 {
-    internal sealed record Mapping(int Logical, string Physical);
+    internal sealed record Mapping(int Logical, string Physical, string Basis = "viewport_verified");
     // Only layout compatibility: target identity is verified independently.
     // Maa scales this landscape frame to 1280x720 and maps inputs back natively.
     internal static void RequireFrameSize(int width, int height)
@@ -98,7 +98,7 @@ internal static class PcrMuMuDisplay
                 throw new InvalidOperationException("PCR 位于非默认显示屏，请在高级设置启用“多显示屏映射校验”后重新开始。");
             // Select Maa's native default screencap/input commands. This is not
             // an assertion that a physical viewport uniqueId was observed.
-            return new Mapping(0, "0");
+            return new Mapping(0, "0", "logical_default_verified");
         }
         var viewports = Matches(input, @"^\s*Viewport (?:INTERNAL|EXTERNAL): displayId=([^,]+), uniqueId=([^,]+),[^\r\n]*isActive=\[([^\]]+)\]\s*$");
         if (viewports.Length != Matches(input, @"^\s*Viewport (?:INTERNAL|EXTERNAL):").Length
@@ -142,7 +142,7 @@ internal static class PcrMuMuDisplay
             throw new InvalidOperationException("PCR input focus mismatch");
         // Focus independently proves the game's logical default display.
         // Ordinary single-screen ADB does not require vendor viewport text.
-        if (!validatePhysicalViewport) return new Mapping(0, "0");
+        if (!validatePhysicalViewport) return new Mapping(0, "0", "logical_default_verified");
         var internalViewport = Matches(input, @"^\s*ViewportInternal:\r?\n\s*Viewport: displayId=0, orientation=[0-3], uniqueId='local:0', logicalFrame=\[[^\r\n]+\r?$");
         var externalViewport = Matches(input, @"^\s*ViewportExternal:\r?\n\s*Viewport: displayId=-1, [^\r\n]+\r?$");
         var virtualViewport = Matches(input, @"^( *)ViewportVirtual:\r?\n([\s\S]*?)(?=^\1\S|\z)");
@@ -166,6 +166,7 @@ internal static class PcrMuMuDisplay
         foreach (var name in new[] {"Connect", "KillServer", "TestConnection"}) commands[name] = Cmd("get-state");
         commands["Monitor"] = Cmd("shell", "cat"); commands["UUID"] = Cmd("get-serialno");
         commands["ScreencapEncode"] = Cmd("exec-out", mapping.Physical == "0" ? "screencap -p" : $"screencap -p -d {mapping.Physical}");
+        commands["ScreencapRawWithGzip"] = Cmd("exec-out", mapping.Physical == "0" ? "screencap | gzip -1" : $"screencap -d {mapping.Physical} | gzip -1");
         // Android 9 input lacks -d. Its independently verified default is 0.
         var input = mapping.Logical == 0 ? "input" : $"input -d {mapping.Logical}";
         commands["Click"] = Cmd("shell", $"{input} tap {{X}} {{Y}}");
@@ -180,10 +181,11 @@ internal static class PcrMuMuDisplay
         var adb = (string)binding["connection"]!["adb_path"]!;
         var serial = (string)binding["connection"]!["serial"]!;
         var options = StandardOptions(mapping);
+        const AdbScreencapMethods capture = AdbScreencapMethods.Encode | AdbScreencapMethods.RawWithGzip;
         return offlineFactory != null
-            ? offlineFactory(adb, serial, AdbScreencapMethods.Encode, AdbInputMethods.AdbShell, options)
+            ? offlineFactory(adb, serial, capture, AdbInputMethods.AdbShell, options)
                 ?? throw new InvalidOperationException("Offline factory returned null")
-            : new MaaAdbController(adb, serial, AdbScreencapMethods.Encode, AdbInputMethods.AdbShell, options,
+            : new MaaAdbController(adb, serial, capture, AdbInputMethods.AdbShell, options,
                 agentPath, LinkOption.None, CheckStatusOption.None);
     }
     internal const string Package = "com.bilibili.priconne";
