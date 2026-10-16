@@ -650,8 +650,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaProcessor.cs",
-      "size": 213422,
-      "sha256": "9dd05ff1dd5b6da5fd67acab0d8699f45042f41c6db2a96417933025dd85fa9a"
+      "size": 213987,
+      "sha256": "132f80445d048e42907ec08114a5974b594b5d68eb430942231bf35c33c7a405"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaProcessorConfig.cs",
@@ -1365,8 +1365,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Pages/TaskQueueViewModel.cs",
-      "size": 190735,
-      "sha256": "aa48a275fc264897c5f1482501352698632d722cbcc34b01d0bf4ee92eb32510"
+      "size": 191477,
+      "sha256": "ba063ba693edcf9b51dda26e9d1bb87602d94c037128d61aaff89f522071beaf"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/AdbEditorDialogViewModel.cs",
@@ -2864,6 +2864,11 @@
       "sha256": "2224ee296865028cbd5fbee9cd857d5d08ba7a788140c7b69f909daa36448742"
     },
     {
+      "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/LiveViewChecks.cs",
+      "size": 12944,
+      "sha256": "b1bb6eea0f74f279f3ed599e95bdb521e56ba9d61fd40bd52f29106362415990"
+    },
+    {
       "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/LogExportChecks.cs",
       "size": 11350,
       "sha256": "ed104ce806eaaf65b75efe89c092a08032a4fd0e16e0620f06bc81c71f731839"
@@ -2880,8 +2885,8 @@
     },
     {
       "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/Program.cs",
-      "size": 11227,
-      "sha256": "e8c4810b7de0b69484ac194cfe609ccb06cbb588fcc3a8cf01c8ac35218685cf"
+      "size": 11253,
+      "sha256": "b55c6318dd6e730cf405168cbd6faafd2d984cc3754a1b665599ce812f06dfd5"
     },
     {
       "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/packages.lock.json",

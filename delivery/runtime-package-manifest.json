@@ -4731,8 +4731,8 @@
     },
     {
       "path": "build-source-manifest.json",
-      "size": 169667,
-      "sha256": "895d1a8f6c29bb98f9708e3611b54510d0c57721ba841970abd7d8e4d3ef7c92"
+      "size": 169858,
+      "sha256": "56137d726892cc0147b24d25d0489b10d3e5c81ce85800fbcad9614acf126239"
     },
     {
       "path": "CONTRIBUTING.md",
@@ -5211,8 +5211,8 @@
     },
     {
       "path": "docs/R53_PERFORMANCE.md",
-      "size": 4917,
-      "sha256": "fdc6c478f8a5ac7d57231d393a3b88ade4d4befedfc649f4630554269658ef72"
+      "size": 6316,
+      "sha256": "16014223f7a6609b3fcad8db8b56da79997c8c792d008d083c253e53b22e41b3"
     },
     {
       "path": "docs/R54_TO_R52.md",
@@ -5276,8 +5276,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "size": 13522,
-      "sha256": "cbc8f112560cdfffc848f45545d1796177c7e52867da7c00dd73e014d69e5bda"
+      "size": 14339,
+      "sha256": "a9803c6c655000106a6d71c9b8f9dcc327240de2d2f1f58b7f3c9b88019c4de1"
     },
     {
       "path": "docs/REPAIR_R34.md",
@@ -5527,12 +5527,12 @@
     {
       "path": "libs/ColorDocument.Avalonia.dll",
       "size": 53248,
-      "sha256": "7a32978ef7df1646e4378d36a9a4dde3bdb781e0f37a7b41564e84eff19955f2"
+      "sha256": "589eb22192d42a117f43517540603b87cc480ddfe71f4f4f0918c0d22bb9861f"
     },
     {
       "path": "libs/ColorTextBlock.Avalonia.dll",
       "size": 75264,
-      "sha256": "a38c5a3db7f042455f69f5be1bf7a6d418d8375e0693e7bbca5faebf8cac8bac"
+      "sha256": "95234cc650c9ef924d1ba84533edf9d8184a005363d0f7a672e1c3455863ac33"
     },
     {
       "path": "libs/CommunityToolkit.Mvvm.dll",
@@ -5662,7 +5662,7 @@
     {
       "path": "libs/locales/en-US/MFAAvalonia.Core.resources.dll",
       "size": 68096,
-      "sha256": "7686931f81f07ccf09b39334cbb9227e6ee8233095dfc3f05381dd41711884c9"
+      "sha256": "b49da8ce02b06e6b0bf60f10ef801125f6745ca5b93bff79c623ea3d7922a59e"
     },
     {
       "path": "libs/locales/es/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -5707,7 +5707,7 @@
     {
       "path": "libs/locales/ja-JP/MFAAvalonia.Core.resources.dll",
       "size": 78336,
-      "sha256": "66f1fd0c9e00bd214dbe80ac1728be61624ba309c8a27edd030a8563f68f1c0c"
+      "sha256": "3a9823d6eb5f943ddd8cad68afe317463454fd14fff5364cd8f7d229b0d6e0fa"
     },
     {
       "path": "libs/locales/ko/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -5777,7 +5777,7 @@
     {
       "path": "libs/locales/zh-Hant/MFAAvalonia.Core.resources.dll",
       "size": 65536,
-      "sha256": "762fe828af3062c6f2989799387f703dc2538effebd664150cb349fda7a781e0"
+      "sha256": "2c17eb60f86a57089e00a9bdf294aa180b4cb50406ea24f839e57107991bfc82"
     },
     {
       "path": "libs/locales/zh-Hant/Microsoft.CodeAnalysis.CSharp.resources.dll",
@@ -6202,32 +6202,32 @@
     {
       "path": "libs/Markdown.Avalonia.dll",
       "size": 289792,
-      "sha256": "5434f9eef1bb075960ba2ac67884431d820dc1a8b84a4b75f6605114d2951ff0"
+      "sha256": "b730e22616e7023786c41cd7e8c5bfb96ee88edcd770f86105fad616b259a02a"
     },
     {
       "path": "libs/Markdown.Avalonia.Full.dll",
       "size": 11264,
-      "sha256": "0eb77c49448860bd036ad9a1a14c5a4db0dd8e0c9db57d726c3b1f97698c04ef"
+      "sha256": "d86ade947a71e047c7d0b9ef4b649288462848e62a3e235f2f414f45d0d6b923"
     },
     {
       "path": "libs/Markdown.Avalonia.Html.dll",
       "size": 95744,
-      "sha256": "fa53c080a150c89acaab86da8933aaed70805184017056e2f4753a6cb33a7c16"
+      "sha256": "23e94a95bbd3b7d1cd726bece7d8451bda1efdf7002afe3776d2bf035a0aa8bf"
     },
     {
       "path": "libs/Markdown.Avalonia.Math.dll",
       "size": 11776,
-      "sha256": "64974eb4cada5b7ffa6317fd10cfdee8f6bd7aa5e24d5072187fc62e5291596b"
+      "sha256": "963f9d4a82e1468c057344b5a7f73e19496f4dc55b6bb3494994ad0903c5e57b"
     },
     {
       "path": "libs/Markdown.Avalonia.Svg.dll",
       "size": 10240,
-      "sha256": "1901f7626c65000596d53e54b95c2d0caffbcc1ba32847ee39e7a47d8cc23bac"
+      "sha256": "481fca7fbd16027abc43ca5b7ac9ee1cad1136440e2953e3466cf6ab649bfc35"
     },
     {
       "path": "libs/Markdown.Avalonia.SyntaxHigh.dll",
       "size": 54272,
-      "sha256": "b48a99a2fe4a8c064b2d175f1646a4136a5d37c6e86b61f0ef2087fc61407e27"
+      "sha256": "ec72b5d65451e213c46378861863de84af310791345c55adde4d9b88734083ef"
     },
     {
       "path": "libs/MemoryPinning.dll",
@@ -6236,8 +6236,8 @@
     },
     {
       "path": "libs/MFAAvalonia.Core.dll",
-      "size": 3515904,
-      "sha256": "aab28553013fa6649dd8ed6c073a38c4f87734f076c9b70f07df56f551195689"
+      "size": 3516416,
+      "sha256": "b7750ecece9cda772dd7c5732196684f15bc46e0c74bfa41b2fd924e0fd68360"
     },
     {
       "path": "libs/MicroCom.Runtime.dll",
@@ -6452,7 +6452,7 @@
     {
       "path": "libs/SukiUI.dll",
       "size": 34912768,
-      "sha256": "1fd4576ba5845bc7b381bc3cbc96d9ebf1495d271099a27b427bc2fb0ceb257b"
+      "sha256": "a830983c05d10ed81a4d797cb8b832173545533ed0bbe532a666d01e6d3433d5"
     },
     {
       "path": "libs/SukiUI.xml",
@@ -6937,12 +6937,12 @@
     {
       "path": "MFAAvalonia.dll",
       "size": 288768,
-      "sha256": "890d5986ba9f8a9ab5129456a3531392dd6961da7dafcc2a92a61d36efcdd51a"
+      "sha256": "f22b6cfdf15e5ad158970566df991c3e7311c0107705ddf4097603bf316dbafd"
     },
     {
       "path": "MFAAvalonia.exe",
       "size": 299520,
-      "sha256": "f2328ec435bdc014e349a2bc9fc2077554883d6229de6ce96ec0725218be2c64"
+      "sha256": "62f5bd2e4c192b45847d557706938ebb5740d077312730402d37e54723f66a8d"
     },
     {
       "path": "MFAAvalonia.runtimeconfig.json",
