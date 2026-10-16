@@ -300,7 +300,7 @@ class IconMatcher:
 
 
 
-    def _scores(self,frame,box,mask,width,*,_prepared=None):
+    def _scores(self,frame,box,mask,width,*,_prepared=None,_indices=None):
 
         if _prepared is None:_prepared=dict(frame=frame)
         if type(_prepared) is not dict or _prepared.get('frame') is not frame:
@@ -310,6 +310,8 @@ class IconMatcher:
         if not _inside((x,top,w,height),frame.shape):return np.zeros(len(self.entries))
 
         xr,yr,colors,luma,gradient=self.expected[width]
+        if _indices is not None:
+            colors,luma,gradient=colors[_indices],luma[_indices],gradient[_indices]
 
         kept=(yr>=mask.min_y)&(yr<=mask.max_y)
 
@@ -349,7 +351,11 @@ class IconMatcher:
 
         gs=np.clip(self._correlation(actual_grad[:,None].astype(float),gradient[:,kept,None])[:,0],0,None)
 
-        return np.clip(color*.55+ls*.25+gs*.20,0,1)
+        scores=np.clip(color*.55+ls*.25+gs*.20,0,1)
+        if _indices is None:return scores
+        # Keep original row indices; match consumes only its already selected rows.
+        complete=np.zeros(len(self.entries));complete[_indices]=scores
+        return complete
 
 
 
@@ -382,7 +388,7 @@ class IconMatcher:
 
             order=order[np.array([rank<64 or coarse[i]>=cutoff for rank,i in enumerate(order)])][:512]
 
-        fine=self._scores(frame,box,mask,20,_prepared=_prepared);by_id={}
+        fine=self._scores(frame,box,mask,20,_prepared=_prepared,_indices=order);by_id={}
 
         for index in order:
 
