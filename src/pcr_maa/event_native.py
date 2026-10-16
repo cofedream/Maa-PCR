@@ -56,6 +56,7 @@ class EventPage(CustomRecognition):
         raw = reco('EventRowsOCR')
         words = raw.raw_detail.get('filtered', []) if raw else []
         rows, partial = [], []
+        row_rois = {}
         gaps = False
         for w in words:
             title = re.sub(r'\s+', '', w['text']).replace('－', '-').replace('—', '-').replace('–', '-')
@@ -68,7 +69,9 @@ class EventPage(CustomRecognition):
                 continue
 
             def value(name, pattern):
-                roi = list(context.get_node_data(name)['attach']['row_roi'])
+                if name not in row_rois:
+                    row_rois[name] = list(context.get_node_data(name)['attach']['row_roi'])
+                roi = list(row_rois[name])
                 roi[1] += y
                 r = reco(name, {name: {'roi': roi}})
                 values = r.raw_detail.get('filtered', []) if r else []

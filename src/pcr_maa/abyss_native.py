@@ -77,6 +77,7 @@ def _quote_rows(words, reading, *, ticket=False):
         raise _NoMatch('abyss_quote_row_count_changed')
     titles = sorted(titles, key=lambda word: word['box'][1])
     rows, row_evidence = [], {}
+    row_rois = {}
     for title, expected in zip(titles, planned):
         if title.get('score', 0) < .9 or title['text'].strip() != '前哨关卡':
             raise _NoMatch('abyss_quote_title_unknown')
@@ -85,7 +86,9 @@ def _quote_rows(words, reading, *, ticket=False):
             raise _NoMatch('abyss_quote_rows_overlap')
         def override(field):
             name = 'AbyssQuoteRow1' + field
-            roi = list(words.context.get_node_data(name)['recognition']['param']['roi'])
+            if name not in row_rois:
+                row_rois[name] = list(words.context.get_node_data(name)['recognition']['param']['roi'])
+            roi = list(row_rois[name])
             roi[1] += y - 147
             if roi[1] < 132 or roi[1] + roi[3] > 425:
                 raise _NoMatch('abyss_quote_row_layout_unknown')
