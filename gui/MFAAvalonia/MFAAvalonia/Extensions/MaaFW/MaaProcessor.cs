@@ -1298,7 +1298,8 @@ public class MaaProcessor
         Pending,
         Running,
         Failed,
-        Succeeded
+        Succeeded,
+        Cached
     }
 
     // Preview only observes taskers created by the normal connection path. An ADB
@@ -1338,6 +1339,9 @@ public class MaaProcessor
         {
             return LiveViewCaptureState.ControllerNotReady;
         }
+
+        var useBusinessCache = MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled && InstanceId != "pcr-labyrinth-v1"
+            && !UseSeparateScreenshotTasker && ReferenceEquals(controller, MaaTasker?.Controller);
 
         lock (_liveViewScreencapJobLock)
         {
@@ -1388,6 +1392,10 @@ public class MaaProcessor
                     return LiveViewCaptureState.Failed;
                 }
             }
+
+            // Daily tasks already refresh this controller's cache; preview must not queue behind their fresh captures.
+            if (useBusinessCache && (IsTaskRunActive || MaaTasker is { IsRunning: true } or { IsStopping: true }))
+                return job == null ? LiveViewCaptureState.Cached : LiveViewCaptureState.Succeeded;
 
             try
             {

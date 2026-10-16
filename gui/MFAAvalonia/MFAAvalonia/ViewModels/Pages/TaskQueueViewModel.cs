@@ -3922,6 +3922,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     private DateTime? _liveViewPendingSinceUtc;
     private bool _liveViewPendingNoticeLogged;
     private MaaProcessor.LiveViewCaptureState? _lastLiveViewCaptureState;
+    private long _lastCachedLiveViewFrameAt;
 
     private bool ShouldLogLiveViewPending(MaaProcessor.LiveViewCaptureState state, long generation, DateTime now)
     {
@@ -3932,6 +3933,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
             _liveViewPendingNoticeLogged = false;
             _liveViewNoImageLogged = false;
             _lastLiveViewCaptureState = null;
+            _lastCachedLiveViewFrameAt = 0;
         }
 
         if (state != MaaProcessor.LiveViewCaptureState.Pending && state != MaaProcessor.LiveViewCaptureState.Running)
@@ -4052,14 +4054,25 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                     }
                     return;
                 }
-                if (state != MaaProcessor.LiveViewCaptureState.Succeeded)
+                if (state is not (MaaProcessor.LiveViewCaptureState.Succeeded or MaaProcessor.LiveViewCaptureState.Cached))
                     return;
 
-                Processor.HandleScreencapStatus(MaaJobStatus.Succeeded);
+                if (state == MaaProcessor.LiveViewCaptureState.Succeeded)
+                    Processor.HandleScreencapStatus(MaaJobStatus.Succeeded);
+                else
+                {
+                    // Cache display has no capture outcome and needs at most five copies per second.
+                    var now = Environment.TickCount64;
+                    if (now - _lastCachedLiveViewFrameAt < 200)
+                        return;
+                    _lastCachedLiveViewFrameAt = now;
+                }
 
                 var buffer = Processor.GetLiveViewBuffer(generation);
                 if (buffer == null)
                 {
+                    if (state == MaaProcessor.LiveViewCaptureState.Cached)
+                        return;
                     if (!Processor.IsLiveViewGenerationCurrent(generation))
                         return;
                     if (!Processor.IsLiveViewControllerReady(generation))
@@ -4164,6 +4177,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         _liveViewPendingSinceUtc = null;
         _liveViewPendingNoticeLogged = false;
         _lastLiveViewCaptureState = null;
+        _lastCachedLiveViewFrameAt = 0;
         LoggerHelper.Info(value ? "连接标志已置位；实时画面仍需截图控制器和首帧确认。" : "连接状态变更：未连接。");
     }
 
