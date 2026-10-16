@@ -2,45 +2,148 @@
   "schema_version": 1,
   "revision": 52,
   "expected_version": "v0.1.8",
-  "status": "pending",
-  "accepted_owned_payload_sha256": null,
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
-  "accepted_ci_artifact": null,
+  "status": "passed",
+  "accepted_owned_payload_sha256": "6268fd2797582271d4b78c9f56811318d8627eeb993fab9f83679ea00aa75e44",
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "source_commit": "605c892a23996ca36be363852dc283895cfb8906",
+    "run_id": 38841672826,
+    "run_attempt": 1,
+    "artifact_id": 12022865314,
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.8-win-x64.zip",
+      "size": 309429825,
+      "sha256": "e7c8c0e53cf3da0583e21974ec92e2a0791d6eda5616d8fddb1c29ad71b0095c"
+    }
+  },
   "live_valid_game_days": 0,
   "candidate_to_baseline_ratio": null,
   "meaningful_speedup_reviewed": false,
   "reviewed_evidence_scope": {
-    "release_scope": "R52 preparation: merge tested local R54 OCR v4, filter stability, guarded runtime compatibility and labyrinth rewards. Preserve existing safety checks, durable ledgers and unknown/no-resend.",
-    "candidate_evidence_not_formal_acceptance": {
-      "local_r54_manifest_sha256": "2b653ffdd0c1378497204ef4f1c3f3f48313a3ba39f298d30fad168153280578",
-      "filter_character_source_sha256": "81ec8b4dc43438d5dbe81619a345883f1f080e05473826dffec360f04bc4d806",
-      "offline_filter_regression": {
-        "passed": 209,
-        "skipped_legacy_private_materials": 47,
-        "failures": 0,
-        "errors": 0
-      },
-      "local_live_labyrinth": {
-        "difficulty": 2,
-        "completed": 1,
-        "successful_filter_feedback": 39
-      },
-      "date_change_recovery_exercised": false,
-      "scope": "Local R54 evidence only. R52 CI artifact, source alignment, GUI, runtime and isolated upgrade acceptance remain pending."
+    "release_scope": "R52 exact main CI program acceptance: OCR v4, guarded filter stability and slow capture, runtime compatibility and labyrinth rewards; existing safety rules, private state and unknown/no-resend retained.",
+    "public_tests": {
+      "tests": 3031,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 308,
+      "passed": 2723
     },
-    "pending": [
-      "exact R52 public regression and clean CI artifact",
-      "exact R52 GUI and bundled-runtime checks",
-      "R51 to R52 full/delta isolated upgrade, rollback, recovery and conflict checks",
-      "exact R54-test to R52 bridge binding and preservation checks",
-      "matching public source, privacy scan and accepted CI provenance"
+    "bundled_runtime_tests": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 3
+    },
+    "gui": {
+      "exact_ci_core_loaded": true,
+      "numbered_checks": 504,
+      "check_counts": {
+        "GUI update": 31,
+        "GUI dependency": 52,
+        "credential": 35,
+        "channel config": 59,
+        "log export/retention": 26,
+        "alpha owner": 45,
+        "module drag behavior": 116,
+        "alpha async": 53,
+        "profile switch": 87
+      },
+      "ocr_diagnostics_passed": true,
+      "real_gui_clicks": false
+    },
+    "runtime": {
+      "exact_ci_runtime": true,
+      "groups": 6,
+      "scope": "Three package probes, compatibility imports, cold startup Stop and EOF; offline only."
+    },
+    "isolated_update": {
+      "base_revision": 51,
+      "base_manifest_sha256": "a5fc27677b22e43133266a041fa75b8e85f7d30bd20f26497abaea5e00e62885",
+      "cases": [
+        "delta-mid-write-rollback",
+        "delta-upgrade",
+        "external-conflict-refusal",
+        "full-mid-write-rollback",
+        "full-upgrade",
+        "preflight",
+        "unfinished-committed-recovery",
+        "unfinished-partial-recovery"
+      ],
+      "synthetic_private_categories": [
+        "v4_settings",
+        "configuration",
+        "credentials",
+        "ledger",
+        "old_checkpoint",
+        "unknown_no_resend",
+        "logs",
+        "screenshots",
+        "counters"
+      ],
+      "actual_installation_modified": false
+    },
+    "clean_build": "Successful main push CI; exact outer artifact and internal ZIPs, matching public source, GUI inputs, CRC/SHA256 and privacy checked. Promotion preserves these program bytes.",
+    "final_r54_bridge_proof_in_separate_release_receipt": true,
+    "final_r54_bridge_scope": "Exact bridge is tested only after target seal. The separate final release receipt must bind the accepted target and completed bridge validation before publication; this program acceptance does not assert bridge success.",
+    "historical_local_r54": {
+      "manifest_sha256": "2b653ffdd0c1378497204ef4f1c3f3f48313a3ba39f298d30fad168153280578",
+      "difficulty": 2,
+      "completed_runs": 1,
+      "successful_filter_feedback": 39,
+      "reused_as_current_ci": false,
+      "date_change_prompt_triggered": false,
+      "date_change_recovery_exercised": false
+    },
+    "proofs": [
+      {
+        "name": "CI_ARTIFACT_VERIFIED.json",
+        "sha256": "e893d3436289c8d2e37230a6eac864362cf75f1f64cfb67fef32607b46399374"
+      },
+      {
+        "name": "CI_DOWNLOAD.json",
+        "sha256": "0a19151cbd9f6e1380650d5d0a90a476836ef19053aee2c2aeffe4a474cedc3a"
+      },
+      {
+        "name": "CI_RUN.json",
+        "sha256": "388e24d03ed2af3aa6e00876969df7231d79927f8a26859f5f2d0d8a3fe85a4e"
+      },
+      {
+        "name": "CI_ARTIFACT.json",
+        "sha256": "d661c070a31c4b3c9eaffba68c35772cc08891935b9202d28419df4dc1978433"
+      },
+      {
+        "name": "CI_JOBS.json",
+        "sha256": "3a2ee8550389b0a007697b0770c27efd6c1f65d46fdb826b1dc133ae8595ea55"
+      },
+      {
+        "name": "gui-checks/FINAL_GUI_CHECKS.json",
+        "sha256": "248f5bc7fc69806614c6c76a7562e5dd8e13f32d9b2b5105576b7ff166713799"
+      },
+      {
+        "name": "runtime-checks/FINAL_RUNTIME_CHECKS.json",
+        "sha256": "4bdc4abc5f3924b58bdbe2299fbe6a470486e345ada734d738a3474973cc1515"
+      },
+      {
+        "name": "upgrade-checks/FINAL_UPGRADE_CHECKS.json",
+        "sha256": "784186543fdb51a74db91a09c7810b167fede75c542dcecbf0f458b1a885630e"
+      },
+      {
+        "name": "FROZEN_INPUT.json",
+        "sha256": "722913f77a28806d0ca19c761394f501cc4a01b90e50a631e6d7f289baf914b1"
+      }
     ],
-    "proofs": [],
-    "live_performance_measured": false,
+    "actual_installed_gui_acceptance_in_this_record": false,
+    "new_human_gui_clicks": false,
+    "real_installation_upgraded_in_this_release_task": false,
     "full_human_update_click_flow_verified": false,
-    "real_network_loss_or_force_quit_verified": false
+    "real_network_loss_or_force_quit_verified": false,
+    "live_performance_measured": false,
+    "new_live_login_verified": false,
+    "game_inputs": 0
   }
 }
