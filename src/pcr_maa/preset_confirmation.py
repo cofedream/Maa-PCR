@@ -94,6 +94,7 @@ class ConfirmationPage(CustomRecognition):
         kind = json.loads(argv.custom_recognition_param)
         evidence = {}
         recognitions = {}
+        row_rois = {}
 
         def recognize(name, override=None):
             if kind == 'short' and time.monotonic() >= self.short_deadline:
@@ -154,7 +155,9 @@ class ConfirmationPage(CustomRecognition):
             row_evidence = {}
             def row_value(name, pattern):
                 # Only anchor translation; the relative field ROIs live in JSON.
-                roi = list(context.get_node_data(name)['attach']['row_roi'])
+                if name not in row_rois:
+                    row_rois[name] = context.get_node_data(name)['attach']['row_roi']
+                roi = list(row_rois[name])
                 roi[1] += y
                 found = value(name, {name: {'roi': roi}}, pattern)
                 row_evidence[name] = evidence[name]

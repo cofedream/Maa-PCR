@@ -12,7 +12,7 @@ from pcr_maa import native, rewards
 @pytest.fixture
 def reward_pass(tmp_path, monkeypatch):
     monkeypatch.setattr(native, 'ROOT', tmp_path)
-    calls, state = [], dict(fault=None, ready=False)
+    calls, state = [], dict(fault=None, ready=False, close_state='Empty')
     image = np.zeros((9, 16, 3), dtype=np.uint8)
     tasker = SimpleNamespace(controller=SimpleNamespace(cached_image=image,
         post_screencap=lambda: SimpleNamespace(done=True, succeeded=True, get=lambda: image)))
@@ -21,6 +21,12 @@ def reward_pass(tmp_path, monkeypatch):
         calls.append(entry)
         if state['fault'] == (entry, calls.count(entry)):
             return dict(native_ok=False, nodes=[])
+        if entry in ('RewardsMissionsCloseStart', 'RewardsGiftsCloseStart'):
+            prefix = entry.removesuffix('CloseStart')
+            names = [prefix + 'Close']
+            if state['close_state'] is not None:
+                names.extend(prefix + name for name in state['close_state'].split(','))
+            return dict(native_ok=True, nodes=[dict(name=name, completed=True) for name in names])
         node = {'RewardsHomeRead': 'ObserveHome',
                 'RewardsGiftsAfterClaim': 'RewardsGiftsResult'}.get(entry)
         if entry in ('RewardsMissionsRead', 'RewardsGiftsRead'):
@@ -101,7 +107,7 @@ def test_changed_home_must_pass_gift_action_guard(reward_pass):
 
 
 @pytest.mark.parametrize('fault', [('RewardsGiftsAfterClaim', 1),
-    ('RewardsGiftsResultRead', 1), ('RewardsGiftsRead', 2)])
+    ('RewardsGiftsResultRead', 1), ('RewardsGiftsCloseStart', 1)])
 def test_unknown_gift_claim_never_resends(reward_pass, fault):
     tasker, calls, state = reward_pass
     state.update(ready=True, fault=fault)
@@ -110,6 +116,45 @@ def test_unknown_gift_claim_never_resends(reward_pass, fault):
     assert report['items']['gifts']['claim_attempted']
     assert calls.count('RewardsGiftsClaimStart') == 1
     assert 'RewardsGiftsHomeStart' not in calls
+
+
+@pytest.mark.parametrize('close_state', [None, 'Ready,Empty'])
+def test_closed_but_unknown_or_conflicting_state_never_returns_home_or_opens_next(reward_pass, close_state):
+    tasker, calls, state = reward_pass
+    state.update(ready=True, close_state=close_state)
+    report = rewards.claim_rewards(tasker, execute=True)
+    assert report['outcome'] == 'unknown'
+    item = report['items']['missions']
+    assert item['result_verified'] and item['claim_attempted']
+    assert item['claimable_after'] is None and item['status'] == 'unknown'
+    assert calls.count('RewardsMissionsRead') == calls.count('RewardsMissionsClaimStart') == 1
+    assert calls[-1] == 'RewardsMissionsCloseStart'
+    assert 'RewardsMissionsHomeStart' not in calls and 'gifts' not in report['items']
+
+
+@pytest.mark.parametrize('only,close_state,status', [('missions', 'Empty', 'claimed'),
+    ('missions', 'Ready', 'remaining'), ('gifts', 'StaminaDeferred', 'deferred_stamina')])
+def test_post_claim_uses_actual_close_receipt_and_cached_frame(reward_pass, monkeypatch, only, close_state, status):
+    tasker, calls, state = reward_pass
+    state.update(ready=True, close_state=close_state)
+    monkeypatch.setattr(tasker.controller, 'post_screencap', lambda: pytest.fail('extra screenshot'))
+    original_run = native.run
+    final_image = np.full((720, 1280, 3), 127, dtype=np.uint8)
+    def close_frame(tasker, entry, **kwargs):
+        receipt = original_run(tasker, entry, **kwargs)
+        if entry.endswith('CloseStart'):
+            tasker.controller.cached_image = final_image
+        return receipt
+    monkeypatch.setattr(native, 'run', close_frame)
+    report = rewards.claim_rewards(tasker, execute=True, only=only)
+    item = report['items'][only]
+    assert report['outcome'] == 'complete' and item['status'] == status
+    prefix = 'Rewards' + only.title()
+    assert calls.count(prefix + 'Read') == 1
+    after_image = native.read_image(item['evidence'][only + '-after'])
+    assert np.array_equal(after_image, final_image)
+    close_receipt = next(r['receipt'] for r in item['native_receipts'] if r['entry'] == prefix + 'CloseStart')
+    assert rewards.completed(close_receipt, prefix + close_state)
 
 
 def test_gift_open_retains_current_home_guard():

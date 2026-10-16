@@ -99,9 +99,8 @@ def claim_rewards(tasker, *, execute=False, only=None, source='live rewards', co
                 require(item, prefix + 'ResultRead', prefix + 'Result')
                 evidence(item, kind + '-result')
                 item['result_verified'] = True
-                require(item, prefix + 'CloseStart', prefix + 'Close',
-                        reset_hits=(prefix + 'Close', prefix + 'LevelUpDismiss'))
-                after = run(item, prefix + 'Read')
+                after = require(item, prefix + 'CloseStart', prefix + 'Close',
+                                reset_hits=(prefix + 'Close', prefix + 'LevelUpDismiss'))
                 evidence(item, kind + '-after')
                 remaining = completed(after, prefix + 'Ready')
                 empty = completed(after, prefix + 'Empty')

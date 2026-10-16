@@ -21,6 +21,40 @@ def number(receipt, name):
     return int(values[0]) if len(values) == 1 and re.fullmatch(r'\d{1,9}', values[0]) else None
 
 
+def _updated_count(receipt, action, expected, limit):
+    """Read only this adjustment's completed action and nested OCR guard."""
+    if receipt.get('native_ok') is not True or receipt.get('tasker_inited') is not True:
+        return None
+    nodes = receipt.get('nodes', [])
+    actions = [(i, n) for i, n in enumerate(nodes) if n.get('name') == action]
+    reads = [(i, n) for i, n in enumerate(nodes) if n.get('name') == 'FitUpdatedRead']
+    if len(actions) != 1 or len(reads) != 1:
+        return None
+    (action_index, clicked), (read_index, read) = actions[0], reads[0]
+    sent = clicked.get('action') or {}
+    if (clicked.get('completed') is not True or sent.get('name') != action
+            or sent.get('success') is not True or read.get('completed') is not True
+            or action_index >= read_index):
+        return None
+    parts = read.get('recognition')
+    if not isinstance(parts, list):
+        return None
+    guards = [p for p in parts if p.get('name') == 'FitUpdatedGuard']
+    if len(guards) != 1 or guards[0].get('algorithm') != 'Custom':
+        return None
+    matches = (guards[0].get('detail') or {}).get('filtered', [])
+    if len(matches) != 1 or not isinstance(matches[0].get('detail'), dict):
+        return None
+    words = matches[0]['detail'].get('filtered', [])
+    if len(words) != 1 or not words[0].get('score', 0) >= .9:
+        return None
+    text = words[0].get('text', '').strip()
+    if not re.fullmatch(r'\d{1,3}', text):
+        return None
+    value = int(text)
+    return value if 1 <= value <= limit and value == expected else None
+
+
 class PresetNumber(CustomRecognition):
     """Read one configured numeric field from the action frame using Maa OCR."""
     def __init__(self, names):
@@ -92,13 +126,12 @@ class NativePreset:
                         'FitUpdated': {'expected': f'^{current + direction}$'}}):
                     raise RuntimeError('Cannot bind count action to observed value')
                 receipt = native.run(self.tasker, entry)
-                observed = self.read_count(slot)
-                result['steps'].append(dict(before=current, observed=observed, evidence=receipt,
-                                            readback=self._count_receipt))
-                result['observed'] = observed
                 action = 'FitIncrease' if direction == 1 else 'FitDecrease'
-                if (not completed(receipt, action) or not completed(receipt, 'FitUpdatedRead')
-                        or observed != current + direction):
+                observed = _updated_count(receipt, action, current + direction, self.count_limit)
+                result['steps'].append(dict(before=current, observed=observed, evidence=receipt,
+                                            readback=receipt))
+                result['observed'] = observed
+                if observed is None:
                     return result  # stuck, unknown, or unexpected jump: no further clicks
                 current = observed
             result['verified'] = current == target
