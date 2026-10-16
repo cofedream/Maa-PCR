@@ -17,6 +17,7 @@
   "OneKeyQuickEnter": {
     "recognition": "And",
     "all_of": [
+      "HomeDefaultTextLayout",
       "ObserveHome"
     ],
     "action": "Click",

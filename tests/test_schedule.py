@@ -278,7 +278,7 @@ def test_schedule_action_whitelist_and_caps():
     assert p['ScheduleCloseClick']['all_of'] == ['ScheduleCloseControl', 'ScheduleGuard']
     assert p['ScheduleCloseClick']['target'] is True and p['ScheduleCloseClick']['max_hit'] == 1
     assert p['ScheduleHomeGate']['next'] == ['ObserveHome']
-    assert p['ScheduleEnter']['all_of'] == ['ObserveHome']
+    assert p['ScheduleEnter']['all_of'] == ['HomeDefaultTextLayout', 'ObserveHome']
     assert p['ScheduleEnter']['target'] == [1017, 575] and p['ScheduleEnter']['max_hit'] == 1
     for name in ('ScheduleUp', 'ScheduleDown'):
         assert p[name]['custom_recognition'] == 'ScheduleDecision'

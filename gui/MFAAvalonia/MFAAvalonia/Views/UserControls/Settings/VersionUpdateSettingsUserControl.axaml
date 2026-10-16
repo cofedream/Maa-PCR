@@ -22,14 +22,14 @@
             <TextBlock Text="启动时检查稳定版" VerticalAlignment="Center" />
         </DockPanel>
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-            <TextBlock Text="稳定版更新" VerticalAlignment="Center" />
+            <TextBlock Text="GitHub 稳定版更新" VerticalAlignment="Center" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <Button Command="{Binding CheckPcrUpdateCommand}" IsEnabled="{Binding PcrCanCheck}"
-                        Content="{fluent:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
-                        Width="40" Height="40" Padding="0" ToolTip.Tip="检查 Maa-PCR 更新" />
+                        Content="检查更新"
+                        Height="40" ToolTip.Tip="检查 Maa-PCR 更新" />
                 <Button Command="{Binding InstallPcrUpdateCommand}" IsEnabled="{Binding PcrCanInstallOnline}"
-                        Content="{fluent:FluentIcon Icon=ArrowDownload, IconSize=Size16}"
-                        Width="40" Height="40" Padding="0" ToolTip.Tip="下载并安装稳定版" />
+                        Content="下载并安装"
+                        Height="40" ToolTip.Tip="从 GitHub 下载并安装稳定版" />
             </StackPanel>
             <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding PcrUpdateStatus}" TextWrapping="Wrap" />
             <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" IsVisible="{Binding PcrUpdateDownloading}">
@@ -41,10 +41,12 @@
         </Grid>
         <DockPanel>
             <Button DockPanel.Dock="Right" Command="{Binding UpdateResourceFromLocalPackageCommand}"
-                    IsEnabled="{Binding PcrCanInstall}" Width="40" Height="40" Padding="0"
-                    Content="{fluent:FluentIcon Icon=FolderArrowUp, IconSize=Size16}" ToolTip.Tip="导入 Maa-PCR 更新 ZIP" />
+                    IsEnabled="{Binding PcrCanInstall}" Height="40"
+                    Content="导入更新包" ToolTip.Tip="选择 Maa-PCR 完整运行包或补丁 ZIP" />
             <TextBlock Text="离线更新包" VerticalAlignment="Center" />
         </DockPanel>
+        <TextBlock Text="支持完整运行包或匹配当前版本的补丁 ZIP，也可拖入主窗口。请勿解压覆盖安装目录。"
+                   TextWrapping="Wrap" FontSize="12" />
         <DockPanel IsVisible="{Binding PcrRecoveryRequired}">
             <Button DockPanel.Dock="Right" Command="{Binding RecoverPcrUpdateCommand}"
                     IsEnabled="{Binding PcrCanInstall}" Width="40" Height="40" Padding="0"

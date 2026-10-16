@@ -105,6 +105,15 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  fields=('max_hit','repeat','threshold','action','target','next','on_error')
  for filename,expected in baseline.items():
   pipeline=json.loads((native.RESOURCE/'pipeline'/filename).read_text(encoding='utf-8'))
+  # R53 moves the unchanged gift threshold into two layout-bound text branches.
+  if filename=='rewards.json':
+   assert pipeline['RewardsHomeGifts']==dict(recognition='Or',any_of=[
+       'RewardsHomeDefaultGifts','RewardsHomeEdgeGifts'])
+   for name in ('RewardsHomeGiftText','RewardsHomeEdgeGiftText'):
+    assert pipeline[name]['threshold']==.85 and pipeline[name]['expected']=='^礼物$'
+   pipeline['RewardsHomeGifts']['threshold']=.85
+   additions[filename]|={'RewardsHomeDefaultGifts','RewardsHomeEdgeGifts',
+                         'RewardsHomeGiftText','RewardsHomeEdgeGiftText'}
   added=additions.get(filename,set())
   assert added<=pipeline.keys()
   for name in added:

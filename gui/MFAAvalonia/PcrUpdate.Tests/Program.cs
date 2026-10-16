@@ -1,20 +1,28 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using MFAAvalonia.Pcr;
+using MFAAvalonia.ViewModels.UsersControls.Settings;
 using Newtonsoft.Json.Linq;
 using SukiUI.MessageBox;
 
-if (args.Length != 1 || !Path.IsPathFullyQualified(args[0]))
+if (args.Length is not (1 or 2) || !Path.IsPathFullyQualified(args[0])
+    || args.Length == 2 && args[1] != "--controls-only")
 {
     Console.Error.WriteLine("PCR GUI update checks: an absolute evidence directory is required.");
     return 2;
 }
 try
 {
+if (args.Length == 2)
+{
+    UpdateViewChecks.Run(args[0]);
+    return 0;
+}
 var count = 0;
 void Require(bool value, string test)
 {
@@ -32,6 +40,47 @@ Require(PcrSoftwareUpdateService.InstallConfirmed(SukiMessageBoxResult.Yes), "ex
 Require(!PcrSoftwareUpdateService.InstallConfirmed(SukiMessageBoxResult.No), "no_cancels_install");
 Require(!PcrSoftwareUpdateService.InstallConfirmed(SukiMessageBoxResult.Close), "close_cancels_install");
 Require(!PcrSoftwareUpdateService.InstallConfirmed("Yes"), "untyped_confirmation_is_not_authorization");
+var configureProxy = typeof(PcrSoftwareUpdateService).GetMethod("ConfigureProxy", BindingFlags.Static | BindingFlags.NonPublic)!;
+foreach (var command in new[] { "inspect", "launch" })
+{
+    var process = new ProcessStartInfo();
+    process.Environment["HTTPS_PROXY"] = "unchanged";
+    configureProxy.Invoke(null, new object[] { process, command, "broken-offline-proxy", VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5 });
+    Require(process.Environment["HTTPS_PROXY"] == "unchanged", command + "_ignores_online_proxy_settings");
+}
+foreach (var command in new[] { "check", "download" })
+{
+    var process = new ProcessStartInfo();
+    configureProxy.Invoke(null, new object[] { process, command, "127.0.0.1:7890", VersionUpdateSettingsUserControlModel.UpdateProxyType.Http });
+    Require(process.Environment["HTTPS_PROXY"] == "http://127.0.0.1:7890"
+        && process.Environment["HTTP_PROXY"] == "http://127.0.0.1:7890", command + "_honors_http_proxy");
+    try
+    {
+        configureProxy.Invoke(null, new object[] { process, command, "socks5://127.0.0.1:7890", VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5 });
+        throw new InvalidOperationException("unsupported_online_proxy_accepted");
+    }
+    catch (TargetInvocationException ex) when (ex.InnerException is InvalidOperationException { Message: "unsupported_proxy_use_http_https" }) { count++; }
+}
+var inspected = new JObject {
+    ["status"] = "validated", ["current_revision"] = 52, ["current_version"] = "v0.1.8",
+    ["revision"] = 53, ["version"] = "v0.1.8-r53-candidate", ["archive_kind"] = "delta",
+    ["manifest_sha256"] = new string('a', 64), ["archive_sha256"] = new string('b', 64) };
+Require(PcrSoftwareUpdateService.LocalPackageSummary(inspected).Contains("增量补丁")
+    && PcrSoftwareUpdateService.LocalPackageSummary(inspected).Contains("R52 → v0.1.8-r53-candidate / R53"), "verified_local_target_before_confirmation");
+inspected["archive_kind"] = "full";
+Require(PcrSoftwareUpdateService.LocalPackageSummary(inspected).Contains("完整运行包"), "verified_full_package_summary");
+foreach (var field in new[] { "status", "current_revision", "current_version", "revision", "version", "archive_kind", "manifest_sha256", "archive_sha256" })
+{
+    var invalid = (JObject)inspected.DeepClone();
+    invalid.Remove(field);
+    try { PcrSoftwareUpdateService.LocalPackageSummary(invalid); }
+    catch (InvalidOperationException) { count++; continue; }
+    throw new InvalidOperationException("invalid_local_summary_accepted:" + field);
+}
+Require(PcrSoftwareUpdateService.FailureMessage("archive_manifest_missing").Contains("交付 ZIP"), "delivery_wrapper_guidance");
+Require(PcrSoftwareUpdateService.FailureMessage("update_not_newer").Contains("专用替换工具"), "same_revision_test_package_guidance");
+Require(PcrSoftwareUpdateService.FailureMessage("patch_base_or_target_mismatch").Contains("不匹配"), "wrong_patch_guidance");
+Require(PcrSoftwareUpdateService.FailureMessage("unexpected_error").Contains("unexpected_error"), "unknown_error_keeps_diagnostic_code");
 var operation = typeof(PcrSoftwareUpdateService).GetField("operation", BindingFlags.Static | BindingFlags.NonPublic)!;
 operation.SetValue(null, 1);
 try

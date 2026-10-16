@@ -232,7 +232,9 @@ class OneKeyPage(CustomRecognition):
         if one(words, '计划整理', [530, 30, 230, 60]):
             self.read_settings(words, reco, require, detail)
             return
-        home = '日程表' in titles and '礼物' in titles and reco('ObserveHome').hit
+        # Its schedule target and resource crops are fixed to the default layout.
+        home = ('日程表' in titles and '礼物' in titles and reco('ObserveHome').hit
+                and reco('HomeDefaultTextLayout').hit)
         # Same-frame home anchors and unobstructed controls, independent of ad copy.
         if home:
             # Home navigation has no blue dialog action in the central panel.

@@ -1,8 +1,8 @@
 {
   "status": "not_accepted",
   "revision": 53,
-  "version": "v0.1.8-r53-candidate",
+  "version": "v0.1.9",
   "base_release_manifest_sha256": "a1aa22db44eb19f5a2e8279c337f1b20b8097d93b4f8ef666be4cec5492bd85e",
   "previous_candidate_manifest_sha256": "67923e1a61e4a5951b4ac7c72ab153d2a413faaccc2cb1f4fa4f57ec0211fdc0",
-  "reason": "Local performance candidate; no formal release, real installation or live-game acceptance."
+  "reason": "Integrated R53 formal release pending exact successful main CI payload, GUI, runtime and isolated update verification; no real installation or live-game acceptance."
 }

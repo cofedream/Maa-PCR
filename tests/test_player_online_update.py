@@ -74,7 +74,13 @@ def online_case(tmp_path):
     }
     private = {
         'config/instances/player.json': b'{"selected":["schedule","rewards"]}',
+        'config/instances/second.json': b'{"order":["hard","normal"],"selected":false}',
+        'config/credentials.dpapi': b'synthetic encrypted credential bytes',
         '.runtime/ledger/unknown.json': b'{"state":"in_flight"}',
+        '.runtime/labyrinth/checkpoint.json': b'{"state":"blocked_in_flight","count":1}',
+        '.runtime/daily/counters.json': b'{"date":"2026-10-16","count":3}',
+        'debug/referenced-result.json': b'{"settlement_verified":false}',
+        'logs/previous.log': b'original historical log bytes',
         'runtime/python/local-secret.txt': b'unowned must not be copied',
     }
     for name, data in {**old, **private}.items():
@@ -379,6 +385,37 @@ def test_offline_packet_uses_same_manifest_validation(online_case, kind):
     assert_original(case)
 
 
+@pytest.mark.parametrize('kind', ['full', 'patch'])
+def test_inspect_local_packet_reports_versions_without_network_or_writes(online_case, monkeypatch, capsys, kind):
+    case = online_case
+    entry = case['index']['full'] if kind == 'full' else case['index']['patches'][0]
+    archive = case['tmp_path'] / entry['name']
+    archive.write_bytes(case['blobs'][entry['name']])
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('local inspection must not connect or launch a process')
+
+    monkeypatch.setattr(updater, 'urlopen', forbidden)
+    monkeypatch.setattr(updater.subprocess, 'Popen', forbidden)
+    assert updater.main(['inspect', '--player', str(case['player']), '--archive', str(archive)]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result == {'status': 'validated', 'current_revision': 39, 'current_version': 'v0.1.0',
+        'revision': 40, 'version': 'v0.1.1', 'archive_kind': 'full' if kind == 'full' else 'delta',
+        'manifest_sha256': sha(case['target_bytes']), 'archive_sha256': sha(archive.read_bytes())}
+    assert not (case['player'] / '.runtime/player-maintenance').exists()
+    assert_original(case)
+
+
+def test_inspect_rejects_delivery_wrapper_before_any_handoff(online_case, capsys):
+    case = online_case
+    archive = case['tmp_path'] / 'delivery.zip'
+    with zipfile.ZipFile(archive, 'w') as output:
+        output.writestr('runtime/player.zip', case['blobs'][case['index']['full']['name']])
+    assert updater.main(['inspect', '--player', str(case['player']), '--archive', str(archive)]) == 1
+    assert json.loads(capsys.readouterr().out)['error'] == 'archive_manifest_missing'
+    assert_original(case)
+
+
 @pytest.mark.parametrize('fault', ['unsafe', 'extra', 'target_manifest', 'bad_zip'])
 def test_archive_rejects_bad_inventory_or_expected_target(online_case, fault):
     case = online_case
@@ -431,7 +468,50 @@ def test_prepare_rejects_modified_owned_interpreter_before_launch(online_case):
         assert (case['player'] / name).read_bytes() == data
 
 
-def test_launch_uses_external_worker_and_does_not_start_gui(online_case, monkeypatch):
+@pytest.mark.parametrize('stage', ['confirmed', 'copy'])
+def test_archive_hash_binds_confirmation_validation_and_worker_copy(online_case, monkeypatch, stage):
+    case = online_case
+    archive = case['tmp_path'] / 'local-update.zip'
+    original = case['blobs'][case['index']['full']['name']]
+    archive.write_bytes(original)
+    if stage == 'confirmed':
+        # A valid ZIP with an appended trailer still passes payload validation.
+        archive.write_bytes(original + b'changed-after-user-confirmation')
+    else:
+        copy = updater.shutil.copy2
+
+        def replace_before_copy(source, destination, *args, **kwargs):
+            if Path(source) == archive:
+                archive.write_bytes(original + b'changed-after-validation')
+            return copy(source, destination, *args, **kwargs)
+
+        monkeypatch.setattr(updater.shutil, 'copy2', replace_before_copy)
+    with pytest.raises(ValueError, match='update_archive_changed'):
+        updater.prepare_worker(case['player'], archive, archive_sha256=sha(original),
+            temp_root=case['tmp_path'] / 'external workers')
+    assert not (case['player'] / '.runtime/player-maintenance').exists()
+    assert_original(case)
+
+
+def test_cli_passes_confirmed_archive_hash_to_launch(online_case, monkeypatch, capsys):
+    case = online_case
+    calls = []
+
+    def launch(*args, **kwargs):
+        calls.append((args, kwargs))
+        return {'status': 'installer_started', 'worker_pid': 123}
+
+    monkeypatch.setattr(updater, 'launch_update', launch)
+    archive = case['tmp_path'] / 'selected.zip'
+    assert updater.main(['launch', '--player', str(case['player']), '--archive', str(archive),
+        '--archive-sha256', 'a' * 64]) == 0
+    assert calls[0][1]['archive_sha256'] == 'a' * 64
+    assert json.loads(capsys.readouterr().out)['status'] == 'installer_started'
+    assert_original(case)
+
+
+@pytest.mark.parametrize('bind_confirmation', [False, True])
+def test_launch_uses_external_worker_and_does_not_start_gui(online_case, monkeypatch, bind_confirmation):
     case = online_case
     archive = case['tmp_path'] / 'synthetic-offline.zip'
     archive.write_bytes(case['blobs'][case['index']['full']['name']])
@@ -447,7 +527,8 @@ def test_launch_uses_external_worker_and_does_not_start_gui(online_case, monkeyp
         return SimpleNamespace(pid=456)
 
     monkeypatch.setattr(updater, 'prepare_worker', prepare)
-    result = updater.launch_update(case['player'], archive, parent_pid=123, popen=popen)
+    result = updater.launch_update(case['player'], archive, parent_pid=123, popen=popen,
+        archive_sha256=sha(archive.read_bytes()) if bind_confirmation else None)
     assert result['status'] == 'installer_started'
     assert len(calls) == 1
     assert Path(calls[0][0][0]).name == 'python.exe'
@@ -456,10 +537,25 @@ def test_launch_uses_external_worker_and_does_not_start_gui(online_case, monkeyp
     assert_original(case)
 
 
-def test_worker_updates_runtime_then_restarts_only_gui(online_case):
+@pytest.mark.parametrize('entry', ['prepare_worker', 'launch_update'])
+def test_recovery_rejects_conflicting_archive_arguments_without_writes(online_case, entry):
     case = online_case
-    archive = case['tmp_path'] / 'synthetic-offline.zip'
-    archive.write_bytes(case['blobs'][case['index']['full']['name']])
+    with pytest.raises(ValueError, match='conflicting_update_arguments'):
+        getattr(updater, entry)(case['player'], case['tmp_path'] / 'unexpected.zip', recover=True)
+    assert not (case['player'] / '.runtime/player-maintenance').exists()
+    assert_original(case)
+
+
+@pytest.mark.parametrize('kind', ['full', 'patch', 'online'])
+def test_worker_updates_runtime_then_restarts_only_gui(online_case, kind):
+    case = online_case
+    if kind == 'online':
+        opener, _ = fake_opener(case)
+        archive = Path(updater.download_update(case['player'], opener=opener)['archive'])
+    else:
+        entry = case['index']['full'] if kind == 'full' else case['index']['patches'][0]
+        archive = case['tmp_path'] / entry['name']
+        archive.write_bytes(case['blobs'][entry['name']])
     calls = []
 
     def popen(args, **kwargs):

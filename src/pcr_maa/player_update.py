@@ -147,6 +147,7 @@ def validate_archive(player, archive, *, expected=None):
     archive = Path(archive).absolute()
     maintenance._root(archive.parent)
     _require(maintenance._plain(archive).st_size <= maintenance.MAX_ARCHIVE, 'archive_too_large')
+    archive_sha256 = maintenance._sha(archive)
     with zipfile.ZipFile(archive) as source:
         names = {}
         folded = set()
@@ -197,8 +198,11 @@ def validate_archive(player, archive, *, expected=None):
             maintenance._path(player, 'pcr-repository.txt').read_bytes())
         _require(binding == maintenance._path(player, 'pcr-repository.txt').read_bytes(),
             'repository_binding_changed')
-    return {'revision': version['revision'], 'version': version['version'],
+    current = maintenance._version(old)
+    return {'current_revision': current['revision'], 'current_version': current['version'],
+        'revision': version['revision'], 'version': version['version'],
         'archive_kind': 'delta' if delta else 'full',
+        'archive_sha256': archive_sha256,
         'manifest_sha256': hashlib.sha256(new_bytes).hexdigest()}
 
 
@@ -235,14 +239,18 @@ def download_update(player, *, opener=None):
         'version': result['version'], 'tag': result['tag'], 'sha256': asset['sha256']}
 
 
-def prepare_worker(player, archive=None, *, recover=False, parent_pid=None, temp_root=None):
+def prepare_worker(player, archive=None, *, recover=False, parent_pid=None, temp_root=None,
+        archive_sha256=None):
+    _require(not recover or archive is None and archive_sha256 is None, 'conflicting_update_arguments')
     player = maintenance._root(player)
     sources = {}
     if not recover:
         _, manifest_bytes, manifest = _installed(player)
         rows = maintenance._rows(manifest)
         _require(archive is not None, 'update_archive_required')
-        validate_archive(player, archive)
+        inspection = validate_archive(player, archive)
+        _require(archive_sha256 is None or _digest(archive_sha256)
+            and archive_sha256 == inspection['archive_sha256'], 'update_archive_changed')
     else:
         material = maintenance._recovery_material(player)
         _require(material is not None, 'no_recovery_needed')
@@ -289,7 +297,7 @@ def prepare_worker(player, archive=None, *, recover=False, parent_pid=None, temp
         shutil.copy2(Path(archive).absolute(), packet)
         maintenance._sync_file(packet)
         sha = maintenance._sha(packet)
-        _require(sha == maintenance._sha(Path(archive).absolute()), 'update_archive_changed')
+        _require(sha == inspection['archive_sha256'], 'update_archive_changed')
     receipt = {'schema_version': 1, 'player': str(player), 'workspace': str(work),
         'python': 'runtime/python/python.exe', 'script': 'scripts/player-update.py',
         'files': list(copied.values()), 'base_manifest_sha256': hashlib.sha256(manifest_bytes).hexdigest(),
@@ -347,15 +355,18 @@ def validate_external_worker(player):
         'script': str(work / receipt['script'])}
 
 
-def launch_update(player, archive=None, *, recover=False, parent_pid=None, popen=None):
+def launch_update(player, archive=None, *, recover=False, parent_pid=None, popen=None,
+        archive_sha256=None):
     _require(parent_pid is None or type(parent_pid) is int and parent_pid > 0, 'invalid_parent_pid')
+    _require(not recover or archive is None and archive_sha256 is None, 'conflicting_update_arguments')
     player = maintenance._root(player)
     if recover:
         _require(maintenance._path(player, '.runtime/player-maintenance/update-in-progress.json',
             optional=True).exists(), 'no_recovery_needed')
     external = maintenance._path(player, '.runtime/player-maintenance/external-updater.json', optional=True)
     bootstrap = (validate_external_worker(player) if recover and external.exists()
-        else prepare_worker(player, archive, recover=recover, parent_pid=parent_pid))
+        else prepare_worker(player, archive, recover=recover, parent_pid=parent_pid,
+            archive_sha256=archive_sha256))
     command = [bootstrap['python'], '-X', 'utf8', '-B', bootstrap['script'], 'worker',
         '--player', str(maintenance._root(player))]
     if recover:
@@ -461,15 +472,17 @@ def _run_worker(player, archive=None, *, recover=False, parent_pid=None, archive
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     commands = parser.add_subparsers(dest='command', required=True)
-    for name in ('check', 'download', 'launch', 'worker', 'recover'):
+    for name in ('check', 'download', 'inspect', 'launch', 'worker', 'recover'):
         command = commands.add_parser(name, allow_abbrev=False)
         command.add_argument('--player', type=Path, required=True)
+        if name == 'inspect':
+            command.add_argument('--archive', type=Path, required=True)
         if name in ('launch', 'worker'):
             command.add_argument('--archive', type=Path)
             command.add_argument('--recover', action='store_true')
             command.add_argument('--parent-pid', type=int)
-        if name == 'worker':
             command.add_argument('--archive-sha256')
+        if name == 'worker':
             command.add_argument('--wait-seconds', type=int, default=120)
     args = parser.parse_args(argv)
     try:
@@ -477,10 +490,13 @@ def main(argv=None):
             result = check_update(args.player)
         elif args.command == 'download':
             result = download_update(args.player)
+        elif args.command == 'inspect':
+            result = {'status': 'validated', **validate_archive(args.player, args.archive)}
         elif args.command == 'recover':
             result = launch_update(args.player, recover=True, parent_pid=os.getpid())
         elif args.command == 'launch':
-            result = launch_update(args.player, args.archive, recover=args.recover, parent_pid=args.parent_pid)
+            result = launch_update(args.player, args.archive, recover=args.recover, parent_pid=args.parent_pid,
+                archive_sha256=args.archive_sha256)
         else:
             result = run_worker(args.player, args.archive, recover=args.recover,
                 parent_pid=args.parent_pid, archive_sha256=args.archive_sha256, wait_seconds=args.wait_seconds)

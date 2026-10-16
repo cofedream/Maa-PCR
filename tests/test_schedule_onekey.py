@@ -1135,7 +1135,7 @@ def test_date_roi_native_fallback_and_guard_no_resend(resource, monkeypatch, fai
         resource.unregister_custom_recognition('OneKeyPage')
 
 
-def read_synthetic_home(mana_words, *, extra=(), ap='107/413', jewels='575,164', modal=False):
+def read_synthetic_home(mana_words, *, extra=(), ap='107/413', jewels='575,164', modal=False, default_layout=True):
     from pcr_maa.schedule_onekey import OneKeyPage
     def word(label, box, score=.99):
         return dict(text=label, box=box, score=score)
@@ -1151,6 +1151,10 @@ def read_synthetic_home(mana_words, *, extra=(), ap='107/413', jewels='575,164',
                 return SimpleNamespace(algorithm=AlgorithmEnum.OCR, raw_detail={'all': words}, hit=True)
             if name == 'OneKeyHomeDialogBlue':
                 return SimpleNamespace(hit=modal, raw_detail={})
+            if name == 'HomeDefaultTextLayout':
+                return SimpleNamespace(hit=default_layout, raw_detail={})
+            if not default_layout and name != 'ObserveHome':
+                return SimpleNamespace(hit=False, raw_detail={})
             assert name == 'ObserveHome'
             return SimpleNamespace(hit=True, raw_detail={})
     detail = {'evidence': {}}
@@ -1159,6 +1163,11 @@ def read_synthetic_home(mana_words, *, extra=(), ap='107/413', jewels='575,164',
     except ValueError as exc:
         return detail, str(exc)
     return detail, None
+
+
+def test_legacy_fixed_schedule_target_rejects_other_home_layout():
+    detail, error = read_synthetic_home([], default_layout=False)
+    assert error is not None or detail.get('state') != 'home'
 
 
 def read_synthetic_quote(kind, *, times='2', remaining='2', tickets='2',

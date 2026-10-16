@@ -122,12 +122,13 @@ public static class PcrSoftwareUpdateService
             using var cancellation = new CancellationTokenSource();
             downloadCancellation = cancellation;
             var result = await RunAsync("download", cancellation.Token);
-            if ((string?)result["status"] != "downloaded" || result["archive"]?.Type != JTokenType.String)
+            if ((string?)result["status"] != "downloaded" || result["archive"]?.Type != JTokenType.String
+                || result["sha256"]?.Type != JTokenType.String || !Regex.IsMatch((string)result["sha256"]!, "^[0-9a-f]{64}$"))
                 throw new InvalidOperationException("invalid_download_response");
             var downloadedArchive = Path.GetFullPath((string)result["archive"]!);
             ViewModel.PcrUpdateProgress = 100;
             ViewModel.PcrUpdateDownloading = false;
-            await LaunchInstallerAsync(downloadedArchive, false);
+            await LaunchInstallerAsync(downloadedArchive, false, (string)result["sha256"]!);
         }
         catch (OperationCanceledException) { ViewModel.PcrUpdateStatus = "下载已取消，当前版本未改变。"; }
         catch (Exception ex) { ReportFailure(ex); }
@@ -231,15 +232,46 @@ public static class PcrSoftwareUpdateService
         if (Interlocked.CompareExchange(ref operation, 1, 0) != 0) return;
         try
         {
-            if (!await ConfirmInstallAsync(false)) return;
-            await LaunchInstallerAsync(Path.GetFullPath(archive), false);
+            if (PcrProfileRunGate.Busy) throw new InvalidOperationException("task_owner_busy_update_not_started");
+            RefreshRecoveryState();
+            if (ViewModel.PcrRecoveryRequired) throw new InvalidOperationException("previous_update_incomplete");
+            ViewModel.PcrUpdateChecking = true;
+            ViewModel.PcrUpdateVisible = true;
+            ViewModel.PcrUpdateIndeterminate = true;
+            ViewModel.PcrUpdateStatus = "正在校验本地更新包…";
+            archive = Path.GetFullPath(archive);
+            var result = await RunAsync("inspect", CancellationToken.None, "--archive", archive);
+            var summary = LocalPackageSummary(result);
+            ViewModel.PcrUpdateStatus = summary;
+            ViewModel.PcrUpdateIndeterminate = false;
+            if (!await ConfirmInstallAsync(false, summary)) return;
+            await LaunchInstallerAsync(archive, false, (string)result["archive_sha256"]!);
         }
         catch (Exception ex) { ReportFailure(ex); }
         finally
         {
+            ViewModel.PcrUpdateChecking = false;
+            ViewModel.PcrUpdateIndeterminate = false;
             Interlocked.Exchange(ref operation, 0);
             ViewModel.RefreshPcrUpdateAvailability();
         }
+    }
+
+    public static string LocalPackageSummary(JObject result)
+    {
+        if ((string?)result["status"] != "validated"
+            || result["current_revision"]?.Type != JTokenType.Integer || (long)result["current_revision"]! < 1
+            || result["revision"]?.Type != JTokenType.Integer || (long)result["revision"]! <= (long)result["current_revision"]!
+            || result["current_version"]?.Type != JTokenType.String || string.IsNullOrWhiteSpace((string?)result["current_version"])
+            || result["version"]?.Type != JTokenType.String || string.IsNullOrWhiteSpace((string?)result["version"])
+            || (string?)result["archive_kind"] is not ("full" or "delta")
+            || result["manifest_sha256"]?.Type != JTokenType.String
+            || !Regex.IsMatch((string)result["manifest_sha256"]!, "^[0-9a-f]{64}$")
+            || result["archive_sha256"]?.Type != JTokenType.String
+            || !Regex.IsMatch((string)result["archive_sha256"]!, "^[0-9a-f]{64}$"))
+            throw new InvalidOperationException("invalid_update_response");
+        var kind = (string?)result["archive_kind"] == "delta" ? "增量补丁" : "完整运行包";
+        return $"本地{kind}已通过校验：{result["current_version"]} / R{result["current_revision"]} → {result["version"]} / R{result["revision"]}。";
     }
 
     public static async Task RecoverAsync()
@@ -258,7 +290,7 @@ public static class PcrSoftwareUpdateService
         }
     }
 
-    private static async Task<bool> ConfirmInstallAsync(bool recovery)
+    private static async Task<bool> ConfirmInstallAsync(bool recovery, string? packageSummary = null)
     {
         if (PcrProfileRunGate.Busy)
         {
@@ -269,17 +301,18 @@ public static class PcrSoftwareUpdateService
         {
             Content = recovery
                 ? "软件将关闭，由维护器恢复上次更新并核验程序文件。设置和执行账本保留，成功后只重启软件。"
-                : "更新将保留设置和执行账本，安装时关闭软件，成功后只重启软件，不自动开始游戏任务。",
+                : (packageSummary == null ? "" : packageSummary + "\n\n")
+                  + "更新将保留设置、账号数据和执行账本，安装时关闭软件，成功后只重启软件，不自动开始游戏任务。",
             ActionButtonsPreset = SukiMessageBoxButtons.YesNo,
             IconPreset = SukiMessageBoxIcons.Information
-        }, new SukiMessageBoxOptions { Title = recovery ? "恢复 Maa-PCR 更新" : "安装 Maa-PCR 稳定版" });
+        }, new SukiMessageBoxOptions { Title = recovery ? "恢复 Maa-PCR 更新" : "安装 Maa-PCR 更新" });
         return InstallConfirmed(result);
     }
 
     // Closing a Suki confirmation window returns null, which means cancel.
     public static bool InstallConfirmed(object? result) => result is SukiMessageBoxResult.Yes;
 
-    private static async Task LaunchInstallerAsync(string? archive, bool recovery)
+    private static async Task LaunchInstallerAsync(string? archive, bool recovery, string? archiveSha256 = null)
     {
         lock (PcrProfileRunGate.StartGate)
         {
@@ -296,7 +329,7 @@ public static class PcrSoftwareUpdateService
             ViewModel.PcrUpdateIndeterminate = true;
             ViewModel.PcrUpdateStatus = "正在准备外置维护器，完成后软件将关闭…";
             var args = recovery ? new[] { "--recover", "--parent-pid", Environment.ProcessId.ToString() }
-                : new[] { "--archive", archive!, "--parent-pid", Environment.ProcessId.ToString() };
+                : new[] { "--archive", archive!, "--archive-sha256", archiveSha256!, "--parent-pid", Environment.ProcessId.ToString() };
             var result = await RunAsync("launch", CancellationToken.None, args);
             if ((string?)result["status"] != "installer_started"
                 || result["worker_pid"]?.Type != JTokenType.Integer || (long)result["worker_pid"]! < 1)
@@ -321,10 +354,24 @@ public static class PcrSoftwareUpdateService
         LoggerHelper.Warning($"PCR 更新操作失败：{ex.Message}");
         ViewModel.PcrUpdateVisible = true;
         ViewModel.PcrUpdateIndeterminate = false;
-        ViewModel.PcrUpdateStatus = $"更新未启动或未完成，请查看更新记录。[{ex.Message}]";
+        ViewModel.PcrUpdateStatus = FailureMessage(ex.Message);
         ToastHelper.Warn("Maa-PCR 更新", ViewModel.PcrUpdateStatus);
         RefreshRecoveryState();
     }
+
+    public static string FailureMessage(string error) => error switch
+    {
+        "archive_manifest_missing" => "这不是可直接导入的更新包。请从交付 ZIP 中取出完整运行包或补丁 ZIP，再导入。",
+        "BadZipFile" => "更新包不是有效的 ZIP 文件，请重新下载后导入。",
+        "update_not_newer" => "更新包版本未高于当前版本，未安装。同修订测试版请使用对应的专用替换工具。",
+        "patch_base_or_target_mismatch" => "补丁与当前安装不匹配，请选择对应补丁或完整运行包。",
+        "payload_hash_mismatch" => "当前程序文件与安装清单不符，已停止更新。请保留原目录和更新记录。",
+        "archive_hash_mismatch" or "download_hash_mismatch" or "download_size_mismatch" => "更新包不完整或校验失败，请重新下载。当前版本未改变。",
+        "update_archive_changed" => "更新包在校验后发生了变化，已停止安装。请重新选择并校验更新包。",
+        "task_owner_busy_update_not_started" => "请等待所有任务和 Agent 完全退出后再安装更新。",
+        "previous_update_incomplete" => "上次更新尚未完成，请先恢复中断的更新。",
+        _ => $"更新未启动或未完成，请查看更新记录。[{error}]"
+    };
 
     private static async Task<JObject> RunAsync(string command, CancellationToken cancellation, params string[] arguments)
     {
@@ -349,20 +396,7 @@ public static class PcrSoftwareUpdateService
         foreach (var argument in new[] { "-X", "utf8", "-B", "-u", script, command, "--player", Player })
             start.ArgumentList.Add(argument);
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
-        if (!string.IsNullOrWhiteSpace(ViewModel.ProxyAddress))
-        {
-            var proxy = ViewModel.ProxyAddress.Trim();
-            if (!proxy.Contains("://", StringComparison.Ordinal))
-            {
-                if (ViewModel.ProxyType == VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5)
-                    throw new InvalidOperationException("unsupported_proxy_use_http_https");
-                proxy = "http://" + proxy;
-            }
-            if (!Uri.TryCreate(proxy, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
-                throw new InvalidOperationException("unsupported_proxy_use_http_https");
-            start.Environment["HTTPS_PROXY"] = proxy;
-            start.Environment["HTTP_PROXY"] = proxy;
-        }
+        ConfigureProxy(start, command, ViewModel.ProxyAddress, ViewModel.ProxyType);
         if (command != "launch") shutdown.Token.ThrowIfCancellationRequested();
         using var process = Process.Start(start) ?? throw new InvalidOperationException("updater_process_not_started");
         using var timeout = new CancellationTokenSource(command == "download" ? TimeSpan.FromMinutes(30) : TimeSpan.FromMinutes(3));
@@ -396,6 +430,24 @@ public static class PcrSoftwareUpdateService
             try { await Task.WhenAll(stdout, progress); } catch { }
             throw;
         }
+    }
+
+    internal static void ConfigureProxy(ProcessStartInfo start, string command, string? address,
+        VersionUpdateSettingsUserControlModel.UpdateProxyType type)
+    {
+        // Local inspection, installation and recovery never depend on a network proxy.
+        if (command is not ("check" or "download") || string.IsNullOrWhiteSpace(address)) return;
+        var proxy = address.Trim();
+        if (!proxy.Contains("://", StringComparison.Ordinal))
+        {
+            if (type == VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5)
+                throw new InvalidOperationException("unsupported_proxy_use_http_https");
+            proxy = "http://" + proxy;
+        }
+        if (!Uri.TryCreate(proxy, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+            throw new InvalidOperationException("unsupported_proxy_use_http_https");
+        start.Environment["HTTPS_PROXY"] = proxy;
+        start.Environment["HTTP_PROXY"] = proxy;
     }
 
     private static async Task ReadProgressAsync(StreamReader stderr, CancellationToken cancellation)

@@ -154,7 +154,7 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
 @pytest.mark.parametrize('trusted', [True, False])
 @pytest.mark.parametrize('base_revision,target_revision,base_version,target_version', [
     (39, 41, 'v0.1.0', 'v0.1.2'), (41, 45, 'v0.1.2', 'v0.1.3'),
-    (45, 46, 'v0.1.3', 'v0.1.4'), (46, 49, 'v0.1.4', 'v0.1.5'), (49, 50, 'v0.1.5', 'v0.1.6'), (50, 51, 'v0.1.6', 'v0.1.7'), (51, 52, 'v0.1.7', 'v0.1.8'),
+    (45, 46, 'v0.1.3', 'v0.1.4'), (46, 49, 'v0.1.4', 'v0.1.5'), (49, 50, 'v0.1.5', 'v0.1.6'), (50, 51, 'v0.1.6', 'v0.1.7'), (51, 52, 'v0.1.7', 'v0.1.8'), (52, 53, 'v0.1.8', 'v0.1.9'),
 ])
 def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revision, target_revision, base_version, target_version):
     base, target, _, _, _ = case
@@ -182,7 +182,7 @@ def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revisio
     assert (base / builder.maintenance.MANIFEST).read_bytes() == (target / builder.maintenance.MANIFEST).read_bytes()
 
 
-@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51)])
+@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52)])
 def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, version, base_revision):
     _, target, _, _, _ = case
     metadata = builder.maintenance._read_json(target / builder.maintenance.MANIFEST)
@@ -246,18 +246,19 @@ def test_frozen_manifest_delta_rejects_changed_trusted_baseline(case):
     assert not output.exists()
 
 
-def test_build_defaults_to_current_r52_identity_without_running_build(tmp_path, monkeypatch):
+def test_build_defaults_to_current_r53_identity_without_running_build(tmp_path, monkeypatch):
     captured = []
     monkeypatch.setattr(builder, 'build', lambda args: captured.append(args) or {'status': 'not_executed'})
     assert builder.main(['--output', str(tmp_path / 'unused-output')]) == 0
-    assert captured[0].revision == 52 and captured[0].version == 'v0.1.8'
+    assert captured[0].revision == 53 and captured[0].version == 'v0.1.9'
     assert not (tmp_path / 'unused-output').exists()
 
 
-def test_r51_public_manifest_is_exact_pinned_release_baseline():
-    path = ROOT / 'delivery/baselines/r51-package-manifest.json'
-    assert builder.digest(path) == builder.R51_MANIFEST_SHA256
+@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8')])
+def test_public_manifest_is_exact_pinned_release_baseline(revision, version):
+    path = ROOT / f'delivery/baselines/r{revision}-package-manifest.json'
+    assert builder.digest(path) == getattr(builder, f'R{revision}_MANIFEST_SHA256')
     manifest = builder.maintenance._read_json(path)
-    assert manifest['update']['revision'] == 51
-    assert manifest['update']['version'] == 'v0.1.7'
+    assert manifest['update']['revision'] == revision
+    assert manifest['update']['version'] == version
     assert manifest['distribution_ready'] is True

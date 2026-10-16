@@ -310,18 +310,20 @@
   "RewardsHomeMissions": {
     "recognition": "OCR",
     "roi": [
-      1090,
-      595,
-      55,
-      31
+      1094,
+      598,
+      44,
+      25
     ],
     "expected": "^任务$",
-    "threshold": 0.8
+    "threshold": 0.8,
+    "only_rec": true
   },
   "RewardsHomeMissionsGuard": {
     "recognition": "And",
     "all_of": [
       "RewardsHomeMissions",
+      "HomeDefaultTextLayout",
       "ObserveHome"
     ]
   },
@@ -387,15 +389,30 @@
     "post_delay": 0
   },
   "RewardsHomeGifts": {
+    "recognition": "Or",
+    "any_of": ["RewardsHomeDefaultGifts", "RewardsHomeEdgeGifts"]
+  },
+  "RewardsHomeDefaultGifts": {
+    "recognition": "And",
+    "all_of": ["RewardsHomeGiftText", "HomeDefaultTextLayout"]
+  },
+  "RewardsHomeEdgeGifts": {
+    "recognition": "And",
+    "all_of": ["RewardsHomeEdgeGiftText", "HomeEdgeTextLayout"]
+  },
+  "RewardsHomeGiftText": {
     "recognition": "OCR",
-    "roi": [
-      1185,
-      595,
-      70,
-      36
-    ],
+    "roi": [1188, 596, 51, 30],
     "expected": "^礼物$",
-    "threshold": 0.85
+    "threshold": 0.85,
+    "only_rec": true
+  },
+  "RewardsHomeEdgeGiftText": {
+    "recognition": "OCR",
+    "roi": [1230, 596, 50, 30],
+    "expected": "^礼物$",
+    "threshold": 0.85,
+    "only_rec": true
   },
   "RewardsHomeGiftsGuard": {
     "recognition": "And",
