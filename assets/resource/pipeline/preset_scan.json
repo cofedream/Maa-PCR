@@ -7,7 +7,9 @@
     ],
     "next": [
       "NavigatePresets"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScanSlotGate": {
     "timeout": 30000,
@@ -18,7 +20,9 @@
     "next": [
       "ScanSlotReady",
       "ScanSelectClick"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScanSlotGuard": {
     "timeout": 30000,
@@ -45,7 +49,9 @@
     "next": [
       "ScanChecked",
       "ScanToggle"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScanSelectClick": {
     "timeout": 30000,
@@ -159,7 +165,9 @@
       "ScanShort",
       "ScanTop",
       "ScanResetToggle"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScanToggle": {
     "timeout": 30000,
@@ -365,7 +373,9 @@
     "action": "Custom",
     "custom_action": "CollectPresetPage",
     "next": [],
-    "max_hit": 9
+    "max_hit": 9,
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScanTop": {
     "timeout": 30000,
@@ -381,7 +391,9 @@
     "next": [
       "ScanSwipe"
     ],
-    "max_hit": 9
+    "max_hit": 9,
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScanBottom": {
     "timeout": 30000,
@@ -395,7 +407,9 @@
     "action": "Custom",
     "custom_action": "CollectPresetPage",
     "next": [],
-    "max_hit": 9
+    "max_hit": 9,
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScanPage": {
     "timeout": 30000,
@@ -411,7 +425,9 @@
     "next": [
       "ScanSwipe"
     ],
-    "max_hit": 9
+    "max_hit": 9,
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ScanSwipe": {
     "timeout": 30000,
@@ -437,7 +453,12 @@
     "post_delay": 0,
     "post_wait_freezes": {
       "time": 200,
-      "target": [50, 228, 1181, 275],
+      "target": [
+        50,
+        228,
+        1181,
+        275
+      ],
       "threshold": 0.98,
       "rate_limit": 100,
       "timeout": 2500

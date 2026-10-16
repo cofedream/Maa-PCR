@@ -165,7 +165,9 @@
     "threshold": 0.9,
     "next": [
       "EventOpenList"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventHardLabel": {
     "recognition": "OCR",
@@ -301,7 +303,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventEnterGate": {
     "next": [
@@ -312,7 +316,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventFromEvent": {
     "next": [
@@ -326,7 +332,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventPageGate": {
     "next": [
@@ -340,7 +348,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventOpenQuests": {
     "recognition": "And",
@@ -369,7 +379,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventMapRead": {
     "recognition": "And",
@@ -378,7 +390,9 @@
     ],
     "next": [
       "EventMapName"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventOpenList": {
     "recognition": "And",
@@ -406,7 +420,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventRewardLabel": {
     "recognition": "OCR",
@@ -485,7 +501,9 @@
     "all_of": [
       "EventListGuard"
     ],
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventCheckedReady": {
     "recognition": "And",
@@ -497,7 +515,9 @@
       "EventShort",
       "EventTop",
       "EventResetTop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventToggle": {
     "recognition": "And",
@@ -529,7 +549,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventScanStart": {
     "next": [
@@ -540,7 +562,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventRowsOCR": {
     "recognition": "OCR",
@@ -781,7 +805,9 @@
     "max_hit": 9,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventBottom": {
     "recognition": "Custom",
@@ -793,7 +819,9 @@
     "max_hit": 9,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventPage": {
     "recognition": "Custom",
@@ -807,7 +835,9 @@
     "max_hit": 9,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventSwipe": {
     "recognition": "And",
@@ -833,7 +863,12 @@
     "post_delay": 0,
     "post_wait_freezes": {
       "time": 200,
-      "target": [50, 188, 1185, 315],
+      "target": [
+        50,
+        188,
+        1185,
+        315
+      ],
       "threshold": 0.98,
       "rate_limit": 100,
       "timeout": 2500
@@ -870,7 +905,12 @@
     "post_delay": 0,
     "post_wait_freezes": {
       "time": 200,
-      "target": [50, 188, 1185, 315],
+      "target": [
+        50,
+        188,
+        1185,
+        315
+      ],
       "threshold": 0.98,
       "rate_limit": 100,
       "timeout": 2500
@@ -889,7 +929,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventRestoreToggle": {
     "recognition": "And",
@@ -921,7 +963,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventAllReady": {
     "recognition": "And",
@@ -929,7 +973,9 @@
       "EventListGuard",
       "EventAllLabel"
     ],
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventReturnHome": {
     "next": [
@@ -939,7 +985,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventListCancel": {
     "recognition": "And",
@@ -967,7 +1015,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventMapHome": {
     "recognition": "And",
@@ -1142,7 +1192,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "StoryEventOpenList": {
     "recognition": "And",
@@ -1180,7 +1232,9 @@
     "max_hit": 9,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventShortBlankTail": {
     "recognition": "ColorMatch",
@@ -1381,7 +1435,9 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "StoryEventStaminaAfterGlyph": {
     "recognition": "ColorMatch",
@@ -1504,13 +1560,17 @@
     "rate_limit": 250,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EventUnavailable": {
     "recognition": "Custom",
     "custom_recognition": "ActivityEntryAbsent",
     "action": "DoNothing",
     "next": [],
-    "on_error": []
+    "on_error": [],
+    "pre_delay": 0,
+    "post_delay": 0
   }
 }

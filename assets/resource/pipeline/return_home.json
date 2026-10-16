@@ -7,7 +7,9 @@
     ],
     "next": [
       "ReturnPresetCancel"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ReturnCancelControl": {
     "recognition": "OCR",
@@ -59,7 +61,9 @@
     ],
     "next": [
       "ReturnMainHome"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ReturnHomeControl": {
     "recognition": "OCR",
@@ -94,12 +98,13 @@
   "ReturnHomeGate": {
     "timeout": 30000,
     "rate_limit": 250,
-    "post_delay": 1000,
+    "post_delay": 0,
     "on_error": [
       "UnknownStop"
     ],
     "next": [
       "ObserveHome"
-    ]
+    ],
+    "pre_delay": 0
   }
 }

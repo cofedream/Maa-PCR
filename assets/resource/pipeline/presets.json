@@ -8,10 +8,11 @@
     ],
     "timeout": 30000,
     "rate_limit": 250,
-    "post_delay": 1000,
+    "post_delay": 0,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0
   },
   "PresetsReached": {
     "recognition": "And",
@@ -38,7 +39,9 @@
       }
     ],
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "EnterAdventure": {
     "recognition": "And",
@@ -207,7 +210,9 @@
       "ScreenOCR"
     ],
     "timeout": 1500,
-    "rate_limit": 250
+    "rate_limit": 250,
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "PresetReadbackStart": {
     "next": [
@@ -229,7 +234,9 @@
       "ObserveAdventure",
       "ObserveHome",
       "ObserveUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "Doctor": {
     "action": "DoNothing",
@@ -260,7 +267,9 @@
       "OpenPresets"
     ],
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ObserveAdventure": {
     "recognition": "And",
@@ -268,7 +277,9 @@
       "EnterMain"
     ],
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ObserveHome": {
     "recognition": "And",
@@ -276,7 +287,9 @@
       "EnterAdventure"
     ],
     "action": "DoNothing",
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "SelectedSlot1": {
     "recognition": "ColorMatch",

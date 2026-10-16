@@ -17,7 +17,9 @@
     ],
     "timeout": 30000,
     "rate_limit": 250,
-    "on_error": []
+    "on_error": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ActivityAdventureHome": {
     "recognition": "And",
@@ -43,6 +45,8 @@
     "action": "DoNothing",
     "next": [
       "ObserveHome"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   }
 }

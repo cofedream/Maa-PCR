@@ -143,7 +143,9 @@
       "RewardsMissionsPage",
       "RewardsMissionAll",
       "RewardsMissionEnabled"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsMissionsEmpty": {
     "recognition": "And",
@@ -151,7 +153,9 @@
       "RewardsMissionsPage",
       "RewardsMissionAll",
       "RewardsMissionDisabled"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftTitle": {
     "recognition": "OCR",
@@ -266,7 +270,9 @@
       "RewardsGiftAll",
       "RewardsGiftEnabled",
       "RewardsGiftRow"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftEmptyText": {
     "recognition": "OCR",
@@ -284,7 +290,9 @@
     "all_of": [
       "RewardsGiftsPage",
       "RewardsGiftEmptyText"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsMissionsRead": {
     "next": [
@@ -295,7 +303,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsHomeMissions": {
     "recognition": "OCR",
@@ -333,7 +343,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsMissionsClaim": {
     "recognition": "And",
@@ -356,7 +368,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsRead": {
     "next": [
@@ -368,7 +382,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsHomeGifts": {
     "recognition": "OCR",
@@ -406,7 +422,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsClaim": {
     "recognition": "And",
@@ -430,7 +448,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsReceived": {
     "recognition": "OCR",
@@ -484,7 +504,9 @@
       "RewardsResultRows",
       "RewardsResultItem",
       "RewardsMissionClose"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftResultTitle": {
     "recognition": "OCR",
@@ -516,7 +538,9 @@
       "RewardsResultRows",
       "RewardsResultItem",
       "RewardsGiftResultClose"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftQuestion": {
     "recognition": "OCR",
@@ -571,7 +595,9 @@
       "RewardsGiftConfirmItem",
       "RewardsGiftConfirmYes",
       "RewardsGiftConfirmNo"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsDispatchRead": {
     "next": [
@@ -592,7 +618,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsConfirmClick": {
     "recognition": "And",
@@ -615,7 +643,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsMissionsResultRead": {
     "next": [
@@ -625,7 +655,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsMissionsClose": {
     "recognition": "And",
@@ -639,22 +671,38 @@
     ],
     "max_hit": 1,
     "post_delay": 650,
-    "next": ["RewardsMissionsAfterClose"]
+    "next": [
+      "RewardsMissionsAfterClose"
+    ]
   },
   "RewardsMissionsAfterClose": {
-    "next": ["RewardsMissionsReady", "RewardsMissionsEmpty", "RewardsMissionsLevelUpDismiss"],
+    "next": [
+      "RewardsMissionsReady",
+      "RewardsMissionsEmpty",
+      "RewardsMissionsLevelUpDismiss"
+    ],
     "timeout": 30000,
     "rate_limit": 250,
-    "on_error": ["RewardsUnknown"]
+    "on_error": [
+      "RewardsUnknown"
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsMissionsLevelUpDismiss": {
     "recognition": "And",
-    "all_of": ["ExecLevelUpButton", "ExecLevelUpTitle", "ExecLevelUpBody"],
+    "all_of": [
+      "ExecLevelUpButton",
+      "ExecLevelUpTitle",
+      "ExecLevelUpBody"
+    ],
     "action": "Click",
     "target": true,
     "max_hit": 1,
     "post_delay": 600,
-    "next": ["RewardsMissionsAfterClose"]
+    "next": [
+      "RewardsMissionsAfterClose"
+    ]
   },
   "RewardsMissionsCloseStart": {
     "next": [
@@ -664,7 +712,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsMissionsHome": {
     "recognition": "And",
@@ -687,7 +737,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsResultRead": {
     "next": [
@@ -697,7 +749,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsClose": {
     "recognition": "And",
@@ -711,22 +765,39 @@
     ],
     "max_hit": 1,
     "post_delay": 650,
-    "next": ["RewardsGiftsAfterClose"]
+    "next": [
+      "RewardsGiftsAfterClose"
+    ]
   },
   "RewardsGiftsAfterClose": {
-    "next": ["RewardsGiftsReady", "RewardsGiftsEmpty", "RewardsGiftsStaminaDeferred", "RewardsGiftsLevelUpDismiss"],
+    "next": [
+      "RewardsGiftsReady",
+      "RewardsGiftsEmpty",
+      "RewardsGiftsStaminaDeferred",
+      "RewardsGiftsLevelUpDismiss"
+    ],
     "timeout": 30000,
     "rate_limit": 250,
-    "on_error": ["RewardsUnknown"]
+    "on_error": [
+      "RewardsUnknown"
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsLevelUpDismiss": {
     "recognition": "And",
-    "all_of": ["ExecLevelUpButton", "ExecLevelUpTitle", "ExecLevelUpBody"],
+    "all_of": [
+      "ExecLevelUpButton",
+      "ExecLevelUpTitle",
+      "ExecLevelUpBody"
+    ],
     "action": "Click",
     "target": true,
     "max_hit": 1,
     "post_delay": 600,
-    "next": ["RewardsGiftsAfterClose"]
+    "next": [
+      "RewardsGiftsAfterClose"
+    ]
   },
   "RewardsGiftsCloseStart": {
     "next": [
@@ -736,7 +807,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsHome": {
     "recognition": "And",
@@ -759,7 +832,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsHomeRead": {
     "next": [
@@ -769,7 +844,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsUnknown": {
     "action": "StopTask",
@@ -836,7 +913,9 @@
       "RewardsGiftAll",
       "RewardsGiftDisabled",
       "RewardsGiftStaminaRow"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftExcludeLabel": {
     "recognition": "OCR",
@@ -897,7 +976,9 @@
       "RewardsGiftsPage",
       "RewardsGiftExcludeLabel",
       "RewardsGiftCheckBlank"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsIncludeStaminaStart": {
     "next": [
@@ -908,7 +989,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsIncludeStaminaToggle": {
     "recognition": "And",
@@ -937,7 +1020,9 @@
       "RewardsGiftsPage",
       "RewardsGiftExcludeLabel",
       "RewardsGiftCheckBlue"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsExcludeStaminaStart": {
     "next": [
@@ -948,7 +1033,9 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "RewardsGiftsExcludeStaminaToggle": {
     "recognition": "And",
@@ -993,6 +1080,8 @@
     "rate_limit": 250,
     "on_error": [
       "RewardsUnknown"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   }
 }

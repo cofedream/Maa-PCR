@@ -31,7 +31,9 @@
         43
       ],
       "default_only_rec": false
-    }
+    },
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecStaminaBefore": {
     "recognition": "OCR",
@@ -50,7 +52,9 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecStaminaAfter": {
     "recognition": "OCR",
@@ -69,7 +73,9 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecTicketsBefore": {
     "recognition": "OCR",
@@ -124,7 +130,9 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecPresetGuardRead": {
     "recognition": "And",
@@ -137,10 +145,14 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecQuoteDone": {
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecStaminaShortage": {
     "recognition": "And",
@@ -148,7 +160,9 @@
       "ExecPresetGuard",
       "ExecStaminaShortageText"
     ],
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecTicketsShortage": {
     "recognition": "And",
@@ -156,7 +170,9 @@
       "ExecPresetGuard",
       "ExecTicketsShortageText"
     ],
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecReadShortage": {
     "next": [
@@ -164,10 +180,14 @@
       "ExecTicketsShortage",
       "ExecNoShortage"
     ],
-    "timeout": 30000
+    "timeout": 30000,
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecNoShortage": {
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecSweepButton": {
     "recognition": "OCR",
@@ -191,7 +211,9 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecOpenSweep": {
     "recognition": "And",
@@ -237,7 +259,9 @@
     "rate_limit": 300,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecConfirmTitle": {
     "recognition": "OCR",
@@ -599,7 +623,9 @@
       "ExecStagesLabel",
       "ExecTimesLabel"
     ],
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecBlueTop": {
     "recognition": "ColorMatch",
@@ -745,7 +771,9 @@
     "max_hit": 9,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecScanBottom": {
     "recognition": "Custom",
@@ -757,7 +785,9 @@
     "max_hit": 9,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecScanShort": {
     "recognition": "Custom",
@@ -769,7 +799,9 @@
     "max_hit": 9,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecScanPage": {
     "recognition": "Custom",
@@ -783,7 +815,9 @@
     "max_hit": 9,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecScanStart": {
     "next": [
@@ -795,7 +829,9 @@
     "rate_limit": 200,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecScanSwipe": {
     "recognition": "And",
@@ -815,7 +851,12 @@
     "post_delay": 0,
     "post_wait_freezes": {
       "time": 200,
-      "target": [55, 134, 1176, 315],
+      "target": [
+        55,
+        134,
+        1176,
+        315
+      ],
       "threshold": 0.98,
       "rate_limit": 100,
       "timeout": 2500
@@ -839,7 +880,9 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecCancel": {
     "recognition": "And",
@@ -863,14 +906,18 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecCancelled": {
     "recognition": "And",
     "all_of": [
       "PresetsReached"
     ],
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecChallenge": {
     "next": [
@@ -880,7 +927,9 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecCommitGuard": {
     "recognition": "Custom",
@@ -962,35 +1011,65 @@
     "rate_limit": 300,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecSweepSkipButton": {
     "recognition": "OCR",
-    "roi": [502, 608, 275, 60],
+    "roi": [
+      502,
+      608,
+      275,
+      60
+    ],
     "expected": "^跳过完毕$",
     "threshold": 0.9,
     "next": []
   },
   "ExecSweepAnimationRound": {
     "recognition": "OCR",
-    "roi": [360, 331, 160, 250],
+    "roi": [
+      360,
+      331,
+      160,
+      250
+    ],
     "expected": "^第[1-9][0-9]*次$",
     "threshold": 0.9,
     "next": []
   },
   "ExecSweepAnimationExp": {
     "recognition": "OCR",
-    "roi": [566, 331, 115, 250],
+    "roi": [
+      566,
+      331,
+      115,
+      250
+    ],
     "expected": "^经验值",
     "threshold": 0.9,
     "next": []
   },
   "ExecSweepAnimationPanel": {
     "recognition": "ColorMatch",
-    "roi": [345, 586, 585, 15],
+    "roi": [
+      345,
+      586,
+      585,
+      15
+    ],
     "method": 40,
-    "lower": [0, 0, 225],
-    "upper": [179, 40, 255],
+    "lower": [
+      0,
+      0,
+      225
+    ],
+    "upper": [
+      179,
+      40,
+      255
+    ],
     "count": 7000,
     "connected": false,
     "next": []
@@ -1010,15 +1089,21 @@
   },
   "ExecSweepSkipFinish": {
     "recognition": "And",
-    "all_of": ["ExecSweepSkipGuard"],
+    "all_of": [
+      "ExecSweepSkipGuard"
+    ],
     "action": "Click",
     "target": true,
     "max_hit": 1,
     "post_delay": 0,
-    "next": ["ExecResultConfirm"],
+    "next": [
+      "ExecResultConfirm"
+    ],
     "timeout": 60000,
     "rate_limit": 300,
-    "on_error": ["UnknownStop"]
+    "on_error": [
+      "UnknownStop"
+    ]
   },
   "ExecResultConfirm": {
     "recognition": "And",
@@ -1047,37 +1132,60 @@
     "rate_limit": 300,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecLevelUpTitle": {
     "recognition": "OCR",
-    "roi": [565, 170, 155, 55],
+    "roi": [
+      565,
+      170,
+      155,
+      55
+    ],
     "expected": "^等级提升$",
     "threshold": 0.9,
     "next": []
   },
   "ExecLevelUpBody": {
     "recognition": "OCR",
-    "roi": [565, 340, 150, 50],
+    "roi": [
+      565,
+      340,
+      150,
+      50
+    ],
     "expected": "^体力回复了[！!]$",
     "threshold": 0.9,
     "next": []
   },
   "ExecLevelUpButton": {
     "recognition": "OCR",
-    "roi": [580, 460, 120, 75],
+    "roi": [
+      580,
+      460,
+      120,
+      75
+    ],
     "expected": "^确认$",
     "threshold": 0.9,
     "next": []
   },
   "ExecLevelUpDismiss": {
     "recognition": "And",
-    "all_of": ["ExecLevelUpButton", "ExecLevelUpTitle", "ExecLevelUpBody"],
+    "all_of": [
+      "ExecLevelUpButton",
+      "ExecLevelUpTitle",
+      "ExecLevelUpBody"
+    ],
     "action": "Click",
     "target": true,
     "max_hit": 1,
     "post_delay": 600,
-    "next": ["ExecPostResult"]
+    "next": [
+      "ExecPostResult"
+    ]
   },
   "ExecReturnedPreset": {
     "recognition": "And",
@@ -1086,7 +1194,9 @@
       "SelectedSlot4",
       "ScanCheckedLabel"
     ],
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "ExecLimitedShopTitle": {
     "recognition": "OCR",
@@ -1169,7 +1279,9 @@
     "rate_limit": 300,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "FitLabel": {
     "next": [],
@@ -1223,7 +1335,9 @@
         43
       ],
       "default_only_rec": false
-    }
+    },
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "FitExpected": {
     "recognition": "OCR",
@@ -1266,7 +1380,9 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "FitReadGuard": {
     "recognition": "And",
@@ -1279,7 +1395,9 @@
     "timeout": 30000,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "FitIncreaseHorizontal": {
     "next": [],
@@ -1411,7 +1529,9 @@
     "rate_limit": 200,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "FitIncrease": {
     "recognition": "And",
@@ -1558,7 +1678,9 @@
     "rate_limit": 200,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "FitDecrease": {
     "recognition": "And",
@@ -1614,7 +1736,9 @@
       "FitPreset",
       "FitUpdatedGuard"
     ],
-    "next": []
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "FitWaitUpdated": {
     "next": [
@@ -1625,7 +1749,9 @@
     "rate_limit": 200,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "FitUnsafeStop": {
     "recognition": "OCR",
@@ -1765,7 +1891,9 @@
     "rate_limit": 300,
     "on_error": [
       "UnknownStop"
-    ]
+    ],
+    "pre_delay": 0,
+    "post_delay": 0
   },
   "NormalInfinity": {
     "recognition": "ColorMatch",
@@ -1870,6 +1998,8 @@
     ],
     "timeout": 30000,
     "rate_limit": 300,
-    "on_error": []
+    "on_error": [],
+    "pre_delay": 0,
+    "post_delay": 0
   }
 }
