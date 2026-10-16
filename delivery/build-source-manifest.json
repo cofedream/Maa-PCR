@@ -530,8 +530,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/AgentHelper.cs",
-      "size": 51973,
-      "sha256": "16043845adc59992c20e4fe866e49c67b5c1190a207b7703e216e80b51a0ab6a"
+      "size": 53575,
+      "sha256": "5ee6a0fee22684a6d25ad1d26a44bf0b62e3d220201257fb4552f8b30636a736"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/ControllerTargetInfo.cs",
@@ -650,8 +650,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaProcessor.cs",
-      "size": 213987,
-      "sha256": "132f80445d048e42907ec08114a5974b594b5d68eb430942231bf35c33c7a405"
+      "size": 215649,
+      "sha256": "60d84bfca40c134b1b81d2ae5ddbd1b99b99943879ed0c63b57c65e73687a1a8"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/MaaProcessorConfig.cs",
@@ -675,8 +675,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/PlatformAgentFactory.cs",
-      "size": 2064,
-      "sha256": "5f77ce74a4305c2b309b5687611d576b508fb4020858089c85497886fc0500b8"
+      "size": 2295,
+      "sha256": "25a191fbd977344f7175c688a59a00506bbd223f393a2e4384142e054d54af67"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Extensions/MaaFW/PlatformControllerFactory.cs",
@@ -1139,14 +1139,24 @@
       "sha256": "e90222cada83016d69d33a664a2ed3b83a08e65b19ef0da0a9c92c7ecb720ab9"
     },
     {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAgentConnection.cs",
+      "size": 3070,
+      "sha256": "a48e788486bd4b92e3110e9badbfe9234bb4a173bb2b383e7a35c9891f64a45d"
+    },
+    {
+      "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAgentShutdown.cs",
+      "size": 1568,
+      "sha256": "b1b4af0e223800cd142ead4a3356d41e529e02c1b67d84a5acdb45f18c848ad7"
+    },
+    {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.Session.cs",
-      "size": 11689,
-      "sha256": "d142596558f87fe236b50eb910ce27f1e54b7262e0588afe33918687fedf732d"
+      "size": 15560,
+      "sha256": "5eb858b87c05c8666ce143ae1b7b288f4ec1206d2ca48862d37ddee17150b414"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaOwner.cs",
-      "size": 50919,
-      "sha256": "8142f8b6d6ac7857908f6480611e48b202584f27bb691a255e0da31bc6d2bace"
+      "size": 52367,
+      "sha256": "4db523e4377284cda98e99520c897625d076dc19ffe7dc7ef2e7bb6d62fc6ce5"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrAlphaPolicy.cs",
@@ -1260,8 +1270,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrWindowsChild.cs",
-      "size": 16263,
-      "sha256": "8f3672e68e89538669a35f83103f85e1e4d0f420819635f02beb1e3f174913e9"
+      "size": 17535,
+      "sha256": "06d0bf5336f325ab0228793010b18333f26a81b16e83839330f70c09db1ab2a4"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/channels.json",
@@ -2844,6 +2854,11 @@
       "sha256": "b0d81c2fab5d4624facf458ad57f76195da9522b360e5a6f80bf688d95d2ffb0"
     },
     {
+      "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/AgentShutdownChecks.cs",
+      "size": 13340,
+      "sha256": "c8b02888d53f108c50b1fb50bb38d8bb71b753f5949e5a3108d3f7cb60d928df"
+    },
+    {
       "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/AlphaOwnerAsyncChecks.cs",
       "size": 15726,
       "sha256": "c43331272ec5b581f2ad2de66577fd6ee6421623dcd8b4aef3659960ebf07372"
@@ -2885,8 +2900,8 @@
     },
     {
       "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/Program.cs",
-      "size": 11253,
-      "sha256": "b55c6318dd6e730cf405168cbd6faafd2d984cc3754a1b665599ce812f06dfd5"
+      "size": 11288,
+      "sha256": "32420e67f66fe8923b822bb874ef9495e1757b74a3376f4584911d6271019e81"
     },
     {
       "path": "gui/MFAAvalonia/PcrProfileSwitch.Tests/packages.lock.json",
