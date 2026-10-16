@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 from maa.resource import Resource
 from maa.tasker import Tasker
-from maa.define import LoggingLevelEnum
+from maa.define import LoggingLevelEnum, TaskDetail
 from .replay import SavedImages
 from .observation import summarize
 from .context_backend import ContextTasker
@@ -268,7 +268,9 @@ def run(tasker, entry, *, reset_hits=()):
             detail = tasker.run_task(entry, deadline=RUN_DEADLINE.get(), reset_hits=reset_hits)
             receipt = _receipt(detail, native_ok=bool(detail and detail.status.succeeded),
                                tasker_inited=tasker.inited,
-                               task_id=detail.task_id if detail else None)
+                               task_id=detail.task_id if detail else None,
+                               tasker=tasker._context.tasker,
+                               check=lambda: _check_receipt(tasker))
         except BaseException:
             # Includes lazy SDK node-detail failures during receipt conversion.
             tasker._blocked = True
@@ -299,7 +301,8 @@ def run(tasker, entry, *, reset_hits=()):
             time.sleep(0.05)
         detail = job.get()
         receipt = _receipt(detail, native_ok=job.succeeded, tasker_inited=tasker.inited,
-                           task_id=job.job_id)
+                           task_id=job.job_id, tasker=tasker,
+                           check=lambda: _check_receipt(tasker))
         diagnostics = getattr(tasker, '_ocr_diagnostics', None)
         if diagnostics is not None:
             try:
@@ -323,13 +326,28 @@ def run(tasker, entry, *, reset_hits=()):
     return receipt
 
 
-def _receipt(detail, *, native_ok, tasker_inited, task_id):
-    nodes = []
-    for node in detail.nodes if detail else []:
-        nodes.append({"name": node.name, "completed": node.completed,
-                      "action": {"name": node.action.name, "success": node.action.success,
-                                 "raw": node.action.raw_detail} if node.action else None,
-                      "recognition": node.recognition.raw_detail if node.recognition else None})
+def _check_receipt(tasker):
+    if time.monotonic() >= RUN_DEADLINE.get():
+        raise RuntimeError('Receipt deadline exceeded; outcome unknown, no retry')
+    if isinstance(tasker, ContextTasker):
+        tasker._check_ready()
+    elif tasker_blocked(tasker) or tasker.stopping:
+        raise RuntimeError('Receipt owner stopped or blocked; outcome unknown, no retry')
+
+
+def _receipt(detail, *, native_ok, tasker_inited, task_id, tasker=None, check=None):
+    # Failed tasks keep the full SDK evidence path; only successful receipts
+    # omit Python image decoding. FailureDiagnostics still fetches original frames.
+    if native_ok and type(detail) is TaskDetail and type(tasker) is Tasker:
+        from .recognition_metadata import read_receipt_nodes
+        nodes = read_receipt_nodes(tasker, detail, check=check)
+    else:
+        nodes = []
+        for node in detail.nodes if detail else []:
+            nodes.append({"name": node.name, "completed": node.completed,
+                          "action": {"name": node.action.name, "success": node.action.success,
+                                     "raw": node.action.raw_detail} if node.action else None,
+                          "recognition": node.recognition.raw_detail if node.recognition else None})
     return {"native_ok": native_ok, "tasker_inited": tasker_inited,
             "task_id": task_id, "nodes": nodes,
             "navigation_complete": native_ok and any(n["name"] == "PresetsReached" and n["completed"] for n in nodes),
