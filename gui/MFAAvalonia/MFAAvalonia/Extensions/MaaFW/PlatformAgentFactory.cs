@@ -15,13 +15,21 @@ public sealed record PlatformAgentStartRequest(
     string DataRoot,
     string InstanceId,
     string InstanceName,
-    Action<string> Output);
+    Action<string> Output,
+    Action? Disconnect = null);
 
 /// <summary>
 /// Represents the lifetime of a platform-hosted Agent, for example a python-for-android service.
 /// </summary>
 public interface IPlatformAgentSession : IDisposable
 {
+}
+
+// PCR owns a private child Job; a timed-out native call must retain its handles.
+public interface IPlatformAgentShutdown
+{
+    bool TryShutdown(Action operation);
+    bool ShutdownForced { get; }
 }
 
 /// <summary>

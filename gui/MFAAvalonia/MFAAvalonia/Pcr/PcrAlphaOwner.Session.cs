@@ -37,7 +37,7 @@ public static partial class PcrAlphaOwner
         public readonly PcrStartConsent Consent = consent;
         public readonly Stopwatch Watch = Stopwatch.StartNew();
         public readonly string Invocation = Guid.NewGuid().ToString("N");
-        public bool Revoked, Started, Appending, Consumed, RawVerified, ConstructionAttempted;
+        public bool Revoked, Started, Appending, Consumed, RawVerified, ConstructionAttempted, CleanupUnconfirmed;
         public long Root;
         public string Uuid = "";
         public MaaController? Controller;
@@ -46,12 +46,20 @@ public static partial class PcrAlphaOwner
         public MaaResource? BoundResource;
         public ChildSession? Child;
     }
-    private sealed class ChildSession : IPlatformAgentSession, IPlatformAgentStartupStatus
+    private sealed class ChildSession : IPlatformAgentSession, IPlatformAgentStartupStatus, IPlatformAgentShutdown
     {
         private readonly PcrWindowsChild process = new();
         private readonly Session session;
         private int disposed;
         private readonly object exitGate = new();
+        private readonly PcrAgentShutdown shutdown = new();
+        private int faultStarted;
+        private Task? faultCleanup;
+        private readonly PlatformAgentStartRequest request;
+        public bool ShutdownForced => shutdown.Forced;
+        public bool ShutdownQuiescent => shutdown.Quiescent;
+        public bool FaultCleanupComplete => Volatile.Read(ref faultStarted) == 0 || faultCleanup?.IsCompleted == true;
+        public bool TryShutdown(Action operation) => shutdown.TryRun(operation, Dispose);
         public string? StartupFailure
         {
             get
@@ -68,6 +76,64 @@ public static partial class PcrAlphaOwner
                 process.VerifyMembership();
                 if (StartupFailure is { } failure) throw new InvalidOperationException(failure);
             }
+            var port = ReadConnectionAsync().GetAwaiter().GetResult();
+            _ = Task.Run(() => WatchConnectionAsync(port));
+        }
+        private Task<PcrAgentConnection.Peer> ReadConnectionAsync() => Task.Run(() =>
+        {
+            int[] members;
+            lock (exitGate)
+            {
+                if (disposed != 0 || process.Exited) throw new InvalidOperationException("Owned Agent creation handle exited");
+                members = process.ProcessIds;
+            }
+            var peer = PcrAgentConnection.EstablishedConnection(members, int.Parse(request.Identifier));
+            lock (exitGate)
+                if (disposed != 0 || process.Exited || Array.IndexOf(process.ProcessIds, peer.ProcessId) < 0)
+                    throw new InvalidOperationException("Owned Agent process binding changed");
+            return peer;
+        }).WaitAsync(TimeSpan.FromSeconds(2));
+        private async Task WatchConnectionAsync(PcrAgentConnection.Peer port)
+        {
+            try
+            {
+                while (!session.Cancel.IsCancellationRequested)
+                {
+                    await Task.Delay(1000, session.Cancel.Token).ConfigureAwait(false);
+                    if (await ReadConnectionAsync().ConfigureAwait(false) != port)
+                        throw new InvalidOperationException("Owned Agent TCP connection changed");
+                }
+            }
+            catch (OperationCanceledException) when (session.Cancel.IsCancellationRequested) { }
+            catch (Exception ex)
+            {
+                FaultSession(ex.Message);
+            }
+        }
+        private void FaultSession(string reason)
+        {
+            lock (Gate)
+                if (current != session || session.Cancel.IsCancellationRequested
+                    || Interlocked.Exchange(ref faultStarted, 1) != 0) return;
+            faultCleanup = Task.Run(() =>
+            {
+                try { Revoke(session.Processor); }
+                catch (Exception ex) { reason += "; revoke: " + ex.GetType().Name; }
+                try
+                {
+                    // A queued GUI command can be behind the blocked root task.
+                    var tasker = session.BoundTasker;
+                    if (tasker != null) TryShutdown(() => tasker.Stop().Wait());
+                    if (request.Disconnect != null) TryShutdown(request.Disconnect);
+                }
+                catch (Exception ex) { reason += "; stop: " + ex.GetType().Name; }
+                try { Dispose(); }
+                catch (Exception ex) { reason += "; child exit: " + ex.GetType().Name; }
+                try { session.Processor.Stop(MFAAvalonia.Helper.ValueType.MFATask.MFATaskStatus.FAILED); }
+                catch (Exception ex) { reason += "; GUI stop: " + ex.GetType().Name; }
+                try { request.Output("error: Agent 连接异常，结果未确认；已停止并禁止重新开始。请关闭后重开程序，保留未完成记录。原因：" + reason); }
+                catch { } // Diagnostic delivery cannot prevent shutdown supervision.
+            });
         }
         public void RevokeAuthorization()
         {
@@ -90,6 +156,7 @@ public static partial class PcrAlphaOwner
         public ChildSession(Session owner, PlatformAgentStartRequest request, string root, string script)
         {
             session = owner;
+            this.request = request;
             // Publish before the first native allocation: even a failed constructor
             // must leave an owner that Release can retry, blocking a new Start.
             owner.Child = this;
@@ -98,7 +165,9 @@ public static partial class PcrAlphaOwner
                 _ = ended.Exception;
                 try
                 {
-                    lock (Gate) { owner.Revoked = true; Monitor.PulseAll(Gate); RevokeAuthorization(); }
+                    lock (Gate) { owner.Revoked = true; Monitor.PulseAll(Gate); }
+                    try { RevokeAuthorization(); }
+                    finally { FaultSession("owned Agent channel ended"); }
                 }
                 catch (Exception ex) { request.Output("error: PCR owner revoke: " + ex.GetType().Name); }
             }

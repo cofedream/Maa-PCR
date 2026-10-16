@@ -712,6 +712,7 @@ public static partial class PcrAlphaOwner
 
     public static void Revoke(MaaProcessor? processor = null)
     {
+        ChildSession? child;
         lock (Gate)
         {
             if (pendingStart != null && (processor == null || pendingStart.Processor == processor))
@@ -727,21 +728,50 @@ public static partial class PcrAlphaOwner
             if (current == null || processor != null && current.Processor != processor) return;
             current.Revoked = true; Monitor.PulseAll(Gate);
             current.Cancel.Cancel();
-            current.Child?.RevokeAuthorization();
+            child = current.Child;
         }
+        child?.RevokeAuthorization();
     }
     public static void Release(MaaProcessor processor)
     {
+        Session session;
         lock (Gate)
         {
             if (current?.Processor != processor) return;
             current.Revoked = true;
             current.Cancel.Cancel();
             if (current.PreparationOnly || current.Preparing) return; // preparation finally owns disposal
-            current.Child?.Dispose();
-            current.CapturePerformance?.Write();
-            current = null; Monitor.PulseAll(Gate);
+            session = current;
         }
+        if (session.CleanupUnconfirmed || session.Child?.ShutdownQuiescent == false || session.Child?.FaultCleanupComplete == false)
+            throw new InvalidOperationException("PCR native shutdown is unconfirmed; previous Owner must remain");
+        session.Child?.Dispose();
+        session.CapturePerformance?.Write();
+        lock (Gate) if (current == session) { current = null; Monitor.PulseAll(Gate); }
+    }
+    public static bool TryShutdown(MaaProcessor processor, Action operation, out bool forced)
+    {
+        ChildSession? child;
+        lock (Gate) child = current?.Processor == processor ? current.Child : null;
+        forced = false;
+        if (child == null) { operation(); return true; }
+        var complete = child.TryShutdown(operation);
+        forced = child.ShutdownForced;
+        return complete;
+    }
+    public static bool HasAgent(MaaProcessor processor)
+    { lock (Gate) return current?.Processor == processor && current.Child != null; }
+    public static bool ShutdownForced(MaaProcessor processor)
+    { lock (Gate) return current?.Processor == processor && current.Child?.ShutdownForced == true; }
+    internal static void MarkCleanupUnconfirmed(MaaProcessor processor)
+    {
+        lock (Gate)
+            if (current?.Processor == processor)
+            {
+                current.CleanupUnconfirmed = true;
+                current.Revoked = true;
+                current.Cancel.Cancel();
+            }
     }
     private static MaaController CreateController(bool preparation = false)
     {

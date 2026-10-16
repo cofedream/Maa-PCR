@@ -693,18 +693,25 @@ public class MaaProcessor
             {
                 try
                 {
-                    // 使用超时机制避免无限等待，最多等待 5 秒
-                    var stopTask = Task.Run(() => oldTasker.Stop().Wait());
-                    if (!stopTask.Wait(TimeSpan.FromSeconds(5)))
+                    // PCR also verifies the private child and any blocked native call.
+                    var stopTask = Task.Run(() =>
+                    {
+                        var result = MaaJobStatus.Failed;
+                        return MFAAvalonia.Pcr.PcrAlphaOwner.TryShutdown(this,
+                            () => result = oldTasker.Stop().Wait(), out _)
+                            && result == MaaJobStatus.Succeeded && !oldTasker.IsRunning;
+                    });
+                    if (!stopTask.Wait(TimeSpan.FromSeconds(MFAAvalonia.Pcr.PcrAlphaOwner.HasAgent(this) ? 20 : 5)))
                     {
                         taskerStopped = false;
-                        LoggerHelper.Warning("停止 MaaTasker 超时：已等待 5 秒。");
+                        LoggerHelper.Warning("停止 MaaTasker 超时；保留原 Owner，不允许重新开始。");
                     }
                     else if (stopTask.IsFaulted)
                     {
                         taskerStopped = false;
                         LoggerHelper.Warning($"停止 MaaTasker 内部任务失败：{stopTask.Exception?.GetBaseException().Message}");
                     }
+                    else if (!stopTask.Result) taskerStopped = false;
                 }
                 catch (Exception e)
                 {
@@ -716,7 +723,18 @@ public class MaaProcessor
             _agentStarted = false;
             // Agent contexts can outlive MaaTasker after an earlier partial cleanup. Always
             // terminate them, even when MaaTasker is already null.
-            var agentsStopped = AgentHelper.KillAllAgents(_agentContexts, oldTasker);
+            bool agentsStopped;
+            try
+            {
+                agentsStopped = AgentHelper.KillAllAgents(_agentContexts, taskerStopped ? oldTasker : null,
+                    taskerAlreadyStopped: taskerStopped);
+            }
+            catch
+            {
+                MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(this);
+                throw;
+            }
+            if (!agentsStopped || !taskerStopped) MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(this);
             if (agentsStopped && taskerStopped) MFAAvalonia.Pcr.PcrAlphaOwner.Release(this);
             ViewModel?.SetConnected(false);
             var screenshotTaskerStopped = DetachScreenshotTasker(requireAllStopped);
@@ -1952,7 +1970,11 @@ public class MaaProcessor
             {
                 try
                 {
-                    AgentHelper.KillAllAgents(_agentContexts);
+                    if (!AgentHelper.KillAllAgents(_agentContexts))
+                    {
+                        MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(this);
+                        throw new InvalidOperationException("Previous Agent shutdown is unconfirmed; new Start is refused.");
+                    }
                     _agentContexts = await AgentHelper.StartAgentsAsync(tasker, agentConfigs!, InstanceConfiguration, this, token);
                     if (_agentContexts.Count == 0 && agentConfigs!.Any(a => a.ChildExec != null))
                     {
@@ -1966,7 +1988,7 @@ public class MaaProcessor
                 catch (OperationCanceledException)
                 {
                     LoggerHelper.Info("用户已取消 Agent 初始化。");
-                    AgentHelper.KillAllAgents(_agentContexts);
+                    if (!AgentHelper.KillAllAgents(_agentContexts)) MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(this);
                     throw;
                 }
                 catch (Exception ex)
@@ -1979,7 +2001,7 @@ public class MaaProcessor
                         ToastHelper.Error(LangKeys.AgentStartFailed.ToLocalization());
                     else
                         ToastHelper.Error(LangKeys.AgentStartFailed.ToLocalization(), ex.Message);
-                    AgentHelper.KillAllAgents(_agentContexts);
+                    if (!AgentHelper.KillAllAgents(_agentContexts)) MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(this);
                     ShouldRetry = false;
                     TelemetryService.RecordTaskFailure(InstanceId, "agent_start_failed", "agent", ex);
                     return (null, InvalidResource, ShouldRetry);
@@ -4633,7 +4655,8 @@ public class MaaProcessor
                             stopResult = AbortCurrentTasker();
                             LoggerHelper.Info($"第 {i + 1} 次停止任务执行器返回：{stopResult}，准备重试。");
 
-                            if (stopResult == MaaJobStatus.Succeeded)
+                            if (stopResult == MaaJobStatus.Succeeded
+                                || MFAAvalonia.Pcr.PcrAlphaOwner.ShutdownForced(this))
                                 break;
 
                             await Task.Delay(retryDelayMs);
@@ -4676,8 +4699,8 @@ public class MaaProcessor
         CancellationTokenSource.SafeCancel();
         if (killAgent)
         {
-            AgentHelper.KillAllAgents(_agentContexts);
-            _agentContexts = [];
+            if (AgentHelper.KillAllAgents(_agentContexts)) _agentContexts = [];
+            else MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(this);
         }
     }
 
@@ -4703,9 +4726,11 @@ public class MaaProcessor
     {
         if (MaaTasker == null)
             return MaaJobStatus.Succeeded;
-        var status = MaaTasker.Stop().Wait();
-
-        return status;
+        var tasker = MaaTasker;
+        var status = MaaJobStatus.Failed;
+        var complete = MFAAvalonia.Pcr.PcrAlphaOwner.TryShutdown(this,
+            () => status = tasker.Stop().Wait(), out var forced);
+        return complete && !forced ? status : MaaJobStatus.Failed;
     }
 
     private void HandleStopResult(MFATask.MFATaskStatus status, MaaJobStatus success, bool onlyStart,

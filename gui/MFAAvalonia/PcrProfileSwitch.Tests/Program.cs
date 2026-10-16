@@ -140,6 +140,7 @@ try
     ChannelConfigChecks.Run(args.Length > 1 ? args[1] : System.IO.Path.GetTempPath());
     LogExportChecks.Run(args[1]);
     AlphaOwnerChecks.Run();
+    AgentShutdownChecks.Run(args);
     ModuleOrderChecks.Run(taskViewModel, args[1]);
     AlphaOwnerAsyncChecks.Run(processor, taskViewModel, manager, CheckBlocked, args);
     LiveViewChecks.Run();

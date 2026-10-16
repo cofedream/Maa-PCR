@@ -55,6 +55,29 @@ internal sealed class PcrWindowsChild : IDisposable
             return a.Active;
         }
     }
+    internal int[] ProcessIds
+    {
+        get
+        {
+            if (job == IntPtr.Zero || released)
+                throw new InvalidOperationException("Owned Job is unavailable");
+            const int capacity = 1024;
+            var size = 8 + capacity * IntPtr.Size;
+            var buffer = Marshal.AllocHGlobal(size);
+            try
+            {
+                Check(QueryProcessIds(operationHandle("query", job), 3, buffer, (uint)size, IntPtr.Zero), "Query owned Job processes");
+                var count = Marshal.ReadInt32(buffer, 4);
+                if (count < 0 || count > capacity || Marshal.ReadInt32(buffer) != count)
+                    throw new InvalidOperationException("Incomplete owned Job process list");
+                var result = new int[count];
+                for (var index = 0; index < count; index++)
+                    result[index] = checked((int)Marshal.ReadIntPtr(buffer, 8 + index * IntPtr.Size).ToInt64());
+                return result;
+            }
+            finally { Marshal.FreeHGlobal(buffer); }
+        }
+    }
     internal void VerifyMembership()
     {
         Check(IsProcessInJob(process, operationHandle("membership", job), out var member), "IsProcessInJob");
@@ -252,6 +275,7 @@ internal sealed class PcrWindowsChild : IDisposable
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern IntPtr CreateJobObjectW(IntPtr sa, string? name);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetInformationJobObject(IntPtr job, int kind, ref ExtendedLimit value, uint size);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool QueryInformationJobObject(IntPtr job, int kind, out Accounting value, uint size, IntPtr returned);
+    [DllImport("kernel32.dll", EntryPoint = "QueryInformationJobObject", SetLastError = true)] private static extern bool QueryProcessIds(IntPtr job, int kind, IntPtr value, uint size, IntPtr returned);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool IsProcessInJob(IntPtr process, IntPtr job, out bool member);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool TerminateJobObject(IntPtr job, uint code);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CreatePipe(out IntPtr read, out IntPtr write, ref Security sa, uint size);

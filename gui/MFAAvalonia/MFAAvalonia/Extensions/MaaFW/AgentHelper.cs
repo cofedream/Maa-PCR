@@ -157,12 +157,12 @@ public static class AgentHelper
             catch (OperationCanceledException)
             {
                 // 取消时清理已启动的 agent
-                KillAllAgents(contexts);
+                if (!KillAllAgents(contexts)) MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(processor);
                 throw;
             }
             catch (Exception ex)
             {
-                KillAllAgents(contexts);
+                if (!KillAllAgents(contexts)) MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(processor);
                 throw new InvalidOperationException(
                     $"Agent '{agentConfig.ChildExec}' failed to start: {ex.Message}",
                     ex);
@@ -506,7 +506,11 @@ public static class AgentHelper
             AppPaths.DataRoot,
             processor.InstanceId,
             MaaProcessorManager.Instance.GetInstanceName(processor.InstanceId) ?? string.Empty,
-            line => HandleOutputLine(line, processor, "Stdout"));
+            line => HandleOutputLine(line, processor, "Stdout"),
+            () => {
+                if (!(PlatformAgentFactory.LinkStop?.Invoke(client) ?? client.LinkStop()))
+                    throw new InvalidOperationException("AgentClient LinkStop did not succeed");
+            });
 
         try
         {
@@ -577,7 +581,7 @@ public static class AgentHelper
         }
         catch
         {
-            KillSingleAgent(ctx);
+            if (!KillSingleAgent(ctx)) MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(processor);
             throw;
         }
     }
@@ -715,26 +719,28 @@ public static class AgentHelper
     /// <summary>
     /// 终止所有 Agent 进程并释放资源
     /// </summary>
-    public static bool KillAllAgents(List<AgentContext> contexts, MaaTasker? taskerToDispose = null)
+    public static bool KillAllAgents(List<AgentContext> contexts, MaaTasker? taskerToDispose = null,
+        bool taskerAlreadyStopped = false)
     {
         var allProcessesExited = true;
         AgentContext[] contextsToStop;
         lock (contexts)
         {
             contextsToStop = contexts.ToArray();
-            contexts.Clear();
         }
 
         foreach (var ctx in contextsToStop)
         {
-            allProcessesExited &= KillSingleAgent(ctx, taskerToDispose);
+            var exited = KillSingleAgent(ctx, taskerToDispose);
+            allProcessesExited &= exited;
+            if (exited) lock (contexts) contexts.Remove(ctx);
         }
         _hasPreviousAgentClient = false;
 
         // 只在最后处理一次 tasker
-        if (taskerToDispose != null)
+        if (taskerToDispose != null && allProcessesExited)
         {
-            DisposeMaaTasker(taskerToDispose);
+            allProcessesExited &= DisposeMaaTasker(taskerToDispose, taskerAlreadyStopped);
         }
 
         return allProcessesExited;
@@ -752,10 +758,6 @@ public static class AgentHelper
 
         StopReadStreams(ctx);
 
-        ctx.Client = null;
-        ctx.Process = null;
-        ctx.PlatformSession = null;
-
         // 步骤 1: 停止 AgentClient
         if (agentClient != null)
         {
@@ -770,8 +772,17 @@ public static class AgentHelper
                 {
                     try
                     {
-                        _ = PlatformAgentFactory.LinkStop?.Invoke(agentClient)
-                            ?? agentClient.LinkStop();
+                        void Disconnect()
+                        {
+                            if (!(PlatformAgentFactory.LinkStop?.Invoke(agentClient) ?? agentClient.LinkStop()))
+                                throw new InvalidOperationException("AgentClient LinkStop did not succeed");
+                        }
+                        if (platformSession is IPlatformAgentShutdown shutdown && !shutdown.TryShutdown(Disconnect))
+                        {
+                            LoggerHelper.Error("AgentClient LinkStop 未确认返回；保留 Owner 和原生对象，禁止重新开始。");
+                            return false;
+                        }
+                        if (platformSession is not IPlatformAgentShutdown) Disconnect();
                         LoggerHelper.Info("AgentClient LinkStop 成功。");
                     }
                     catch (Exception e)
@@ -866,6 +877,13 @@ public static class AgentHelper
                 LoggerHelper.Warning($"Failed to stop the platform Agent service: {ex.Message}");
                 processExited = false;
             }
+        }
+
+        if (processExited)
+        {
+            ctx.Client = null;
+            ctx.Process = null;
+            ctx.PlatformSession = null;
         }
 
         return processExited;
@@ -1001,8 +1019,13 @@ public static class AgentHelper
                || input.StartsWith("../", StringComparison.Ordinal);
     }
 
-    private static void DisposeMaaTasker(MaaTasker maaTasker)
+    private static bool DisposeMaaTasker(MaaTasker maaTasker, bool alreadyStopped)
     {
+        if (alreadyStopped && maaTasker.IsRunning)
+        {
+            LoggerHelper.Error("MaaTasker 停止状态发生变化；保留原生对象，不再次派发 Stop。");
+            return false;
+        }
         if (maaTasker.IsRunning && !maaTasker.IsStopping)
         {
             LoggerHelper.Info("释放前正在停止 MaaTasker。");
@@ -1020,9 +1043,10 @@ public static class AgentHelper
         {
             maaTasker.Dispose();
             LoggerHelper.Info("MaaTasker 已成功释放。");
+            return true;
         }
-        catch (ObjectDisposedException) { LoggerHelper.Info("MaaTasker 已提前释放。"); }
-        catch (Exception e) { LoggerHelper.Warning($"释放 MaaTasker 失败：{e.Message}"); }
+        catch (ObjectDisposedException) { LoggerHelper.Info("MaaTasker 已提前释放。"); return true; }
+        catch (Exception e) { LoggerHelper.Warning($"释放 MaaTasker 失败：{e.Message}"); return false; }
     }
 
     #endregion
