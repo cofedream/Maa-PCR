@@ -29,12 +29,16 @@ class Endpoint(Enum):
     RETIRE='labyrinth/retire'
 
 class LabyrinthClient:
-    def __init__(self,username,password,*,content_version,http=None,manual_captcha=None,captcha_http=None,timings=None):
+    def __init__(self,username,password,*,content_version='',app_version=None,http=None,manual_captcha=None,captcha_http=None,timings=None):
         # Package belongs to this checkout/player. Never search arbitrary PATHs.
         vendor=Path(__file__).resolve().parents[3]/'vendor/autopcr_sync'
         if str(vendor) not in sys.path: sys.path.insert(0,str(vendor))
         from autopcr_sync.core.readonly import ReadOnlyClient
         self.auth=ReadOnlyClient(username,password,content_version=content_version)
+        if app_version is not None:
+            from .app_version import validate_version
+            try:self.auth.headers['APP-VER']=validate_version(app_version)
+            except ValueError:raise ProtocolFailure('game_version_unavailable') from None
         self.http=http
         self.manual_captcha=manual_captcha
         self.captcha_http=captcha_http
@@ -177,8 +181,16 @@ class LabyrinthClient:
                         maintenance=await self._auth_request(SourceIniGetMaintenanceStatusRequest(),expected_viewer_id);break
                     except SyncFailure as error:
                         if str(error)!='app_version_changed' or attempt:raise
-                if str(maintenance.required_manifest_ver)!=self.auth.content_version:raise ProtocolFailure('content_update_required')
-                self.auth.headers['MANIFEST-VER']=str(maintenance.required_manifest_ver)
+                version=getattr(maintenance,'required_manifest_ver',None)
+                if type(version) is not str or len(version)!=12 or not version.isascii() or not version.isdecimal():
+                    raise ProtocolFailure('protocol_version_invalid')
+                resource_version=getattr(maintenance,'res_ver',None)
+                if (type(resource_version) is not str or not 1<=len(resource_version)<=20
+                    or not resource_version.isascii() or not resource_version.isdecimal()):
+                    raise ProtocolFailure('protocol_version_invalid')
+                self.auth.content_version=version
+                self.auth.headers['MANIFEST-VER']=version
+                self.auth.headers['RES-VER']=resource_version
                 await self._login_game(uid,key,expected_viewer_id)
                 self._check_open()
                 # Retained only for this Owner lifetime, after fresh identity

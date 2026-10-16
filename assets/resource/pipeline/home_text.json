@@ -1,0 +1,13 @@
+{
+  "HomeAdventureText": {"recognition":"OCR", "roi":[693,685,53,33], "expected":"^冒险$", "threshold":0.8, "only_rec":true, "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeScheduleText": {"recognition":"OCR", "roi":[986,594,68,34], "expected":"^日程表$", "threshold":0.8, "only_rec":true, "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeGiftText": {"recognition":"OCR", "roi":[1188,596,51,30], "expected":"^礼物$", "threshold":0.8, "only_rec":true, "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeEdgeScheduleText": {"recognition":"OCR", "roi":[1028,598,62,24], "expected":"^日程表$", "threshold":0.8, "only_rec":true, "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeEdgeGiftText": {"recognition":"OCR", "roi":[1230,596,50,30], "expected":"^礼物$", "threshold":0.8, "only_rec":true, "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeDefaultTextLayout": {"recognition":"And", "all_of":["HomeAdventureText","HomeScheduleText","HomeGiftText"], "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeEdgeTextLayout": {"recognition":"And", "all_of":["HomeAdventureText","HomeEdgeScheduleText","HomeEdgeGiftText"], "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeTextLayout": {"recognition":"Or", "any_of":["HomeDefaultTextLayout","HomeEdgeTextLayout"], "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeNoticeUpdatesText": {"recognition":"OCR", "roi":[270,89,185,42], "expected":"^更新信息$", "threshold":0.8, "only_rec":true, "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeNoticeCalendarText": {"recognition":"OCR", "roi":[865,89,205,42], "expected":"^活动日历$", "threshold":0.8, "only_rec":true, "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0},
+  "HomeNoticeTabs": {"recognition":"Or", "any_of":["HomeNoticeUpdatesText","HomeNoticeCalendarText"], "action":"DoNothing", "next":[], "timeout":1000, "pre_delay":0, "post_delay":0}
+}

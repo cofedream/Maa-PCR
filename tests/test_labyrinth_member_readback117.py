@@ -85,7 +85,7 @@ def test_member_scope_cannot_authorize_other_pages_or_inputs(saved117,page,mode)
 
 def test_member_scope_is_not_an_empty_effective_list(saved117,monkeypatch):
     image,_=saved117;names=[]
-    monkeypatch.setattr(m,'_blue',lambda *a:1)
+    monkeypatch.setattr(m,'_filter_blue',lambda frame,box:1 if tuple(box)==m._filter_rects('battle')[-1] else 0)
     def read(name,image):
         names.append(name)
         if name in ('LabyDateChangedObserved','LabyDisconnect6002Observed'):return None

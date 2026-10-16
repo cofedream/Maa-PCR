@@ -34,3 +34,7 @@ python -X utf8 -B scripts/build_pcr_player_patch.py --base OLD_PLAYER --target N
 目标 revision 必须递增，布局和产品标识保持一致。工具只取 manifest 所有的变动文件，不打包玩家的私人数据。生成后应在独立旧版本副本中实际导入，验证配置、任务顺序和业务记录哈希保留，再交付。
 
 SHA256 防止损坏并绑定基础版本，不是发布者签名。R39新增软件内稳定版检查和点击安装，统一使用Maa-PCR的GitHub Release及外置维护器，见 [更新与恢复](UPDATES.md)。R38首次升级改用bootstrap外层的first-update.bat，不使用正在占用内置Python的旧入口直接更换Python原生文件。离线ZIP仍使用同一清单保护，不直接解压覆盖。
+
+## R54 测试版转正式 R52
+
+已确认的 R54 测试候选需要独立的精确转换包，不能使用普通 R52 补丁入口。转换与恢复保留原数据和通用降级拒绝规则，详见 [R54 测试版转正式 R52](R54_TO_R52.md)。当前只实现并离线验证工具，正式目标与附件须在 R52 验收后生成，本次不发布。

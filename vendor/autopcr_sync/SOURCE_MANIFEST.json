@@ -47,11 +47,12 @@
       "source": "autopcr/model/sdkrequests.py",
       "destination": "autopcr_sync/model/sdkrequests.py",
       "sha256": "d557ceab31614cfa8d2e5f9005d84bcfa212e41c6192655e5448ebbec669733e",
-      "modified": false,
+      "modified": true,
       "source_sha256": {
         "autopcr/model/sdkrequests.py": "d557ceab31614cfa8d2e5f9005d84bcfa212e41c6192655e5448ebbec669733e"
       },
-      "adopted_sha256": "d557ceab31614cfa8d2e5f9005d84bcfa212e41c6192655e5448ebbec669733e"
+      "adopted_sha256": "29c54ded9bb3846589c529645a5715952961a41f0b9e77a189a9ab5476224d56",
+      "changes": "Require StrictStr for required_manifest_ver and res_ver so malformed maintenance JSON cannot coerce non-strings into version headers; other fields unchanged."
     },
     {
       "source": "autopcr/sdk/bsgamesdk.py",

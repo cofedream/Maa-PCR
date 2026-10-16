@@ -210,7 +210,8 @@ def test_effective_empty_list_needs_real_game_notice(page,notice,monkeypatch):
   text='未搜索到该角色' if name.endswith('EffectiveEmptyNotice') else '有效效果'
   value=dict(text=text,box=[534,351,198,25],score=.95)
   return NS(hit=True,raw_detail=dict(filtered=[value],best=value))
- monkeypatch.setattr(chars,'_blue',lambda *a:1)
+ expected_box=chars._filter_rects(page)[-1]
+ monkeypatch.setattr(chars,'_filter_blue',lambda frame,box:1 if tuple(box)==expected_box else 0)
  result=callback.analyze(NS(tasker=NS(stopping=False),run_recognition=recognition),NS(image=np.zeros((720,1280,3),np.uint8),custom_recognition_param=json.dumps(dict(mode='read',page=page))))
  if notice:
   assert result.detail['empty_effective_verified'] and result.detail['stable'] and not result.detail['cards']

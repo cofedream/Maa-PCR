@@ -48,9 +48,13 @@ VIEWPORTS={'opening':(40,179,1200,404),'battle':(40,153,1200,344),
 
 FILTERS=('ALL','FIRE','WATER','WIND','LIGHT','DARK','EFFECTIVE_EFFECT')
 
+_FILTER_X_BOUNDS=((70,150),(220,146),(366,146),(512,146),(658,146),(804,146),(950,160))
+
 FILTER_RECTS=tuple((round(x*2/3),round(140*2/3),round(w*2/3),round(80*2/3))
 
-    for x,w in ((70,150),(220,146),(366,146),(512,146),(658,146),(804,146),(950,160)))
+    for x,w in _FILTER_X_BOUNDS)
+
+FILTER_ROIS={'opening':[45,120,850,55],'battle':[40,85,750,75],'boss':[40,180,750,75]}
 
 BOSS_TABS=tuple(tuple(round(v*2/3) for v in box) for box in ((98,150,195,65),(334,150,195,65),(571,150,195,65)))
 
@@ -772,6 +776,27 @@ def _blue(frame,box,*,gold=False):
     return float(((r>170)&(g>110)&(b<150)&(r-b>50)).mean()) if gold else float(((b>=95)&(b-r>=10)&(g-r>=4)).mean())
 
 
+def _filter_rects(page):
+    top,height=(280,66) if page=='boss' else (140,80)
+    edge=lambda value:math.floor(value*2/3+.5)
+    return tuple((edge(x),edge(top),edge(x+w)-edge(x),edge(top+height)-edge(top)) for x,w in _FILTER_X_BOUNDS)
+
+
+def _filter_blue(frame,box):
+    # Pinned upstream filter colors exclude disabled gray-blue controls.
+    x,y,w,h=box;bgr=frame[y:y+h:4,x:x+w:4].astype(int)
+    if not bgr.size:return 0.
+    b,g,r=bgr[:,:,0],bgr[:,:,1],bgr[:,:,2]
+    return float(((b>=120)&(b-r>=24)&(g-r>=8)).mean())
+
+
+def _selected_filter(frame,page):
+    boxes=_filter_rects(page) if page in ('battle','boss') else FILTER_RECTS
+    if page=='roster' or not all(_inside(box,frame.shape) for box in boxes):return None
+    coverage=_filter_blue if page in ('battle','boss') else _blue
+    selected=[name for name,box in zip(FILTERS,boxes) if coverage(frame,box)>=.35]
+    return selected[0] if len(selected)==1 else None
+
 
 
 
@@ -1012,11 +1037,7 @@ class CharacterRecognizer:
 
         slots={box:f'available_row_{row_keys.index(box[1])+1}_{column_keys.index(box[0])+1}' for box in boxes}
 
-        filter_rects=[(x,y+(93 if page=='boss' else 0),w,h) for x,y,w,h in FILTER_RECTS]
-
-        filters=[name for name,box in zip(FILTERS,filter_rects) if _blue(frame,box)>=.35]
-
-        current_filter=current_filter or (filters[0] if len(filters)==1 else None)
+        current_filter=current_filter or _selected_filter(frame,page)
 
         scroll=scrollbar(frame,page);cards=[]
 
@@ -1199,6 +1220,8 @@ def character_pipeline(namespace):
 
     nodes[namespace+'FilterOnce']=custom('FilterOnce','Click',target=True,max_hit=1)
 
+    nodes[namespace+'FilterStable']=custom('FilterStable')
+
     nodes[namespace+'TabOnce']=custom('TabOnce','Click',target=True,max_hit=1)
 
     nodes[namespace+'ScrollOnce']=custom('ScrollOnce','Swipe',begin=[640,460],end=[640,260],duration=450,max_hit=1)
@@ -1219,7 +1242,7 @@ def character_pipeline(namespace):
 
             # battle headers differ after scaling; never click reference boxes.
 
-            roi=[45,120,850,55] if page=='opening' else [40,180,750,75] if page=='boss' else [40,85,750,75]
+            roi=FILTER_ROIS[page]
 
             nodes[namespace+page+'Filter'+name]=dict(recognition='OCR',roi=roi,expected=('^有效(?:效果)?$' if name=='EFFECTIVE_EFFECT' else '^'+text+'$'),threshold=.8,
 
@@ -1292,7 +1315,7 @@ class CharacterRecognition(CustomRecognition):
 
             params=json.loads(argv.custom_recognition_param);mode=params.get('mode');page=params.get('page')
 
-            if mode not in ('read','toggle','filter','scroll','tab','start','invite') or page not in ('opening','battle','boss','roster','reward','joined'):return None
+            if mode not in ('read','toggle','filter','freeze','scroll','tab','start','invite') or page not in ('opening','battle','boss','roster','reward','joined'):return None
 
             members_only=params.get('members_only') is True
             if members_only and (mode!='read' or page not in ('battle','boss')):return None
@@ -1368,9 +1391,32 @@ class CharacterRecognition(CustomRecognition):
 
                 if result is None or not result.hit:return None
 
+            if mode=='freeze':
+                import time
+                from maa.pipeline import JWaitFreezes
+                budget=params.get('freeze_timeout_ms')
+                if page not in FILTER_ROIS or type(budget) is not int or not 0<budget<=2500:return None
+                if page=='boss' and boss_team_index(argv.image) is None:return None
+                deadline=time.monotonic()+budget/1000
+                if self.recognizer.stopped() or context.tasker.stopping:return None
+                # One native wait retains its first frame even when capture exceeds 500 ms.
+                frozen=context.wait_freezes(wait_freezes_param=JWaitFreezes(time=200,
+                    target=FILTER_ROIS[page],threshold=.98,method=5,rate_limit=100,timeout=budget))
+                if self.recognizer.stopped() or context.tasker.stopping:return None
+                if not frozen or time.monotonic()>=deadline:return None
+                return self.AnalyzeResult([0,0,1,1],dict(page=page,filter_frozen=True))
+
+            if mode=='filter':
+                target=params.get('filter')
+                if page not in FILTER_ROIS or target not in FILTERS:return None
+                if page=='boss' and boss_team_index(argv.image) is None:return None
+                word=_native_word(context.run_recognition(self.namespace+page+'Filter'+target,argv.image))
+                if self.recognizer.stopped() or context.tasker.stopping:return None
+                return self.AnalyzeResult(word['box'],dict(page=page,filter=_selected_filter(argv.image,page)))
+
             filter_scores=[]
 
-            if page!='roster':
+            if page=='opening':
 
                 for name in FILTERS:
 
@@ -1390,7 +1436,7 @@ class CharacterRecognition(CustomRecognition):
 
             selected_filter=max(filter_scores,key=lambda value:value[1],default=(None,0))
 
-            current_filter=selected_filter[0] if selected_filter[1]>=.35 else None
+            current_filter=(selected_filter[0] if selected_filter[1]>=.35 else None) if page=='opening' else _selected_filter(argv.image,page)
 
             # Count is actual same-frame OCR, never supplied expected state.
 
@@ -1462,14 +1508,6 @@ class CharacterRecognition(CustomRecognition):
                     box=[x+min(w-1,math.floor(w*(.16 if free else .50)+.5)),
 
                         y+min(h-1,math.floor(h*(.84 if free else .45 if page=='opening' else .50)+.5)),1,1]
-
-            elif mode=='filter':
-
-                target=params.get('filter')
-
-                if target not in FILTERS:return None
-
-                word=_native_word(context.run_recognition(self.namespace+page+'Filter'+target,argv.image));box=word['box']
 
             elif mode=='scroll':
 
@@ -1581,12 +1619,15 @@ class MaaCharacters:
 
     def run(self,suffix,params,*,input=False):
 
+        import time
         from .. import native
 
         from .game_session import _root
 
         node=self.namespace+suffix;resource=self.tasker.resource;original=resource.get_node_data(node)
 
+        if suffix=='FilterStable':
+            params=dict(params,freeze_timeout_ms=max(0,int(min(2500,(native.RUN_DEADLINE.get()-time.monotonic())*1000))))
         changes=dict(custom_recognition_param=params)
 
         if suffix=='ScrollOnce':
@@ -1622,6 +1663,7 @@ class MaaCharacters:
             detail=best.get('detail') if type(best) is dict else None
 
             if type(detail) is not dict or detail.get('page')!=params['page']:raise BatchStopped('character_readback_unknown')
+            if suffix=='FilterStable' and detail.get('filter_frozen') is not True:raise BatchStopped('character_readback_unknown')
 
         except BaseException:
 
@@ -1771,27 +1813,44 @@ class CharacterNavigation:
             batch.checkpoint();sent=self.characters.run(suffix,params,input=True)[1];batch.checkpoint()
             return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,
                 input_action_verified=True,client_page_verified=False)
-        clicked=batch.transaction(kind,fields,send)
-        previous=None
-        def settled(value):
-            nonlocal previous
-            if (filter is not None and value['filter']!=filter) or (tab is not None and value['boss_tab']!=tab):return False
-            if direction is None:return True
-            # An ACK proves the swipe, not that the list has finished rebounding.
-            # Sample only post-ACK reads, without making portrait confidence a motion gate.
-            before=previous;previous=value
-            if before is None:return False
-            def position(view):
-                scroll=view.get('scrollbar',{});pos=scroll.get('position')
-                return pos if (scroll.get('visible') is True and scroll.get('can_scroll') is True
-                    and type(pos) in (int,float) and math.isfinite(pos) and 0<=pos<=1) else None
-            a,b=position(before),position(value)
-            if a is not None or b is not None:return a is not None and b is not None and abs(a-b)<=.02
-            return self.unchanged(before,value)
-        after,receipt=self.characters.wait_for(batch,page,settled,**({'roster':self.roster} if self.roster is not None else {}))
-        batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,native=receipt,
-            input_native=clicked['input_native'],input_action_verified=True,client_page_verified=True),**fields)
-        return after
+        import time
+        from .. import native
+        token=native.RUN_DEADLINE.set(min(native.RUN_DEADLINE.get(),time.monotonic()+12)) if filter is not None else None
+        try:
+            clicked=batch.transaction(kind,fields,send)
+            if filter is not None:
+                batch.checkpoint()
+                try:self.characters.run('FilterStable',dict(params,mode='freeze'),input=False)
+                except (BatchStopped,RuntimeError) as error:
+                    batch.checkpoint()
+                    if str(error) not in ('game_session_readback_unknown','character_readback_unknown',
+                        'Native task exceeded 90 seconds or inspection deadline',
+                        'Inspection deadline exceeded before task input',
+                        'Context deadline exceeded after synchronous return; outcome unknown'):raise
+                    raise BatchStopped('character_feedback_unknown') from error
+                batch.checkpoint()
+            previous=None
+            def settled(value):
+                nonlocal previous
+                if (filter is not None and value['filter']!=filter) or (tab is not None and value['boss_tab']!=tab):return False
+                if direction is None:return True
+                # An ACK proves the swipe, not that the list has finished rebounding.
+                # Sample only post-ACK reads, without making portrait confidence a motion gate.
+                before=previous;previous=value
+                if before is None:return False
+                def position(view):
+                    scroll=view.get('scrollbar',{});pos=scroll.get('position')
+                    return pos if (scroll.get('visible') is True and scroll.get('can_scroll') is True
+                        and type(pos) in (int,float) and math.isfinite(pos) and 0<=pos<=1) else None
+                a,b=position(before),position(value)
+                if a is not None or b is not None:return a is not None and b is not None and abs(a-b)<=.02
+                return self.unchanged(before,value)
+            after,receipt=self.characters.wait_for(batch,page,settled,**({'roster':self.roster} if self.roster is not None else {}))
+            batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,native=receipt,
+                input_native=clicked['input_native'],input_action_verified=True,client_page_verified=True),**fields)
+            return after
+        finally:
+            if token is not None:native.RUN_DEADLINE.reset(token)
 
     @staticmethod
 
