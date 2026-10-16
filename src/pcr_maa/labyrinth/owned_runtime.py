@@ -230,7 +230,8 @@ class OwnedRuntime:
             # Performance evidence must not replace a completed business result.
             self.timing_collection = 'incomplete'
         finally:
-            self.timings.transition(None)
+            try:self.timings.transition(None)
+            except Exception:self.timing_collection = 'incomplete'
 
     def run(self):
         if self.stop():return dict(outcome='stopped',batch_complete=False)
@@ -340,7 +341,8 @@ class OwnedRuntime:
         except Exception:
             return dict(outcome='adapter_failed',batch_complete=False)
         finally:
-            self.timings.transition(None)
+            try:self.timings.transition(None)
+            except Exception:self.timing_collection = 'incomplete'
             self.request.clear()
             if self.ocr_diagnostics is not None:
                 try:self.ocr_diagnostics.finish(not self.ocr_success)

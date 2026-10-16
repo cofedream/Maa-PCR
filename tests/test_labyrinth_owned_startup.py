@@ -521,3 +521,58 @@ def test_timing_sink_close_failure_preserves_result_and_client_cleanup(tmp_path,
     assert owned.timing_collection == 'incomplete'
     assert {'native_stop', 'client_close'} <= set(calls)
     assert owned.request.username == owned.request.password == ''
+
+
+@pytest.mark.parametrize('failing_call', [1, 2])
+def test_one_time_timing_transition_failure_preserves_result_and_cleanup(tmp_path, monkeypatch, failing_call):
+    owned, events, calls = runtime(tmp_path, monkeypatch)
+    expected = dict(outcome='complete', completed={1: 1}, batch_complete=True)
+    owned._run_batch = lambda *args: dict(expected)
+    normal_transition = owned.timings.transition
+    end_calls = []
+    def transition(phase):
+        if phase is None:
+            end_calls.append(phase)
+            if len(end_calls) == failing_call:
+                raise RuntimeError('synthetic one-time timing transition failure')
+        return normal_transition(phase)
+    monkeypatch.setattr(owned.timings, 'transition', transition)
+    assert owned.run() == expected
+    assert len(end_calls) == 2 and owned.timings.phase is None
+    assert owned.timing_collection == 'incomplete' and owned.ocr_success
+    assert calls.count('native_stop') == calls.count('client_close') == 1
+    assert owned.request.username == owned.request.password == ''
+
+
+def test_persistent_timing_transition_failure_preserves_result_and_all_cleanup(tmp_path, monkeypatch):
+    from pcr_maa.labyrinth import timing
+    owned, events, calls = runtime(tmp_path, monkeypatch)
+    monkeypatch.setattr(timing, 'NativeTimings', lambda *args, **kwargs: NS(
+        finish_native_trace=lambda: calls.append('timings_finished'),
+        close=lambda: calls.append('timings_closed')))
+    expected = dict(outcome='complete', completed={1: 1}, batch_complete=True)
+    owned._run_batch = lambda *args: dict(expected)
+    normal_transition = owned.timings.transition
+    end_calls = []
+    def transition(phase):
+        if phase is None:
+            end_calls.append(phase)
+            raise OSError('synthetic persistent timing transition failure')
+        return normal_transition(phase)
+    monkeypatch.setattr(owned.timings, 'transition', transition)
+    assert owned.run() == expected
+    assert len(end_calls) == 2
+    assert owned.timing_collection == 'incomplete' and owned.ocr_success
+    assert all(calls.count(name) == 1 for name in (
+        'timings_finished', 'timings_closed', 'native_stop', 'client_close'))
+    assert owned.request.username == owned.request.password == ''
+
+
+@pytest.mark.parametrize('error_type', [KeyboardInterrupt, asyncio.CancelledError])
+def test_timing_finalization_does_not_swallow_interruption(tmp_path, monkeypatch, error_type):
+    owned, events, calls = runtime(tmp_path, monkeypatch)
+    def interrupted(phase):
+        raise error_type()
+    monkeypatch.setattr(owned.timings, 'transition', interrupted)
+    with pytest.raises(error_type):
+        owned._finish_timings()
