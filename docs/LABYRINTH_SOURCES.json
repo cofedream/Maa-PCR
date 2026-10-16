@@ -100,7 +100,7 @@
           "sha256": "2fc30ccfccb03d8898a0b8771bb526aeb73109262ea820deae0a84c8f76520cf"
         }
       ],
-      "local_sha256": "b280dff90b136302e26b697072985a703ace47bd7409b8c9124ef555c1851ba5",
+      "local_sha256": "d02fc7be37abaf218ef083c67b205d3d42417ddd1b943a590132c71bec2411a7",
       "production_runtime": true
     },
     {
@@ -320,7 +320,7 @@
           "sha256": "9f65df1a08613f39e93f8d6c707b4a0533db39df596623b686999a2933dff6cc"
         }
       ],
-      "local_sha256": "f5a93a7832a73db27f1a5ac40a919861ee7bbe398b0d7b3a72b8f5caf471e2ee",
+      "local_sha256": "94f0a9b1b646ed33789a54fbd8621b05e9bb592a0866d1472d7c708f227671cb",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -417,7 +417,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "ee213d47588149b3dbf09b839f5559eeb7babd088fd475a2379c1a350f2f375e",
+      "local_sha256": "81ec8b4dc43438d5dbe81619a345883f1f080e05473826dffec360f04bc4d806",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -521,7 +521,7 @@
           "sha256": "16d25ebafa401dfaf0f3a879684dcc32c032e89b03ab837615a5f12c240ac11c"
         }
       ],
-      "local_sha256": "dca60459297ff898419d8487f3fb216bff1c1e9661e2d1a601125823b41cc921",
+      "local_sha256": "c94cd0eae9417b2ae505986a507e3a162b6c33eaf25c84dc86f588b3a5649167",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -7126,7 +7126,7 @@
   ],
   "autopcr_component_manifest": {
     "local": "vendor/autopcr_sync/SOURCE_MANIFEST.json",
-    "sha256": "0eccf40e75d14417acd4c1e20e31f1e2e51219c75a98d12527946955d7331bec",
+    "sha256": "967e1e8cae9f65126b5c046ec971b3fb4892def0509019590c6d4946ce93f7e4",
     "upstream": "https://github.com/cc004/autopcr",
     "commit": "f091e2ef68a95717538af5633401734fd7df3078",
     "license": "CC-BY-NC-SA-4.0",
@@ -7159,13 +7159,13 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/autoplay.py",
-      "local_sha256": "f5a93a7832a73db27f1a5ac40a919861ee7bbe398b0d7b3a72b8f5caf471e2ee",
+      "local_sha256": "94f0a9b1b646ed33789a54fbd8621b05e9bb592a0866d1472d7c708f227671cb",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
     {
       "local": "src/pcr_maa/labyrinth/batch.py",
-      "local_sha256": "1d85db7ae5c5e7512a9f995c9e0737ff4f291021fc17724163ad364f151abec7",
+      "local_sha256": "17e7e98bc96048c3a667afb5ea57ce13a0daeac011cd766a531016ca52f8e184",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7195,7 +7195,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/character_recognition.py",
-      "local_sha256": "ee213d47588149b3dbf09b839f5559eeb7babd088fd475a2379c1a350f2f375e",
+      "local_sha256": "81ec8b4dc43438d5dbe81619a345883f1f080e05473826dffec360f04bc4d806",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7243,7 +7243,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/game_session.py",
-      "local_sha256": "4555a2b172c4e380b492a5e7a5c94c97ca15981ecc8532741b6b0835b505ee79",
+      "local_sha256": "269c2d48d79c77b99043ff65a88eaf19166dcc481ef465ad455406b20ebdba46",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7297,7 +7297,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/owned_runtime.py",
-      "local_sha256": "3c4480a1cb35139ef9ef499c4c1e7ffc1177b7806f92516ef1c77b768d626446",
+      "local_sha256": "efab9e8a75e5e438371c568467631c480038605c2674205257cd470164932a5d",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7327,7 +7327,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/protocol.py",
-      "local_sha256": "b280dff90b136302e26b697072985a703ace47bd7409b8c9124ef555c1851ba5",
+      "local_sha256": "d02fc7be37abaf218ef083c67b205d3d42417ddd1b943a590132c71bec2411a7",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7345,7 +7345,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/relics.py",
-      "local_sha256": "dca60459297ff898419d8487f3fb216bff1c1e9661e2d1a601125823b41cc921",
+      "local_sha256": "c94cd0eae9417b2ae505986a507e3a162b6c33eaf25c84dc86f588b3a5649167",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7429,7 +7429,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/timing.py",
-      "local_sha256": "3b4db0b3e988fa9c1bc4e5484eb3b7a828450ba2e594b49fc0b8ace682dba6fd",
+      "local_sha256": "c8537f07ad29b02022b317b4a238707cfcde126f3746df9b9060a7bd734ed903",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7465,7 +7465,7 @@
     },
     {
       "local": "assets/labyrinth/protocol-version.json",
-      "local_sha256": "1f5b751ee5aade78fb15a649deba5b83e356dc4062fe2563aba98d8f5a726af5",
+      "local_sha256": "4174fa84520b9c3ea758957770af411b2a3a886b67f80d544e306c0068b8b18d",
       "kind": "resource-data-or-configuration",
       "distribution_status": "retain-original-component-scope; no-permission-inferred"
     },
@@ -7480,6 +7480,30 @@
       "local_sha256": "7f2a92705a73165962e2678d0bc0c77d2f4d74e708b24e53c02828c1cdc4d159",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
+    },
+    {
+      "local": "src/pcr_maa/labyrinth/app_version.py",
+      "local_sha256": "8dee35eba341ee7e7ff61b452c3a54f5980787e8663c5ca06bc5ccb881b64896",
+      "kind": "frozen-labyrinth-source-file",
+      "production_runtime": true
+    },
+    {
+      "local": "src/pcr_maa/home_guard.py",
+      "kind": "local-home-recognition-file",
+      "production_runtime": true,
+      "local_sha256": "5732c575bb8996eab915762ae08b9131364e13eb22beaca8ed8930c964b74878"
+    },
+    {
+      "local": "assets/resource/pipeline/home_text.json",
+      "kind": "local-home-recognition-file",
+      "production_runtime": true,
+      "local_sha256": "48989215a953dfe943275657e89f8a5ce63d9854399f694661c8859be22b7c3f"
+    },
+    {
+      "local": "assets/resource/pipeline/presets.json",
+      "kind": "local-home-recognition-file",
+      "production_runtime": true,
+      "local_sha256": "1cf3a536c3587c2cd025477fdde665d08a35a6c16da4267606ece5e85be76198"
     }
   ],
   "redistribution_permission_established": false,
@@ -7488,7 +7512,7 @@
   "live_two_run_cycle_verified": false,
   "documentation": {
     "current": "docs/LABYRINTH_INTEGRATION.md",
-    "current_sha256": "96ea3ba7e2ca533d1754cb65a224cc2bc5bf0a0f8d8150d475d2469834ea9780",
+    "current_sha256": "e065bd3d43f6ce95f88e36a97c315fbbc52bbda2608d0f3f5d4e1534408c9b5f",
     "history": "docs/LABYRINTH_INTEGRATION_HISTORY.md",
     "history_sha256": "6b0cce9d25a4b0ce1600bd40699df01bd2efa411bb7cd4594d9998d57c5abfc4",
     "history_preserved_as_original_bytes": true,

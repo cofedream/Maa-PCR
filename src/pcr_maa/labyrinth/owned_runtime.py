@@ -171,6 +171,8 @@ class OwnedRuntime:
         self.request, self.stop, self.emit = request, stop, emit
         self.root = Path(root or Path(__file__).resolve().parents[3])
         self.client = self.port = self.tasker = self.controller = self.native_timings = None
+        self.ocr_diagnostics = None
+        self.ocr_success = False
         self.run_id = uuid4().hex
         self.timings = Timings()
 
@@ -285,13 +287,18 @@ class OwnedRuntime:
                 timings=self.timings
                 self.native_timings=NativeTimings(self.tasker,self.controller,timings,
                     trace_path=native.RUNTIME/'maa/maafw.log')
-                metadata=json.loads((self.root/'assets/labyrinth/protocol-version.json').read_text(encoding='utf-8'))
-                version=metadata['content_version']
-                if type(version) is not str or re.fullmatch(r'[0-9]{12}',version) is None:
-                    raise BatchStopped('protocol_version_invalid')
+                from ..ocr_diagnostics import FailureDiagnostics, fingerprints
+                try:
+                    self.ocr_diagnostics=FailureDiagnostics(native.ROOT/'.runtime/ocr-failures',
+                        self.run_id, 'labyrinth', fingerprints(native.RESOURCE)).attach(self.tasker)
+                except Exception:
+                    pass
                 self._progress(dict(stage='authenticating'))
+                from .app_version import read_installed_version
+                app_version=read_installed_version(self.controller,stopped=self.stop)
+                self._checkpoint()
                 self.client=LabyrinthClient(self.request.username,self.request.password,
-                    content_version=version,timings=timings,manual_captcha=HumanCaptcha(
+                    app_version=app_version,timings=timings,manual_captcha=HumanCaptcha(
                         lambda url,stage:self.emit(captcha_message(url,stage))))
                 self.request.clear()
                 self._checkpoint()
@@ -307,6 +314,7 @@ class OwnedRuntime:
                 self._checkpoint()
                 self._progress(dict(stage='ready'))
                 result=self._run_batch(binding,journal)
+                self.ocr_success=result.get('batch_complete') is True
                 self._finish_timings()
                 return result
         except BatchStopped as error:
@@ -320,6 +328,9 @@ class OwnedRuntime:
         finally:
             self.timings.transition(None)
             self.request.clear()
+            if self.ocr_diagnostics is not None:
+                try:self.ocr_diagnostics.finish(not self.ocr_success)
+                except Exception:pass
             if self.tasker is not None:
                 try:
                     native.wait_job(self.tasker.post_stop(),seconds=20)

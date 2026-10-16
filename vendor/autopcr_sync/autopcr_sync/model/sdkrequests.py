@@ -1,7 +1,7 @@
 #type: ignore
 from typing import List, Optional
 from .modelbase import *
-from pydantic import Field
+from pydantic import Field, StrictStr
 
 class ToolSdkLoginResponse(ResponseBase):
     is_risk: bool = False
@@ -46,12 +46,12 @@ class SourceIniGetMaintenanceStatusResponse(ResponseBase):
     res_http_type: int = None
     node_type: int = None
     silence_download_size: int = None
-    res_ver: str = None
+    res_ver: StrictStr = None
     execl_ver: str = None
     res_key: str = None
     start_time: str = None
     manifest_ver: str = None
-    required_manifest_ver: str = None
+    required_manifest_ver: StrictStr = None
     movie_ver: str = None
     sound_ver: str = None
     patch_ver: str = None

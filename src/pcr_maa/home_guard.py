@@ -19,6 +19,16 @@ class HomeNoKnownLargePanel(CustomRecognition):
             detail = panel.raw_detail
             if not isinstance(detail, list):
                 return None
+            # Either fixed notice tab vetoes HOME even while its pale panel is translucent.
+            notice = context.run_recognition('HomeNoticeTabs', argv.image)
+            if (notice is None or notice.algorithm != AlgorithmEnum.Or or notice.hit is not False
+                    or not isinstance(notice.raw_detail, list)):
+                return None
+            tabs = notice.raw_detail
+            if (len(tabs) != 2 or any(not isinstance(row, dict) for row in tabs)
+                    or [row.get('name') for row in tabs] != ['HomeNoticeUpdatesText', 'HomeNoticeCalendarText']
+                    or any(row.get('algorithm') != 'OCR' or row.get('box', False) is not None for row in tabs)):
+                return None
             busy = context.run_recognition('HomeDataConnection', argv.image)
             if busy is None or busy.algorithm != AlgorithmEnum.OCR or busy.hit is not False:
                 return None
@@ -48,8 +58,9 @@ class HomeNoKnownLargePanel(CustomRecognition):
                     or ready['best']['count'] < 500):
                 return None
             return self.AnalyzeResult([350, 220, 580, 280], {
-                'scope': 'green EXP bar; no known large pale central panel or data-connection text',
+                'scope': 'green EXP bar; no known large pale panel, notice tabs or data-connection text',
                 'native_reco_id': panel.reco_id, 'native': detail,
+                'notice_reco_id': notice.reco_id, 'notice': notice.raw_detail,
                 'connection_reco_id': busy.reco_id, 'connection': connection,
                 'anchor_reco_id': anchor.reco_id, 'anchor': ready,
             })

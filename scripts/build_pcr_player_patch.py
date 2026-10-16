@@ -100,7 +100,8 @@ def build_patch(base, target, output):
         'personal_settings_or_ledgers_included': False, 'gui_started': False}
 
 
-def build_patch_from_manifest(base_manifest, target, output, expected_base_sha256):
+def build_patch_from_manifest(base_manifest, target, output, expected_base_sha256, *,
+        r54_release_transition=None):
     """A frozen hash-bound baseline needs no historical binaries to create a delta."""
     base_manifest = Path(base_manifest)
     maintenance._plain(base_manifest)
@@ -119,7 +120,8 @@ def build_patch_from_manifest(base_manifest, target, output, expected_base_sha25
                 'src/pcr_maa/player_maintenance.py'}
     maintenance._require(required <= set(old_rows) and required <= set(new_rows), 'update_payload_incomplete')
     maintenance._require(old['layout'] == new['layout'], 'update_layout_mismatch')
-    maintenance._require(new_version['revision'] > old_version['revision'], 'update_not_newer')
+    transition = maintenance._r54_to_r52(r54_release_transition, old, old_bytes, new, new_bytes)
+    maintenance._require(transition or new_version['revision'] > old_version['revision'], 'update_not_newer')
     maintenance._require(all(old_rows['pcr-repository.txt'][key] == new_rows['pcr-repository.txt'][key]
                              for key in ('size', 'sha256')), 'repository_binding_changed')
     output = Path(os.path.abspath(output))

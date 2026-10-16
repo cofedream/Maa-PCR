@@ -43,29 +43,7 @@
   "EnterAdventure": {
     "recognition": "And",
     "all_of": [
-      {
-        "recognition": "OCR",
-        "roi": [
-          970,
-          580,
-          110,
-          60
-        ],
-        "expected": "^日程表$",
-        "threshold": 0.7
-      },
-      {
-        "recognition": "OCR",
-        "roi": [
-          1180,
-          588,
-          65,
-          40
-        ],
-        "expected": "^礼物$",
-        "threshold": 0.7,
-        "only_rec": true
-      },
+      "HomeTextLayout",
       "HomeNoKnownLargePanel"
     ],
     "action": "Click",

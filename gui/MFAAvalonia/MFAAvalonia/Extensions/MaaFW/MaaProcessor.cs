@@ -659,6 +659,7 @@ public class MaaProcessor
     }
 
     public MaaTasker? MaaTasker { get; set; }
+    private MFAAvalonia.Pcr.PcrOcrDiagnostics? _pcrOcrDiagnostics;
     private MaaTasker? _screenshotTasker;
     private Task<MaaTasker?>? _screenshotTaskerInitTask;
     private long _screenshotTaskerGeneration;
@@ -2062,6 +2063,7 @@ public class MaaProcessor
         }
 
         var callbackName = jObject["name"]?.ToString() ?? string.Empty;
+        _pcrOcrDiagnostics?.Event(args.Message, jObject);
         var shouldTraceNodeEvent = ShouldTraceNodeEvent(jObject, args.Message);
         if (CancellationTokenSource?.IsCancellationRequested != true
             && (shouldTraceNodeEvent || args.Message.Equals("Node.PipelineNode.Starting", StringComparison.Ordinal)))
@@ -4437,14 +4439,46 @@ public class MaaProcessor
         if (maa == null || task == null) return MaaJobStatus.Invalid;
 
         MFAAvalonia.Pcr.PcrAlphaOwner.BeforeAppend(this, task, param ?? "{}");
-        var job = maa.AppendTask(task, param ?? "{}");
-        MFAAvalonia.Pcr.PcrAlphaOwner.RegisterJob(this, job.Id);
-        TelemetryService.SetActiveTaskId(InstanceId, job.Id);
-        var status = await TaskManager.RunTaskAsync(() => job.Wait(), token, (ex) => throw ex,
-            name: "队列任务", catchException: true, shouldLog: false);
-        return MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled && task == "PCRAlphaEntry"
-            ? MFAAvalonia.Pcr.PcrTaskResult.Status(maa, job.Id, status)
-            : status;
+        var collectOcr = MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled && task == "PCRAlphaEntry";
+        if (collectOcr)
+        {
+            try { _pcrOcrDiagnostics = new MFAAvalonia.Pcr.PcrOcrDiagnostics(maa); }
+            catch (Exception ex) { LoggerHelper.Warning("OCR diagnostics unavailable: " + ex.GetType().Name); }
+        }
+        long taskId = 0;
+        try
+        {
+            var job = maa.AppendTask(task, param ?? "{}");
+            taskId = job.Id;
+            MFAAvalonia.Pcr.PcrAlphaOwner.RegisterJob(this, job.Id);
+            TelemetryService.SetActiveTaskId(InstanceId, job.Id);
+            var status = await TaskManager.RunTaskAsync(() => job.Wait(), token, (ex) => throw ex,
+                name: "队列任务", catchException: true, shouldLog: false);
+            var result = collectOcr ? MFAAvalonia.Pcr.PcrTaskResult.Status(maa, job.Id, status) : status;
+            try
+            {
+                if (status is MaaJobStatus.Succeeded or MaaJobStatus.Failed)
+                    _pcrOcrDiagnostics?.Complete(maa, job.Id, result != MaaJobStatus.Succeeded);
+                else _pcrOcrDiagnostics?.Missing(job.Id, "native_job_not_terminal");
+            }
+            catch (Exception ex) { LoggerHelper.Warning("OCR diagnostics missing: " + ex.GetType().Name); }
+            return result;
+        }
+        catch
+        {
+            try { _pcrOcrDiagnostics?.Missing(taskId, "owner_wait_interrupted"); }
+            catch (Exception ex) { LoggerHelper.Warning("OCR diagnostics missing: " + ex.GetType().Name); }
+            throw;
+        }
+        finally
+        {
+            _pcrOcrDiagnostics = null;
+            if (collectOcr)
+            {
+                try { maa.Global.SetOption_DebugMode(Instances.GameSettingsUserControlModel.ShowHitDraw); }
+                catch (Exception ex) { LoggerHelper.Warning("OCR diagnostics restore: " + ex.GetType().Name); }
+            }
+        }
     }
 
     async private Task RunScript(string str = "Prescript")

@@ -112,9 +112,6 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
     monkeypatch.setattr(native, 'RUNTIME', tmp_path / 'native')
     stop = StopSignal(io.StringIO())
     owned = OwnedRuntime(request(), stop, events.append, root=tmp_path)
-    metadata = tmp_path / 'assets/labyrinth/protocol-version.json'
-    metadata.parent.mkdir(parents=True)
-    metadata.write_text(json.dumps(dict(content_version='123456789012')), encoding='utf-8')
     calls = []
     def resource(_):
         calls.append('resource')
@@ -128,6 +125,9 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
             calls.append('connect')
             if stop_on_connect: stop.request()
             return NS(succeeded=True)
+        def post_shell(self, command, *, timeout):
+            assert command == 'dumpsys package com.bilibili.priconne' and timeout == 5000
+            return NS(done=True,succeeded=True,get=lambda:'Packages:\n  Package [com.bilibili.priconne] (abc):\n    versionName=11.7.2\n')
     class Tasker:
         inited = True
         def bind(self, *args): return True
@@ -138,6 +138,8 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
         def __init__(self, username, password, **kwargs):
             assert events[-1] == dict(kind='progress', stage='authenticating')
             assert (username, password) == ('synthetic-user', 'synthetic-password')
+            assert 'content_version' not in kwargs
+            assert kwargs['app_version'] == '11.7.2'
             calls.append('client')
         def close(self): calls.append('client_close')
     monkeypatch.setattr(native, 'load_resource', resource)
@@ -159,6 +161,7 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
 
 def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_path, monkeypatch):
     owned, events, calls = runtime(tmp_path, monkeypatch)
+    assert not (tmp_path / 'assets/labyrinth/protocol-version.json').exists()
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
     assert [value['stage'] for value in events] == [
         'dependencies', 'resources', 'connecting', 'authenticating', 'recovering', 'ready']
@@ -168,6 +171,26 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     assert owned.request.username == owned.request.password == ''
     assert 'synthetic-user' not in json.dumps(events)
     assert 'synthetic-password' not in json.dumps(events)
+
+
+def test_missing_installed_version_stops_before_sdk_login_and_keeps_credentials_private(tmp_path,monkeypatch):
+    from pcr_maa.labyrinth import app_version
+    from pcr_maa.labyrinth.batch import BatchStopped
+    owned,events,calls=runtime(tmp_path,monkeypatch)
+    def missing(*args,**kw):raise BatchStopped('game_version_unavailable')
+    monkeypatch.setattr(app_version,'read_installed_version',missing)
+    assert owned.run()==dict(outcome='game_version_unavailable',batch_complete=False)
+    assert not {'client','authenticate','batch'} & set(calls)
+    assert owned.request.username==owned.request.password==''
+
+
+def test_stop_after_version_read_does_not_allocate_login(tmp_path,monkeypatch):
+    from pcr_maa.labyrinth import app_version
+    owned,events,calls=runtime(tmp_path,monkeypatch)
+    def version(*args,**kw):owned.stop.request();return '11.9.0'
+    monkeypatch.setattr(app_version,'read_installed_version',version)
+    assert owned.run()==dict(outcome='stopped',batch_complete=False)
+    assert not {'client','authenticate','batch'} & set(calls)
 
 
 def test_resource_timeout_is_reported_before_device_or_login(tmp_path, monkeypatch):
@@ -264,6 +287,133 @@ def test_stop_cancels_slow_sdk_login_without_retry(monkeypatch):
     assert value.auth.username == value.auth.password == ''
 
 
+def stub_login(monkeypatch, value, maintenance):
+    from autopcr_sync.core import readonly
+    calls = []
+    async def sdk_login(*args):
+        calls.append('sdk_login')
+        return dict(code=0, uid=1, access_key='synthetic-key')
+    async def auth_request(request):
+        calls.append(type(request).__name__)
+        if calls[-1] == 'SourceIniIndexRequest':
+            return NS(server=['l3-prod-all-gs-gzlj.bilibiligame.net'])
+        assert calls[-1] == 'SourceIniGetMaintenanceStatusRequest'
+        return maintenance
+    async def game_login(uid, key, expected):
+        assert value.auth.username == value.auth.password == ''
+        calls.append('game_login')
+    monkeypatch.setattr(readonly, 'login1', sdk_login)
+    monkeypatch.setattr(value.auth, 'request', auth_request)
+    monkeypatch.setattr(value, '_login_game', game_login)
+    return calls
+
+
+def test_server_manifest_updates_are_accepted_without_changing_local_pin(monkeypatch):
+    for server_version in ('202610141431', '202610151200'):
+        value = client()
+        calls = stub_login(monkeypatch, value, NS(required_manifest_ver=server_version, res_ver='10002200'))
+        try:
+            asyncio.run(value.login(123))
+            assert value.phase == 'protocol' and calls[-1] == 'game_login'
+            assert value.auth.content_version == value.auth.headers['MANIFEST-VER'] == server_version
+            assert calls == ['sdk_login', 'SourceIniIndexRequest',
+                'SourceIniGetMaintenanceStatusRequest', 'game_login']
+        finally:
+            value.close()
+        assert value.auth.username == value.auth.password == '' and not value.auth.headers
+
+
+@pytest.mark.parametrize('server_version', [None, '', 202610151200, True, [], {},
+    '２０２６１０１５１２００', '20261015120', '2026101512000', '20261015120a',
+    '202610151200\n', ' 202610151200', '+202610151200'])
+def test_invalid_manifest_closes_without_game_login_or_retry(monkeypatch, server_version):
+    value = client()
+    calls = stub_login(monkeypatch, value, NS(required_manifest_ver=server_version, res_ver='10002200'))
+    with pytest.raises(protocol.ProtocolFailure, match='^protocol_version_invalid$'):
+        asyncio.run(value.login(123))
+    assert calls == ['sdk_login', 'SourceIniIndexRequest', 'SourceIniGetMaintenanceStatusRequest']
+    assert value.phase == 'closed' and not value.logged_in
+    assert value.auth.username == value.auth.password == '' and not value.auth.headers
+    assert value._sdk_uid == value._sdk_access_key == ''
+
+
+@pytest.mark.parametrize('field', ['required_manifest_ver', 'res_ver'])
+@pytest.mark.parametrize('server_version', [202610151200, True, [], {}])
+def test_wire_manifest_type_is_not_coerced_before_validation(monkeypatch, server_version, field):
+    value = client()
+    calls = stub_login(monkeypatch, value, None)
+    from autopcr_sync.core import readonly
+    monkeypatch.setattr(value.auth, 'request', readonly.ReadOnlyClient.request.__get__(value.auth))
+    def post(url, **kwargs):
+        calls.append(url.rsplit('/', 1)[-1])
+        data = dict(server=['l3-prod-all-gs-gzlj.bilibiligame.net']) if 'index?' in url else dict(
+            required_manifest_ver='202610151200', res_ver='10002200')
+        if 'index?' not in url: data[field] = server_version
+        return NS(status_code=200, content=json.dumps(dict(data_headers=dict(result_code=1), data=data)).encode())
+    monkeypatch.setattr(readonly.requests, 'post', post)
+    with pytest.raises(protocol.ProtocolFailure, match='^login_failed$'):
+        asyncio.run(value.login(123))
+    assert calls == ['sdk_login', 'index?format=json', 'get_maintenance_status?format=json']
+    assert value.phase == 'closed' and not value.logged_in
+    assert value.auth.username == value.auth.password == '' and not value.auth.headers
+
+
+@pytest.mark.parametrize('version', ['1', '10002200', '10002300', '100000000', '9' * 20,
+    None, '', 10002200, True, [], {}, '１０００２２００', '10002200\n', ' 10002200',
+    '+10002200', '1.0', '9' * 21])
+def test_resource_version_is_dynamic_and_invalid_reply_never_reaches_game_login(monkeypatch, version):
+    value = client()
+    calls = stub_login(monkeypatch, value, NS(required_manifest_ver='202610151200', res_ver=version))
+    accepted = type(version) is str and version in ('1', '10002200', '10002300', '100000000', '9' * 20)
+    if accepted:
+        asyncio.run(value.login(123))
+        assert value.auth.headers['RES-VER'] == version
+        assert value.auth.headers['MANIFEST-VER'] == '202610151200'
+        assert calls[-1] == 'game_login'
+    else:
+        with pytest.raises(protocol.ProtocolFailure, match='^protocol_version_invalid$'):
+            asyncio.run(value.login(123))
+        assert calls == ['sdk_login', 'SourceIniIndexRequest', 'SourceIniGetMaintenanceStatusRequest']
+        assert value.phase == 'closed' and not value.logged_in
+    value.close()
+    assert value.auth.username == value.auth.password == '' and not value.auth.headers
+
+
+@pytest.mark.parametrize('updates,accepted', [(1, True), (2, False)])
+def test_app_version_updates_keep_existing_two_request_bound(monkeypatch, updates, accepted):
+    value = protocol.LabyrinthClient('synthetic-user', 'synthetic-password')
+    calls = stub_login(monkeypatch, value, None)
+    from autopcr_sync.core import readonly
+    monkeypatch.setattr(value.auth, 'request', readonly.ReadOnlyClient.request.__get__(value.auth))
+    def post(url, **kwargs):
+        name = url.rsplit('/', 1)[-1]
+        calls.append(name)
+        if 'index?' in name:
+            data, header = dict(server=['l3-prod-all-gs-gzlj.bilibiligame.net']), dict(result_code=1)
+        else:
+            attempt = calls.count(name)
+            data = dict(required_manifest_ver='202610151200', res_ver='10002300')
+            header = dict(result_code=1)
+            if attempt <= updates:
+                header['store_url'] = 'https://game.bilibili.com/gzlj_11.8.0.apk'
+        return NS(status_code=200, content=json.dumps(dict(data_headers=header, data=data)).encode())
+    monkeypatch.setattr(readonly.requests, 'post', post)
+    if accepted:
+        asyncio.run(value.login(123))
+        assert value.phase == 'protocol' and value.auth.headers['APP-VER'] == '11.8.0'
+        assert value.auth.content_version == value.auth.headers['MANIFEST-VER'] == '202610151200'
+        assert value.auth.headers['RES-VER'] == '10002300'
+    else:
+        with pytest.raises(protocol.ProtocolFailure, match='^login_failed$'):
+            asyncio.run(value.login(123))
+        assert value.phase == 'closed'
+    assert calls.count('sdk_login') == 1
+    assert calls.count('get_maintenance_status?format=json') == 2
+    assert calls.count('game_login') == int(accepted)
+    value.close()
+    assert value.auth.username == value.auth.password == '' and not value.auth.headers
+
+
 @pytest.mark.parametrize('captcha_wait,viewer,expected', [
     (False, 123, None), (True, 123, None), (False, 124, 'account_mismatch')])
 def test_login_success_identity_and_human_wait_are_retained(monkeypatch, captcha_wait, viewer, expected):
@@ -289,7 +439,7 @@ def test_login_success_identity_and_human_wait_are_retained(monkeypatch, captcha
         name = type(request).__name__
         calls.append(name)
         if name == 'SourceIniIndexRequest': return NS(server=['l3-prod-all-gs-gzlj.bilibiligame.net'])
-        if name == 'SourceIniGetMaintenanceStatusRequest': return NS(required_manifest_ver='123456789012')
+        if name == 'SourceIniGetMaintenanceStatusRequest': return NS(required_manifest_ver='123456789012', res_ver='10002200')
         if name == 'ToolSdkLoginRequest': return NS(is_risk=False)
         if name == 'CheckGameStartRequest': return NS(now_tutorial=True)
         if name == 'HomeIndexRequest': value.auth.viewer_id = viewer

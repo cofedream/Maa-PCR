@@ -1134,10 +1134,10 @@ class AutoplayRunner:
                     if nxt is not None and nxt.area!=node.area:
                         if nxt.area!=node.area+1 or nxt.block_type!=1 or not self.cursor.node_finished:
                             raise BatchStopped('area_transition_unknown')
-                        # Upstream advances at the last route node automatically.
-                        # The old MAP/black transition may linger after reward close;
-                        # wait for actual next-area evidence without tapping a node.
-                        scene=self.runtime.wait_for(batch,{'map','area_transition'},source='map',
+                        # A transient MAP may precede another reward at the area end.
+                        # Dispatch that page before waiting for the actual next area.
+                        scene=self.runtime.wait_for(batch,{'map','area_transition','role_reward',
+                            'free_role_reward','relic_reward','link_reward','item_reward'},source='map',
                             accept=lambda s:s.kind!='map' or s.payload.get('area')!=node.area,
                             timeout=30,reason='area_transition_unknown')
                         continue

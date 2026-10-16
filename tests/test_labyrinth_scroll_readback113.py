@@ -24,9 +24,10 @@ class Reads:
     wait_for=MaaCharacters.wait_for
     def __init__(self,observations,*,error=None,clock=None,cost=0):
         self.observations=iter(observations);self.error=error;self.clock=clock;self.cost=cost
-        self.inputs=[];self.reads=[];self.deadlines=[]
+        self.inputs=[];self.calls=[];self.reads=[];self.deadlines=[]
     def run(self,suffix,params,*,input=False):
-        self.inputs.append((suffix,params,input))
+        self.calls.append((suffix,params,input))
+        if input:self.inputs.append((suffix,params,input))
         if self.error is not None:raise self.error
         return None,dict(native_ok=True,task_id=1)
     def read(self,batch,page,*,roster=None,stable=True):
@@ -101,6 +102,8 @@ def test_filter_and_tab_keep_original_first_stable_read_contract(mode):
     chars=Reads([after]);batch=FakeBatch();options=dict(filter='DARK') if mode=='filter' else dict(tab=2)
     assert CharacterNavigation(chars,lambda **v:v).move(batch,113,before['page'],before,**options)==after
     assert len(chars.reads)==1 and len(chars.inputs)==1
+    assert [(suffix,input) for suffix,_,input in chars.calls]==(
+        [('FilterOnce',True),('FilterStable',False)] if mode=='filter' else [('TabOnce',True)])
 
 
 @pytest.mark.parametrize('kind',['not_sent','unknown_input'])
@@ -114,7 +117,7 @@ def test_no_input_ack_never_arms_readback_or_retries_old_unknown(kind,tmp_path):
         with pytest.raises(BatchStopped if kind=='not_sent' else RuntimeError) as caught:
             nav.move(batch,113,'battle',view(),direction='up')
         assert not isinstance(caught.value,CharacterNotFound)
-        assert not chars.reads and len(chars.inputs)==1
+        assert not chars.reads and len(chars.inputs)==1 and len(chars.calls)==1
         events=journal.events()
         if kind=='not_sent':
             assert len(events)==2 and events[-1]['result']['input_execution']=='not_sent'
@@ -123,7 +126,7 @@ def test_no_input_ack_never_arms_readback_or_retries_old_unknown(kind,tmp_path):
             prior=journal.path.read_bytes()
             with pytest.raises(BatchStopped,match='blocked_in_flight'):
                 nav.move(batch,113,'battle',view(),direction='up')
-            assert journal.path.read_bytes()==prior and len(chars.inputs)==1
+            assert journal.path.read_bytes()==prior and len(chars.inputs)==1 and len(chars.calls)==1
 
 
 def test_motion_readback_keeps_original_shared_twelve_second_deadline(monkeypatch):

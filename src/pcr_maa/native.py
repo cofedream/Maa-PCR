@@ -300,6 +300,12 @@ def run(tasker, entry, *, reset_hits=()):
         detail = job.get()
         receipt = _receipt(detail, native_ok=job.succeeded, tasker_inited=tasker.inited,
                            task_id=job.job_id)
+        diagnostics = getattr(tasker, '_ocr_diagnostics', None)
+        if diagnostics is not None:
+            try:
+                diagnostics.capture(tasker, job.job_id, entry)
+            except Exception:
+                pass
     except BaseException as exc:
         exc.native_stop = stop_tasker(tasker)
         raise

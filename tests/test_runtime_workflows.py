@@ -61,7 +61,7 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
             '.runtime/ci/build/Maa-PCR-*-source.zip',
             '.runtime/ci/build/Maa-PCR-R*-to-R*.patch.zip',
         }
-    assert '--base-manifest delivery/baselines/r50-package-manifest.json' in text
+    assert '--base-manifest delivery/baselines/r51-package-manifest.json' in text
 
 
 def test_release_promotes_only_the_exact_reviewed_ci_artifact_without_rebuilding():
@@ -110,3 +110,51 @@ def test_release_promotes_only_the_exact_reviewed_ci_artifact_without_rebuilding
     for evidence in ('gui-checks.log', 'PROMOTION_REQUEST.json', 'metadata/run.json',
                      'metadata/artifact.json', 'promotion.log'):
         assert '.runtime/release/' + evidence in upload
+
+
+def ci_crt_python():
+    import textwrap
+    text = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
+    step = text.split('      - name: Build Portable Candidate\n', 1)[1].split('\n      - name:', 1)[0]
+    assert "'@ | python -X utf8 -B -\n          " + EXIT_CHECK in step
+    assert '--vc-redist .runtime/ci/vc-redist-r51' in step
+    return textwrap.dedent(step.split("          @'\n", 1)[1].split("          '@", 1)[0])
+
+
+@pytest.mark.parametrize('tampered', [None, 'baseline', 'archive_manifest', 'dll'])
+def test_ci_extracts_only_manifest_bound_crt_and_rejects_tampering(tmp_path, monkeypatch, tampered):
+    import hashlib
+    import json
+    import sys
+    import zipfile
+    from scripts import build_release as build
+    from test_player_patch_builder import manifest as player_manifest
+
+    program = compile(ci_crt_python(), '.github/workflows/ci.yml', 'exec')
+    monkeypatch.setattr(sys, 'path', sys.path.copy())
+    monkeypatch.setitem(sys.modules, 'build_release', build)
+    monkeypatch.chdir(tmp_path)
+    payload = {'runtime/python/' + name: ('synthetic ' + name).encode() for name in build.CRT_FILES}
+    manifest = json.dumps(player_manifest(payload, 51)).encode()
+    monkeypatch.setattr(build, 'R51_MANIFEST_SHA256', hashlib.sha256(manifest).hexdigest())
+    baseline = tmp_path / 'delivery/baselines/r51-package-manifest.json'
+    baseline.parent.mkdir(parents=True)
+    baseline.write_bytes(manifest + (b' ' if tampered == 'baseline' else b''))
+    archive = tmp_path / 'public-r51-synthetic.zip'
+    with zipfile.ZipFile(archive, 'w') as source:
+        source.writestr('package-manifest.json', manifest + (b' ' if tampered == 'archive_manifest' else b''))
+        for name, data in payload.items():
+            source.writestr(name, data + (b'changed' if tampered == 'dll' else b''))
+        source.writestr('unselected/extra.dll', b'must not extract')
+    downloads = []
+    monkeypatch.setattr(build, 'download', lambda record, cache: downloads.append((record, cache)) or archive)
+    if tampered:
+        with pytest.raises(ValueError, match='R51_crt_.*_mismatch'):
+            exec(program, {})
+        assert len(downloads) == (0 if tampered == 'baseline' else 1)
+        return
+    exec(program, {})
+    target = tmp_path / '.runtime/ci/vc-redist-r51'
+    assert {path.name: path.read_bytes() for path in target.iterdir()} == {
+        name.removeprefix('runtime/python/'): data for name, data in payload.items()}
+    assert len(downloads) == 1 and downloads[0][1] == Path('.runtime/downloads')

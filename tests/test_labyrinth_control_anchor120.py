@@ -547,7 +547,11 @@ def test_navigation_relays_existing_owned_roster_for_guard_and_feedback(kind):
     view=dict(page='boss',filter='ALL',boss_tab=1,signature='same',scrollbar=dict(visible=False,can_scroll=False),selected=list(roster),cards=[],members=[])
     class Characters:
         def run(self,suffix,params,*,input):
-            assert input and params['roster']==list(roster)
+            assert params['roster']==list(roster)
+            if suffix=='FilterStable':
+                assert not input and params['mode']=='freeze'
+                return dict(page='boss',filter_frozen=True),dict(native_ok=True)
+            assert input
             calls.append(suffix)
             if 'filter' in params:view['filter']=params['filter']
             if 'tab' in params:view['boss_tab']=params['tab']
@@ -587,7 +591,11 @@ def test_team_edit_keeps_owned_member_scope_across_filter_seek_and_toggle():
     class Characters:
         def run(self,suffix,params,*,input):
             nonlocal current_filter,filtered
-            assert input and params['roster']==list(roster)
+            assert params['roster']==list(roster)
+            if suffix=='FilterStable':
+                assert not input and params['mode']=='freeze'
+                return dict(page='boss',filter_frozen=True),dict(native_ok=True)
+            assert input
             if suffix=='FilterOnce':current_filter=params['filter'];filtered=True
             elif suffix=='ToggleOnce':selected.append(params['role_id'])
             else:raise AssertionError(suffix)

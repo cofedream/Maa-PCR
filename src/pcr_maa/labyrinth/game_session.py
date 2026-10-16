@@ -16,6 +16,8 @@ from .session import (title_pipeline,title_player_id,notice_pipeline,resume_home
 from .profile import PROFILE_NODE,profile_pipeline,profile_player_id,observe_profile
 from .snapshots import OpeningSnapshot
 from .timing import Timings
+from pathlib import Path
+import json
 
 _OPERATIONS=('client_download_retry','client_return_title','client_title_start','client_notice_close',
              'client_open_adventure','client_open_labyrinth',
@@ -65,12 +67,13 @@ def game_session_pipeline(expected_player_id):
     def label(pattern,roi):
         return dict(recognition='OCR',expected=pattern,roi=roi,threshold=.8,
             action='DoNothing',next=[],timeout=1000,pre_delay=0,post_delay=0)
-    nodes.update({
-        'LabyClientAdventureLabel':label('^冒险$',[675,650,110,70]),
-        'LabyClientScheduleLabel':label('^日程表$',[970,580,110,60]),
-        'LabyClientGiftLabel':label('^礼物$',[1160,580,120,60]),
-    })
-    home=['LabyClientAdventureLabel','LabyClientScheduleLabel','LabyClientGiftLabel','HomeNoKnownLargePanel']
+    # Full-text crops avoid detector grouping changing OCR between HOME endpoints.
+    shared=json.loads((Path(__file__).resolve().parents[3]/'assets/resource/pipeline/home_text.json').read_text(encoding='utf-8'))
+    nodes.update(deepcopy(shared))
+    for local, common in (('LabyClientAdventureLabel','HomeAdventureText'),
+                          ('LabyClientScheduleLabel','HomeScheduleText'),('LabyClientGiftLabel','HomeGiftText')):
+        nodes[local]=deepcopy(shared[common])
+    home=['HomeTextLayout','HomeNoKnownLargePanel']
     nodes['LabyClientGameHomeObserved']=dict(recognition='And',all_of=home,
         action='DoNothing',next=[],timeout=5000,pre_delay=0,post_delay=0)
     nodes['LabyClientHomeToAdventure']=dict(recognition='And',all_of=home,
@@ -107,10 +110,7 @@ def game_session_pipeline(expected_player_id):
         nodes['LabyGameSessionWait_'+page]=dict(recognition='Or',
             any_of=['LabyDateChangedObserved',node],action='DoNothing',next=[],
             timeout=5000,rate_limit=250,pre_delay=0,post_delay=0)
-    # Adding Notice's ROI to this OR changes Maa's batch OCR grouping. Keep the
-    # established standalone HOME/input leaves intact and use a complete Gift
-    # text crop only for this combined readonly endpoint, at the same .8 cutoff.
-    nodes['LabyClientAfterTitleGiftLabel']=dict(label('^礼物$',[1188,596,51,30]),only_rec=True)
+    nodes['LabyClientAfterTitleGiftLabel']=deepcopy(nodes['LabyClientGiftLabel'])
     nodes['LabyClientAfterTitleHomeObserved']=deepcopy(nodes['LabyClientGameHomeObserved'])
     nodes['LabyClientAfterTitleHomeObserved']['all_of']=[
         'LabyClientAfterTitleGiftLabel' if n=='LabyClientGiftLabel' else n for n in home]

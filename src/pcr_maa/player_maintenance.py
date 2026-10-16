@@ -24,6 +24,7 @@ RUN_ID = re.compile(r'run-[0-9a-f]{32}')
 MAX_JSON = 16 * 1024 * 1024
 MAX_PAYLOAD = 4 * 1024 * 1024 * 1024
 MAX_ARCHIVE = MAX_PAYLOAD + 64 * 1024 * 1024
+R54_TEST_MANIFEST_SHA256 = '2b653ffdd0c1378497204ef4f1c3f3f48313a3ba39f298d30fad168153280578'
 
 
 def _require(condition, message):
@@ -133,6 +134,45 @@ def _version(manifest, *, legacy=False):
     return update
 
 
+def _accepted_promotion(old_version, new):
+    new_version = _version(new)
+    old_candidate = re.fullmatch(
+        rf'v(\d+)\.(\d+)\.(\d+)-r{old_version["revision"]}-candidate', old_version['version'])
+    new_release = re.fullmatch(r'v(\d+)\.(\d+)\.(\d+)', new_version['version'])
+    checks = new.get('release_checks')
+    return (old_candidate is not None and new_release is not None
+        and tuple(map(int, new_release.groups())) >= tuple(map(int, old_candidate.groups()))
+        and new.get('status') == 'player_test_release' and new.get('distribution_ready') is True
+        and new.get('blockers') == [] and type(checks) is list and bool(checks)
+        and all(type(check) is dict and set(check) == {'name', 'sha256'}
+            and type(check['name']) is str and bool(check['name'])
+            and type(check['sha256']) is str
+            and re.fullmatch('[0-9a-f]{64}', check['sha256']) is not None for check in checks))
+
+
+def _r54_to_r52(transition, old, old_bytes, new, new_bytes):
+    if transition is None:
+        return False
+    _require(type(transition) is tuple and len(transition) == 2
+        and all(type(value) is str and re.fullmatch('[0-9a-f]{64}', value)
+                for value in transition), 'invalid_r54_release_transition')
+    _require(transition[0] == R54_TEST_MANIFEST_SHA256
+        and hashlib.sha256(old_bytes).hexdigest() == transition[0]
+        and hashlib.sha256(new_bytes).hexdigest() == transition[1],
+        'r54_release_manifest_mismatch')
+    old_version, new_version = _version(old), _version(new)
+    _require(old_version['revision'] == 54 and old_version['version'] == 'v0.1.7-r54-candidate'
+        and new_version['revision'] == 52 and _accepted_promotion(old_version, new)
+        and old.get('status') == 'release_staging' and old.get('distribution_ready') is False
+        and old['layout'] == new['layout'], 'r54_release_transition_not_allowed')
+    old_rows, new_rows = _rows(old), _rows(new)
+    # The installed interpreter must remain usable through update and recovery.
+    _require(all(old_rows.get(name) == new_rows.get(name)
+        for name in set(old_rows) | set(new_rows) if name.casefold().startswith('runtime/python/')),
+        'r54_release_python_runtime_changed')
+    return True
+
+
 def _same_revision_candidate(candidate_replacement, old, old_bytes, new, new_bytes):
     if candidate_replacement is None:
         return False
@@ -151,22 +191,10 @@ def _same_revision_candidate(candidate_replacement, old, old_bytes, new, new_byt
         and new.get('distribution_ready') is False
         and old_version['version'] == new_version['version']
         and new_version['version'].endswith('-candidate'))
-    old_candidate = re.fullmatch(
-        rf'v(\d+)\.(\d+)\.(\d+)-r{old_version["revision"]}-candidate', old_version['version'])
-    new_release = re.fullmatch(r'v(\d+)\.(\d+)\.(\d+)', new_version['version'])
-    checks = new.get('release_checks')
-    promoted = (old_candidate is not None and new_release is not None
-        and tuple(map(int, new_release.groups())) >= tuple(map(int, old_candidate.groups()))
-        and new.get('status') == 'player_test_release' and new.get('distribution_ready') is True
-        and new.get('blockers') == [] and type(checks) is list and bool(checks)
-        and all(type(check) is dict and set(check) == {'name', 'sha256'}
-            and type(check['name']) is str and bool(check['name'])
-            and type(check['sha256']) is str
-            and re.fullmatch('[0-9a-f]{64}', check['sha256']) is not None for check in checks))
     _require(old.get('status') == 'release_staging' and old.get('distribution_ready') is False
         and old['layout'] == new['layout']
         and old_version['revision'] == new_version['revision']
-        and (candidate or promoted),
+        and (candidate or _accepted_promotion(old_version, new)),
         'candidate_replacement_not_allowed')
     return True
 
@@ -264,7 +292,8 @@ def _restore(source, destination):
             temporary.unlink()
 
 
-def apply_update(player, archive, *, process_probe=None, candidate_replacement=None):
+def apply_update(player, archive, *, process_probe=None, candidate_replacement=None,
+        r54_release_transition=None):
     """Verify a full or base-bound delta ZIP; update owned files transactionally."""
     player = _root(player)
     archive = Path(archive).absolute()
@@ -304,8 +333,11 @@ def apply_update(player, archive, *, process_probe=None, candidate_replacement=N
         new = _json(new_bytes)
         new_rows = _rows(new)
         new_version = _version(new)
+        _require(candidate_replacement is None or r54_release_transition is None,
+            'conflicting_candidate_transitions')
+        transition = _r54_to_r52(r54_release_transition, old, old_bytes, new, new_bytes)
         candidate = _same_revision_candidate(candidate_replacement, old, old_bytes, new, new_bytes)
-        _require((candidate and new_version['revision'] == old_version['revision'])
+        _require(transition or (candidate and new_version['revision'] == old_version['revision'])
             or (not candidate and new_version['revision'] > old_version['revision']),
             'update_not_newer')
         _require(new['layout'] == old['layout'], 'update_layout_mismatch')
@@ -456,7 +488,8 @@ def _recovery_material(player):
     return marker, intent, work, backup, old_bytes, new_bytes, old, new
 
 
-def recover_update(player, *, process_probe=None, candidate_replacement=None):
+def recover_update(player, *, process_probe=None, candidate_replacement=None,
+        r54_release_transition=None):
     """Roll back an interrupted update only when every owned byte has a known hash."""
     player = _root(player)
     probe = process_probe or _processes
@@ -467,9 +500,12 @@ def recover_update(player, *, process_probe=None, candidate_replacement=None):
     marker, intent, work, backup, old_bytes, new_bytes, old, new = material
     old_rows, new_rows = _rows(old), _rows(new)
     old_version, new_version = _version(old, legacy=True), _version(new)
+    _require(candidate_replacement is None or r54_release_transition is None,
+        'conflicting_candidate_transitions')
+    transition = _r54_to_r52(r54_release_transition, old, old_bytes, new, new_bytes)
     candidate = _same_revision_candidate(candidate_replacement, old, old_bytes, new, new_bytes)
     _require(old['layout'] == new['layout']
-        and ((candidate and new_version['revision'] == old_version['revision'])
+        and (transition or (candidate and new_version['revision'] == old_version['revision'])
         or (not candidate and new_version['revision'] > old_version['revision'])),
         'invalid_recovery_versions')
     changed = sorted(name for name in new_rows if old_rows.get(name) != new_rows[name])

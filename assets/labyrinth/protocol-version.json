@@ -1,1 +1,1 @@
-{"version":1,"content_version":"202609281226","source":"Bilibili maintenance response verified in the development login; mismatches stop with content_update_required"}
+{"version":1,"reference_content_version":"202610141431","source":"Bilibili public maintenance response verified without login on 2026-10-15; reference only, runtime validates and adopts required_manifest_ver on each login"}
