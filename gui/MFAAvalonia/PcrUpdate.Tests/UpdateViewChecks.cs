@@ -21,7 +21,7 @@ internal static class UpdateViewChecks
     internal static void Run(string evidence)
     {
         // Load real controls with isolated settings, without the product App or a controller.
-        AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
+        AppBuilder.Configure<Application>().UseWin32().UseSkia().SetupWithoutStarting();
         Application.Current!.Styles.Add(new SukiUI.SukiTheme());
         var root = Path.Combine(evidence, "update-controls");
         Directory.CreateDirectory(root);

@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Avalonia.Win32" Version="11.3.12" />
     <ProjectReference Include="../MFAAvalonia/MFAAvalonia.csproj" />
   </ItemGroup>
 </Project>
