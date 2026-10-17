@@ -319,7 +319,7 @@ class MaaGameSession:
         return receipt
 
     def _fields(self,snapshot,**extra):
-        fields=dict(protocol_enter_id=snapshot.enter_id,**extra)
+        fields=dict(enter_id=snapshot.enter_id,protocol_enter_id=snapshot.enter_id,**extra)
         if self.creation_operation_id is not None:fields['creation_operation_id']=self.creation_operation_id
         return fields
 
@@ -354,7 +354,7 @@ class MaaGameSession:
         if events and events[-1]['state']=='in_flight':raise BatchStopped('blocked_in_flight')
         key=(snapshot.enter_id,creation_operation_id)
         if key in self.used or any(event.get('operation') in _OPERATIONS
-                and event.get('protocol_enter_id')==snapshot.enter_id
+                and event.get('enter_id',event.get('protocol_enter_id'))==snapshot.enter_id
                 and (creation_operation_id is None or event.get('creation_operation_id')==creation_operation_id)
                 for event in events):
             raise BatchStopped('game_session_already_attempted')

@@ -1,18 +1,23 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Pcr;
 using MFAAvalonia.ViewModels.UsersControls;
+using MFAAvalonia.ViewModels.Windows;
 using MFAAvalonia.Views.UserControls;
 
 internal static class LogExportChecks
@@ -23,6 +28,7 @@ internal static class LogExportChecks
         void Check(bool ok, string name) { if (!ok) throw new InvalidOperationException(name); count++; }
         var root = Path.Combine(fixtureDirectory, "log-export", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
+        RunPublishChecks(Path.Combine(root, "publish"), Check);
         var now = DateTime.UtcNow;
         string Put(string relative, string content, int age = 0)
         {
@@ -169,4 +175,164 @@ internal static class LogExportChecks
         window.Close();
         Console.WriteLine($"PCR log export/retention checks passed: {count}; synthetic fixtures only, no player cleanup");
     }
+
+    private static void RunPublishChecks(string root, Action<bool, string> check)
+    {
+        var publish = typeof(FileLogExporter).GetMethod("PublishArchiveVolumesAsync", BindingFlags.Static | BindingFlags.NonPublic)!;
+        string Put(string directory, string name, string content)
+        {
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, name);
+            File.WriteAllText(path, content);
+            return path;
+        }
+        List<string> Archives(string directory, bool missingSecond = false)
+        {
+            var source = Path.Combine(directory, "source");
+            return [Put(source, "one.zip", "new-first-volume"), missingSecond ? Path.Combine(source, "missing.zip") : Put(source, "two.zip", "new-second-volume")];
+        }
+        Exception? Publish(string chosen, IReadOnlyList<string> archives)
+        {
+            var file = DispatchProxy.Create<IStorageFile, LogExportStorageProxy>();
+            ((LogExportStorageProxy)(object)file).PathValue = new Uri(chosen);
+            try
+            {
+                Task.Run(async () => await (Task)publish.Invoke(null, [file, archives])!).GetAwaiter().GetResult();
+                return null;
+            }
+            catch (Exception error) { return error.GetBaseException(); }
+        }
+        void Preserved(string path, string content, string name) =>
+            check(File.Exists(path) && File.ReadAllBytes(path).SequenceEqual(System.Text.Encoding.UTF8.GetBytes(content)), name);
+
+        foreach (var existingPart in new[] { 1, 2 })
+        {
+            var directory = Path.Combine(root, "existing-part" + existingPart);
+            var chosen = Put(directory, "chosen.zip", "original-selected");
+            var original = Put(directory, $"chosen-part{existingPart:D2}.zip", "original-volume");
+            check(Publish(chosen, Archives(directory)) is IOException, $"existing_part{existingPart}_refused");
+            Preserved(original, "original-volume", $"existing_part{existingPart}_bytes_preserved");
+            Preserved(chosen, "original-selected", $"existing_part{existingPart}_selected_bytes_preserved");
+            check(Directory.GetFiles(directory, "chosen-part*.zip").Length == 1, $"existing_part{existingPart}_preflight_before_any_write");
+        }
+
+        {
+            var directory = Path.Combine(root, "second-target-directory");
+            var chosen = Put(directory, "chosen.zip", "original-selected");
+            Directory.CreateDirectory(Path.Combine(directory, "chosen-part02.zip"));
+            check(Publish(chosen, Archives(directory)) is IOException, "directory_target_refused");
+            check(!File.Exists(Path.Combine(directory, "chosen-part01.zip")), "directory_target_preflight_before_first_write");
+            Preserved(chosen, "original-selected", "directory_target_selected_bytes_preserved");
+        }
+
+        {
+            var directory = Path.Combine(root, "second-volume-failure");
+            var chosen = Put(directory, "chosen.zip", "original-selected");
+            var unrelated = Put(directory, "chosen-part03.zip", "original-unrelated-volume");
+            check(Publish(chosen, Archives(directory, missingSecond: true)) is IOException, "second_volume_failure_propagated");
+            var first = Path.Combine(directory, "chosen-part01.zip");
+            check(OperatingSystem.IsWindows() ? !File.Exists(first) : File.ReadAllText(first) == "new-first-volume", "failed_first_volume_cleanup_matches_platform");
+            check(!File.Exists(Path.Combine(directory, "chosen-part02.zip")), "failed_second_volume_not_created");
+            Preserved(chosen, "original-selected", "second_volume_failure_selected_bytes_preserved");
+            Preserved(unrelated, "original-unrelated-volume", "second_volume_failure_other_bytes_preserved");
+        }
+
+        {
+            var directory = Path.Combine(root, "target-created-after-preflight");
+            var chosen = Put(directory, "chosen.zip", "original-selected");
+            var original = Path.Combine(directory, "chosen-part02.zip");
+            var archives = new LogExportArchiveList(Archives(directory), index =>
+            {
+                if (index == 1) Put(directory, "chosen-part02.zip", "concurrent-original");
+            });
+            check(Publish(chosen, archives) is IOException, "target_created_after_preflight_refused");
+            var first = Path.Combine(directory, "chosen-part01.zip");
+            check(OperatingSystem.IsWindows() ? !File.Exists(first) : File.ReadAllText(first) == "new-first-volume", "race_failure_cleanup_matches_platform");
+            Preserved(original, "concurrent-original", "race_target_bytes_preserved");
+            Preserved(chosen, "original-selected", "race_selected_bytes_preserved");
+        }
+
+        {
+            var directory = Path.Combine(root, "completed-volume-replacement");
+            var chosen = Put(directory, "chosen.zip", "original-selected");
+            var first = Path.Combine(directory, "chosen-part01.zip");
+            var replaced = false;
+            var denied = false;
+            var archives = new LogExportArchiveList(Archives(directory, missingSecond: true), index =>
+            {
+                if (index != 1) return;
+                try
+                {
+                    File.Delete(first);
+                    Put(directory, "chosen-part01.zip", "replacement-original");
+                    replaced = true;
+                }
+                catch (IOException) { denied = true; }
+            });
+            check(Publish(chosen, archives) is IOException, "replacement_then_second_volume_failure_propagated");
+            check(replaced ? File.Exists(first) && File.ReadAllText(first) == "replacement-original" : !File.Exists(first), "rollback_does_not_delete_replacement");
+            if (OperatingSystem.IsWindows()) check(denied && !replaced, "completed_volume_held_until_publish_outcome");
+            Preserved(chosen, "original-selected", "replacement_failure_selected_bytes_preserved");
+        }
+
+        {
+            var directory = Path.Combine(root, "repeat-publish");
+            var chosen = Put(directory, "chosen.zip", "original-selected");
+            check(Publish(chosen, Archives(directory)) is null, "fresh_split_export_succeeds");
+            var before = Directory.GetFiles(directory, "chosen-part*.zip").ToDictionary(path => path, File.ReadAllBytes);
+            check(before.Count == 2, "fresh_split_export_all_volumes_present");
+            foreach (var path in before.Keys)
+            {
+                using var released = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                check(released.Length > 0, "successful_split_volume_handle_released");
+            }
+            Preserved(chosen, "original-selected", "successful_split_selected_bytes_preserved");
+            check(Publish(chosen, Archives(directory)) is IOException, "repeated_split_export_refused");
+            check(before.All(pair => File.Exists(pair.Key) && File.ReadAllBytes(pair.Key).SequenceEqual(pair.Value)), "repeated_split_export_old_bytes_preserved");
+        }
+
+        {
+            var directory = Path.Combine(root, "picker-cancel");
+            var chosen = Put(directory, "chosen.zip", "original-selected");
+            var original = Put(directory, "chosen-part01.zip", "original-volume");
+            var cache = (ConcurrentDictionary<Type, Lazy<object>>)typeof(Instances).GetField("ServiceCache", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            cache.TryGetValue(typeof(RootViewModel), out var saved);
+            cache[typeof(RootViewModel)] = new Lazy<object>(() => RuntimeHelpers.GetUninitializedObject(typeof(RootViewModel)));
+            try
+            {
+                var provider = DispatchProxy.Create<IStorageProvider, LogExportStorageProxy>();
+                check(Task.Run(() => FileLogExporter.CompressRecentLogs(provider)).GetAwaiter().GetResult() == ExportLogResult.Cancelled, "picker_cancel_returns_cancelled");
+                check(Task.Run(() => FileLogExporter.CompressRecentLogs(provider)).GetAwaiter().GetResult() == ExportLogResult.Cancelled, "picker_cancel_releases_export_lock");
+                Preserved(chosen, "original-selected", "picker_cancel_selected_bytes_preserved");
+                Preserved(original, "original-volume", "picker_cancel_volume_bytes_preserved");
+            }
+            finally
+            {
+                if (saved is null) cache.TryRemove(typeof(RootViewModel), out _);
+                else cache[typeof(RootViewModel)] = saved;
+            }
+        }
+    }
+}
+
+internal sealed class LogExportArchiveList(IReadOnlyList<string> files, Action<int> beforeRead) : IReadOnlyList<string>
+{
+    public int Count => files.Count;
+    public string this[int index] { get { beforeRead(index); return files[index]; } }
+    public IEnumerator<string> GetEnumerator() => files.GetEnumerator();
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public class LogExportStorageProxy : DispatchProxy
+{
+    public Uri PathValue { get; set; } = new("file:///unused.zip");
+
+    protected override object? Invoke(MethodInfo? method, object?[]? arguments) => method!.Name switch
+    {
+        "get_Path" => PathValue,
+        "get_Name" => Path.GetFileName(PathValue.LocalPath),
+        "SaveFilePickerAsync" => Task.FromResult<IStorageFile?>(null),
+        "Dispose" => null,
+        _ => throw new NotSupportedException("Fixture must not access " + method.Name)
+    };
 }

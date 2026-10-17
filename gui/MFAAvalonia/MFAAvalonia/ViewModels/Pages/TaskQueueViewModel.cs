@@ -675,13 +675,13 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         PcrFormalPreflight.Trace(IsRunning ? "toggle_stop" : "toggle_start");
         if (IsRunning)
             StopTask();
-        else if (!PcrAlphaPolicy.Enabled || !PcrTargetBusy)
+        else if (!PcrAlphaPolicy.Enabled || (!PcrTargetBusy && !PcrConnectionPending))
             _ = IsLabyrinthProfile ? PcrLabyrinthOwner.RequestStartAsync(this) : MFAAvalonia.Pcr.PcrAlphaOwner.RequestStartAsync(this);
     }
 
     public void StartTask()
     {
-        if (PcrAlphaPolicy.Enabled && PcrTargetBusy) return;
+        if (PcrAlphaPolicy.Enabled && (PcrTargetBusy || PcrConnectionPending)) return;
         MFAAvalonia.Pcr.PcrAlphaOwner.Require(this.Processor);
         using var _ = BeginUiLogScope("StartTask");
         LoggerHelper.UserAction("启动任务", $"{DescribeCurrentSelection()}, {DescribeSelectedTasks()}",
@@ -782,9 +782,9 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public void StopTask(Action? action = null)
     {
         if (IsLabyrinthProfile && PcrLabyrinthOwner.IsActive) { PcrLabyrinthOwner.Stop(this); return; }
-        if (_pcrConnectCancellation != null)
+        if (_pcrConnectSession is { } connection)
         {
-            _pcrConnectCancellation.Cancel();
+            connection.Cancel();
             SetConnected(false); // Reject a first frame already queued for the UI.
         }
         // Reflect the user's stop request immediately.  The processor still owns the
@@ -1409,7 +1409,9 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         () => MaaProcessor.Toolkit.AdbDevice.Find().ToArray();
     internal Func<AdbDeviceInfo, MaaController> PcrPreviewControllerFactory { get; set; } =
         PcrAdbDiscovery.CreatePreviewController;
-    private CancellationTokenSource? _pcrConnectCancellation;
+    private PcrPreviewConnection? _pcrConnectSession;
+    internal bool PcrConnectionPending => Volatile.Read(ref _pcrConnectSession) != null;
+    internal TimeSpan PcrConnectTimeout { get; set; } = TimeSpan.FromSeconds(30);
     private bool _applyingPcrDevices;
     private bool _restoringPcrAdbSelection;
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanEditPcrTarget))]
@@ -1488,7 +1490,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     }
 
     public bool CanEditPcrTarget => !PcrProfileRunGate.UpdatePending && !PcrProfileRunGate.OtherProfileBusy(Processor.InstanceId) && !IsRunning && !Processor.IsTaskRunActive
-        && !Processor.IsConnecting && !PcrTargetBusy && _isDisposed == 0
+        && !Processor.IsConnecting && !PcrTargetBusy && !PcrConnectionPending && _isDisposed == 0
         && !(Processor.MaaTasker?.IsRunning ?? false)
         && !(Processor.MaaTasker?.IsStopping ?? false)
         && (!PcrFormalPreflight.Enabled || PcrFormalPreflight.Editing);
@@ -1717,73 +1719,60 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
 
     private async Task ConnectPcrAdb()
     {
-        if (PcrFormalPreflight.SettingsOnly || !CanEditPcrTarget) return;
-        if (CurrentDevice is not AdbDeviceInfo device)
+        PcrPreviewConnection connection;
+        AdbDeviceInfo device;
+        lock (PcrProfileRunGate.StartGate)
         {
-            PcrDiscoveryStatus = "请先搜索并选择设备，再点击连接。";
-            return;
+            if (PcrFormalPreflight.SettingsOnly || !CanEditPcrTarget) return;
+            if (CurrentDevice is not AdbDeviceInfo selected)
+            {
+                PcrDiscoveryStatus = "请先搜索并选择设备，再点击连接。";
+                return;
+            }
+            device = selected;
+            _pcrConnectSession = connection = new PcrPreviewConnection(Processor, device, PcrPreviewControllerFactory);
+            PcrTargetBusy = true;
+            PcrProfileRunGate.Notify();
         }
-        using var cancellation = new CancellationTokenSource();
-        _pcrConnectCancellation = cancellation;
-        var token = cancellation.Token;
-        MaaTasker? preview = null;
-        MaaImageBuffer? firstFrame = null;
-        PcrTargetBusy = true;
         SetConnected(false);
         PcrDiscoveryStatus = "正在连接设备并获取画面……";
+        string? recoveredStatus = null;
         try
         {
-            await Task.Run(() =>
-            {
-                if (Processor.MaaTasker != null || Processor.ScreenshotTasker != null)
-                    Processor.SetTasker(requireAllStopped: true);
-                token.ThrowIfCancellationRequested();
-                var controller = PcrPreviewControllerFactory(device);
-                // MaaTasker requires a Resource. Use the same empty native holder
-                // as MFAAvalonia's screenshot path; no bundles, OCR or Agent load.
-                MaaResource? resource = null;
-                try
-                {
-                    resource = new MaaResource();
-                    preview = new MaaTasker { Resource = resource, Controller = controller, DisposeOptions = DisposeOptions.All };
-                }
-                catch
-                {
-                    try { resource?.Dispose(); }
-                    finally { controller.Dispose(); }
-                    throw;
-                }
-                if (!controller.SetOption_ScreenshotUseRawSize(true)
-                    || controller.LinkStart().Wait() != MaaJobStatus.Succeeded || !controller.IsConnected)
-                    throw new InvalidOperationException("Maa 设备连接失败。");
-                token.ThrowIfCancellationRequested();
-                // GetImage waits for a completed native screencap before reading its cache.
-                firstFrame = Processor.GetImage(controller);
-                if (firstFrame == null || !controller.IsConnected
-                    || !firstFrame.TryGetRawData(out var pixels, out var width, out var height, out _)
-                    || pixels == IntPtr.Zero || width <= 0 || height <= 0 || firstFrame.Channels is not (3 or 4))
-                    throw new InvalidOperationException("Maa 未取得有效设备画面。");
-                token.ThrowIfCancellationRequested();
-            });
-            token.ThrowIfCancellationRequested();
+            await connection.WaitAsync(PcrConnectTimeout);
             if (_isDisposed != 0 || CurrentDevice is not AdbDeviceInfo current
                 || !PcrAdbDiscovery.SameTarget(device, current))
+            {
+                connection.Cancel();
                 throw new OperationCanceledException();
-            Processor.SetTasker(preview);
-            SetConnected(true);
-            token.ThrowIfCancellationRequested();
+            }
+            var image = connection.TakeFirstFrame(() => SetConnected(true));
             var generation = Processor.LiveViewGeneration;
             _lastLiveViewGeneration = generation;
-            var image = firstFrame;
-            firstFrame = null; // The existing image renderer owns and disposes this buffer.
-            await UpdateLiveViewImageAsync(image, generation, waitForRenderer: true);
-            token.ThrowIfCancellationRequested();
-            preview = null; // The processor owns the connected read-only controller.
+            await UpdateLiveViewImageAsync(image, generation, waitForRenderer: true, cancellationToken: connection.Token);
+            connection.Transfer();
+            _lastLiveViewGeneration = Processor.LiveViewGeneration;
             PcrDiscoveryStatus = EnableLiveView ? "设备已连接，画面已就绪。" : "设备已连接并取得画面；实时预览已关闭。";
         }
         catch (OperationCanceledException)
         {
-            if (_isDisposed == 0) { SetConnected(false); PcrDiscoveryStatus = "设备连接已取消。"; }
+            connection.Cancel();
+            recoveredStatus = "设备连接已取消；旧连接已回收，可重新连接。";
+            if (_isDisposed == 0)
+            {
+                SetConnected(false);
+                PcrDiscoveryStatus = "设备连接已取消；正在等待旧原生调用结束并回收，完成前不能重连、切换配置或更新。";
+            }
+        }
+        catch (TimeoutException)
+        {
+            connection.Cancel();
+            recoveredStatus = "设备连接已超时；旧连接已回收，可重新连接。";
+            if (_isDisposed == 0)
+            {
+                SetConnected(false);
+                PcrDiscoveryStatus = "设备连接已超时；正在等待旧原生调用结束并回收，完成前不能重连、切换配置或更新。";
+            }
         }
         catch (Exception ex)
         {
@@ -1795,30 +1784,35 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            try
+            if (_isDisposed == 0) PcrTargetBusy = false;
+            _ = ObservePcrConnectionCleanup(connection, recoveredStatus);
+        }
+    }
+
+    private async Task ObservePcrConnectionCleanup(PcrPreviewConnection connection, string? recoveredStatus)
+    {
+        try
+        {
+            await connection.CleanupAsync().ConfigureAwait(false);
+            await DispatcherHelper.RunOnMainThreadAsync(() =>
             {
-                try { firstFrame?.Dispose(); }
-                finally
+                lock (PcrProfileRunGate.StartGate)
                 {
-                    if (preview != null)
-                    {
-                        if (ReferenceEquals(Processor.MaaTasker, preview))
-                            await Task.Run(() => Processor.SetTasker(requireAllStopped: true));
-                        else
-                            preview.Dispose();
-                    }
+                    if (!ReferenceEquals(_pcrConnectSession, connection)) return;
+                    _pcrConnectSession = null;
+                    if (_isDisposed == 0 && recoveredStatus != null) PcrDiscoveryStatus = recoveredStatus;
+                    PcrProfileRunGate.Notify();
                 }
-            }
-            catch (Exception ex)
+            });
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning("PCR 预览连接清理失败：" + ex.Message);
+            await DispatcherHelper.RunOnMainThreadAsync(() =>
             {
-                LoggerHelper.Warning("PCR 预览连接清理失败：" + ex.Message);
-                if (_isDisposed == 0) PcrDiscoveryStatus = "连接清理失败，请关闭并重新启动程序后连接设备。";
-            }
-            finally
-            {
-                if (ReferenceEquals(_pcrConnectCancellation, cancellation)) _pcrConnectCancellation = null;
-                if (_isDisposed == 0) PcrTargetBusy = false;
-            }
+                if (_isDisposed == 0 && ReferenceEquals(_pcrConnectSession, connection))
+                    PcrDiscoveryStatus = "连接清理失败；已保留隔离，请关闭并重新启动程序后连接设备。";
+            });
         }
     }
 
@@ -3982,7 +3976,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         {
             // The explicit connection owns its first frame. Let it finish
             // before the timer submits another capture or clears a pending image.
-            if (Processor.IsClosed || Volatile.Read(ref _pcrConnectCancellation) != null)
+            if (Processor.IsClosed || PcrConnectionPending)
                 return;
 
             if (Processor.TryConsumeScreencapFailureLog(out var shouldAbort, out var shouldDisconnected))
@@ -4217,10 +4211,14 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// 更新 Live View 图像（仿 WPF：直接写入缓冲）
     /// </summary>
-    public async Task UpdateLiveViewImageAsync(MaaImageBuffer? buffer, long? generation = null, bool waitForRenderer = false)
+    public async Task UpdateLiveViewImageAsync(MaaImageBuffer? buffer, long? generation = null, bool waitForRenderer = false,
+        CancellationToken cancellationToken = default)
     {
         if (waitForRenderer)
-            await _liveViewSemaphore.WaitAsync();
+        {
+            try { await _liveViewSemaphore.WaitAsync(cancellationToken); }
+            catch { buffer?.Dispose(); throw; }
+        }
         else if (!await _liveViewSemaphore.WaitAsync(0))
         {
             buffer?.Dispose();
@@ -4455,7 +4453,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
             return;
 
         _pcrDiscovery.Cancel();
-        _pcrConnectCancellation?.Cancel();
+        _pcrConnectSession?.Cancel();
         _liveViewTimer.Stop();
         _liveViewTimer.Elapsed -= OnLiveViewTimerElapsed;
         _liveViewTimer.Dispose();

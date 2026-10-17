@@ -155,6 +155,7 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
 @pytest.mark.parametrize('base_revision,target_revision,base_version,target_version', [
     (39, 41, 'v0.1.0', 'v0.1.2'), (41, 45, 'v0.1.2', 'v0.1.3'),
     (45, 46, 'v0.1.3', 'v0.1.4'), (46, 49, 'v0.1.4', 'v0.1.5'), (49, 50, 'v0.1.5', 'v0.1.6'), (50, 51, 'v0.1.6', 'v0.1.7'), (51, 52, 'v0.1.7', 'v0.1.8'), (52, 53, 'v0.1.8', 'v0.1.9'),
+    (53, 55, 'v0.1.9', 'v0.1.10'),
 ])
 def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revision, target_revision, base_version, target_version):
     base, target, _, _, _ = case
@@ -182,9 +183,10 @@ def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revisio
     assert (base / builder.maintenance.MANIFEST).read_bytes() == (target / builder.maintenance.MANIFEST).read_bytes()
 
 
-@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52)])
-def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, version, base_revision):
-    _, target, _, _, _ = case
+@pytest.mark.parametrize('provide_wrong_baseline', [False, True])
+@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52), (55, 'v0.1.10', 53)])
+def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, version, base_revision, provide_wrong_baseline):
+    base, target, _, _, _ = case
     metadata = builder.maintenance._read_json(target / builder.maintenance.MANIFEST)
     metadata['update'].update(revision=revision, version=version)
     save_manifest(target, metadata)
@@ -192,8 +194,11 @@ def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, v
     builder.save(check, dict(accepted(), revision=revision, expected_version=version,
                             accepted_owned_payload_sha256=owned_payload_sha256(metadata)))
     output = target.parent / 'release-output'
-    monkeypatch.setattr(sys, 'argv', ['release_ci.py', '--player', str(target),
-                                    '--acceptance', str(check), '--tag', version, '--output', str(output)])
+    argv = ['release_ci.py', '--player', str(target), '--acceptance', str(check),
+            '--tag', version, '--output', str(output)]
+    if provide_wrong_baseline:
+        argv += ['--base-manifest', str(base / builder.maintenance.MANIFEST)]
+    monkeypatch.setattr(sys, 'argv', argv)
     before = (target / builder.maintenance.MANIFEST).read_bytes()
     with pytest.raises(ValueError, match=f'R{revision}_requires_exact_R{base_revision}_patch_base'):
         release_ci.main()
@@ -246,15 +251,15 @@ def test_frozen_manifest_delta_rejects_changed_trusted_baseline(case):
     assert not output.exists()
 
 
-def test_build_defaults_to_current_r53_identity_without_running_build(tmp_path, monkeypatch):
+def test_build_defaults_to_current_r55_identity_without_running_build(tmp_path, monkeypatch):
     captured = []
     monkeypatch.setattr(builder, 'build', lambda args: captured.append(args) or {'status': 'not_executed'})
     assert builder.main(['--output', str(tmp_path / 'unused-output')]) == 0
-    assert captured[0].revision == 53 and captured[0].version == 'v0.1.9'
+    assert captured[0].revision == 55 and captured[0].version == 'v0.1.10'
     assert not (tmp_path / 'unused-output').exists()
 
 
-@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8')])
+@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8'), (53, 'v0.1.9')])
 def test_public_manifest_is_exact_pinned_release_baseline(revision, version):
     path = ROOT / f'delivery/baselines/r{revision}-package-manifest.json'
     assert builder.digest(path) == getattr(builder, f'R{revision}_MANIFEST_SHA256')

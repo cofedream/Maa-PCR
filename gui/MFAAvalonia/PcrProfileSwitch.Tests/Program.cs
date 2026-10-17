@@ -144,6 +144,7 @@ try
     ModuleOrderChecks.Run(taskViewModel, args[1]);
     AlphaOwnerAsyncChecks.Run(processor, taskViewModel, manager, CheckBlocked, args);
     LiveViewChecks.Run();
+    PreviewConnectionChecks.Run(manager, args[1]);
     Console.WriteLine($"PCR profile switch checks passed: {count}; final ActiveTab notifications={notifications}; controller/agent/grant starts=0");
     return 0;
 }

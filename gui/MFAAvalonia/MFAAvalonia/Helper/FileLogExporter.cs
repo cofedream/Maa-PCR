@@ -7,8 +7,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Win32.SafeHandles;
 
 namespace MFAAvalonia.Helper;
 
@@ -513,30 +516,55 @@ public static class FileLogExporter
             var selectedPath = saveFile.Path.LocalPath;
             var outputDirectory = Path.GetDirectoryName(selectedPath)
                 ?? throw new IOException("Unable to determine the export directory.");
-            var createdFiles = new List<string>();
+            var outputPaths = Enumerable.Range(1, archiveFiles.Count)
+                .Select(number => Path.Combine(outputDirectory, GetVolumeFileName(saveFile.Name, number, archiveFiles.Count)))
+                .ToArray();
+            foreach (var outputPath in outputPaths)
+            {
+                if (File.Exists(outputPath) || Directory.Exists(outputPath))
+                    throw new IOException($"The split archive target already exists: {Path.GetFileName(outputPath)}");
+            }
+            var destinations = new List<FileStream>();
 
             try
             {
                 for (var index = 0; index < archiveFiles.Count; index++)
                 {
-                    var outputPath = Path.Combine(
-                        outputDirectory,
-                        GetVolumeFileName(saveFile.Name, index + 1, archiveFiles.Count));
-                    File.Copy(archiveFiles[index], outputPath, overwrite: true);
-                    createdFiles.Add(outputPath);
+                    await using var source = new FileStream(archiveFiles[index], FileMode.Open, FileAccess.Read, FileShare.Read);
+                    // Keep every new file exclusive until the outcome; DELETE access permits rollback by handle.
+                    var destination = OperatingSystem.IsWindows()
+                        ? FileSystemAclExtensions.Create(new FileInfo(outputPaths[index]), FileMode.CreateNew,
+                            FileSystemRights.Write | FileSystemRights.Delete | FileSystemRights.Synchronize,
+                            FileShare.None, 4096, FileOptions.None, null)
+                        : new FileStream(outputPaths[index], FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                    destinations.Add(destination);
+                    await source.CopyToAsync(destination);
+                    await destination.FlushAsync();
                 }
-
-                if (File.Exists(selectedPath))
-                    File.Delete(selectedPath);
             }
             catch
             {
-                foreach (var createdFile in createdFiles)
+                if (OperatingSystem.IsWindows())
                 {
-                    try { File.Delete(createdFile); }
-                    catch { /* ignore cleanup errors */ }
+                    foreach (var destination in destinations)
+                    {
+                        byte delete = 1;
+                        if (!SetFileInformationByHandle(destination.SafeFileHandle, 4, ref delete, 1))
+                            LoggerHelper.Warning("分卷导出失败，部分新建分卷无法自动清理。");
+                    }
                 }
+                // Unix cannot delete by this handle; retain partial output rather than unlink a replacement.
                 throw;
+            }
+            finally
+            {
+                Exception? closeError = null;
+                foreach (var destination in destinations)
+                {
+                    try { await destination.DisposeAsync(); }
+                    catch (Exception error) { closeError ??= error; }
+                }
+                if (closeError != null) throw closeError;
             }
         }
         finally
@@ -548,6 +576,10 @@ public static class FileLogExporter
             }
         }
     }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetFileInformationByHandle(SafeFileHandle file, int informationClass, ref byte delete, uint size);
 
     private static string GetVolumeFileName(string selectedFileName, int volumeNumber, int volumeCount)
     {

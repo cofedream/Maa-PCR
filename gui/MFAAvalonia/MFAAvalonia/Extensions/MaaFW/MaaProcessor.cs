@@ -679,7 +679,7 @@ public class MaaProcessor
     private CancellationTokenSource? _detachedScreenshotCleanupCancellationTokenSource;
     private Task? _detachedScreenshotCleanupTask;
     public MaaTasker? ScreenshotTasker => _screenshotTasker;
-    public void SetTasker(MaaTasker? maaTasker = null, bool requireAllStopped = false)
+    public void SetTasker(MaaTasker? maaTasker = null, bool requireAllStopped = false, bool waitForNativeCleanup = false)
     {
         if (maaTasker == null) MFAAvalonia.Pcr.PcrAlphaOwner.Revoke(this);
         ResetActionFailedCount();
@@ -701,7 +701,8 @@ public class MaaProcessor
                             () => result = oldTasker.Stop().Wait(), out _)
                             && result == MaaJobStatus.Succeeded && !oldTasker.IsRunning;
                     });
-                    if (!stopTask.Wait(TimeSpan.FromSeconds(MFAAvalonia.Pcr.PcrAlphaOwner.HasAgent(this) ? 20 : 5)))
+                    if (!stopTask.Wait(waitForNativeCleanup ? Timeout.InfiniteTimeSpan
+                            : TimeSpan.FromSeconds(MFAAvalonia.Pcr.PcrAlphaOwner.HasAgent(this) ? 20 : 5)))
                     {
                         taskerStopped = false;
                         LoggerHelper.Warning("停止 MaaTasker 超时；保留原 Owner，不允许重新开始。");
@@ -737,7 +738,7 @@ public class MaaProcessor
             if (!agentsStopped || !taskerStopped) MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(this);
             if (agentsStopped && taskerStopped) MFAAvalonia.Pcr.PcrAlphaOwner.Release(this);
             ViewModel?.SetConnected(false);
-            var screenshotTaskerStopped = DetachScreenshotTasker(requireAllStopped);
+            var screenshotTaskerStopped = DetachScreenshotTasker(requireAllStopped, waitForNativeCleanup);
 
             if (requireAllStopped && (!taskerStopped || !agentsStopped || !screenshotTaskerStopped))
                 throw new InvalidOperationException("更新前未能停止所有 MaaTasker、截图 Tasker 或 Agent 进程。");
@@ -752,7 +753,7 @@ public class MaaProcessor
         }
     }
 
-    private bool DetachScreenshotTasker(bool requireStopped = false)
+    private bool DetachScreenshotTasker(bool requireStopped = false, bool waitForNativeCleanup = false)
     {
         MaaTasker? screenshotTasker;
         Task<MaaTasker?>? initTask;
@@ -795,7 +796,7 @@ public class MaaProcessor
         {
             try
             {
-                if (!initTask.Wait(TimeSpan.FromSeconds(5)))
+                if (!initTask.Wait(waitForNativeCleanup ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5)))
                 {
                     allStopped = false;
                     LoggerHelper.Warning("等待截图 Tasker 初始化结束超时：已等待 5 秒。");
@@ -818,7 +819,7 @@ public class MaaProcessor
 
         foreach (var tasker in taskersToStop)
         {
-            if (StopAndDisposeScreenshotTasker(tasker)) continue;
+            if (StopAndDisposeScreenshotTasker(tasker, waitForNativeCleanup)) continue;
             allStopped = false;
             QueueDetachedScreenshotTasker(tasker);
         }
@@ -850,7 +851,7 @@ public class MaaProcessor
         LoggerHelper.Warning("主连接上下文已变化，旧截图任务执行器已脱钩，等待按新连接重建。");
     }
 
-    private bool StopAndDisposeScreenshotTasker(MaaTasker screenshotTasker)
+    private bool StopAndDisposeScreenshotTasker(MaaTasker screenshotTasker, bool waitForNativeCleanup = false)
     {
         try
         {
@@ -859,9 +860,13 @@ public class MaaProcessor
                 if (screenshotTasker.IsStopping)
                     throw new InvalidOperationException("截图 Tasker 仍处于停止过程中。");
                 if (screenshotTasker.IsRunning && !screenshotTasker.IsStopping)
-                    screenshotTasker.Stop().Wait();
+                {
+                    var status = screenshotTasker.Stop().Wait();
+                    if (waitForNativeCleanup && (status != MaaJobStatus.Succeeded || screenshotTasker.IsRunning))
+                        throw new InvalidOperationException("截图 Tasker 停止结果未确认。");
+                }
             });
-            if (!stopTask.Wait(TimeSpan.FromSeconds(5)))
+            if (!stopTask.Wait(waitForNativeCleanup ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5)))
             {
                 LoggerHelper.Warning("停止截图 Tasker 超时：已等待 5 秒。");
                 return false;

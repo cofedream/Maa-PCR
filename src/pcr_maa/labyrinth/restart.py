@@ -6,6 +6,25 @@ from .batch import Batch, BatchStopped
 from ..preset_execution import Journal
 
 
+_CLIENT_NAVIGATION = frozenset({
+    'client_download_retry', 'client_return_title', 'client_title_start', 'client_notice_close',
+    'client_open_adventure', 'client_open_labyrinth', 'client_open_main_menu', 'client_open_profile',
+    'client_profile_back', 'client_menu_to_adventure', 'client_profile_return_title',
+})
+_CLIENT_AFTER_PROTOCOL = frozenset({'client_stop_after_protocol', 'client_start_after_protocol'})
+
+
+def _intent_enter_id(intent):
+    operation = intent['operation']
+    keys = ('enter_id', 'protocol_enter_id')
+    if (any(key in intent and (type(intent[key]) is not int or intent[key] < 0) for key in keys)
+            or all(key in intent for key in keys) and intent[keys[0]] != intent[keys[1]]):
+        return None
+    if operation in _CLIENT_NAVIGATION | _CLIENT_AFTER_PROTOCOL:
+        return intent.get('enter_id', intent.get('protocol_enter_id'))
+    return intent.get('enter_id')
+
+
 def _valid_intent(intent):
     if (type(intent) is not dict or intent.get('state') != 'in_flight'
             or type(intent.get('operation_id')) is not str
@@ -14,9 +33,13 @@ def _valid_intent(intent):
             or re.fullmatch('[a-z][a-z0-9_]{0,95}', intent['operation']) is None):
         return False
     if intent['operation'] == 'enter':
-        return all(type(intent.get(key)) is int and 1 <= intent[key] <= 5
-                   for key in ('guild_id', 'difficulty'))
-    return type(intent.get('enter_id')) is int and intent['enter_id'] > 0
+        return (not any(key in intent for key in ('enter_id', 'protocol_enter_id'))
+                and all(type(intent.get(key)) is int and 1 <= intent[key] <= 5
+                        for key in ('guild_id', 'difficulty')))
+    enter = _intent_enter_id(intent)
+    # Only client navigation can precede a run; consumption and post-creation
+    # Stop/Start still require a positive run identity.
+    return type(enter) is int and enter >= (0 if intent['operation'] in _CLIENT_NAVIGATION else 1)
 
 
 def pending_intent(journal, binding):
@@ -40,7 +63,8 @@ def is_closed_run_history(event, intent):
     evidence = event.get('evidence')
     return (_valid_intent(intent) and event.get('state') == 'historical_unknown'
         and event.get('recovery_scope') == 'labyrinth_restart'
-        and event.get('resolution') == 'protocol_run_closed'
+        and event.get('resolution') == ('protocol_idle_confirmed'
+            if _intent_enter_id(intent) == 0 else 'protocol_run_closed')
         and event.get('original_result_unknown') is True and event.get('replay_forbidden') is True
         and all(event.get(key) == value for key, value in intent.items() if key != 'state')
         and type(intent.get('binding')) is dict
@@ -68,7 +92,8 @@ def _archive(journal, pending, top):
     if pending is None:
         return
     event = dict(pending, state='historical_unknown', recovery_scope='labyrinth_restart',
-        resolution='protocol_run_closed', original_result_unknown=True, replay_forbidden=True,
+        resolution='protocol_idle_confirmed' if _intent_enter_id(pending) == 0 else 'protocol_run_closed',
+        original_result_unknown=True, replay_forbidden=True,
         resolved_at=datetime.now(timezone.utc).isoformat(),
         evidence=dict(top, source='authenticated_protocol_top'))
     if not is_closed_run_history(event, pending) or journal.events()[-1] != pending:

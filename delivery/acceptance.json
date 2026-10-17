@@ -1,90 +1,18 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "revision": 53,
-  "expected_version": "v0.1.9",
-  "base_release_manifest_sha256": "a1aa22db44eb19f5a2e8279c337f1b20b8097d93b4f8ef666be4cec5492bd85e",
-  "accepted_owned_payload_sha256": "6d3b0bd0ea9bcdaad6fa78cda50af3d9270cd709e560dd7a5965a1a477ff44d9",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "source_commit": "77f5e02de48076dc6c936ab34eb5b45208f14a74",
-    "run_id": 38914317023,
-    "run_attempt": 1,
-    "artifact_id": 12052852397,
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.9-win-x64.zip",
-      "size": 309459123,
-      "sha256": "8cac33643df71d09daebafaf5e69701248e3b8e5775676daa58ece9c90bcdca6"
-    }
-  },
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "public_tests": {
-    "passed": 3062,
-    "skipped": 308,
-    "failed": 0,
-    "errors": 0
-  },
-  "bundled_runtime_tests_passed": 3,
-  "gui_counted_checks": 664,
-  "gui_actual_core_proofs": 4,
-  "saved_frame_native_ocr_checks": 28,
-  "isolated_update_cases": 40,
-  "isolated_update_routes": 4,
-  "synthetic_private_categories_per_route": 9,
-  "accepted_staging_manifest_sha256": "a9e74cbad86e16c1b6a5a18099072164cd5ff58f21439795813bde2554695c4f",
-  "live_valid_game_days": 0,
-  "natural_full_chain_speedup_ratio": null,
-  "meaningful_speedup_reviewed": false,
+  "status": "not_accepted",
+  "revision": 55,
+  "expected_version": "v0.1.10",
+  "base_release_manifest_sha256": "c27d3e9f144aa0af1c06bcaa58374012c55b275024f68e800cb2c9623b776776",
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
   "real_installation_written": false,
   "device_started": false,
   "game_inputs": 0,
-  "evidence": [
-    {
-      "name": "CI_ARTIFACT_VERIFIED.json",
-      "sha256": "9dec11bb6db0a845de9305ab21c7c0554012f555763201670bc3d9e312cf6061"
-    },
-    {
-      "name": "ci-gui-checks/GUI_EVIDENCE_VERIFIED.json",
-      "sha256": "48a4271d2aa49d155a5a612db06fe4a292066310c2994f0fa9bb005c2ad212ce"
-    },
-    {
-      "name": "ci-gui-checks/CANDIDATE_GUI_CONTRACTS.json",
-      "sha256": "1fdce573983e9d19114ce482c83dcc3d7779fc4c2f4f8b854365a4ed65d04b96"
-    },
-    {
-      "name": "ci-native-ocr-checks/PACKAGED_ENTRY.json",
-      "sha256": "421db74d216608c2ed093893e2c0fce646e4249ce7dc9981c0b205eb8dbe02d9"
-    },
-    {
-      "name": "ci-transaction-checks/FINAL_RESULT.json",
-      "sha256": "cc9d7372f2b886a1e489a7a41db277b59950c9bb6b085113ba53858186969786"
-    },
-    {
-      "name": "ci-artifact-range/public-tests.xml",
-      "sha256": "d7ada7ef1236127bcbbba85207528ecee0d06538958ec61edc68f9eede387342"
-    },
-    {
-      "name": "ci-artifact-range/bundled-runtime.xml",
-      "sha256": "ce92ccbef33d57ab42d15755bab17ccb47fab91d414531f55bc11b2a4a2a9f0a"
-    },
-    {
-      "name": "SOURCE_AUDIT_77f5e02.json",
-      "sha256": "3917d58159f5e9fc025615d4b2d10967a18c3fdf1177ad763268d2c358fca214"
-    },
-    {
-      "name": "MODIFIED_TEST_CI_COVERAGE.json",
-      "sha256": "e6ec60b598f9e166b6eb1fc987b4ae7f1f1bb966a50a4a8382649d6d160ab28d"
-    }
-  ],
   "limits": [
-    "GUI uses synthetic contracts and offscreen controls; no product app or real clicks",
-    "Transactions use isolated ordinary copies and synthetic private state; GUI restarts intercepted",
-    "Historical private replay frames remain unavailable or skipped; no new device or live-game acceptance",
-    "Local performance results do not establish a natural full-chain speedup",
-    "Same-revision R53 beta to formal migration is not included",
-    "Public attachment and default-client verification follows publication"
+    "Pending verification of the exact new main CI artifact; previous R53 acceptance is not reusable.",
+    "No real ADB hang or live-game acceptance is claimed."
   ]
 }

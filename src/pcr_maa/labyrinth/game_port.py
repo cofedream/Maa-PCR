@@ -118,7 +118,7 @@ class MaaGamePort:
         })
         if not self.tasker.resource.override_pipeline(nodes):
             raise BatchStopped('game_port_restart_unavailable')
-        fields=dict(source='maa',protocol_enter_id=snapshot.enter_id,
+        fields=dict(source='maa',enter_id=snapshot.enter_id,protocol_enter_id=snapshot.enter_id,
             creation_operation_id=self._active_creation_oid,package='com.bilibili.priconne')
         def stop(oid):
             self._checkpoint(batch)

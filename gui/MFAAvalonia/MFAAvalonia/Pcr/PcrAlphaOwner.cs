@@ -129,7 +129,7 @@ public static partial class PcrAlphaOwner
         lock (PcrProfileRunGate.StartGate)
         lock (Gate)
         {
-            if (prompting != 0 || PcrLabyrinthOwner.IsActive || PcrProfileRunGate.UpdatePending) return;
+            if (prompting != 0 || PcrLabyrinthOwner.IsActive || PcrProfileRunGate.UpdatePending || PcrProfileRunGate.ConnectionPending) return;
             prompting = 1;
             pendingStart = attempt = new PendingStart(vm.Processor);
         }
