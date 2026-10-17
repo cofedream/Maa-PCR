@@ -68,7 +68,7 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
   'alpha_entry.json':'daa650104cb85cccc363500fd7db5b1a850262d40bd9479013bf9857fce47991',
   'event.json':'5c2fd49da67729dd1452a34595ee9c54c6a51a14e6bd50d0f15fb3acab18fc0f',
   'labyrinth.json':'ccb3ab5a528b5d84c05d6f496f47b9ed8090c43cfbe822e36d3ba4677e99d6f8',
-  'presets.json':'3dcece673fcb21c789b52eb18b980a3cbd75d6748476c3f11277a5ca587900a6',
+  'presets.json':'6082ff2ad6c5d61651022e9511ae190907e30ac5d0a83baeaf3da5ec36dd9efc',
   'preset_execution.json':'10ad78382a01f774bd3162183e8fae364a83823494d5123a465e6d215467f936',
   'preset_scan.json':'3460d09b9369b26ba3262f2e30e241991a439fa2954f8a3a62afd7746514afaf',
   'return_home.json':'f879eec48947a4e6064c1ab2128405f5ee042ce0e11fd646fcdb6ddd84fac9cb',
@@ -105,6 +105,9 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  fields=('max_hit','repeat','threshold','action','target','next','on_error')
  for filename,expected in baseline.items():
   pipeline=json.loads((native.RESOURCE/'pipeline'/filename).read_text(encoding='utf-8'))
+  if filename=='presets.json':
+   # R55 removes the EXP anchor; all remaining guard and input fields stay frozen.
+   assert 'HomeReadyAnchor' not in pipeline
   # R53 moves the unchanged gift threshold into two layout-bound text branches.
   if filename=='rewards.json':
    assert pipeline['RewardsHomeGifts']==dict(recognition='Or',any_of=[

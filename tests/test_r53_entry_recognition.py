@@ -82,12 +82,17 @@ def test_saved_ui_passes_whole_entry_rules(saved_ui):
     assert all(probe(saved_ui, HOME_ENTRIES).values())
 
 
-@pytest.mark.parametrize('variant', ['blank', 'missing_home_word', 'missing_exp', 'missing_missions', 'wrong_missions', 'half_missions'])
+def test_empty_exp_bar_keeps_all_home_entry_rules_available(saved_ui):
+    image = saved_ui.copy()
+    image[22:62, 90:250] = 0
+    assert all(probe(image, HOME_ENTRIES).values())
+
+
+@pytest.mark.parametrize('variant', ['blank', 'missing_home_word', 'missing_missions', 'wrong_missions', 'half_missions'])
 def test_entry_missing_identity_or_label_never_grants_permission(saved_ui, variant):
     image = saved_ui.copy()
     if variant == 'blank': image[:] = 0
     elif variant == 'missing_home_word': image[594:632, 980:1060] = 0
-    elif variant == 'missing_exp': image[22:62, 90:250] = 0
     elif variant == 'missing_missions': image[594:632, 1090:1150] = 0
     elif variant == 'half_missions': image[598:623, 1094:1117] = 0
     else:
