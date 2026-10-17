@@ -39,14 +39,15 @@ public sealed class InstanceConfiguration
     /// </summary>
     private Dictionary<string, object> LoadInstanceConfig()
     {
-        if (!Directory.Exists(InstancesDir))
-            Directory.CreateDirectory(InstancesDir);
-
-        var filePath = GetConfigFilePath();
-        if (!File.Exists(filePath))
-            return new Dictionary<string, object>();
-
-        return JsonHelper.LoadJson(filePath, new Dictionary<string, object>());
+        try
+        {
+            // Only an absent profile is empty. An unreadable profile must never
+            // reach startup migrations or a later save as a writable default.
+            return JObject.Parse(File.ReadAllText(GetConfigFilePath()))
+                .ToObject<Dictionary<string, object>>()!;
+        }
+        catch (FileNotFoundException) { return new Dictionary<string, object>(); }
+        catch (DirectoryNotFoundException) { return new Dictionary<string, object>(); }
     }
 
     /// <summary>

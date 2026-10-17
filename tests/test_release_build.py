@@ -251,11 +251,11 @@ def test_frozen_manifest_delta_rejects_changed_trusted_baseline(case):
     assert not output.exists()
 
 
-def test_build_defaults_to_current_r55_identity_without_running_build(tmp_path, monkeypatch):
+def test_build_defaults_to_current_r56_test_identity_without_running_build(tmp_path, monkeypatch):
     captured = []
     monkeypatch.setattr(builder, 'build', lambda args: captured.append(args) or {'status': 'not_executed'})
     assert builder.main(['--output', str(tmp_path / 'unused-output')]) == 0
-    assert captured[0].revision == 55 and captured[0].version == 'v0.1.10'
+    assert captured[0].revision == 56 and captured[0].version == 'v0.1.11-r56-candidate'
     assert not (tmp_path / 'unused-output').exists()
 
 

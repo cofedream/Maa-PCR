@@ -10,6 +10,12 @@ using MFAAvalonia.ViewModels.UsersControls.Settings;
 using Newtonsoft.Json.Linq;
 using SukiUI.MessageBox;
 
+if (args.Length == 2 && Path.IsPathFullyQualified(args[0]) && args[1] == "--ocr-lock-crash")
+{
+    using var held = new FileStream(Path.Combine(args[0], ".quota-lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+    Environment.Exit(17); // Skip managed cleanup while the test child owns the OS lock.
+}
+
 if (args.Length is not (1 or 2) || !Path.IsPathFullyQualified(args[0])
     || args.Length == 2 && args[1] != "--controls-only")
 {
@@ -190,6 +196,7 @@ finally { pending.SetValue(null, false); }
 Console.WriteLine($"PCR GUI update checks passed: {count}; game inputs=0");
 await DependencyChecks.RunAsync(args[0]);
 OcrDiagnosticsChecks.Run(args[0]);
+PersistenceRecoveryChecks.Run(args[0]);
 return 0;
 }
 catch (Exception error)

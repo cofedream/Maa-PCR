@@ -1,8 +1,10 @@
 """Local terminal-failure evidence; never a settlement or retry authority."""
 from collections import deque
+from contextlib import contextmanager
 import hashlib
 import json
 import logging
+import os
 from pathlib import Path
 from queue import Queue, Full
 from threading import Lock, Thread
@@ -12,6 +14,21 @@ SCHEMA = 'pcr-ocr-failure-v1'
 CACHE_FRAMES = 16
 RUN_BYTES = 16 * 1024 * 1024
 TOTAL_BYTES = 512 * 1024 * 1024
+
+
+@contextmanager
+def _quota_lock(path):
+    # Keep the file: deleting it could split concurrent owners across inodes.
+    # The OS releases this nonblocking lock even after an interrupted process.
+    with path.open('a+b') as handle:
+        handle.seek(0)
+        if os.name == 'nt':
+            import msvcrt
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        yield
 
 
 def fingerprints(resource):
@@ -122,7 +139,6 @@ class FailureDiagnostics:
         used = 0
         while not work.empty():
             row, frame = work.get_nowait()
-            held = False
             try:
                 self.root.mkdir(parents=True, exist_ok=True)
                 directory = self.root / self.run_id
@@ -130,8 +146,7 @@ class FailureDiagnostics:
                 stem = uuid4().hex
                 row['images'] = {}
                 try:
-                    with (self.root / '.quota-lock').open('xb'):
-                        held = True
+                    with _quota_lock(self.root / '.quota-lock'):
                         total = sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
                         used = sum(p.stat().st_size for p in directory.iterdir() if p.is_file())
                         images = {}
@@ -163,9 +178,6 @@ class FailureDiagnostics:
                 except Exception as exc:
                     row.update(image_status='missing', image_reason='write_' + type(exc).__name__)
                     logging.warning('OCR diagnostics image missing: %s', type(exc).__name__)
-                finally:
-                    if held:
-                        (self.root / '.quota-lock').unlink()
                 (directory / (stem + '.json')).write_text(json.dumps(row, ensure_ascii=False, indent=2), encoding='utf-8')
             except Exception as exc:
                 # Even metadata IO failures must not change the task outcome.

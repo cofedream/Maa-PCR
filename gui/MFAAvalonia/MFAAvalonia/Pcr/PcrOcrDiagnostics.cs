@@ -130,7 +130,6 @@ internal sealed class PcrOcrDiagnostics
         long used = 0;
         foreach (var (row, frame) in copies)
         {
-            string? reservation = null;
             try
             {
                 Directory.CreateDirectory(root);
@@ -140,8 +139,8 @@ internal sealed class PcrOcrDiagnostics
                 try
                 {
                     var quota = Path.Combine(root, ".quota-lock");
-                    using var held = new FileStream(quota, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-                    reservation = quota;
+                    // The handle owns the lock; a stale file survives safely after exit.
+                    using var held = new FileStream(quota, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                     var total = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Sum(p => new FileInfo(p).Length);
                     used = Directory.EnumerateFiles(directory).Sum(p => new FileInfo(p).Length);
                     if (frame != null && used + frame.Length <= 16 * 1024 * 1024 && total + frame.Length + 65536 <= 512L * 1024 * 1024)
@@ -179,7 +178,6 @@ internal sealed class PcrOcrDiagnostics
                     else if (frame != null) row["image_reason"] = "quota_exhausted";
                 }
                 catch (Exception ex) { row["image_status"] = "missing"; row["image_reason"] = "write_" + ex.GetType().Name; }
-                finally { if (reservation != null) File.Delete(reservation); }
                 File.WriteAllText(Path.Combine(directory, stem + ".json"), row.ToString());
             }
             catch (Exception ex) { System.Diagnostics.Trace.TraceWarning("OCR diagnostics missing: " + ex.GetType().Name); }

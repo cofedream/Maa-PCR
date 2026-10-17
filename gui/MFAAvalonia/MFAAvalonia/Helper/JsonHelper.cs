@@ -74,6 +74,11 @@ public static class JsonHelper
             json = DispatcherHelper.RunOnMainThread(() => TrySerialize(config, converters));
         }
 
+        SaveJsonTextAtomicallyOrThrow(filePath, json);
+    }
+
+    internal static void SaveJsonTextAtomicallyOrThrow(string filePath, string json)
+    {
         EnsureDirectory(filePath);
         var destination = Path.GetFullPath(filePath);
         var temporary = Path.Combine(Path.GetDirectoryName(destination)!,

@@ -480,8 +480,8 @@ def build(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--revision', type=int, default=55)
-    parser.add_argument('--version', default='v0.1.10')
+    parser.add_argument('--revision', type=int, default=56)
+    parser.add_argument('--version', default='v0.1.11-r56-candidate')
     parser.add_argument('--dotnet', type=Path)
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--nuget-source', type=Path, help='optional official package cache/feed for offline builds')

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -35,9 +36,27 @@ internal static class OcrDiagnosticsChecks
         if ((string?)row["image_status"] != "saved" || row["images"]?["roi"] == null)
             throw new Exception("raw_frame_or_roi_missing");
         var quota = Path.Combine(root, ".quota-lock"); File.WriteAllText(quota, "synthetic_other_writer");
-        write.Invoke(sink, [new List<(JObject, byte[]?)> { (Row(), frame) }]);
+        var blocked = Row();
+        using (var held = new FileStream(quota, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            write.Invoke(sink, [new List<(JObject, byte[]?)> { (blocked, frame) }]);
         if (Directory.GetFiles(root, "*.json", SearchOption.AllDirectories).Length != 2 || !File.Exists(quota))
             throw new Exception("quota_contention_lost_metadata_or_deleted_other_lock");
-        Console.WriteLine("PCR OCR diagnostics checks passed: bounded callback, success quiet, exact frame+ROI, writer contention; game inputs=0");
+        if ((string?)blocked["image_status"] != "missing" || (string?)blocked["image_reason"] != "write_IOException")
+            throw new Exception("active_quota_owner_was_not_exclusive");
+        var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, CreateNoWindow = true };
+        if (Path.GetFileNameWithoutExtension(Environment.ProcessPath).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+            start.ArgumentList.Add(Assembly.GetExecutingAssembly().Location);
+        start.ArgumentList.Add(root); start.ArgumentList.Add("--ocr-lock-crash");
+        using (var child = Process.Start(start)!)
+        {
+            if (!child.WaitForExit(10000)) { child.Kill(entireProcessTree: true); child.WaitForExit(); throw new Exception("quota_test_child_timed_out"); }
+            if (child.ExitCode != 17) throw new Exception("quota_test_child_did_not_exit_while_holding_lock");
+        }
+        var recovered = Row();
+        write.Invoke(sink, [new List<(JObject, byte[]?)> { (recovered, frame) }]);
+        if ((string?)recovered["image_status"] != "saved" || recovered["images"]?["roi"] == null
+            || File.ReadAllText(quota) != "synthetic_other_writer")
+            throw new Exception("abandoned_quota_lock_prevented_recovery_or_changed_history");
+        Console.WriteLine("PCR OCR diagnostics checks passed: bounded callback, success quiet, exact frame+ROI, active writer exclusion, interrupted child recovery; game inputs=0");
     }
 }
