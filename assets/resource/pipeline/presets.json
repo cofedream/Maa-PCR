@@ -74,30 +74,6 @@
     "action": "DoNothing",
     "next": []
   },
-  "HomeReadyAnchor": {
-    "recognition": "ColorMatch",
-    "roi": [
-      90,
-      22,
-      160,
-      40
-    ],
-    "method": 40,
-    "lower": [
-      35,
-      60,
-      100
-    ],
-    "upper": [
-      90,
-      255,
-      255
-    ],
-    "count": 500,
-    "connected": true,
-    "action": "DoNothing",
-    "next": []
-  },
   "HomeDataConnection": {
     "recognition": "OCR",
     "roi": [

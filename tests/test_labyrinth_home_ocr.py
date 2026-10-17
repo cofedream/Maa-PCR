@@ -1,4 +1,4 @@
-"""HOME guards keep exact words and reject missing anchors or large panels."""
+"""HOME guards keep exact words and reject missing words or large panels."""
 import os
 from pathlib import Path
 import socket
@@ -67,7 +67,7 @@ def test_saved_home_across_all_endpoints_and_input_guard(offline, shift):
 
 
 @pytest.mark.private_replay
-@pytest.mark.parametrize('case', ['adventure_missing', 'schedule_missing', 'gift_missing', 'known_panel', 'loading', 'blank'])
+@pytest.mark.parametrize('case', ['adventure_missing', 'schedule_missing', 'gift_missing', 'known_panel', 'blank'])
 def test_missing_words_or_overlay_cannot_pass_home_or_click(offline, case):
     image = saved_home()
     if case == 'blank': image[:] = 0
@@ -75,7 +75,6 @@ def test_missing_words_or_overlay_cannot_pass_home_or_click(offline, case):
         path = os.environ.get('PCR_LABYRINTH_PANEL_FRAME')
         if not path: pytest.skip('private saved announcement frame is not distributed')
         image = native.read_image(Path(path))
-    elif case == 'loading': image[10:65, 95:260] = 0
     else:
         names = {'adventure_missing':['HomeAdventureText'],
                  'schedule_missing':['HomeScheduleText','HomeEdgeScheduleText'],

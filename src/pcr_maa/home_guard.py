@@ -1,4 +1,4 @@
-"""Require a visible native home UI anchor and reject known obstructions."""
+"""Reject known obstructions on a text-verified home frame."""
 import math
 import traceback
 
@@ -45,24 +45,11 @@ class HomeNoKnownLargePanel(CustomRecognition):
                     or type(word.get('score')) not in (int, float)
                     or not math.isfinite(word['score']) or not 0 <= word['score'] <= 1):
                 return None
-            # A static faded home keeps both bottom OCR labels. Require the
-            # visible green EXP bar on this same fresh frame before any action.
-            anchor = context.run_recognition('HomeReadyAnchor', argv.image)
-            if anchor is None or anchor.algorithm != AlgorithmEnum.ColorMatch or anchor.hit is not True:
-                return None
-            ready = anchor.raw_detail
-            if (not isinstance(ready, dict) or not isinstance(ready.get('all'), list)
-                    or not isinstance(ready.get('filtered'), list)
-                    or not isinstance(ready.get('best'), dict)
-                    or type(ready['best'].get('count')) is not int
-                    or ready['best']['count'] < 500):
-                return None
             return self.AnalyzeResult([350, 220, 580, 280], {
-                'scope': 'green EXP bar; no known large pale panel, notice tabs or data-connection text',
+                'scope': 'no known large pale panel, notice tabs or data-connection text',
                 'native_reco_id': panel.reco_id, 'native': detail,
                 'notice_reco_id': notice.reco_id, 'notice': notice.raw_detail,
                 'connection_reco_id': busy.reco_id, 'connection': connection,
-                'anchor_reco_id': anchor.reco_id, 'anchor': ready,
             })
         except Exception:
             traceback.print_exc()

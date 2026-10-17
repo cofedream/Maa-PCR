@@ -43,8 +43,6 @@ class Context:
         if name == 'HomeNoticeTabs': return self.notice
         if name == 'HomeDataConnection':
             return response(AlgorithmEnum.OCR, False, dict(all=[dict(box=[980,15,285,65],text='',score=0.)], filtered=[], best=None))
-        if name == 'HomeReadyAnchor':
-            return response(AlgorithmEnum.ColorMatch, True, dict(all=[],filtered=[],best=dict(count=501)))
         raise AssertionError(name)
 
 
@@ -56,16 +54,55 @@ def notice_miss():
 @pytest.mark.parametrize('notice', [None, response(AlgorithmEnum.OCR,False,[]),
     response(AlgorithmEnum.Or,False,None), response(AlgorithmEnum.Or,True,[]),
     response(AlgorithmEnum.Or,False,[]), response(AlgorithmEnum.Or,False,[{}])])
-def test_notice_hit_or_missing_native_evidence_stops_before_ready_anchor(notice):
+def test_notice_hit_or_missing_native_evidence_stops_before_connection_check(notice):
     context = Context(notice)
     assert home_guard.HomeNoKnownLargePanel().analyze(context, SimpleNamespace(image=np.zeros((720,1280,3),np.uint8))) is None
     assert context.calls == ['HomeKnownLargePanel', 'HomeNoticeTabs']
 
 
-def test_native_notice_miss_still_requires_busy_and_exp_checks():
+def test_home_guard_does_not_read_exp_bar():
     context = Context(notice_miss())
     assert home_guard.HomeNoKnownLargePanel().analyze(context, SimpleNamespace(image=np.zeros((720,1280,3),np.uint8))) is not None
-    assert context.calls == ['HomeKnownLargePanel','HomeNoticeTabs','HomeDataConnection','HomeReadyAnchor']
+    assert context.calls == ['HomeKnownLargePanel','HomeNoticeTabs','HomeDataConnection']
+
+
+@pytest.mark.parametrize('busy', [None, response(AlgorithmEnum.OCR,True,{}),
+    response(AlgorithmEnum.OCR,False,{}),
+    response(AlgorithmEnum.OCR,False,dict(all=[],filtered=[],best=None))])
+def test_connection_hit_or_missing_evidence_still_blocks_home(busy):
+    context = Context(notice_miss())
+    original = context.run_recognition
+    context.run_recognition = lambda name, image: busy if name == 'HomeDataConnection' else original(name, image)
+    assert home_guard.HomeNoKnownLargePanel().analyze(context, SimpleNamespace(image=np.zeros((720,1280,3),np.uint8))) is None
+
+
+@pytest.mark.private_replay
+@pytest.mark.parametrize('empty_exp', [False, True])
+@pytest.mark.parametrize('entry', ['ObserveHome', 'RewardsHomeRead',
+    'LabyClientGameHomeObserved', 'EnterAdventure'])
+def test_level_up_home_is_accepted_with_short_or_empty_exp(entry, empty_exp, monkeypatch):
+    path = os.environ.get('PCR_HOME_LEVEL_UP_FRAME')
+    if not path: pytest.skip('private level-up HOME frame is not distributed')
+    import socket
+    def deny(*args, **kwargs): raise AssertionError('offline saved frames only')
+    monkeypatch.setattr(socket.socket, 'connect', deny)
+    monkeypatch.setattr(socket, 'create_connection', deny)
+    image = native.read_image(Path(path))
+    if empty_exp: image[22:62,90:250] = 0
+    controller = SavedImages([[image]])
+    resource = native.load_resource();tasker = native.bind(resource,controller)
+    try:
+        assert resource.override_pipeline(game_session_pipeline(123))
+        assert resource.override_pipeline({entry:dict(next=['ObserveHome'] if entry == 'RewardsHomeRead' else [],
+            on_error=[],timeout=1,pre_delay=0,post_delay=0)})
+        receipt = native.run(tasker,entry)
+        assert receipt['native_ok']
+        if entry == 'RewardsHomeRead':
+            assert any(n['name'] == 'ObserveHome' and n['completed'] for n in receipt['nodes'])
+        assert not controller.swipes
+        assert controller.clicks == ([[718,681]] if entry == 'EnterAdventure' else [])
+    finally:
+        native.stop_tasker(tasker)
 
 
 @pytest.mark.private_replay
