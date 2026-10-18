@@ -89,7 +89,7 @@ class SourceDeliveryTests(unittest.TestCase):
             public = ('README.md', 'requirements-runtime.lock', 'inspect-daily.bat',
                       'delivery/runtime-downloads.json', 'delivery/acceptance.json',
                       'delivery/baselines/r38-package-manifest.json',
-                      'delivery/baselines/r46-package-manifest.json', 'delivery/baselines/r49-package-manifest.json', 'delivery/baselines/r50-package-manifest.json', 'delivery/baselines/r51-package-manifest.json', 'delivery/baselines/r52-package-manifest.json', 'delivery/baselines/r53-package-manifest.json', 'delivery/baselines/r55-package-manifest.json', 'src/pcr_maa/labyrinth/example.py',
+                      'delivery/baselines/r46-package-manifest.json', 'delivery/baselines/r49-package-manifest.json', 'delivery/baselines/r50-package-manifest.json', 'delivery/baselines/r51-package-manifest.json', 'delivery/baselines/r52-package-manifest.json', 'delivery/baselines/r53-package-manifest.json', 'delivery/baselines/r55-package-manifest.json', 'delivery/baselines/r56-package-manifest.json', 'src/pcr_maa/labyrinth/example.py',
                       'vendor/autopcr_sync/example.py', 'assets/labyrinth/icons/icon.png',
                       'assets/resource/image/labyrinth/scene/home_level.png',
                       'third_party/materials/LICENSE', '.github/workflows/ci.yml',

@@ -1,81 +1,20 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "revision": 56,
-  "expected_version": "v0.1.11",
-  "base_release_manifest_sha256": "92798604770de2332c56b953486f969bd87f8a03a01d4595e5fbaa719548ed78",
-  "accepted_owned_payload_sha256": "8343d3bf95d05dd651da00b9fc001bfd16c318d64dc7a4d3178145f740acea93",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 39132184787,
-    "run_attempt": 1,
-    "artifact_id": 12138902754,
-    "source_commit": "1f627da6def1c4db42c9c27586061e98adbc8489",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.11-win-x64.zip",
-      "size": 309464884,
-      "sha256": "953354bb29d763f33bd7d9f37b4a2a8f6b4bc91ef2f2f9ca2697ffd0f0e5fa17"
-    }
-  },
-  "accepted_staging_manifest_sha256": "26c8d98c76ae2d59f9c2f6be4542f2ba2b930dc744acb0303dcb1985663c6a7e",
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "public_tests": {
-    "passed": 3153,
-    "skipped": 308,
-    "failed": 0,
-    "errors": 0,
-    "deselected": 152
-  },
-  "public_count_authority": "Exact main CI console and individual testcase nodes.",
-  "bundled_runtime_tests_passed": 3,
-  "gui_counted_assertions": 867,
-  "gui_core_sha256": "cdbef8f152aa9f93930ec10cb04511490953bd227c457e4897996c0d7ee67a5e",
-  "gui_ocr_and_configuration_recovery": "passed",
-  "isolated_update_routes": 2,
-  "synthetic_private_files_per_route": 9,
-  "native_logger_version": "v5.13.0",
-  "native_logger_evidence": "Exact packaged DLL hashes match the synthetic rotation and expiry verification.",
+  "status": "pending",
+  "revision": 57,
+  "expected_version": "v0.1.12",
+  "base_release_manifest_sha256": "1021513015b057b14da36898aa7ea9b1e7e5f8fef174617c5d0de6d578951575",
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
   "real_installation_written": false,
   "device_started": false,
   "game_inputs": 0,
-  "evidence": [
-    {
-      "name": "r56-release-20261018/CI_BINDING.json",
-      "sha256": "b15e64da95e2e99ba9a9ba10c84532a7563bdecfd585004102b23e349f4a846d"
-    },
-    {
-      "name": "r56-release-20261018/PACKAGE_VERIFIED.json",
-      "sha256": "6d6e0f657c9298530805a95cde1a1e26694d3d31415fb3c04815abdce48230e7"
-    },
-    {
-      "name": "r56-release-20261018/packaged-gui/RESULT.json",
-      "sha256": "e3336cc4be2b3dc2d52b6561799e7b67365b7bdff7ee041cf8037faa60617cb8"
-    },
-    {
-      "name": "r56-release-20261018/ci-artifact/public-tests.xml",
-      "sha256": "9354575faaa8e37bf5b3b8254b0fba486124928e27b67d33e4c6e00eada1185b"
-    },
-    {
-      "name": "r56-release-20261018/ci-artifact/bundled-runtime.xml",
-      "sha256": "6fbffccc9c1bfa5235f468be182ba7f2370401088762262ee3e1a84bd30a44fd"
-    },
-    {
-      "name": "r56-release-20261018/metadata/run.json",
-      "sha256": "33497828ee29eee3334eab86cabd83dd1b3f05408c1e5275791c01534084121d"
-    },
-    {
-      "name": "r56-release-20261018/metadata/artifact.json",
-      "sha256": "6f16dcdbb801b4c47aa45f3e9c4243675697214c2f7b0094ba283c08d3a7966b"
-    }
-  ],
+  "evidence": [],
   "limits": [
-    "GUI contracts use offscreen controls and synthetic callbacks, not real product window clicks.",
-    "Full and patch updates use isolated ordinary copies with synthetic private state.",
-    "Unavailable private evidence and replay exclusions remain recorded in exact CI results.",
-    "No new MuMu feedback-device, live-game or real-installation acceptance is claimed.",
-    "Public attachments and the default R55 updater are verified after publication."
+    "R57 release preparation; exact main CI artifact and final acceptance pending.",
+    "R56 acceptance is not reused; source, payload and isolated R56 upgrades require new evidence.",
+    "No live device, account, game or real installation acceptance is claimed."
   ]
 }

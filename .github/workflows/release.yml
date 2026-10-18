@@ -68,7 +68,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Seal Matching Assets
         run: |
-          python -X utf8 -B scripts/release_ci.py --player .runtime/release/build/player --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --output .runtime/release/assets --base-manifest delivery/baselines/r55-package-manifest.json
+          python -X utf8 -B scripts/release_ci.py --player .runtime/release/build/player --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --output .runtime/release/assets --base-manifest delivery/baselines/r56-package-manifest.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create GitHub Release
         env:
