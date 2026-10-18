@@ -11,6 +11,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS = r'''
 param($Launcher, $Scenario, $NoBuild)
+$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $ErrorActionPreference = 'Stop'
 $global:reviewActions = @()
 $target = Join-Path (Split-Path -Parent (Split-Path -Parent $Launcher)) 'gui/MFAAvalonia/bin/x64/Release/MFAAvalonia.exe'
