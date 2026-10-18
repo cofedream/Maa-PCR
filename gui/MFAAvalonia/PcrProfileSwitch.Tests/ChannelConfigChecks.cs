@@ -44,14 +44,14 @@ ActivityTaskSupervisor state:
   FocusedWindows:
     displayId=0, name='window {component}'
 """;
-        void Mapping(string a, string i, string p, string c, bool expected)
+        void Mapping(string a, string i, string p, string c, bool expected, bool physical = false)
         {
             try
             {
-                var result = parse.Invoke(null, [a, i, false, p, c]);
+                var result = parse.Invoke(null, [a, i, physical, p, c]);
                 Check(expected && result != null, "channel mapping accepted");
-                Check((string?)result!.GetType().GetProperty("Basis")!.GetValue(result) == "logical_default_verified",
-                    "logical default mapping does not claim physical viewport verification");
+                Check((string?)result!.GetType().GetProperty("Basis")!.GetValue(result)
+                    == (physical ? "viewport_verified" : "logical_default_verified"), "mapping evidence basis");
             }
             catch (TargetInvocationException ex) when (ex.InnerException is InvalidOperationException)
             { Check(!expected, "channel mapping rejected"); }
@@ -61,6 +61,23 @@ ActivityTaskSupervisor state:
         Mapping(modernActivity, modernInput, package, ".OtherActivity", false);
         Mapping(modernActivity, modernInput.Replace("FocusedDisplayId: 0", "FocusedDisplayId: 1"), package, activity, false);
         Mapping(modernActivity, modernInput.Replace("window " + component, "window example.other/.MainActivity"), package, activity, false);
+        var organizedActivity = modernActivity.Replace("rootTasks=1", "(organized)");
+        var viewport = "\n  Viewport INTERNAL: displayId=0, uniqueId=local:4619827820427265280, isActive=[1]";
+        Mapping(organizedActivity, modernInput, package, activity, true);
+        Mapping(organizedActivity, modernInput + viewport + viewport, package, activity, true, physical: true);
+        Mapping(organizedActivity, modernInput, package, activity, false, physical: true);
+        Mapping(organizedActivity, modernInput, "com.bilibili.priconne", ".MainActivity", false);
+        Mapping(organizedActivity.Replace("mDisplayId=0", "mDisplayId=1"), modernInput, package, activity, false);
+        Mapping(organizedActivity.Replace("mFocusedApp=" + record, "mFocusedApp=" + record.Replace("fixture", "stale")), modernInput, package, activity, false);
+        Mapping(organizedActivity.Replace(window, "Window{window u0 example.other/.MainActivity}"), modernInput, package, activity, false);
+        Mapping(organizedActivity + "\n  mCurrentFocus=" + window, modernInput, package, activity, false);
+        Mapping(organizedActivity + "\n  Display: mDisplayId=1 (organized)\n    mFocusedApp=" + record, modernInput, package, activity, false);
+        Mapping(organizedActivity.Replace("(organized)", "(unorganized)"), modernInput, package, activity, false);
+        Mapping(organizedActivity, modernInput.Replace("FocusedDisplayId: 0", "FocusedDisplayId: 1"), package, activity, false);
+        Mapping(organizedActivity, modernInput.Replace("ActivityRecord{fixture", "ActivityRecord{stale"), package, activity, false);
+        Mapping(organizedActivity, modernInput.Replace("window " + component, "window example.other/.MainActivity"), package, activity, false);
+        Mapping(organizedActivity, modernInput + viewport.Replace("isActive=[1]", "isActive=[0]"), package, activity, false, physical: true);
+        Mapping(organizedActivity, modernInput + viewport + viewport.Replace("displayId=0", "displayId=1"), package, activity, false, physical: true);
         var a9 = $"""
 Display #0 (activities from top to bottom):
   mResumedActivity: {record}
@@ -83,6 +100,7 @@ ActivityStackSupervisor state:
             var full = preset.Activity.StartsWith('.') ? preset.Package + preset.Activity : preset.Activity;
             var observed = preset.Package + "/" + full;
             Mapping(modernActivity.Replace(component, observed), modernInput.Replace(component, observed), preset.Package, preset.Activity, true);
+            Mapping(organizedActivity.Replace(component, observed), modernInput.Replace(component, observed), preset.Package, preset.Activity, true);
         }
         var xiaomi = PcrChannelCatalog.All.Single(row => row.Id == "xiaomi");
         var splash = xiaomi.Package + "/com.bilibili.priconne.bili.SplashActivity";

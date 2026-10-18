@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace MFAAvalonia.Pcr;
 
 internal static class PcrLogFiles
 {
-    internal const int RetentionDays = 30;
     private static readonly Regex GuiName = new(@"^log-\d{8}(?:_\d{3,})?\.log$", RegexOptions.IgnoreCase);
     private static readonly Regex MaaBackupName = new(@"^(?:maa|maafw)\.bak\.[0-9.-]+\.log$", RegexOptions.IgnoreCase);
     private static readonly Regex RunId = new(@"^[0-9a-f]{32}$");
@@ -69,49 +67,10 @@ internal static class PcrLogFiles
                 || Path.GetFileName(file).Equals("maa.log", StringComparison.OrdinalIgnoreCase)));
 
     internal static (long Ordinary, long Labyrinth) Usage(string root) =>
-        (OrdinaryFiles(root).Sum(file => new FileInfo(file).Length),
+        (OrdinaryFiles(root).Concat(DiagnosticImages(root)).Sum(file => new FileInfo(file).Length),
             LabyrinthFiles(root, DateTime.MinValue).Sum(file => new FileInfo(file).Length));
 
-    internal static void CleanupOrdinary(string root, DateTime nowUtc, Action<string> info, Action<string> warning)
-    {
-        try
-        {
-            var cutoff = nowUtc.AddDays(-RetentionDays);
-            var candidates = OrdinaryFiles(root).Where(file =>
-                !Path.GetFileName(file).Equals("maafw.log", StringComparison.OrdinalIgnoreCase)
-                && !Path.GetFileName(file).Equals("maa.log", StringComparison.OrdinalIgnoreCase))
-                .Select(file => new FileInfo(file)).Where(file => file.LastWriteTimeUtc < cutoff).ToArray();
-            if (candidates.Length == 0) return;
-            var audit = Path.Combine(root, ".runtime", "log-maintenance");
-            var existingParent = Directory.Exists(audit) ? audit : Directory.Exists(Path.GetDirectoryName(audit)) ? Path.GetDirectoryName(audit)! : root;
-            if (!IsRegularPath(root, existingParent)) return;
-            Directory.CreateDirectory(audit);
-            if (!IsRegularPath(root, audit)) return;
-            var receipt = Path.Combine(audit, $"cleanup-{Guid.NewGuid():N}.jsonl");
-            // Save the bounded allowlist before deleting; never traverse a business evidence directory.
-            using var record = new StreamWriter(new FileStream(receipt, FileMode.CreateNew, FileAccess.Write, FileShare.Read));
-            record.WriteLine(JsonSerializer.Serialize(new { retention_days = RetentionDays, cutoff_utc = cutoff,
-                candidates = candidates.Select(file => new { path = Path.GetRelativePath(root, file.FullName), bytes = file.Length, modified_utc = file.LastWriteTimeUtc }) }));
-            record.Flush();
-            foreach (var file in candidates)
-            {
-                try
-                {
-                    if (!IsRegularPath(root, file.FullName)) continue;
-                    // An active writer prevents this exclusive read; leave that file for a later startup.
-                    using (var held = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.None))
-                    {
-                        if (held.Length != file.Length || File.GetLastWriteTimeUtc(file.FullName) != file.LastWriteTimeUtc) continue;
-                    }
-                    File.Delete(file.FullName);
-                    record.WriteLine(JsonSerializer.Serialize(new { deleted = Path.GetRelativePath(root, file.FullName), bytes = file.Length }));
-                    record.Flush();
-                    info($"已清理超过 {RetentionDays} 天的普通日志：{Path.GetFileName(file.FullName)}");
-                }
-                catch (IOException) { warning("旧日志正在使用或无法访问，本次保留。"); }
-                catch (UnauthorizedAccessException) { warning("旧日志无删除权限，本次保留。"); }
-            }
-        }
-        catch (Exception) { warning("普通日志清理未完成，原业务记录保持不变。"); }
-    }
+    private static IEnumerable<string> DiagnosticImages(string root) =>
+        new[] { "debug/on_error", "debug/vision" }.SelectMany(folder => Files(root, folder, true))
+            .Where(file => Path.GetExtension(file).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp" or ".gif");
 }

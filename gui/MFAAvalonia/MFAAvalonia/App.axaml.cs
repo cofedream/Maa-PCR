@@ -143,8 +143,6 @@ public partial class App : Application
             AppPaths.Initialize();
             LoggerHelper.InitializeLogger();
             if (!IsRuntimeMissingMode && !IsTempDirMode)
-                Pcr.PcrLogFiles.CleanupOrdinary(AppPaths.DataRoot, DateTime.UtcNow, LoggerHelper.Info, LoggerHelper.Warning);
-            if (!IsRuntimeMissingMode && !IsTempDirMode)
             {
                 MaaProcessor.StartInterfacePreload();
             }

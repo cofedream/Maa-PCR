@@ -2,7 +2,7 @@
   "schema_version": 1,
   "status": "pending",
   "revision": 56,
-  "expected_version": "v0.1.11-r56-candidate",
+  "expected_version": "v0.1.11",
   "offline_tests_passed": false,
   "isolated_update_passed": false,
   "gui_verified": false,
@@ -12,7 +12,7 @@
   "game_inputs": 0,
   "evidence": [],
   "limits": [
-    "Local R56 development candidate only; more fixes may be merged before release.",
+    "R56 release preparation; exact CI artifact and final acceptance pending.",
     "Local regression receipts are retained in the task workspace, not formal CI acceptance.",
     "R55 acceptance is not reused. Final source, CI artifact and payload acceptance remain pending.",
     "No live device, account, game or real installation acceptance is claimed."

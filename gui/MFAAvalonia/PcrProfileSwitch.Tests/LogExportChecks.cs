@@ -29,6 +29,8 @@ internal static class LogExportChecks
         var root = Path.Combine(fixtureDirectory, "log-export", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         RunPublishChecks(Path.Combine(root, "publish"), Check);
+        RunSingleArchiveChecks(Path.Combine(root, "single-archive"), Check);
+        RunRotationChecks(Path.Combine(root, "rotation"), Check);
         var now = DateTime.UtcNow;
         string Put(string relative, string content, int age = 0)
         {
@@ -52,15 +54,16 @@ internal static class LogExportChecks
         Put(area + $"runs/{run}/native/maa/login.json", "PRIVATE_SDK_MUST_NOT_BE_EXPORTED");
         Put(area + $"runs/{run}/native/maa/on_error/frame.png", "private-image");
         var guiOld = Put("logs/log-20200101.log", "ordinary old\n", 31);
-        var guiRecent = Put("logs/log-20200102_001.log", "ordinary recent\n", 29);
-        var exactBoundary = Put("logs/log-20200103.log", "boundary\n", 30);
+        var guiRecent = Put("logs/log-20200102_001.log", "ordinary recent\n", 6);
+        var exactBoundary = Put("logs/log-20200103.log", "boundary\n", 7);
         var locked = Put("logs/log-20200104.log", "busy\n", 45);
         var maaOld = Put("debug/maafw.bak.2026.01.01-01.02.03.4.log", "ordinary maa backup\n", 31);
         var active = Put("debug/maafw.log", "active never removed\n", 90);
         var unrelated = Put("logs/player-notes.log", "unrelated do not delete\n", 90);
-        var screenshot = Put("debug/on_error/frame.png", "old screenshot do not delete", 90);
+        var screenshot = Put("debug/on_error/frame.png", "recent screenshot do not delete", 6);
+        var oldScreenshot = Put("debug/vision/old.png", "expired diagnostic image", 8);
         var protectedFiles = Directory.GetFiles(Path.Combine(root, ".runtime"), "*", SearchOption.AllDirectories)
-            .Concat(new[] { guiRecent, exactBoundary, locked, active, unrelated, screenshot }).ToDictionary(path => path, Hash);
+            .Concat(new[] { guiOld, guiRecent, exactBoundary, locked, maaOld, active, unrelated, screenshot, oldScreenshot }).ToDictionary(path => path, Hash);
 
         var type = typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrLogFiles", true)!;
         const BindingFlags hidden = BindingFlags.Static | BindingFlags.NonPublic;
@@ -111,13 +114,9 @@ internal static class LogExportChecks
         var usage = (ValueTuple<long, long>)Call("Usage", root)!;
         Check(usage.Item2 == all.Sum(file => new FileInfo(file).Length), "usage_includes_protected_old_trace");
 
-        using (var busy = new FileStream(locked, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-            Call("CleanupOrdinary", root, now, (Action<string>)(_ => { }), (Action<string>)(_ => { }));
-        Check(!File.Exists(guiOld) && !File.Exists(maaOld), "ordinary_older_than_30_days_removed");
-        Check(protectedFiles.All(file => File.Exists(file.Key) && Hash(file.Key) == file.Value), "all_business_unknown_current_busy_and_other_files_preserved");
-        var receipts = Directory.GetFiles(Path.Combine(root, ".runtime/log-maintenance"), "*.jsonl");
-        var rows = File.ReadAllLines(receipts.Single());
-        Check(rows.Length == 3 && rows[0].Contains("candidates") && rows.Skip(1).All(row => row.Contains("deleted")), "allowlist_and_delete_receipt");
+        Check(protectedFiles.All(file => File.Exists(file.Key) && Hash(file.Key) == file.Value), "export_preserves_all_source_and_business_files");
+        Check(usage.Item1 == ((IEnumerable<string>)Call("OrdinaryFiles", root)!).Sum(file => new FileInfo(file).Length)
+            + new FileInfo(screenshot).Length + new FileInfo(oldScreenshot).Length, "usage_includes_diagnostic_images");
 
         var outside = Path.Combine(fixtureDirectory, "log-export-outside", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(outside);
@@ -142,7 +141,7 @@ internal static class LogExportChecks
             process.WaitForExit();
             Check(process.ExitCode == 0, "isolated_junction_created");
             Check(!(bool)Call("IsRegularPath", linkRoot, Path.Combine(link, Path.GetFileName(sentinel)))!, "linked_file_rejected");
-            Call("CleanupOrdinary", linkRoot, now, (Action<string>)(_ => { }), (Action<string>)(_ => { }));
+            Check(!((IEnumerable<string>)Call("OrdinaryFiles", linkRoot)!).Any(), "linked_log_directory_not_scanned");
             Check(File.ReadAllText(sentinel) == "outside sentinel", "junction_target_not_cleaned");
             // Removing the junction itself never recurses into the target.
             Directory.Delete(link);
@@ -158,15 +157,21 @@ internal static class LogExportChecks
         Check(!vm.CanStartExport, "all_options_off_disables_export");
         var view = new ExportLogDialogView { DataContext = vm, Background = Avalonia.Media.Brushes.White };
         Check(view.Content != null, "compiled_export_view_loaded");
+        vm.IncludeMaaLog = true;
+        vm.IsExporting = true;
+        Check(!vm.CanStartExport, "export_disables_repeat_export");
+        vm.IsExporting = false;
+        Check(vm.CanStartExport, "export_reenabled");
         vm.IncludeLabyrinthLog = true;
         var window = new Window { Width = 580, Height = 740, Content = view, Background = Avalonia.Media.Brushes.White,
             Foreground = Avalonia.Media.Brushes.Black, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light };
         window.Show();
         System.Threading.Thread.Sleep(250);
         Dispatcher.UIThread.RunJobs();
-        vm.StorageUsage = $"普通日志：{usage.Item1 / 1048576d:F1} MiB；黎明界独立记录：{usage.Item2 / 1048576d:F1} MiB（隔离夹具）。";
+        vm.StorageUsage = $"普通日志和诊断截图：{usage.Item1 / 1048576d:F1} MiB；黎明界独立记录：{usage.Item2 / 1048576d:F1} MiB（隔离夹具）。";
         window.UpdateLayout();
         Check(view.GetVisualDescendants().OfType<CheckBox>().Any(box => box.Content?.ToString() == "黎明界运行日志" && box.IsChecked == true), "labyrinth_checkbox_bound");
+        Check(!view.GetVisualDescendants().OfType<Button>().Any(button => button.Content?.ToString()?.Contains("清理") == true), "no_manual_cleanup_button");
         using (var frame = new RenderTargetBitmap(new PixelSize(580, 740)))
         {
             frame.Render(view);
@@ -174,6 +179,165 @@ internal static class LogExportChecks
         }
         window.Close();
         Console.WriteLine($"PCR log export/retention checks passed: {count}; synthetic fixtures only, no player cleanup");
+    }
+
+    private static void RunRotationChecks(string root, Action<bool, string> check)
+    {
+        AppPaths.Initialize();
+        const BindingFlags hidden = BindingFlags.Static | BindingFlags.NonPublic;
+        var logDirectory = typeof(AppPaths).GetField("_logsDirectory", hidden)!;
+        var logger = typeof(LoggerHelper).GetField("_logger", hidden)!;
+        var cache = (System.Collections.IList)typeof(LoggerHelper).GetField("_logCache", hidden)!.GetValue(null)!;
+        var savedDirectory = logDirectory.GetValue(null);
+        var savedLogger = logger.GetValue(null);
+        var savedCache = cache.Cast<object>().ToArray();
+        var savedConsole = Console.Out;
+        Directory.CreateDirectory(root);
+        var first = Path.Combine(root, $"log-{DateTime.Now:yyyyMMdd}.log");
+        var oldest = Path.Combine(root, "log-20000101.log");
+        var previous = Path.Combine(root, "log-20000102.log");
+        File.WriteAllText(oldest, "oldest GUI log");
+        File.WriteAllText(previous, "previous GUI log");
+        var unrelated = Path.Combine(root, "player-notes.log");
+        File.WriteAllText(unrelated, "preserve");
+        var nested = Path.Combine(root, "business", "log-20200101.log");
+        Directory.CreateDirectory(Path.GetDirectoryName(nested)!);
+        File.WriteAllText(nested, "unknown-do-not-resend");
+        string[] Logs() => Directory.GetFiles(root, "log-*.log").OrderBy(path => path).ToArray();
+        void Size(string path, long bytes)
+        {
+            using var file = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write);
+            file.SetLength(bytes);
+        }
+        try
+        {
+            cache.Clear();
+            logger.SetValue(null, null);
+            logDirectory.SetValue(null, root);
+            Console.SetOut(TextWriter.Null);
+            Size(first, 10 * 1024 * 1024 + 1024);
+            LoggerHelper.InitializeLogger();
+            LoggerHelper.Info("below-64-MiB");
+            LoggerHelper.DisposeLogger();
+            check(Logs().Contains(first) && new FileInfo(first).Length > 10 * 1024 * 1024 + 1024,
+                "logger_keeps_writing_above_old_10_MiB_limit");
+            check(Logs().Length == 2 && !File.Exists(oldest) && File.Exists(previous),
+                "logger_applies_two_file_limit_to_existing_dated_logs");
+            Size(first, 64 * 1024 * 1024 - 1024);
+            LoggerHelper.InitializeLogger();
+            LoggerHelper.Info(new string('x', 2048));
+            LoggerHelper.Info("after-first-roll");
+            LoggerHelper.DisposeLogger();
+            var second = Logs().Single(path => path != first);
+            check(Logs().Length == 2 && new FileInfo(first).Length >= 64 * 1024 * 1024
+                && new FileInfo(first).Length < 64 * 1024 * 1024 + 4096 && !File.Exists(previous)
+                && File.ReadAllText(second).Contains("after-first-roll"), "logger_rolls_at_64_MiB_during_writing_and_retains_previous_file");
+            Size(second, 64 * 1024 * 1024);
+            LoggerHelper.InitializeLogger();
+            LoggerHelper.Info("after-second-roll");
+            LoggerHelper.DisposeLogger();
+            var remaining = Logs();
+            check(remaining.Length == 2 && !File.Exists(first) && remaining.Contains(second)
+                && File.ReadAllText(remaining.Single(path => path != second)).Contains("after-second-roll"),
+                "logger_retains_only_two_files_after_restart_and_rotation");
+            check(File.ReadAllText(unrelated) == "preserve" && File.ReadAllText(nested) == "unknown-do-not-resend",
+                "logger_retention_preserves_unrelated_and_nested_business_files");
+        }
+        finally
+        {
+            LoggerHelper.DisposeLogger();
+            logger.SetValue(null, savedLogger);
+            logDirectory.SetValue(null, savedDirectory);
+            cache.Clear();
+            foreach (var item in savedCache) cache.Add(item);
+            Console.SetOut(savedConsole);
+        }
+    }
+
+    private static void RunSingleArchiveChecks(string root, Action<bool, string> check)
+    {
+        var input = Path.Combine(root, "input");
+        var images = Path.Combine(input, "debug", "on_error");
+        var output = Path.Combine(root, "output");
+        Directory.CreateDirectory(images);
+        Directory.CreateDirectory(output);
+        var bytes = new byte[12_000_000];
+        new Random(42).NextBytes(bytes);
+        for (var index = 0; index < 3; index++)
+            File.WriteAllBytes(Path.Combine(images, $"frame{index}.png"), bytes);
+        File.WriteAllText(Path.Combine(input, "debug", "maafw.log"), "complete log\n");
+        var expected = Directory.GetFiles(input, "*", SearchOption.AllDirectories).ToDictionary(
+            path => Path.GetRelativePath(input, path).Replace('\\', '/'),
+            path => SHA256.HashData(File.ReadAllBytes(path)));
+        var dataRoot = typeof(AppPaths).GetProperty(nameof(AppPaths.DataRoot))!;
+        AppPaths.Initialize();
+        var savedRoot = AppPaths.DataRoot;
+        var cache = (ConcurrentDictionary<Type, Lazy<object>>)typeof(Instances).GetField("ServiceCache", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+        cache.TryGetValue(typeof(RootViewModel), out var savedViewModel);
+        cache.TryGetValue(typeof(SukiUI.Toasts.ISukiToastManager), out var savedToasts);
+        cache[typeof(SukiUI.Toasts.ISukiToastManager)] = new Lazy<object>(() => new SukiUI.Toasts.SukiToastManager());
+        cache[typeof(RootViewModel)] = new Lazy<object>(() => RuntimeHelpers.GetUninitializedObject(typeof(RootViewModel)));
+        dataRoot.SetValue(null, input);
+        try
+        {
+            foreach (var local in new[] { true, false })
+            {
+                var chosen = Path.Combine(output, local ? "local.zip" : "document.zip");
+                var sibling = Path.Combine(output, Path.GetFileNameWithoutExtension(chosen) + "-part99.zip");
+                File.WriteAllText(sibling, "previous export must remain");
+                var file = DispatchProxy.Create<IStorageFile, LogExportStorageProxy>();
+                var storageFile = (LogExportStorageProxy)(object)file;
+                storageFile.PathValue = local ? new Uri(chosen) : new Uri("content://fixture/document.zip");
+                storageFile.WritePath = chosen;
+                var provider = DispatchProxy.Create<IStorageProvider, LogExportStorageProxy>();
+                ((LogExportStorageProxy)(object)provider).SaveFile = file;
+                var export = Task.Run(() => FileLogExporter.CompressRecentLogs(provider));
+                Pump(export);
+                var result = export.GetAwaiter().GetResult();
+                check(result == ExportLogResult.Success, $"single_zip_export_success_{local}");
+                check(File.Exists(chosen) && new FileInfo(chosen).Length > 23_750_000, $"one_large_zip_at_selected_path_{local}");
+                check(Directory.GetFiles(output, "*-part*.zip").All(path => File.ReadAllText(path) == "previous export must remain"), "existing_sibling_archives_preserved");
+                check(Directory.GetFiles(output).Length == (local ? 2 : 4), "no_extra_export_files");
+                using var zip = ZipFile.OpenRead(chosen);
+                check(zip.Entries.Count == expected.Count, "single_zip_contains_all_files");
+                foreach (var entry in zip.Entries)
+                {
+                    using var stream = entry.Open();
+                    check(expected[entry.FullName].SequenceEqual(SHA256.HashData(stream)), "single_zip_preserves_file_bytes");
+                }
+            }
+            check(expected.All(pair => pair.Value.SequenceEqual(SHA256.HashData(File.ReadAllBytes(Path.Combine(input, pair.Key))))), "export_preserves_source_files");
+            var gate = (System.Threading.SemaphoreSlim)typeof(FileLogExporter)
+                .GetField("ExportSemaphore", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            gate.Wait();
+            try
+            {
+                var blockedExport = Task.Run(() => FileLogExporter.CompressRecentLogs(null));
+                Pump(blockedExport);
+                check(blockedExport.Result == ExportLogResult.InProgress, "concurrent_export_is_rejected");
+            }
+            finally { gate.Release(); }
+        }
+        finally
+        {
+            dataRoot.SetValue(null, savedRoot);
+            if (savedViewModel is null) cache.TryRemove(typeof(RootViewModel), out _);
+            else cache[typeof(RootViewModel)] = savedViewModel;
+            if (savedToasts is null) cache.TryRemove(typeof(SukiUI.Toasts.ISukiToastManager), out _);
+            else cache[typeof(SukiUI.Toasts.ISukiToastManager)] = savedToasts;
+        }
+    }
+
+    private static void Pump(Task task)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (!task.IsCompleted)
+        {
+            if (watch.Elapsed > TimeSpan.FromSeconds(30)) throw new TimeoutException("log_operation");
+            Dispatcher.UIThread.RunJobs();
+            System.Threading.Thread.Sleep(5);
+        }
+        task.GetAwaiter().GetResult();
     }
 
     private static void RunPublishChecks(string root, Action<bool, string> check)
@@ -326,12 +490,15 @@ internal sealed class LogExportArchiveList(IReadOnlyList<string> files, Action<i
 public class LogExportStorageProxy : DispatchProxy
 {
     public Uri PathValue { get; set; } = new("file:///unused.zip");
+    public string? WritePath { get; set; }
+    public IStorageFile? SaveFile { get; set; }
 
     protected override object? Invoke(MethodInfo? method, object?[]? arguments) => method!.Name switch
     {
         "get_Path" => PathValue,
         "get_Name" => Path.GetFileName(PathValue.LocalPath),
-        "SaveFilePickerAsync" => Task.FromResult<IStorageFile?>(null),
+        "SaveFilePickerAsync" => Task.FromResult(SaveFile),
+        "OpenWriteAsync" => Task.FromResult<Stream>(new FileStream(WritePath!, FileMode.Create, FileAccess.Write, FileShare.None)),
         "Dispose" => null,
         _ => throw new NotSupportedException("Fixture must not access " + method.Name)
     };
