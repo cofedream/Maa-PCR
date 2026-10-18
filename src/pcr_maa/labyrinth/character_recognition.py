@@ -410,6 +410,33 @@ class IconMatcher:
 
 
 
+    def rank(self,frame,box,*,ids,mask=IconMask(),attribute=None,_prepared=None):
+        """Best icon variant per requested character id; no roster or rival gates.
+
+        Used by the opening page, where the visible roster is known in advance and
+        identities are decided jointly by ``_maximum_assignment``.
+        """
+        if type(frame) is not np.ndarray or frame.dtype!=np.uint8 or not _inside(box,frame.shape):
+            raise BatchStopped('character_frame_unknown')
+        if _prepared is None:_prepared=dict(frame=frame)
+        if type(_prepared) is not dict or _prepared.get('frame') is not frame:
+            raise BatchStopped('character_frame_unknown')
+        wanted=set(ids)
+        if not wanted:return {}
+        indices=np.array([index for index,entry in enumerate(self.entries) if entry['character_id'] in wanted],dtype=np.int64)
+        if not len(indices):return {}
+        indices=indices[np.array([attribute is None or self.entries[index]['attribute'] is None
+            or self.entries[index]['attribute']==attribute for index in indices],dtype=bool)]
+        if not len(indices):return {}
+        fine=self._scores(frame,box,mask,20,_prepared=_prepared,_indices=indices)
+        best={}
+        for index in indices:
+            entry=self.entries[index];candidate=IconCandidate(entry['character_id'],entry['name'],entry['variant'],
+                float(fine[index]),entry['icon_owner_id'],entry['unit_icon_id'])
+            if candidate.character_id not in best or best[candidate.character_id].confidence<candidate.confidence:
+                best[candidate.character_id]=candidate
+        return best
+
     def refine(self,frame,box,initial,*,fallback=None,_prepared=None,**kwargs):
         if _prepared is None:_prepared=dict(frame=frame)
         if type(_prepared) is not dict or _prepared.get('frame') is not frame:
@@ -972,6 +999,51 @@ def _unknown_visual_fingerprint(frame,boxes):
 
 
 
+def _maximum_assignment(weights):
+    """Maximum-total one-to-one assignment for a rectangular weight matrix.
+
+    ``weights`` is a list of rows (cards), each with one score per candidate id.
+    Returns the column index chosen for every row, or ``None`` when the row is
+    left unmatched (more cards than ids, or padding).  Rows and columns are never
+    reused.  Hungarian (Kuhn-Munkres) with zero padding; not a heuristic.
+    """
+    rows=len(weights)
+    if not rows:return []
+    cols=max((len(row) for row in weights),default=0)
+    if not cols:return [None]*rows
+    size=max(rows,cols);peak=max((max(row) if row else 0. for row in weights),default=0.)
+    cost=[[0.]*size for _ in range(size)]
+    for r,row in enumerate(weights):
+        for c,value in enumerate(row):
+            number=float(value)
+            if not math.isfinite(number):raise BatchStopped('character_expected_roster_unknown')
+            cost[r][c]=peak-min(peak,number)
+    u=[0.]*(size+1);v=[0.]*(size+1);p=[0]*(size+1);way=[0]*(size+1)
+    for i in range(1,size+1):
+        p[0]=i;j0=0
+        minv=[float('inf')]*(size+1);used=[False]*(size+1)
+        while True:
+            used[j0]=True;i0=p[j0];delta=float('inf');j1=0
+            for j in range(1,size+1):
+                if used[j]:continue
+                current=cost[i0-1][j-1]-u[i0]-v[j]
+                if current<minv[j]:minv[j]=current;way[j]=j0
+                if minv[j]<delta:delta=minv[j];j1=j
+            for j in range(size+1):
+                if used[j]:u[p[j]]+=delta;v[j]-=delta
+                else:minv[j]-=delta
+            j0=j1
+            if p[j0]==0:break
+        while True:
+            j1=way[j0];p[j0]=p[j1];j0=j1
+            if j0==0:break
+    result=[None]*rows
+    for j in range(1,size+1):
+        row=p[j]
+        if row<=rows and j<=cols:result[row-1]=j-1
+    return result
+
+
 def _viewport_signature(frame,*,page,cards,members,boxes,current_filter,count,scroll):
 
     def facts(card):
@@ -1043,11 +1115,139 @@ class CharacterRecognizer:
             else:cards.append(dict(slot=index,**asdict(match),identity_source='portrait',ocr_state='completed' if name_words is not None else 'not_requested'))
         return dict(page='reward',cards=cards)
 
-    def recognize(self,frame,page,*,roster=None,current_filter=None,observed_count=None,members_only=False):
+    def _scanned_cards(self,frame,boxes,slots,old,scroll,page,viewport,roster,prepared):
+        cards=[]
+        for box in boxes:
+            if self.stopped():raise BatchStopped('stopped')
+            x,y,w,h=box;vx,vy,vw,vh=viewport
+            clipped_top=max(0,vy-y);visible=min(y+h,vy+vh)-max(y,vy)
+            selected=opening_marker(frame,box)>=.72 if page=='opening' else battle_marker(frame,box)>=.45
+            icon=(x+6,y+6,w-14,w-14)
+            attribute=card_attribute(frame,box) if (page in ('battle','boss') or not selected) and (visible==h or page in ('battle','boss') and y+h<=vy+vh) else None
+            if page=='opening':
+                # Opening cards carry the borrow badge in the top-right quadrant
+                # even while unselected; the name plate and badges sit outside the
+                # sampler band, so the top-left/bottom-left masks are not needed.
+                mask=IconMask(right=True,top_right=True,bottom_band=selected,
+                    min_y=min(1,clipped_top/h),max_y=min(1,visible/h) if visible<h else 1)
+            else:
+                mask=IconMask(right=True,top_left=True,bottom_left=True)
+            match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
+            if page!='opening' and not match.trusted:
+                match=self.matcher.refine(frame,icon,match,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
+            item=dict(slot_id=slots[box],box=list(box),icon_box=list(icon),attribute=attribute,selected=selected,**asdict(match))
+            item['candidates']=[asdict(candidate) for candidate in match.candidates]
+            cached=old.get(slots[box])
+            if page=='opening' and selected:
+                if cached and cached['trusted']:
+                    for key in ('character_id','name','variant','confidence','rival_confidence','rival_margin','trusted','candidates','unit_icon_id'):
+                        item[key]=cached[key]
+                elif visible<h:
+                    # Shading and clipping cannot establish a new portrait identity.
+                    item.update(character_id=None,name=None,variant=None,unit_icon_id=None,trusted=False)
+            cards.append(item)
+        return cards
+
+    def _expected_cards(self,frame,boxes,slots,old,scroll,expected_roster):
+        """Opening page with a known roster: joint one-to-one identity assignment.
+
+        Every visible card is scored against every roster id; the assignment that
+        maximises total correlation gives one identity per card.  A card still
+        needs the original confidence and rival-margin floors, so an unmatched or
+        low-quality card stays unknown instead of acquiring an arbitrary roster id.
+
+        The local rival margin counts every roster id, including ids that the
+        assignment already gave to a trusted card.  After the first pass, an
+        unresolved card is re-checked against the ids that are still unclaimed
+        (one round at a time, until no further card qualifies).  The original
+        confidence floor still applies, so this elimination only confirms a card
+        when its own evidence is real and every id that outscored it belongs to a
+        card the first pass already trusted.
+        """
+        viewport=VIEWPORTS['opening'];prepared=dict(frame=frame);records=[]
+        for box in boxes:
+            if self.stopped():raise BatchStopped('stopped')
+            x,y,w,h=box;vx,vy,vw,vh=viewport
+            clipped_top=max(0,vy-y);visible=min(y+h,vy+vh)-max(y,vy)
+            selected=opening_marker(frame,box)>=.72
+            icon=(x+6,y+6,w-14,w-14)
+            attribute=card_attribute(frame,box) if not selected and visible==h else None
+            mask=IconMask(right=True,top_right=True,bottom_band=selected,
+                min_y=min(1,clipped_top/h),max_y=min(1,visible/h) if visible<h else 1)
+            ranks=self.matcher.rank(frame,icon,ids=expected_roster,mask=mask,attribute=attribute,_prepared=prepared)
+            records.append(dict(box=box,icon=icon,attribute=attribute,selected=selected,visible=visible,ranks=ranks))
+        matrix=[[float(records[index]['ranks'].get(unit).confidence)
+                 if unit in records[index]['ranks'] else 0.0 for unit in expected_roster]
+                for index in range(len(records))]
+        assignment=_maximum_assignment(matrix)
+        cards=[];chosen_cards=[]
+        for index,record in enumerate(records):
+            if self.stopped():raise BatchStopped('stopped')
+            box=record['box'];ranks=record['ranks']
+            candidates=tuple(sorted(ranks.values(),key=lambda candidate:candidate.confidence,reverse=True)[:5])
+            column=assignment[index] if index<len(assignment) else None
+            chosen=ranks.get(expected_roster[column]) if column is not None and 0<=column<len(expected_roster) else None
+            chosen_cards.append(chosen)
+            if chosen is not None:
+                rival=max((candidate.confidence for unit,candidate in ranks.items()
+                    if unit!=chosen.character_id),default=0.0)
+                margin=chosen.confidence-rival
+                trusted=chosen.confidence>=CONFIDENCE and margin>=RIVAL_MARGIN
+                match=IconMatch(chosen.character_id if trusted else None,chosen.name if trusted else None,
+                    chosen.variant if trusted else None,chosen.confidence,rival,margin,trusted,
+                    candidates,chosen.unit_icon_id if trusted else None)
+            else:
+                match=IconMatch(None,None,None,0.0,0.0,0.0,False,candidates)
+            item=dict(slot_id=slots[box],box=list(box),icon_box=list(record['icon']),attribute=record['attribute'],
+                selected=record['selected'],**asdict(match))
+            item['candidates']=[asdict(candidate) for candidate in match.candidates]
+            cached=old.get(slots[box])
+            if record['selected']:
+                if cached and cached['trusted']:
+                    for key in ('character_id','name','variant','confidence','rival_confidence','rival_margin','trusted','candidates','unit_icon_id'):
+                        item[key]=cached[key]
+                elif record['visible']<record['box'][3]:
+                    # Shading and clipping cannot establish a new portrait identity.
+                    item.update(character_id=None,name=None,variant=None,unit_icon_id=None,trusted=False)
+                    chosen_cards[-1]=None
+            cards.append(item)
+        # Bounded elimination: only ids claimed by an already trusted card leave
+        # the rival pool.  A round uses the trusted set from its start, so the
+        # result does not depend on the order cards happen to be scanned.
+        trusted_ids={card['character_id'] for card in cards if card['trusted'] and card['character_id']}
+        while True:
+            promoted=[]
+            for index,card in enumerate(cards):
+                chosen=chosen_cards[index]
+                if card['trusted'] or chosen is None:continue
+                rival=max((records[index]['ranks'][unit].confidence for unit in expected_roster
+                    if unit!=chosen.character_id and unit not in trusted_ids
+                    and unit in records[index]['ranks']),default=0.0)
+                margin=chosen.confidence-rival
+                if chosen.confidence>=CONFIDENCE and margin>=RIVAL_MARGIN:
+                    promoted.append((card,chosen,rival,margin))
+            if not promoted:break
+            for card,chosen,rival,margin in promoted:
+                card.update(character_id=chosen.character_id,name=chosen.name,variant=chosen.variant,
+                    confidence=chosen.confidence,rival_confidence=rival,rival_margin=margin,
+                    trusted=True,unit_icon_id=chosen.unit_icon_id,elimination=True,
+                    local_rival_margin=card['rival_margin'])
+                trusted_ids.add(chosen.character_id)
+        return cards
+
+    def recognize(self,frame,page,*,roster=None,expected_roster=None,current_filter=None,observed_count=None,members_only=False):
 
         if self.stopped():raise BatchStopped('stopped')
 
         if members_only and page not in ('battle','boss'):raise ValueError('member_read_page_required')
+
+        if expected_roster is not None:
+            if (page!='opening' or type(expected_roster) not in (tuple,list) or not expected_roster
+                    or len(expected_roster)>40
+                    or any(type(value) is not str or re.fullmatch(r'[0-9]{4,6}',value) is None for value in expected_roster)
+                    or len(set(expected_roster))!=len(expected_roster)):
+                raise BatchStopped('character_expected_roster_unknown')
+            expected_roster=tuple(expected_roster)
 
         viewport=VIEWPORTS[page];boxes=() if members_only else detect_grid(frame,viewport,card_size=120 if page=='roster' else 130,
 
@@ -1075,51 +1275,10 @@ class CharacterRecognizer:
 
         old={card['slot_id']:card for card in previous['cards']} if same_view else {}
 
-        for box in boxes:
-
-            if self.stopped():raise BatchStopped('stopped')
-
-            x,y,w,h=box;vx,vy,vw,vh=viewport
-
-            selected=opening_marker(frame,box)>=.72 if page=='opening' else battle_marker(frame,box)>=.45
-
-            icon=(x+6,y+6,w-14,w-14)
-
-            clipped_top=max(0,vy-y);visible=min(y+h,vy+vh)-max(y,vy)
-
-            attribute=card_attribute(frame,box) if (page in ('battle','boss') or not selected) and (visible==h or page in ('battle','boss') and y+h<=vy+vh) else None
-
-            mask=IconMask(right=True,top_left=True,top_right=page=='opening' and selected,
-
-                bottom_left=True,bottom_band=page=='opening' and selected,
-
-                min_y=min(1,clipped_top/h) if page=='opening' else 0,max_y=min(1,visible/h) if page=='opening' and visible<h else 1)
-
-            match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
-
-            if page!='opening' and not match.trusted:
-
-                match=self.matcher.refine(frame,icon,match,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
-
-            item=dict(slot_id=slots[box],box=list(box),icon_box=list(icon),attribute=attribute,selected=selected,**asdict(match))
-
-            item['candidates']=[asdict(candidate) for candidate in match.candidates]
-
-            cached=old.get(slots[box])
-
-            if page=='opening' and selected:
-
-                if cached and cached['trusted']:
-
-                    for key in ('character_id','name','variant','confidence','rival_confidence','rival_margin','trusted','candidates','unit_icon_id'):
-
-                        item[key]=cached[key]
-
-                elif visible<h:
-                    # Shading and clipping cannot establish a new portrait identity.
-                    item.update(character_id=None,name=None,variant=None,unit_icon_id=None,trusted=False)
-
-            cards.append(item)
+        if expected_roster is not None:
+            cards=self._expected_cards(frame,boxes,slots,old,scroll,expected_roster)
+        else:
+            cards=self._scanned_cards(frame,boxes,slots,old,scroll,page,viewport,roster,prepared)
 
         members=[]
 
@@ -1330,6 +1489,14 @@ class CharacterRecognition(CustomRecognition):
             members_only=params.get('members_only') is True
             if members_only and (mode!='read' or page not in ('battle','boss')):return None
 
+            expected_roster=params.get('expected_roster')
+            if expected_roster is not None:
+                if (page!='opening' or type(expected_roster) not in (list,tuple) or not expected_roster
+                        or len(expected_roster)>40
+                        or any(type(value) is not str or re.fullmatch(r'[0-9]{4,6}',value) is None for value in expected_roster)
+                        or len(set(expected_roster))!=len(expected_roster)):return None
+                expected_roster=tuple(expected_roster)
+
             if self.recognizer.stopped() or context.tasker.stopping:return None
 
             for interrupt in ('LabyDateChangedObserved','LabyDisconnect6002Observed'):
@@ -1463,7 +1630,7 @@ class CharacterRecognition(CustomRecognition):
             count=int(count_word['text'][0]) if count_word is not None else None
 
             observation=self.recognizer.recognize(argv.image,page,roster=params.get('roster'),
-
+                expected_roster=expected_roster if page=='opening' else None,
                 current_filter=current_filter,observed_count=count,**({'members_only':True} if members_only else {}))
 
             if page=='opening':
@@ -1713,7 +1880,7 @@ class MaaCharacters:
         batch.checkpoint()
         return observation
 
-    def wait_for(self,batch,page,predicate,*,roster=None,timeout=12,members_only=False):
+    def wait_for(self,batch,page,predicate,*,roster=None,expected_roster=None,timeout=12,members_only=False):
 
         import time
 
@@ -1728,7 +1895,9 @@ class MaaCharacters:
             token=native.RUN_DEADLINE.set(deadline)
 
             try:
-                observation,receipt=self.read(batch,page,roster=roster,stable=False,**({'members_only':True} if members_only else {}))
+                arguments=dict(roster=roster,stable=False,**({'members_only':True} if members_only else {}))
+                if expected_roster is not None:arguments['expected_roster']=expected_roster
+                observation,receipt=self.read(batch,page,**arguments)
                 batch.checkpoint()
                 if native.active_now()>=deadline:raise BatchStopped('character_feedback_unknown')
                 accepted=observation['stable'] and predicate(observation)
@@ -1739,7 +1908,7 @@ class MaaCharacters:
 
 
 
-    def read(self,batch,page,*,roster=None,stable=True,timeout=12,expected_role=None,members_only=False):
+    def read(self,batch,page,*,roster=None,expected_roster=None,stable=True,timeout=12,expected_role=None,members_only=False):
 
         import time
 
@@ -1759,7 +1928,7 @@ class MaaCharacters:
 
             try:
 
-                try:observation,receipt=self.run('Read',dict(mode='read',page=page,roster=list(roster) if roster else None,**({'expected_role':expected_role} if expected_role is not None else {}),**({'members_only':True} if members_only else {})))
+                try:observation,receipt=self.run('Read',dict(mode='read',page=page,roster=list(roster) if roster else None,**({'expected_roster':list(expected_roster)} if expected_roster else {}),**({'expected_role':expected_role} if expected_role is not None else {}),**({'members_only':True} if members_only else {})))
 
                 except BatchStopped as error:
                     batch.checkpoint()
@@ -1802,13 +1971,16 @@ class CharacterNavigation:
 
     """Bounded page-scoped probe inputs, each settled by a new native read."""
 
-    def __init__(self,characters,stamp,*,roster=None):self.characters,self.stamp,self.roster=characters,stamp,roster
+    def __init__(self,characters,stamp,*,roster=None,expected_roster=None):
+        self.characters,self.stamp,self.roster=characters,stamp,roster
+        self.expected_roster=tuple(expected_roster) if expected_roster else None
 
     def move(self,batch,enter_id,page,observation,*,direction=None,filter=None,tab=None,block_id=None):
 
         params=dict(page=page)
         # Keep the existing owned roster through navigation and feedback.
         if self.roster is not None:params['roster']=list(self.roster)
+        if self.expected_roster is not None:params['expected_roster']=list(self.expected_roster)
 
         if direction is not None:
 
@@ -1868,7 +2040,8 @@ class CharacterNavigation:
                 a,b=position(before),position(value)
                 if a is not None or b is not None:return a is not None and b is not None and abs(a-b)<=.02
                 return self.unchanged(before,value)
-            after,receipt=self.characters.wait_for(batch,page,settled,**({'roster':self.roster} if self.roster is not None else {}))
+            after,receipt=self.characters.wait_for(batch,page,settled,**({'roster':self.roster} if self.roster is not None else {}),
+                **({'expected_roster':self.expected_roster} if self.expected_roster is not None else {}))
             batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,native=receipt,
                 input_native=clicked['input_native'],input_action_verified=True,client_page_verified=True),**fields)
             return after

@@ -183,6 +183,24 @@ try
         "opening_catalog_guild_one_matches_game_screenshot");
     var iconProbe = catalog.Guilds[0].Characters[0].Icon;
     Require(iconProbe is null || iconProbe.PixelSize.Width == 128, "opening_catalog_icon_probe");
+    // strategy 快照携带每个公会的完整角色 ID 名单（guild_units），供 Python 做名单限定的整页一对一分配；
+    // 该字段只由图鉴生成，不写回加载路径。
+    var snapshotStrategy = rosterSettings.Snapshot()["strategy"] as JObject;
+    var snapshotGuildUnits = snapshotStrategy?["guild_units"] as JObject;
+    Require(snapshotGuildUnits is not null && snapshotGuildUnits.Count == 5,
+        "guild_units_snapshot_has_five_guilds: " + snapshotStrategy?["guild_units"]?.ToString(Newtonsoft.Json.Formatting.None));
+    Require(snapshotGuildUnits!.Properties().Select(property => property.Name).SequenceEqual(new[] { "1", "2", "3", "4", "5" }),
+        "guild_units_snapshot_keys_are_guild_ids");
+    var snapshotGuildArrays = snapshotGuildUnits.Properties().Select(property => property.Value as JArray).ToArray();
+    Require(snapshotGuildArrays.All(array => array is not null)
+        && snapshotGuildArrays.Select(array => array!.Count).SequenceEqual(new[] { 18, 15, 15, 12, 9 }),
+        "guild_units_snapshot_guild_sizes: " + string.Join(",", snapshotGuildArrays.Select(array => array?.Count)));
+    Require(snapshotGuildArrays.Select((array, index) => array!.Values<string>()
+            .SequenceEqual(catalog.Guilds[index].Characters.Select(character => character.Id))).All(matches => matches),
+        "guild_units_snapshot_matches_catalog");
+    var snapshotGuildIds = snapshotGuildArrays.SelectMany(array => array!.Values<string>()).ToArray();
+    Require(snapshotGuildIds.Length == 69 && snapshotGuildIds.Distinct().Count() == snapshotGuildIds.Length,
+        "guild_units_snapshot_ids_unique_across_guilds");
     var rosterView = new PcrLabyrinthView { DataContext = rosterOwner };
     Dispatcher.UIThread.RunJobs();
     var rosterXaml = XDocument.Load(Path.Combine(args[1], "gui", "MFAAvalonia", "MFAAvalonia", "Pcr", "PcrLabyrinthView.axaml"));
@@ -230,6 +248,9 @@ try
     Require(savedRosterJson?["1"] is JArray savedSlots && savedSlots.Count == 3
         && string.Join("/", savedSlots.Select(slot => string.Join(",", slot.Values<string>()))) == "1075/1351/1059",
         "opening_roster_saved_legacy_format: " + savedRosterJson);
+    var savedGuildUnits = JObject.Parse(rosterConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["guild_units"] as JObject;
+    Require(savedGuildUnits is not null && savedGuildUnits.Count == 5,
+        "guild_units_persisted_in_saved_strategy: " + savedGuildUnits?.ToString(Newtonsoft.Json.Formatting.None));
     var restored = new PcrLabyrinthSettings(Owner(rosterConfig));
     Require(restored.Goals[0].Slots.Select(slot => string.Join(",", slot.Candidates.Select(character => character.Name)))
             .SequenceEqual(new[] { "佩可莉姆（夏日）", "雪菲（夏日）", "可可萝" }),
@@ -266,6 +287,9 @@ try
     var legacySaved = JObject.Parse(legacyRosterConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"]?["3"] as JArray;
     Require(legacySaved is not null && string.Join("/", legacySaved.Select(slot => string.Join(",", slot.Values<string>()))) == "1077/1121/1308",
         "opening_legacy_priority_saved: " + legacySaved);
+    var legacySavedStrategy = JObject.Parse(legacyRosterConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"] as JObject;
+    Require(legacySavedStrategy?["guild_units"] is JObject { Count: 5 },
+        "guild_units_present_for_legacy_config: " + legacySavedStrategy);
     // 图鉴之外的旧 ID 保留为占位项：可显示、不可加入。
     var unknownRosterConfig = new InstanceConfiguration("pcr-labyrinth-unknown-roster");
     unknownRosterConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,

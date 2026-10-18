@@ -10,6 +10,22 @@ from .timing import Timings
 
 JOINED_CONFIRMATION_TIMEOUT_SECONDS=12
 
+
+
+def _guild_units(settings,guild_id):
+    """The selected guild's full character-id list, when the GUI supplied it.
+
+    Optional: configurations saved before this field (or older GUI builds) have
+    no guild_units and keep the historical per-card matching path.  Settings
+    validation already guarantees unique 4-6 digit ids per guild.
+    """
+    strategy=getattr(settings,'strategy',None)
+    units=getattr(strategy,'guild_units',None) if strategy is not None else None
+    if type(units) is not dict:return None
+    value=units.get(str(guild_id)) if type(guild_id) is int else None
+    if type(value) not in (tuple,list) or not value:return None
+    return tuple(value)
+
 class MaaOpening:
     def __init__(self,tasker,stamp,*,timings=None,characters=None):
         self.tasker,self.stamp=tasker,stamp
@@ -71,8 +87,9 @@ class MaaOpening:
         self.used.add(claim);batch.checkpoint()
         empty=self.stamp(source='maa',enter_id=enter_id,page='opening_empty',native=self._run('LabyOpeningEmptyObserved'))
         batch.observation(empty,enter_id=enter_id,page='opening_empty')
-        characters=self.characters;nav=CharacterNavigation(characters,self.stamp);selected=[]
-        observation,_=characters.read(batch,'opening')
+        roster=_guild_units(batch.settings,guild_id)
+        characters=self.characters;nav=CharacterNavigation(characters,self.stamp,expected_roster=roster);selected=[]
+        observation,_=characters.read(batch,'opening',expected_roster=roster)
         if observation['count']!=0 or observation['selected']:raise BatchStopped('opening_selection_unknown')
         for row in slots:
             attrs=tuple(dict.fromkeys(optimizer.profiles[key].data.get('attribute') for key in row if optimizer.profiles[key].data.get('attribute')))
@@ -80,17 +97,21 @@ class MaaOpening:
             visible={c['character_id'] for c in matches};role=next(key for key in row if key in visible)
             before=sorted(selected);after=sorted((*before,role));fields=dict(enter_id=enter_id,role_id=role)
             def send(oid):
-                _,sent=characters.run('ToggleOnce',dict(mode='toggle',page='opening',role_id=role,expected_selected=before),input=True)
+                params=dict(mode='toggle',page='opening',role_id=role,expected_selected=before)
+                if roster:params['expected_roster']=list(roster)
+                _,sent=characters.run('ToggleOnce',params,input=True)
                 return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
             clicked=batch.transaction('opening_select',fields,send)
-            batch.checkpoint();actual,receipt=characters.wait_for(batch,'opening',lambda value:value['count']==len(after) and role in value['selected'] and set(value['selected'])<=set(after) and not any(c['selected'] and not c['trusted'] for c in value['cards']))
+            batch.checkpoint();actual,receipt=characters.wait_for(batch,'opening',lambda value:value['count']==len(after) and role in value['selected'] and set(value['selected'])<=set(after) and not any(c['selected'] and not c['trusted'] for c in value['cards']),expected_roster=roster)
             batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,native=receipt,input_native=clicked['input_native'],selection_verified=True),**fields)
             selected=after;observation=actual
         nodes=opening_catalog_pipeline()
         if not self.tasker.resource.override_pipeline(nodes):raise BatchStopped('opening_pipeline_unavailable')
         fields=dict(enter_id=enter_id,expected_roles=selected)
         def invite(oid):
-            _,sent=characters.run('InviteOnce',dict(mode='invite',page='opening',expected_selected=selected),input=True)
+            params=dict(mode='invite',page='opening',expected_selected=selected)
+            if roster:params['expected_roster']=list(roster)
+            _,sent=characters.run('InviteOnce',params,input=True)
             return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('opening_invite',fields,invite)
         batch.checkpoint();receipt=self._wait_invitation_joined(batch,enter_id,clicked)

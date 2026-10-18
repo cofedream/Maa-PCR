@@ -394,7 +394,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             ["systemCohesionWeight"]=Weight(CohesionWeight,1,"元素契合权重") };
         if (Math.Abs(scores.Properties().Sum(x=>(double)x.Value)-1)>0.000001)
             throw new InvalidOperationException("五项队伍评分权重之和必须为 1。");
-        return new JObject { ["boss_mode"]=BossMode==BossModes[0] ? "multi":"single",
+        var strategy=new JObject { ["boss_mode"]=BossMode==BossModes[0] ? "multi":"single",
             ["special_equipment_mode"]=SpecialEquipmentMode==SpecialEquipmentModes[1] ? "auto_equip" : "off",
             ["special_equipment_battles"]=equipmentBattles,["response_interval_ms"]=ResponseIntervalMs,
             ["auto_database_update"]=AutoDatabaseUpdate,
@@ -418,6 +418,13 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             ["opening_rosters"]=OpeningRostersSnapshot(),
             ["deployment_weights"]=new JArray(deployment),["scoring_overrides"]=scores,
             ["personal_scores"]=personalScores.DeepClone() };
+        if (TryCharacterCatalog() is { } catalog) {
+            var units=new JObject();
+            foreach (var guild in catalog.Guilds)
+                units[guild.GuildId.ToString(CultureInfo.InvariantCulture)]=new JArray(guild.Characters.Select(character=>character.Id));
+            strategy["guild_units"]=units;
+        }
+        return strategy;
     }
     public JObject Snapshot() {
         if (accountLibrary is null || selectedAccount is null) throw new InvalidOperationException("账号库尚未成功载入，原内容不会被覆盖。");
