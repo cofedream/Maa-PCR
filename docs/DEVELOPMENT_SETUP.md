@@ -129,7 +129,7 @@ Start-Process 'gui\MFAAvalonia\bin\x64\Release\MFAAvalonia.exe'
 
 ### 可选：生成一条命令启动的本地脚本
 
-把上面两段合成一个本地脚本（含首次装配、关闭旧实例、增量编译）。`.runtime/` 已 gitignore，脚本只存在于本机：
+把上面两段合成一个本地脚本（含运行状态检查、首次装配和增量编译）。脚本发现当前 checkout 的程序仍在运行时会退出，需先手动关闭；其他目录的同名程序不受影响。`.runtime/` 已 gitignore，脚本只存在于本机：
 
 ```powershell
 cd <仓库>
@@ -139,13 +139,20 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $PSCommandPath)   # 本脚本需放在 <仓库>\.runtime\
 $app  = Join-Path $root 'gui\MFAAvalonia\bin\x64\Release'
 
+$exe = [IO.Path]::GetFullPath((Join-Path $app 'MFAAvalonia.exe'))
+foreach ($candidate in @(Get-Process MFAAvalonia -ErrorAction SilentlyContinue)) {
+    try { $candidatePath = [IO.Path]::GetFullPath($candidate.Path) }
+    catch { throw "无法确认进程 $($candidate.Id) 的程序路径，本次未修改文件或启动程序。" }
+    if ([string]::Equals($candidatePath, $exe, [StringComparison]::OrdinalIgnoreCase)) {
+        throw '当前开发程序仍在运行，请先在程序中停止任务并正常关闭窗口。'
+    }
+}
+
 Set-Content (Join-Path $app 'pcr-repository.txt') $root -NoNewline
 Copy-Item (Join-Path $root 'interface.json') (Join-Path $app 'interface.json') -Force
 if (-not (Test-Path (Join-Path $app 'assets'))) {
     New-Item -ItemType Junction -Path (Join-Path $app 'assets') -Target (Join-Path $root 'assets') | Out-Null
 }
-
-Get-Process MFAAvalonia -ErrorAction SilentlyContinue | Stop-Process -Force
 
 if ($args -notcontains '-NoBuild') {
     dotnet build (Join-Path $root 'gui\MFAAvalonia\MFAAvalonia.Desktop\MFAAvalonia.Desktop.csproj') `
