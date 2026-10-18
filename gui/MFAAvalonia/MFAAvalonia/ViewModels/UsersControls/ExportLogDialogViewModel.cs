@@ -90,7 +90,8 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
     {
         try
         {
-            var usage = await Task.Run(() => PcrLogFiles.Usage(AppPaths.DataRoot));
+            var usage = await Task.Run(() => PcrLogFiles.Usage(AppPaths.DataRoot,
+                PcrRuntimePaths.ResolveDataRepository(AppPaths.InstallRoot)));
             StorageUsage = $"普通日志：{usage.Ordinary / 1048576d:F1} MiB；黎明界独立记录：{usage.Labyrinth / 1048576d:F1} MiB（压缩前，不含截图）。";
         }
         catch { StorageUsage = "日志占用统计未完成，部分文件无法访问。"; }

@@ -68,9 +68,10 @@ internal static class PcrLogFiles
                 || Path.GetFileName(file).Equals("maafw.log", StringComparison.OrdinalIgnoreCase)
                 || Path.GetFileName(file).Equals("maa.log", StringComparison.OrdinalIgnoreCase)));
 
-    internal static (long Ordinary, long Labyrinth) Usage(string root) =>
-        (OrdinaryFiles(root).Sum(file => new FileInfo(file).Length),
-            LabyrinthFiles(root, DateTime.MinValue).Sum(file => new FileInfo(file).Length));
+    // 普通日志在安装目录，黎明界账本/原生日志在业务目录（开发模式下是仓库），两者必须分开算。
+    internal static (long Ordinary, long Labyrinth) Usage(string dataRoot, string labyrinthRoot) =>
+        (OrdinaryFiles(dataRoot).Sum(file => new FileInfo(file).Length),
+            LabyrinthFiles(labyrinthRoot, DateTime.MinValue).Sum(file => new FileInfo(file).Length));
 
     internal static void CleanupOrdinary(string root, DateTime nowUtc, Action<string> info, Action<string> warning)
     {

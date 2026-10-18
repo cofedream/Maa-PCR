@@ -73,10 +73,10 @@ internal static class LogExportChecks
             IncludeOnErrorImages = false, IncludeOtherImages = false
         };
         var select = typeof(FileLogExporter).GetMethod("GetEligibleFiles", hidden)!;
-        var combined = (List<FileInfoEx>)select.Invoke(null, [root, defaults])!;
+        var combined = (List<FileInfoEx>)select.Invoke(null, [root, root, defaults])!;
         Check(combined.Any(file => file.FullName == guiRecent) && combined.Any(file => file.FullName == active)
             && combined.Any(file => file.FullName == maaOld) && combined.Any(file => file.FullName == ledger), "combined_export_keeps_gui_current_and_backup_maa_logs");
-        var selected = (List<FileInfoEx>)select.Invoke(null, [root, options])!;
+        var selected = (List<FileInfoEx>)select.Invoke(null, [root, root, options])!;
         Check(selected.Count == 5, "recent_trace_and_complete_durable_records");
         Check(selected.Any(file => file.FullName == ledger) && selected.Any(file => file.FullName == trace), "unknown_and_trace_present");
         Check(!selected.Any(file => file.FullName == oldTrace || file.FullName == secret || file.IsImage), "no_old_trace_credentials_or_images");
@@ -87,7 +87,7 @@ internal static class LogExportChecks
             IncludeMaaLog = false, IncludeGuiLog = false, IncludeCustomLog = false, IncludeLabyrinthLog = false,
             IncludeOnErrorImages = false, IncludeOtherImages = false
         };
-        Check(((List<FileInfoEx>)select.Invoke(null, [root, none])!).Count == 0, "labyrinth_opt_out");
+        Check(((List<FileInfoEx>)select.Invoke(null, [root, root, none])!).Count == 0, "labyrinth_opt_out");
 
         var snapshot = Path.Combine(root, "snapshot");
         foreach (var file in selected)
@@ -108,7 +108,7 @@ internal static class LogExportChecks
         }
         File.Delete(archives.Single());
         Directory.Delete(Path.GetDirectoryName(archives.Single())!);
-        var usage = (ValueTuple<long, long>)Call("Usage", root)!;
+        var usage = (ValueTuple<long, long>)Call("Usage", root, root)!;
         Check(usage.Item2 == all.Sum(file => new FileInfo(file).Length), "usage_includes_protected_old_trace");
 
         using (var busy = new FileStream(locked, FileMode.Open, FileAccess.ReadWrite, FileShare.None))

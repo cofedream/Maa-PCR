@@ -343,7 +343,7 @@
 
 
     <Grid>
-    <Grid x:Name="PcrWorkspace" IsVisible="{Binding IsPcrMode}" RowDefinitions="Auto,*,Auto" Margin="15,12,15,12" RowSpacing="10">
+    <Grid x:Name="PcrWorkspace" IsVisible="{Binding IsPcrMode}" RowDefinitions="Auto,*,Auto,Auto" Margin="15,12,15,12" RowSpacing="10">
         <pcr:PcrLabyrinthView Grid.Row="1" IsVisible="{Binding IsLabyrinthProfile}" />
         <suki:GlassCard Grid.Row="0" Padding="14,10" IsAnimated="False">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="5">
@@ -584,6 +584,55 @@
                         Classes="Flat Rounded" Background="{DynamicResource SukiPrimaryColor}" Foreground="White" Padding="20,12" MinWidth="112" VerticalAlignment="Center">
                     <Grid><TextBlock Text="开始任务" IsVisible="{Binding !IsRunning}" FontWeight="SemiBold" /><TextBlock Text="停止任务" IsVisible="{Binding IsRunning}" FontWeight="SemiBold" /></Grid>
                 </Button>
+            </Grid>
+        </suki:GlassCard>
+
+        <!-- 黎明界实时日志：只属于黎明界档案，固定在开始任务栏下方，默认折叠成一行标题。
+             内容来自 Owner 的逐步 trace（开局/选人/编队/战斗/商店/停止原因），纯展示。 -->
+        <suki:GlassCard Grid.Row="3" Padding="14,8" IsAnimated="False" IsVisible="{Binding IsLabyrinthProfile}">
+            <!-- 不设 RowSpacing：折叠时底部那行不可见，间距改由 Border 的 Margin 提供。 -->
+            <Grid RowDefinitions="Auto,Auto">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                    <ToggleButton x:Name="PcrLiveLogToggle" Content="实时日志" IsChecked="False" FontSize="12" Padding="10,4"
+                                  Checked="PcrLiveLogToggle_OnChecked"
+                                  ToolTip.Tip="展开或收起实时日志面板；收起时日志仍照常写入日志文件。" />
+                    <TextBlock Grid.Column="1" FontSize="12" VerticalAlignment="Center" MaxLines="1"
+                               Foreground="{DynamicResource SukiLowText}" TextTrimming="CharacterEllipsis"
+                               Text="实时显示开局筛选、选人、编队、战斗与停止原因；每行可拖动选中并 Ctrl+C 复制。" />
+                    <Button Grid.Column="2" Content="滚到底部" Click="PcrLiveLogBottom_OnClick" FontSize="12" Padding="10,4"
+                            ToolTip.Tip="滚回最新一行；手动上滚后用它恢复自动跟随底部。" />
+                    <Button Grid.Column="3" Content="清空" Command="{Binding ClearLabyrinthLogCommand}" FontSize="12"
+                            Padding="10,4" ToolTip.Tip="只清空这个面板，不影响日志文件。" />
+                    <Button Grid.Column="4" Content="导出" Command="{Binding ExportCommand}" FontSize="12" Padding="10,4"
+                            ToolTip.Tip="打开日志导出窗口；黎明界逐步日志已写入 GUI 日志文件，账本与原生 trace 随“黎明界运行日志”导出。" />
+                </Grid>
+                <Border Grid.Row="1" Margin="0,6,0,0" BorderThickness="1" CornerRadius="6" Padding="6,4"
+                        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                        IsVisible="{Binding IsChecked, ElementName=PcrLiveLogToggle}">
+                    <ScrollViewer x:Name="PcrLiveLogScroll" Height="170" VerticalScrollBarVisibility="Auto"
+                                  extensions:ScrollViewerExtensions.AutoScroll="True"
+                                  extensions:ScrollViewerExtensions.PanningMode="VerticalOnly">
+                        <ItemsControl ItemsSource="{Binding LabyrinthLogRows}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="2" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- 逐行 SelectableTextBlock：单行拖动选中 + Ctrl+C。 -->
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                                        <SelectableTextBlock FontSize="12" MinWidth="58" VerticalAlignment="Top"
+                                                             Foreground="{DynamicResource SukiDisabledText}"
+                                                             Text="{Binding Time}" />
+                                        <SelectableTextBlock Grid.Column="1" FontSize="12" TextWrapping="WrapWithOverflow"
+                                                             Text="{Binding Content}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
             </Grid>
         </suki:GlassCard>
     </Grid>
