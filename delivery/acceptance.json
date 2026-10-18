@@ -1,20 +1,89 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 57,
   "expected_version": "v0.1.12",
   "base_release_manifest_sha256": "1021513015b057b14da36898aa7ea9b1e7e5f8fef174617c5d0de6d578951575",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
+  "accepted_owned_payload_sha256": "1651376edb70c0b9da04d204e2a686512cb7c47b90fd3ca0216e184110e3b1fe",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 39142300610,
+    "run_attempt": 1,
+    "artifact_id": 12141804779,
+    "source_commit": "4d531799f621796c8817647ca2c5929d4c557a33",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.12-win-x64.zip",
+      "size": 309488451,
+      "sha256": "9b9a4b720aa96e95a1dc5bc6204ab24cd8629d864a43f1594396d8143eb812f2"
+    }
+  },
+  "accepted_staging_manifest_sha256": "9722812da8c89a54ca661427a087d5a9071614e7ffc2a367e9eb65faedfbc7a9",
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 3171,
+    "skipped": 308,
+    "failed": 0,
+    "errors": 0,
+    "deselected": 152
+  },
+  "public_count_authority": "Exact main CI console and individual testcase nodes.",
+  "bundled_runtime_tests_passed": 3,
+  "gui_counted_assertions": 931,
+  "gui_core_sha256": "2c312a5b59801fed074ec1ace32747b3cd9fcf7a491b1f672b60e2e84566128e",
+  "gui_ocr_and_configuration_recovery": "passed",
+  "isolated_update_routes": 2,
+  "synthetic_private_files_per_route": 9,
+  "native_logger_version": "v5.13.0",
+  "native_logger_evidence": "Exact packaged DLL hashes match the synthetic rotation and expiry verification.",
   "real_installation_written": false,
   "device_started": false,
   "game_inputs": 0,
-  "evidence": [],
+  "evidence": [
+    {
+      "name": "r57-release-20261018/CI_BINDING.json",
+      "sha256": "24c63f8fc99e0aa57e3114f654e1fd65771167e2077a7d7bd6b66bc9b401faff"
+    },
+    {
+      "name": "r57-release-20261018/PACKAGE_VERIFIED.json",
+      "sha256": "4cdd768489b7577ac2c5977032b4fb9d28bfb42a884209f8fabf5361074dfbe2"
+    },
+    {
+      "name": "r57-release-20261018/packaged-gui/RESULT.json",
+      "sha256": "e8b8de110b9e57efc254a35d73dd780559dc42095963edf7808151fd823682e8"
+    },
+    {
+      "name": "r57-release-20261018/packaged-gui-native/result.json",
+      "sha256": "3f84fd034dfb86c11c87973952887ff00f92e18e5ca9914938260b157bf11807"
+    },
+    {
+      "name": "r57-release-20261018/GUI_VISUAL_VERIFIED.json",
+      "sha256": "77128869943f2c89ca1d8f71ddc9f0aab8fc0b73429f8c355c945c77e381b08a"
+    },
+    {
+      "name": "r57-release-20261018/ci-artifact/public-tests.xml",
+      "sha256": "dacaf2283e6da7a03bad347681171f86d874ae41fd3157945046ea3f33182aac"
+    },
+    {
+      "name": "r57-release-20261018/ci-artifact/bundled-runtime.xml",
+      "sha256": "5f6e1137fd32dd4d3a4ebe6191fba7f4fe036450dcfb88f9bf5ddd30bd1271f4"
+    },
+    {
+      "name": "r57-release-20261018/metadata/run.json",
+      "sha256": "8688db10e1c8dcd7618aa2a037b3fd35c425178185408f9cf148b3646fe11336"
+    },
+    {
+      "name": "r57-release-20261018/metadata/artifact.json",
+      "sha256": "e08e5671e4162479ab2eceed1301a71e324099c6bc0a3efd211c3ff76d7ca7b4"
+    }
+  ],
   "limits": [
-    "R57 release preparation; exact main CI artifact and final acceptance pending.",
-    "R56 acceptance is not reused; source, payload and isolated R56 upgrades require new evidence.",
-    "No live device, account, game or real installation acceptance is claimed."
+    "GUI contracts use offscreen controls and synthetic callbacks, not real product window clicks.",
+    "Full and patch updates use isolated ordinary copies with synthetic private state.",
+    "Unavailable private evidence and replay exclusions remain recorded in exact CI results.",
+    "No new MuMu feedback-device, live-game or real-installation acceptance is claimed.",
+    "Public attachments and the default R56 updater are verified after publication."
   ]
 }
