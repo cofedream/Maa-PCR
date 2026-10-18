@@ -38,7 +38,8 @@ try
     TaskQueueViewModel Owner(InstanceConfiguration config)
     {
         var processor = (MaaProcessor)RuntimeHelpers.GetUninitializedObject(typeof(MaaProcessor));
-        typeof(MaaProcessor).GetField("<InstanceId>k__BackingField", fields)!.SetValue(processor, "pcr-labyrinth-v1");
+        typeof(MaaProcessor).GetField("<InstanceId>k__BackingField", fields)!.SetValue(processor,
+            Path.GetFileNameWithoutExtension(config.GetConfigFilePath()));
         typeof(MaaProcessor).GetField("<InstanceConfiguration>k__BackingField", fields)!.SetValue(processor, config);
         var owner = (TaskQueueViewModel)RuntimeHelpers.GetUninitializedObject(typeof(TaskQueueViewModel));
         typeof(TaskQueueViewModel).GetField("_processorField", fields)!.SetValue(owner, processor);
@@ -150,6 +151,127 @@ try
     liveOwner.LabyrinthSettings.HideCredentials();
     Dispatcher.UIThread.RunJobs();
     Require(liveInputs.All(input => input.PasswordChar == '*'), "real_avalonia_hide_action_masks_all_fields");
+    // 开局三人候选：图鉴/公会名单/内嵌布局/保存格式；不连接设备，也不读游戏设置。
+    PcrLabyrinthCharacterCatalog.UseRepositoryRoot(args[1]);
+    var rosterConfig = new InstanceConfiguration("pcr-labyrinth-rosters");
+    var rosterOwner = Owner(rosterConfig);
+    var rosterSettings = new PcrLabyrinthSettings(rosterOwner);
+    var catalog = rosterSettings.CharacterCatalog;
+    Require(catalog.Guilds.Count == 5, "opening_catalog_has_five_guilds");
+    Require(catalog.Guilds.Select(guild => guild.Characters.Count).SequenceEqual(new[] { 18, 15, 15, 12, 9 }),
+        "opening_catalog_guild_sizes: " + string.Join(",", catalog.Guilds.Select(guild => guild.Characters.Count)));
+    Require(catalog.Guilds.Select(guild => guild.Name).SequenceEqual(new[] { "美食殿堂", "破晓之星", "咲恋救济院", "王宫骑士团", "拉比林斯" }),
+        "opening_catalog_guild_names");
+    var rosterCharacters = catalog.Guilds.SelectMany(guild => guild.Characters).ToArray();
+    Require(rosterCharacters.Select(character => character.Id).Distinct().Count() == rosterCharacters.Length,
+        "opening_catalog_units_unique_across_guilds");
+    Require(rosterCharacters.All(character => character.IconPath is not null && File.Exists(character.IconPath)),
+        "opening_catalog_units_have_icon_files");
+    Require(catalog.Guilds[0].Characters.Any(character => character.Id == "1075" && character.Name.Contains("佩可莉姆")),
+        "opening_catalog_contains_guild_one_default");
+    Require(catalog.Guilds[0].Characters.Select(character => character.Id)
+            .SequenceEqual(new[] { "1060", "1078", "1120", "1211", "1272", "1059", "1076", "1119", "1155", "1253",
+                "1058", "1075", "1118", "1210", "1279", "1064", "1207", "1351" }),
+        "opening_catalog_guild_one_matches_game_screenshot");
+    var iconProbe = catalog.Guilds[0].Characters[0].Icon;
+    Require(iconProbe is null || iconProbe.PixelSize.Width == 128, "opening_catalog_icon_probe");
+    var rosterView = new PcrLabyrinthView { DataContext = rosterOwner };
+    Dispatcher.UIThread.RunJobs();
+    var rosterXaml = XDocument.Load(Path.Combine(args[1], "gui", "MFAAvalonia", "MFAAvalonia", "Pcr", "PcrLabyrinthView.axaml"));
+    XNamespace xaml = "https://github.com/avaloniaui";
+    string[] ClassesOf(XElement node) => ((string?)node.Attribute("Classes"))?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? [];
+    var rosterExpanderNodes = rosterXaml.Descendants(xaml + "Expander")
+        .Where(node => (string?)node.Attribute("Header") == "各公会开局三人候选").ToArray();
+    Require(rosterExpanderNodes.Length == 1, "opening_roster_expander_present");
+    var rosterExpanderNode = rosterExpanderNodes[0];
+    Require(rosterExpanderNode.Descendants(xaml + "Border").Any(node => ClassesOf(node).Contains("OpeningSlotBox")),
+        "opening_slot_boxes_in_view");
+    Require(rosterExpanderNode.Descendants(xaml + "Button").Any(node =>
+            ClassesOf(node).Contains("OpeningCandidate") && (string?)node.Attribute("Command") == "{Binding ToggleCommand}"),
+        "opening_candidate_chips_bound_in_view");
+    Require(rosterExpanderNode.Descendants(xaml + "ItemsControl").Any(node => (string?)node.Attribute("ItemsSource") == "{Binding Slots}"),
+        "opening_slots_bound_in_view");
+    Require(rosterExpanderNode.Descendants(xaml + "ItemsControl").Any(node => (string?)node.Attribute("ItemsSource") == "{Binding Pool}"),
+        "opening_pool_bound_in_view");
+    Require(!rosterExpanderNode.Descendants(xaml + "TextBox").Any(), "opening_no_text_input_in_roster_ui");
+    Require(!rosterExpanderNode.Descendants().Any(node => (string?)node.Attribute("Name") == "OpeningPickerPanel"),
+        "opening_popup_removed_from_view");
+    Require(rosterSettings.Goals.Sum(goal => goal.Slots.Count) == 15, "opening_goals_have_three_slots_each");
+    Require(rosterSettings.Goals.Select(goal => goal.Pool.Count).SequenceEqual(new[] { 18, 15, 15, 12, 9 }),
+        "opening_goal_pools_match_guild_sizes");
+    var rosterGoal = rosterSettings.Goals[0];
+    PcrLabyrinthCharacter Pick(string id) => rosterGoal.Pool.First(character => character.Id == id);
+    Require(rosterGoal.Slots.All(slot => slot.IsEmpty) && rosterGoal.Slots.All(slot => slot.HeaderText == "未选"),
+        "opening_slots_start_empty");
+    Pick("1075").ToggleCommand!.Execute(null);
+    Require(rosterGoal.Slots[0].Candidates.Count == 1 && rosterGoal.Slots[0].Candidates[0].Id == "1075"
+        && rosterGoal.Slots[0].HeaderText.Contains("佩可莉姆（夏日）"), "opening_pick_fills_first_slot");
+    Require(Pick("1075").IsSelected && Pick("1075").Badge == "1", "opening_picked_chip_marked_with_slot");
+    Pick("1351").ToggleCommand!.Execute(null);
+    Pick("1059").ToggleCommand!.Execute(null);
+    Require(rosterGoal.Slots[1].Candidates.Single().Id == "1351" && rosterGoal.Slots[2].Candidates.Single().Id == "1059",
+        "opening_pick_fills_three_slots");
+    Pick("1060").ToggleCommand!.Execute(null);
+    Require(rosterGoal.HasRosterHint && rosterGoal.Slots.All(slot => slot.Candidates.Count == 1), "opening_fourth_pick_rejected");
+    Pick("1075").ToggleCommand!.Execute(null);
+    Require(rosterGoal.Slots[0].IsEmpty && !Pick("1075").IsSelected && !rosterGoal.HasRosterHint, "opening_toggle_removes_pick");
+    Pick("1075").ToggleCommand!.Execute(null);
+    Require(rosterGoal.Slots[0].Candidates.Single().Id == "1075", "opening_refill_after_remove");
+    rosterSettings.Save();
+    var savedRosterJson = JObject.Parse(rosterConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"] as JObject;
+    Require(savedRosterJson?["1"] is JArray savedSlots && savedSlots.Count == 3
+        && string.Join("/", savedSlots.Select(slot => string.Join(",", slot.Values<string>()))) == "1075/1351/1059",
+        "opening_roster_saved_legacy_format: " + savedRosterJson);
+    var restored = new PcrLabyrinthSettings(Owner(rosterConfig));
+    Require(restored.Goals[0].Slots.Select(slot => string.Join(",", slot.Candidates.Select(character => character.Name)))
+            .SequenceEqual(new[] { "佩可莉姆（夏日）", "雪菲（夏日）", "可可萝" }),
+        "opening_roster_restored_names: " + string.Join(" / ", restored.Goals[0].Slots.Select(slot => slot.HeaderText)));
+    var restoredPool = restored.Goals[0].Pool;
+    Require(restoredPool.First(character => character.Id == "1075") is { IsSelected: true, Badge: "1" }
+        && restoredPool.First(character => character.Id == "1351") is { IsSelected: true, Badge: "2" }
+        && restoredPool.First(character => character.Id == "1059") is { IsSelected: true, Badge: "3" },
+        "opening_roster_restored_chips_highlighted");
+    foreach (var id in new[] { "1075", "1351", "1059" })
+        restored.Goals[0].Pool.First(character => character.Id == id).ToggleCommand!.Execute(null);
+    Dispatcher.UIThread.RunJobs();
+    restored.Save();
+    var clearedRosterJson = JObject.Parse(rosterConfig.GetValue(PcrLabyrinthSettings.Key, ""));
+    Require(clearedRosterJson["strategy"]?["opening_rosters"] is JObject { Count: 0 },
+        "opening_roster_cleared_saved_empty: "
+        + clearedRosterJson["strategy"]?["opening_rosters"]?.ToString(Newtonsoft.Json.Formatting.None)
+        + " slots=" + string.Join(",", restored.Goals.Select(goal => string.Join("|", goal.Slots.Select(slot => slot.Candidates.Count)))));
+    // 旧配置的多候选优先级仍可读取、逐个移除，并按原顺序保存。
+    var legacyRosterConfig = new InstanceConfiguration("pcr-labyrinth-legacy-roster");
+    legacyRosterConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,
+        new JObject { ["goals"] = new JArray(new JObject { ["guild_id"] = 3, ["clears"] = 1 }),
+            ["strategy"] = new JObject { ["opening_rosters"] = new JObject {
+                ["3"] = new JArray(new JArray("1025", "1077"), new JArray("1121"), new JArray("1308")) } } }.ToString(Newtonsoft.Json.Formatting.None));
+    var legacyRoster = new PcrLabyrinthSettings(Owner(legacyRosterConfig));
+    var legacyGoal = legacyRoster.Goals[2];
+    Require(legacyGoal.Slots[0].Candidates.Select(character => character.Id).SequenceEqual(new[] { "1025", "1077" })
+        && legacyGoal.Slots[0].HeaderText.Contains("铃莓") && legacyGoal.Slots[0].HeaderText.Contains("铃莓（夏日）"),
+        "opening_legacy_priority_list_read");
+    legacyGoal.Pool.First(character => character.Id == "1025").ToggleCommand!.Execute(null);
+    Require(legacyGoal.Slots[0].Candidates.Single().Id == "1077", "opening_legacy_priority_item_removed");
+    legacyRoster.Save();
+    var legacySaved = JObject.Parse(legacyRosterConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"]?["3"] as JArray;
+    Require(legacySaved is not null && string.Join("/", legacySaved.Select(slot => string.Join(",", slot.Values<string>()))) == "1077/1121/1308",
+        "opening_legacy_priority_saved: " + legacySaved);
+    // 图鉴之外的旧 ID 保留为占位项：可显示、不可加入。
+    var unknownRosterConfig = new InstanceConfiguration("pcr-labyrinth-unknown-roster");
+    unknownRosterConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,
+        new JObject { ["goals"] = new JArray(new JObject { ["guild_id"] = 3, ["clears"] = 1 }),
+            ["strategy"] = new JObject { ["opening_rosters"] = new JObject {
+                ["3"] = new JArray(new JArray("1025"), new JArray("9999"), new JArray("1145")) } } }.ToString(Newtonsoft.Json.Formatting.None));
+    var unknownRoster = new PcrLabyrinthSettings(Owner(unknownRosterConfig));
+    var unknownGoal = unknownRoster.Goals[2];
+    var placeholder = unknownGoal.Slots[1].Candidates.Single();
+    Require(placeholder.Id == "9999" && placeholder.IsPlaceholder && unknownGoal.Slots[1].HeaderText.Contains("未在图鉴中"),
+        "opening_unknown_saved_id_kept_as_placeholder");
+    unknownGoal.Toggle(placeholder);
+    Require(unknownGoal.Slots[1].Candidates.Single() == placeholder, "opening_placeholder_cannot_be_toggled");
+    Require(!File.ReadAllText(Path.Combine(args[1], "gui", "MFAAvalonia", "MFAAvalonia", "Pcr", "PcrLabyrinthView.axaml")).Contains("OpeningRoster"),
+        "opening_legacy_textbox_removed_from_view");
     Require(!MaaProcessorManager.IsInstanceCreated && !Directory.EnumerateFiles(root, "*.tmp", SearchOption.AllDirectories).Any(),
         "no_device_manager_or_atomic_temporary_file_left");
     Console.WriteLine($"PCR credential checks passed: {count}; network logins=0; game inputs=0; isolated config={root}");
