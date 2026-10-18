@@ -33,6 +33,7 @@ R50_MANIFEST_SHA256 = '3314215f352678c082cf72c21b5e32d449396b2415b41ab7e27f4bf93
 R51_MANIFEST_SHA256 = 'a5fc27677b22e43133266a041fa75b8e85f7d30bd20f26497abaea5e00e62885'
 R52_MANIFEST_SHA256 = 'a1aa22db44eb19f5a2e8279c337f1b20b8097d93b4f8ef666be4cec5492bd85e'
 R53_MANIFEST_SHA256 = 'c27d3e9f144aa0af1c06bcaa58374012c55b275024f68e800cb2c9623b776776'
+R55_MANIFEST_SHA256 = '92798604770de2332c56b953486f969bd87f8a03a01d4595e5fbaa719548ed78'
 GUI_PROJECT = 'gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj'
 PAYLOAD_DIRS = ('src', 'vendor', 'assets', 'third_party', 'licenses', 'docs')
 PAYLOAD_SCRIPTS = ('pcr.py', 'validate-alpha-config.py', 'start-alpha-agent.py',
@@ -301,7 +302,7 @@ def package_outputs(player, output, base=None, base_manifest=None):
             result = patcher.build_patch(base, player, patch)
         else:
             expected = {38: R38_MANIFEST_SHA256, 39: R39_MANIFEST_SHA256,
-                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256}.get(base_version['revision'])
+                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256}.get(base_version['revision'])
             if expected is None:
                 raise ValueError('unsupported_patch_baseline')
             result = patcher.build_patch_from_manifest(base_path, player, patch, expected)
@@ -480,8 +481,8 @@ def build(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--revision', type=int, default=55)
-    parser.add_argument('--version', default='v0.1.10')
+    parser.add_argument('--revision', type=int, default=56)
+    parser.add_argument('--version', default='v0.1.11')
     parser.add_argument('--dotnet', type=Path)
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--nuget-source', type=Path, help='optional official package cache/feed for offline builds')
@@ -489,7 +490,7 @@ def main(argv=None):
     parser.add_argument('--wheelhouse', type=Path, help='optional directory of hash-locked official wheels')
     baseline = parser.add_mutually_exclusive_group()
     baseline.add_argument('--base', type=Path, help='immutable exact manifest-bound patch baseline')
-    baseline.add_argument('--base-manifest', type=Path, help='exact public R38, R39, R41, R45, R46, R49, R50, R51, R52 or R53 manifest; installation verifies old files')
+    baseline.add_argument('--base-manifest', type=Path, help='exact public R38, R39, R41, R45, R46, R49, R50, R51, R52, R53 or R55 manifest; installation verifies old files')
     args = parser.parse_args(argv)
     try:
         print(json.dumps(build(args), ensure_ascii=False))

@@ -70,17 +70,21 @@ public static class GlobalConfiguration
                 {
                     var json = File.ReadAllText(configPath);
                     configDict = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                        ?? new Dictionary<string, string>();
+                        ?? throw new JsonException("全局配置必须是 JSON 对象，原文件已保留。");
                 }
 
                 configDict[key] = value;
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath));
-                File.WriteAllText(configPath,
+                JsonHelper.SaveJsonTextAtomicallyOrThrow(configPath,
                     JsonSerializer.Serialize(configDict, new JsonSerializerOptions
                     {
                         WriteIndented = true
                     }));
+            }
+            catch (JsonException ex)
+            {
+                ReportFileAccessError(ex);
             }
             catch (IOException ex)
             {
@@ -104,18 +108,22 @@ public static class GlobalConfiguration
 
                 var json = File.ReadAllText(configPath);
                 var configDict = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                    ?? new Dictionary<string, string>();
+                    ?? throw new JsonException("全局配置必须是 JSON 对象，原文件已保留。");
                 var changed = false;
                 foreach (var key in keys)
                     changed |= configDict.Remove(key);
 
                 if (!changed) return;
 
-                File.WriteAllText(configPath,
+                JsonHelper.SaveJsonTextAtomicallyOrThrow(configPath,
                     JsonSerializer.Serialize(configDict, new JsonSerializerOptions
                     {
                         WriteIndented = true
                     }));
+            }
+            catch (JsonException ex)
+            {
+                ReportFileAccessError(ex);
             }
             catch (IOException ex)
             {

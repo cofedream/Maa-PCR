@@ -147,10 +147,8 @@ public static class FileLogExporter
                         return ExportLogResult.Failed;
                     }
 
-                    // Android's storage picker usually returns a content URI. It can write the
-                    // selected document, but cannot create sibling files for split volumes.
-                    var allowSplitArchives = saveFile.Path.IsFile;
-                    var archiveFiles = await Task.Run(() => CreateArchiveVolumes(tempDir, allowSplitArchives));
+                    // One export writes only the ZIP selected in the save dialog, on every platform.
+                    var archiveFiles = await Task.Run(() => CreateArchiveVolumes(tempDir, allowSplitArchives: false));
                     await PublishArchiveVolumesAsync(saveFile, archiveFiles);
 
                     if (skippedCount > 0)

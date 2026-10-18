@@ -33,7 +33,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
     [ObservableProperty] private ExportLogTimeRangeOption _selectedLabyrinthLogTimeRange;
     [ObservableProperty] private string _storageUsage = "正在统计日志占用…";
 
-    public string LogRetentionDescription => "启动时清理超过 30 天的普通日志。GUI 日志还受原有大小与文件数上限约束。黎明界账本、检查点及独立运行证据保留。";
+    public string LogRetentionDescription => "界面日志按天分文件，单份达到 64 MiB 时轮换，最多保留两份。底层日志沿用 16 MiB 轮换及 7 天过期规则，其诊断截图也保留 7 天。业务账本、检查点和独立运行记录保留。";
     public string LabyrinthLogDescription => "运行记录、账本和检查点完整附带；下方时间范围仅筛选原生日志。记录可能含玩家 ID、设备标识及游戏识别信息，请按需分享。";
 
     [ObservableProperty]
@@ -92,7 +92,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
         {
             var usage = await Task.Run(() => PcrLogFiles.Usage(AppPaths.DataRoot,
                 PcrRuntimePaths.ResolveDataRepository(AppPaths.InstallRoot)));
-            StorageUsage = $"普通日志：{usage.Ordinary / 1048576d:F1} MiB；黎明界独立记录：{usage.Labyrinth / 1048576d:F1} MiB（压缩前，不含截图）。";
+            StorageUsage = $"普通日志和诊断截图：{usage.Ordinary / 1048576d:F1} MiB；黎明界独立记录：{usage.Labyrinth / 1048576d:F1} MiB（压缩前）。";
         }
         catch { StorageUsage = "日志占用统计未完成，部分文件无法访问。"; }
     }

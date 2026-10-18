@@ -70,7 +70,7 @@ def test_quota_keeps_metadata_without_deleting_history(tmp_path, monkeypatch):
     sink.capture(tasker, 12, 'Root'); sink.finish(True)
     row = json.loads(next(tmp_path.rglob('*.json')).read_text(encoding='utf-8'))
     assert row['image_reason'] == 'quota_exhausted'
-    assert previous.read_bytes() == b'keep' and not (tmp_path/'.quota-lock').exists()
+    assert previous.read_bytes() == b'keep' and (tmp_path/'.quota-lock').exists()
 
 
 def test_real_native_failed_job_retains_original(tmp_path):
@@ -96,10 +96,41 @@ def test_real_native_failed_job_retains_original(tmp_path):
 @pytest.mark.parametrize('fault', ['lock', 'encode'])
 def test_image_faults_keep_explicit_missing_metadata(tmp_path, monkeypatch, fault):
     import cv2
+    from contextlib import nullcontext
+    from pcr_maa.ocr_diagnostics import _quota_lock
     sink, tasker = collector(tmp_path, np.zeros((4,4,3),np.uint8))
     if fault=='lock': (tmp_path/'.quota-lock').write_bytes(b'other writer')
     else: monkeypatch.setattr(cv2,'imencode',lambda *a:(False,None))
-    sink.capture(tasker,12,'Root');sink.finish(True)
+    with _quota_lock(tmp_path/'.quota-lock') if fault=='lock' else nullcontext():
+        sink.capture(tasker,12,'Root');sink.finish(True)
     row=json.loads(next(tmp_path.rglob('*.json')).read_text(encoding='utf-8'))
     assert row['image_status']=='missing' and row['image_reason'].startswith('write_')
     if fault=='lock': assert (tmp_path/'.quota-lock').read_bytes()==b'other writer'
+
+
+def test_interrupted_writer_does_not_block_later_diagnostics(tmp_path):
+    import os
+    from pathlib import Path
+    import subprocess
+    import sys
+
+    script = '''import os, sys, cv2, numpy as np
+from pathlib import Path
+from queue import Queue
+from pcr_maa.ocr_diagnostics import FailureDiagnostics
+cv2.imencode = lambda *args: os._exit(17)
+work = Queue()
+work.put(({}, np.zeros((4,4,3), np.uint8)))
+FailureDiagnostics(Path(sys.argv[1]), 'interrupted', 'labyrinth', {})._write(work)
+'''
+    env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / 'src'))
+    result = subprocess.run([sys.executable, '-X', 'utf8', '-B', '-c', script, str(tmp_path)], env=env, timeout=30)
+    assert result.returncode == 17
+    assert (tmp_path / '.quota-lock').exists()
+    previous = tmp_path / 'old.png'
+    previous.write_bytes(b'old evidence must survive')
+    sink, tasker = collector(tmp_path, np.zeros((4,4,3), np.uint8))
+    sink.capture(tasker, 12, 'Root'); sink.finish(True)
+    row = json.loads(next((tmp_path / 'run').glob('*.json')).read_text(encoding='utf-8'))
+    assert row['image_status'] == 'saved' and row['images']['frame']
+    assert previous.read_bytes() == b'old evidence must survive'

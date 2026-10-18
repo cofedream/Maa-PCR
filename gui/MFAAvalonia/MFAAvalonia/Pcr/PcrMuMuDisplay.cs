@@ -69,7 +69,7 @@ internal static class PcrMuMuDisplay
                 .Select(record => (Logical: Id(block.Groups[1].Value), Record: record.Groups[1].Value))).ToArray();
         if (active.Length != 1) throw new InvalidOperationException("PCR resumed target missing or ambiguous");
         var logical = active[0].Logical;
-        var focused = Matches(activity, @"^  Display: mDisplayId=(\S+) rootTasks=\d+([\s\S]*?)(?=^  Display:|\z)")
+        var focused = Matches(activity, @"^  Display: mDisplayId=(\S+) (?:rootTasks=\d+|\(organized\))([\s\S]*?)(?=^  Display:|\z)")
             .Where(block => Regex.IsMatch(block.Groups[2].Value, @"mFocusedApp=ActivityRecord\{\S+ u\d+ " + component + @" t\d+\}"))
             .ToArray();
         if (focused.Length != 1 || Id(focused[0].Groups[1].Value) != logical

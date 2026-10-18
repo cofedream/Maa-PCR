@@ -27,7 +27,7 @@ internal static class AlphaOwnerAsyncChecks
     private const string Activity = """
         Display #0 (activities from top to bottom):
           topResumedActivity=ActivityRecord{fixture u0 com.bilibili.priconne/.MainActivity t1}
-          Display: mDisplayId=0 rootTasks=1
+          Display: mDisplayId=0 (organized)
             mFocusedApp=ActivityRecord{fixture u0 com.bilibili.priconne/.MainActivity t1}
             mCurrentFocus=Window{fixture u0 com.bilibili.priconne/.MainActivity}
         """;

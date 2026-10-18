@@ -50,8 +50,8 @@ public static class LoggerHelper
             .WriteTo.File(
                 Path.Combine(AppPaths.LogsDirectory, "log-.log"),
                 rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 14,
-                fileSizeLimitBytes: 10 * 1024 * 1024,
+                retainedFileCountLimit: 2,
+                fileSizeLimitBytes: 64 * 1024 * 1024,
                 rollOnFileSizeLimit: true,
                 shared: true,
                 outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}][{Level:u3}] {Message:lj}{NewLine}{Exception}")
