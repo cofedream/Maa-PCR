@@ -251,7 +251,8 @@ try
     Require(legacyGoal.Slots[0].Candidates.Select(character => character.Id).SequenceEqual(new[] { "1025", "1077" })
         && legacyGoal.Slots[0].HeaderText.Contains("铃莓") && legacyGoal.Slots[0].HeaderText.Contains("铃莓（夏日）"),
         "opening_legacy_priority_list_read");
-    legacyGoal.Pool.First(character => character.Id == "1025").ToggleCommand!.Execute(null);
+    Require(legacyGoal.Slots[0].Candidates[0].ToggleCommand is not null, "opening_loaded_command_ready_before_pool");
+    legacyGoal.Slots[0].Candidates[0].ToggleCommand!.Execute(null);
     Require(legacyGoal.Slots[0].Candidates.Single().Id == "1077", "opening_legacy_priority_item_removed");
     legacyRoster.Save();
     var legacySaved = JObject.Parse(legacyRosterConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"]?["3"] as JArray;
@@ -266,10 +267,55 @@ try
     var unknownRoster = new PcrLabyrinthSettings(Owner(unknownRosterConfig));
     var unknownGoal = unknownRoster.Goals[2];
     var placeholder = unknownGoal.Slots[1].Candidates.Single();
-    Require(placeholder.Id == "9999" && placeholder.IsPlaceholder && unknownGoal.Slots[1].HeaderText.Contains("未在图鉴中"),
+    Require(placeholder.Id == "9999" && placeholder.IsPlaceholder && unknownGoal.Slots[1].HeaderText.Contains("未列入预置名单"),
         "opening_unknown_saved_id_kept_as_placeholder");
+    Require(placeholder.ToggleCommand is not null, "opening_placeholder_has_remove_command");
+    placeholder.ToggleCommand!.Execute(null);
+    Require(unknownGoal.Slots[1].IsEmpty, "opening_placeholder_can_be_removed");
     unknownGoal.Toggle(placeholder);
-    Require(unknownGoal.Slots[1].Candidates.Single() == placeholder, "opening_placeholder_cannot_be_toggled");
+    Require(unknownGoal.Slots[1].IsEmpty, "opening_unselected_placeholder_cannot_be_added");
+    foreach (var id in new[] { "1801", "9999" }) {
+        var retainedConfig = new InstanceConfiguration("pcr-labyrinth-retained-" + id);
+        var originalSlots = new JArray(new JArray("1089", "1003"), new JArray("1088"), new JArray(id));
+        retainedConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,
+            new JObject { ["goals"] = new JArray(new JObject { ["guild_id"] = 2, ["clears"] = 1 }),
+                ["strategy"] = new JObject { ["opening_rosters"] = new JObject { ["2"] = originalSlots } } }
+                .ToString(Newtonsoft.Json.Formatting.None));
+        var retained = new PcrLabyrinthSettings(Owner(retainedConfig));
+        var retainedGoal = retained.Goals[1];
+        Require(retainedGoal.Slots.SelectMany(slot => slot.Candidates).All(character => character.ToggleCommand is not null),
+            "opening_all_retained_commands_ready_" + id);
+        retained.Save();
+        Require(JToken.DeepEquals(JObject.Parse(retainedConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"]?["2"], originalSlots),
+            "opening_unedited_retained_ids_and_order_preserved_" + id);
+        retainedGoal.Slots[0].Candidates[0].ToggleCommand!.Execute(null);
+        retained.Save();
+        var reloaded = new PcrLabyrinthSettings(Owner(retainedConfig));
+        Require(reloaded.Goals[1].Slots[0].Candidates.Single().Id == "1003"
+            && reloaded.Goals[1].Slots[2].Candidates.Single().Id == id, "opening_remove_save_reload_keeps_other_ids_" + id);
+        foreach (var slot in reloaded.Goals[1].Slots)
+            foreach (var character in slot.Candidates.ToArray()) character.ToggleCommand!.Execute(null);
+        reloaded.Save();
+        Require(JObject.Parse(retainedConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"] is JObject { Count: 0 },
+            "opening_retained_roster_clears_to_default_" + id);
+    }
+    PcrLabyrinthCharacterCatalog.UseRepositoryRoot(Path.Combine(root, "missing-character-pack"));
+    var unavailable = new PcrLabyrinthSettings(Owner(legacyRosterConfig));
+    Require(unavailable.HasRosterStatus && unavailable.Goals[2].Pool.Count == 0, "opening_missing_catalog_visible");
+    Require(unavailable.Goals[2].Slots.SelectMany(slot => slot.Candidates).All(character => character.ToggleCommand is not null),
+        "opening_missing_catalog_keeps_remove_commands");
+    unavailable.Save();
+    Require(JToken.DeepEquals(JObject.Parse(legacyRosterConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"]?["3"], legacySaved),
+        "opening_missing_catalog_preserves_saved_ids");
+    foreach (var slot in unavailable.Goals[2].Slots)
+        foreach (var character in slot.Candidates.ToArray()) character.ToggleCommand!.Execute(null);
+    unavailable.Save();
+    Require(JObject.Parse(legacyRosterConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"] is JObject { Count: 0 },
+        "opening_missing_catalog_can_clear_to_default");
+    PcrLabyrinthCharacterCatalog.UseRepositoryRoot(args[1]);
+    Require(rosterExpanderNode.Descendants(xaml + "ItemsControl").Any(node => (string?)node.Attribute("ItemsSource") == "{Binding Candidates}")
+        && rosterExpanderNode.Descendants(xaml + "Button").Any(node => ClassesOf(node).Contains("OpeningSelected")
+            && (string?)node.Attribute("Command") == "{Binding ToggleCommand}"), "opening_saved_candidates_have_remove_buttons");
     Require(!File.ReadAllText(Path.Combine(args[1], "gui", "MFAAvalonia", "MFAAvalonia", "Pcr", "PcrLabyrinthView.axaml")).Contains("OpeningRoster"),
         "opening_legacy_textbox_removed_from_view");
     Require(!MaaProcessorManager.IsInstanceCreated && !Directory.EnumerateFiles(root, "*.tmp", SearchOption.AllDirectories).Any(),

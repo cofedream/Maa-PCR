@@ -157,7 +157,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         return roster.Characters;
     }
     internal PcrLabyrinthCharacter PlaceholderCharacter(string id) =>
-        new(id, $"未在图鉴中（{id}）", PcrLabyrinthCharacterCatalog.Normalize(id), null, placeholder:true);
+        new(id, $"未列入预置名单（{id}）", PcrLabyrinthCharacterCatalog.Normalize(id), null, placeholder:true);
     internal void RosterEdited() {
         if (!ready) return;
         vm.NotifyPcrSelectionChanged();

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json.Linq;
 
 namespace MFAAvalonia.Pcr;
@@ -42,19 +43,18 @@ public partial class PcrLabyrinthGoal : ObservableObject {
     public bool HasRosterHint => RosterHint.Length>0;
     public bool HasCustomRoster => Slots.Any(slot=>!slot.IsEmpty);
     public void Toggle(PcrLabyrinthCharacter character) {
-        if (character.IsPlaceholder) return;
         var selected=Slots.FirstOrDefault(slot=>slot.Contains(character));
         if (selected is not null) {
             selected.Remove(character);
-            RosterHint="";
         } else {
+            if (character.IsPlaceholder) return;
             var empty=Slots.FirstOrDefault(slot=>slot.IsEmpty);
             if (empty is null) { RosterHint="三个槽位都已选满；点击上方已选角色可移除。" ; return; }
             empty.Add(character);
-            RosterHint="";
         }
+        RosterHint="";
         RefreshPool();
-        owner.RosterEdited();
+        RosterEdited();
     }
     internal void RefreshPool() {
         if (pool is null) return;
@@ -79,6 +79,7 @@ public partial class PcrLabyrinthGoal : ObservableObject {
                     var id=token.Value<string>() ?? "";
                     if (!Regex.IsMatch(id, @"^[0-9]{4,6}$") || !seen.Add(id)) throw new InvalidOperationException();
                     var character=roster?.Characters.FirstOrDefault(item=>item.Id==id) ?? owner.PlaceholderCharacter(id);
+                    character.ToggleCommand=new RelayCommand(()=>Toggle(character));
                     Slots[index].Load(character);
                 }
             }
