@@ -25,6 +25,24 @@ public static class PcrRuntimePaths
         return root;
     }
 
+    /// <summary>业务数据所在目录：开发模式取自 pcr-repository.txt，打包模式就是安装目录。
+    /// 不校验程序完整性，也不抛异常：导出/清理这类只读场景需要即使程序不完整也能定位。</summary>
+    public static string ResolveDataRepository(string appDirectory)
+    {
+        var home = Path.GetFullPath(appDirectory);
+        try
+        {
+            var binding = Path.Combine(home, "pcr-repository.txt");
+            if (!File.Exists(binding)) return home;
+            var value = File.ReadAllText(binding).Trim();
+            return string.IsNullOrWhiteSpace(value) ? home : Path.GetFullPath(value, home);
+        }
+        catch
+        {
+            return home;
+        }
+    }
+
     // A interrupted update may leave mixed program files. Only its updater or
     // explicit backup restoration can resolve this marker; Start never removes it.
     internal static void RequireUpdateComplete(string appDirectory, string repository)

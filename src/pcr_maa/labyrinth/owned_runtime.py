@@ -189,6 +189,22 @@ class OwnedRuntime:
         if self.tasker is not None:
             self.tasker.post_stop()
 
+    def _log(self, text):
+        """Live owner trace for the GUI log panel; never a result channel.
+
+        Display only: a failed delivery is dropped here so a trace line can
+        never replace a business result or a settled ledger entry.
+        """
+        if type(text) is not str:
+            return
+        text = ' '.join(text.split())[:512]
+        if not text:
+            return
+        try:
+            self.emit(dict(kind='log', text=text))
+        except Exception:
+            pass
+
     def _progress(self, value):
         stages = {'dependencies','resources','connecting','authenticating','ready',
             'opening','handoff','playing','cleared','moving','battle','shop','reward','team','recovering','retiring'}
@@ -215,7 +231,7 @@ class OwnedRuntime:
     def _run_batch(self, binding, journal):
         from .batch import Batch
         return Batch(self.request.settings,self.port,journal,binding,
-                     stopped=self.stop,progress=self._progress,resume=True,
+                     stopped=self.stop,progress=self._progress,log=self._log,resume=True,
                      keep_old_run=self.request.keep_old_run,
                      require_fresh_start=not self.request.keep_old_run).run()
 

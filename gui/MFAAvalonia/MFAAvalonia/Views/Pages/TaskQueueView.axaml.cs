@@ -68,6 +68,21 @@ public partial class TaskQueueView : UserControl
         NavigateToConnectSettings();
     }
 
+    // 折叠期间日志照常在累积，但面板不参与布局；展开后等布局完成再补一次滚到底，
+    // 否则用户看到的会是折叠前的旧位置。
+    private void PcrLiveLogToggle_OnChecked(object? sender, RoutedEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(
+            () => ScrollViewerExtensions.ScrollToEndAndResumeAutoScroll(PcrLiveLogScroll),
+            Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
+    // 手动上滚后自动滚动会停用；这个按钮滚回最新一行并重新开启跟随。
+    private void PcrLiveLogBottom_OnClick(object? sender, RoutedEventArgs e)
+    {
+        ScrollViewerExtensions.ScrollToEndAndResumeAutoScroll(PcrLiveLogScroll);
+    }
+
     private void NavigateToConnectSettings()
     {
         var topLevel = Instances.TopLevel;

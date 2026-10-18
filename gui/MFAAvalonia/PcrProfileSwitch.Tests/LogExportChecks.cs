@@ -76,10 +76,10 @@ internal static class LogExportChecks
             IncludeOnErrorImages = false, IncludeOtherImages = false
         };
         var select = typeof(FileLogExporter).GetMethod("GetEligibleFiles", hidden)!;
-        var combined = (List<FileInfoEx>)select.Invoke(null, [root, defaults])!;
+        var combined = (List<FileInfoEx>)select.Invoke(null, [root, root, defaults])!;
         Check(combined.Any(file => file.FullName == guiRecent) && combined.Any(file => file.FullName == active)
             && combined.Any(file => file.FullName == maaOld) && combined.Any(file => file.FullName == ledger), "combined_export_keeps_gui_current_and_backup_maa_logs");
-        var selected = (List<FileInfoEx>)select.Invoke(null, [root, options])!;
+        var selected = (List<FileInfoEx>)select.Invoke(null, [root, root, options])!;
         Check(selected.Count == 5, "recent_trace_and_complete_durable_records");
         Check(selected.Any(file => file.FullName == ledger) && selected.Any(file => file.FullName == trace), "unknown_and_trace_present");
         Check(!selected.Any(file => file.FullName == oldTrace || file.FullName == secret || file.IsImage), "no_old_trace_credentials_or_images");
@@ -90,7 +90,7 @@ internal static class LogExportChecks
             IncludeMaaLog = false, IncludeGuiLog = false, IncludeCustomLog = false, IncludeLabyrinthLog = false,
             IncludeOnErrorImages = false, IncludeOtherImages = false
         };
-        Check(((List<FileInfoEx>)select.Invoke(null, [root, none])!).Count == 0, "labyrinth_opt_out");
+        Check(((List<FileInfoEx>)select.Invoke(null, [root, root, none])!).Count == 0, "labyrinth_opt_out");
 
         var snapshot = Path.Combine(root, "snapshot");
         foreach (var file in selected)
@@ -111,8 +111,57 @@ internal static class LogExportChecks
         }
         File.Delete(archives.Single());
         Directory.Delete(Path.GetDirectoryName(archives.Single())!);
-        var usage = (ValueTuple<long, long>)Call("Usage", root)!;
+        var usage = (ValueTuple<long, long>)Call("Usage", root, root)!;
         Check(usage.Item2 == all.Sum(file => new FileInfo(file).Length), "usage_includes_protected_old_trace");
+
+        var separateRoot = Path.Combine(fixtureDirectory, "separate-log-roots", Guid.NewGuid().ToString("N"));
+        var appRoot = Path.Combine(separateRoot, "app");
+        var businessRoot = Path.Combine(separateRoot, "business");
+        var separateGui = Path.GetFullPath(Path.Combine(appRoot, "logs/log-20261018.log"));
+        var separateImage = Path.GetFullPath(Path.Combine(appRoot, "debug/on_error/frame.png"));
+        var separateLedger = Path.GetFullPath(Path.Combine(businessRoot, area + "ledger/transactions.jsonl"));
+        var separateCheckpoint = Path.GetFullPath(Path.Combine(businessRoot, area + "ledger/batch-checkpoint.json"));
+        var separateSecret = Path.GetFullPath(Path.Combine(businessRoot, area + "ledger/credentials.json"));
+        var separateTrace = Path.GetFullPath(Path.Combine(businessRoot, area + $"runs/{run}/native/maa/maafw.log"));
+        foreach (var path in new[] { separateGui, separateImage, separateLedger, separateCheckpoint, separateSecret, separateTrace })
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, path == separateLedger ? "{\"state\":\"in_flight\",\"unknown\":true}\n" : "fixture " + Path.GetFileName(path));
+        }
+        var separateBefore = Directory.GetFiles(separateRoot, "*", SearchOption.AllDirectories).ToDictionary(path => path, Hash);
+        var separateOptions = new ExportLogPackageOptions
+        {
+            IncludeMaaLog = false, IncludeGuiLog = true, IncludeCustomLog = false, IncludeLabyrinthLog = true,
+            IncludeOnErrorImages = true, IncludeOtherImages = false
+        };
+        var separateFiles = (List<FileInfoEx>)select.Invoke(null, [appRoot, businessRoot, separateOptions])!;
+        Check(separateFiles.Count == 5 && separateFiles.Any(file => file.FullName == separateLedger)
+            && !separateFiles.Any(file => file.FullName == separateSecret), "separate_roots_keep_unknown_ledger_without_credentials");
+        Check(separateFiles.All(file => !(file.RelativePath ?? "").Split(Path.DirectorySeparatorChar).Contains("..")
+            && (bool)Call("IsRegularPath", file.Root!, file.FullName!)!), "separate_roots_have_safe_archive_paths");
+        var separateUsage = (ValueTuple<long, long>)Call("Usage", appRoot, businessRoot)!;
+        Check(separateUsage.Item1 == new FileInfo(separateGui).Length + new FileInfo(separateImage).Length
+            && separateUsage.Item2 == new FileInfo(separateLedger).Length + new FileInfo(separateCheckpoint).Length + new FileInfo(separateTrace).Length,
+            "separate_roots_usage_includes_images_and_business_records");
+        var separateSnapshot = Path.Combine(separateRoot, "snapshot");
+        foreach (var file in separateFiles)
+        {
+            var destination = Path.Combine(separateSnapshot, file.RelativePath!, Path.GetFileName(file.FullName)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            typeof(FileLogExporter).GetMethod("CopyFileSnapshot", hidden)!.Invoke(null, [file.FullName, destination]);
+        }
+        var separateArchives = (List<string>)typeof(FileLogExporter).GetMethod("CreateArchiveVolumes", hidden)!.Invoke(null, [separateSnapshot, false])!;
+        using (var archive = ZipFile.OpenRead(separateArchives.Single()))
+        {
+            Check(archive.Entries.Count == 5 && !archive.Entries.Any(entry => entry.FullName.Contains("credentials")), "separate_roots_zip_allowlist");
+            foreach (var entry in archive.Entries)
+            {
+                var sourceRoot = entry.FullName.StartsWith(".runtime/", StringComparison.Ordinal) ? businessRoot : appRoot;
+                using var stream = entry.Open();
+                Check(Convert.ToHexString(SHA256.HashData(stream)) == Hash(Path.Combine(sourceRoot, entry.FullName)), "separate_roots_zip_source_bytes_match");
+            }
+        }
+        Check(separateBefore.All(file => Hash(file.Key) == file.Value), "separate_roots_export_preserves_all_source_bytes");
 
         Check(protectedFiles.All(file => File.Exists(file.Key) && Hash(file.Key) == file.Value), "export_preserves_all_source_and_business_files");
         Check(usage.Item1 == ((IEnumerable<string>)Call("OrdinaryFiles", root)!).Sum(file => new FileInfo(file).Length)

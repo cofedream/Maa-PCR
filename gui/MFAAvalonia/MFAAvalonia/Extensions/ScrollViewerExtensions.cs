@@ -92,6 +92,16 @@ public static class ScrollViewerExtensions
     public static IBrush? GetEdgeFadeMask(Control element) =>
         element.GetValue(EdgeFadeMaskProperty);
 
+    /// <summary>
+    /// 滚到最新内容，并把自动滚动重新打开。
+    /// 用户手动上滚后 AutoScroll 会被停用，这个入口负责重新拿回“跟随底部”。
+    /// </summary>
+    public static void ScrollToEndAndResumeAutoScroll(ScrollViewer scrollViewer)
+    {
+        if (scrollViewer.Tag is AutoScrollState state) state.ShouldAutoScroll = true;
+        scrollViewer.ScrollToEnd();
+    }
+
     #endregion
 
     #region 辅助方法

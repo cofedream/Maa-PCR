@@ -60,9 +60,14 @@ class GameRunSession:
     accepted_frame: int
 
 class Batch:
-    def __init__(self, settings, port, journal, binding, *, stopped=lambda:False, clock=monotonic, progress=lambda v:None,resume=False,keep_old_run=False,require_fresh_start=False):
+    def __init__(self, settings, port, journal, binding, *, stopped=lambda:False, clock=monotonic, progress=lambda v:None,log=lambda text:None,resume=False,keep_old_run=False,require_fresh_start=False):
         self.settings,self.port,self.journal,self.binding=settings,port,journal,binding
         self.stopped,self.clock,self.progress=stopped,clock,progress
+        # Owner-supplied live trace. Never business evidence: a failure to
+        # deliver one line must not change any result or settlement.
+        self.log=log
+        self._trace_progress=''
+        self._last_log=''
         self.last_frame=-1
         self.timings=getattr(port,'timings',None) or Timings()
         self.run_id=uuid4().hex
@@ -107,7 +112,27 @@ class Batch:
         if stopped:
             self.invalidate_game_session();raise BatchStopped('stopped')
 
-    def observation(self, value, **expected):
+    def emit_log(self, text):
+        # Identical consecutive lines add nothing and hide the step that moved.
+        if not text or text==self._last_log:return
+        self._last_log=text
+        try:
+            self.log(text)
+        except Exception:
+            pass
+
+    def _trace_detail(self, value, expected):
+        """Whitelisted scalars only: no credentials, exception text or URLs."""
+        parts=[]
+        page=expected.get('page') or value.get('page')
+        if type(page) is str and 0<len(page)<=32:parts.append('页面 '+page)
+        for key in ('role_id','enter_id','guild_id','difficulty','area','item_id','price','count','currency','outcome','attempt',
+                    'current_block_id','game_current_block_id','game_area','fresh_start'):
+            item=value.get(key,expected.get(key))
+            if type(item) is int or type(item) is str and 0<len(item)<=32:parts.append(f'{key}={item}')
+        return parts
+
+    def observation(self, value, *, _trace=True, **expected):
         self.checkpoint()
         if (type(value) is not dict or value.get('verified') is not True
                 or value.get('binding') != self.binding.payload()
@@ -116,6 +141,13 @@ class Batch:
             self.invalidate_game_session()
             raise BatchStopped('observation_unknown')
         self.last_frame=value['frame']
+        if _trace:
+            detail=self._trace_detail(value,expected)
+            progress='/'.join(f'{k}:{v}' for k,v in sorted(self.completed.items()))
+            # One line per confirmed page; the goal counter only when it moves.
+            if progress and progress!=self._trace_progress:
+                self._trace_progress=progress;detail.append('进度 '+progress)
+            self.emit_log('确认 '+' '.join(detail) if detail else '确认 ok')
         return value
 
     def transaction(self, operation, expected, send,*,operation_id=None):
@@ -131,6 +163,7 @@ class Batch:
                 intent=dict(state='in_flight',operation=operation,operation_id=operation_id,
                             binding=self.binding.payload(),**expected)
                 self.journal.append(intent)
+                self.emit_log(f'操作 {operation} 已发出，等待确认')
                 # An unresolved or partly written intent is never retried.
                 try:result=send(operation_id)
                 except NativeInputNotSent as error:
@@ -140,8 +173,15 @@ class Batch:
                         input_execution='not_sent',input_action_verified=False,
                         business_result_verified=False,native=error.receipt)))
                     raise BatchStopped('native_input_not_sent') from error
-                self.observation(result,operation_id=operation_id,**expected)
+                # The confirm line is merged into this one: three lines per
+                # operation would double the panel without adding state.
+                self.observation(result,_trace=False,operation_id=operation_id,**expected)
                 self.journal.append(dict(intent,state='settled',result=result))
+                detail=self._trace_detail(result,dict(operation_id=operation_id,**expected))
+                progress='/'.join(f'{k}:{v}' for k,v in sorted(self.completed.items()))
+                if progress and progress!=self._trace_progress:
+                    self._trace_progress=progress;detail.append('进度 '+progress)
+                self.emit_log(f'操作 {operation} 已确认'+(' · '+' '.join(detail) if detail else ''))
                 return result
         except BaseException as error:
             if not (isinstance(error,BatchStopped) and error.args==('native_input_not_sent',)
@@ -196,6 +236,7 @@ class Batch:
             self.checkpoint()
             if self.clock()-started >= self.settings.max_seconds: raise BatchStopped('reroll_time_limit')
             self.progress(dict(stage='opening',guild_id=guild_id,attempt=attempt,completed=dict(self.completed)))
+            self.emit_log(f'开始第 {attempt} 次开局筛选（工会 {guild_id}）')
             if attempt==1 and reused is not None:
                 opening=observed=reused
                 route=self.route_for(observed,guild_id,opening['enter_id'],consume=False)
@@ -256,6 +297,8 @@ class Batch:
                 return route
             if attempt==1 and reused is not None and starting and self.keep_old_run:
                 raise BatchStopped('kept_existing_run')
+            self.emit_log(f'第 {attempt} 次开局候选不符合路线计划'
+                + ('，已关闭“重新开局”，本次结束' if not self.settings.reroll else '，撤退后重开'))
             if not self.settings.reroll: raise BatchStopped('opening_not_matching')
             if attempt>=self.settings.max_attempts: raise BatchStopped('reroll_attempt_limit')
             if self.clock()-started>=self.settings.max_seconds: raise BatchStopped('reroll_time_limit')
@@ -357,10 +400,14 @@ class Batch:
                         causes.append(item);cause=cause.__cause__ or cause.__context__
                     record.append('adapter_error',error_type=type(error).__name__,frames=frames,causes=causes)
                     outcome=str(error) if isinstance(error,BatchStopped) else 'adapter_failed'
+                    where=', '.join(f"{item['file']}:{item['line']}" for item in frames[-3:])
+                    self.emit_log(f'本次停止：{outcome}' + (f'（位置 {where}）' if where else ''))
                 finish_timings=getattr(self.port,'finish_timings',None)
                 if callable(finish_timings):finish_timings()
                 result=dict(outcome=outcome,completed=dict(self.completed),batch_complete=outcome=='complete')
                 record.append('finished',**result,timings=self.timings.payload())
+                self.emit_log('批次结果 '+outcome+' 进度 '
+                    +('/'.join(f'{k}:{v}' for k,v in sorted(self.completed.items())) or '无'))
                 record.checkpoint(self.settings.payload(),'finished',self.completed,self.failed)
             return dict(result,run_id=self.run_id)
         finally:

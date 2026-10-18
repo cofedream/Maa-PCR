@@ -1,7 +1,11 @@
-"""Small stdout contract for the owner's human captcha browser handoff.
+"""The owner's stdout contract: one JSON object per line, nothing else.
 
-Only the ephemeral public loopback page address is sent. This is not a general
-logging or browser-command channel; credentials and captcha proofs are excluded.
+Four kinds exist. `progress` reports a coarse stage, `captcha` carries only the
+ephemeral public loopback page address of the human handoff, `result` is the
+terminal receipt, and `log` is a display-only trace of confirmed steps. `log`
+is not evidence and not a command channel: the GUI may render it and may drop
+it, and its delivery never changes a result or a settled ledger entry. No
+credentials, captcha proofs, exception text or URLs are ever put into `log`.
 """
 import json
 import re

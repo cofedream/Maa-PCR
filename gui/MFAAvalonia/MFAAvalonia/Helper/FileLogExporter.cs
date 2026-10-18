@@ -88,9 +88,11 @@ public static class FileLogExporter
 
                 // 获取应用程序基目录
                 string baseDirectory = AppPaths.DataRoot;
+                // 黎明界账本与原生 trace 跟着业务目录（开发模式下是仓库），不跟着安装目录。
+                var labyrinthRoot = PcrRuntimePaths.ResolveDataRepository(baseDirectory);
 
                 // 获取符合条件的日志文件和图片文件
-                var eligibleFiles = await Task.Run(() => GetEligibleFiles(baseDirectory, options ?? new ExportLogPackageOptions()));
+                var eligibleFiles = await Task.Run(() => GetEligibleFiles(baseDirectory, labyrinthRoot, options ?? new ExportLogPackageOptions()));
 
                 if (!eligibleFiles.Any())
                 {
@@ -121,7 +123,7 @@ public static class FileLogExporter
 
                             try
                             {
-                                if (!PcrLogFiles.IsRegularPath(baseDirectory, file.FullName))
+                                if (!PcrLogFiles.IsRegularPath(file.Root ?? baseDirectory, file.FullName))
                                     throw new IOException("日志路径包含链接，已跳过。");
                                 var destDir = Path.Combine(tempDir, file.RelativePath ?? string.Empty);
                                 Directory.CreateDirectory(destDir);
@@ -188,10 +190,11 @@ public static class FileLogExporter
         }
     }
 
-    private static List<FileInfoEx> GetEligibleFiles(string baseDirectory, ExportLogPackageOptions options)
+    private static List<FileInfoEx> GetEligibleFiles(string baseDirectory, string labyrinthRoot, ExportLogPackageOptions options)
     {
         var eligibleFiles = new List<FileInfoEx>();
         var candidateFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var labyrinthFiles = new List<string>();
         var debugDir = Path.Combine(baseDirectory, "debug");
         var logsDir = Path.Combine(baseDirectory, "logs");
 
@@ -222,8 +225,8 @@ public static class FileLogExporter
                 ExportLogTimeRange.Last7Days => 7,
                 _ => 0
             };
-            foreach (var file in PcrLogFiles.LabyrinthFiles(baseDirectory, days == 0 ? DateTime.MinValue : DateTime.UtcNow.AddDays(-days)))
-                candidateFiles.Add(file);
+            foreach (var file in PcrLogFiles.LabyrinthFiles(labyrinthRoot, days == 0 ? DateTime.MinValue : DateTime.UtcNow.AddDays(-days)))
+                labyrinthFiles.Add(file);
         }
 
         if (Directory.Exists(debugDir))
@@ -241,6 +244,12 @@ public static class FileLogExporter
         foreach (var file in candidateFiles)
         {
             TryAddEligibleFile(eligibleFiles, baseDirectory, file);
+        }
+
+        // 黎明界文件相对业务目录归档，避免与安装目录路径相差出 ".." 层级。
+        foreach (var file in labyrinthFiles.Where(file => !candidateFiles.Contains(file)))
+        {
+            TryAddEligibleFile(eligibleFiles, labyrinthRoot, file);
         }
 
         return eligibleFiles;
@@ -338,18 +347,19 @@ public static class FileLogExporter
             .Any(segment => segment.Equals(folderName, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static void TryAddEligibleFile(List<FileInfoEx> eligibleFiles, string baseDirectory, string file)
+    private static void TryAddEligibleFile(List<FileInfoEx> eligibleFiles, string root, string file)
     {
         try
         {
             var fileInfo = new FileInfo(file);
-            var relativePath = Path.GetRelativePath(baseDirectory, Path.GetDirectoryName(file)!);
+            var relativePath = Path.GetRelativePath(root, Path.GetDirectoryName(file)!);
             var isImage = IsImageFile(file);
             var lineCount = isImage ? 0 : CountLines(file);
 
             eligibleFiles.Add(new FileInfoEx
             {
                 FullName = file,
+                Root = root,
                 RelativePath = relativePath,
                 LineCount = lineCount,
                 IsImage = isImage
@@ -632,7 +642,8 @@ public enum ExportImageCategory
 public class FileInfoEx
 {
     public string? FullName { get; set; } // 文件完整路径
-    public string? RelativePath { get; set; } // 相对于应用基目录的路径
+    public string? Root { get; set; } // RelativePath 与链接校验所依据的根目录
+    public string? RelativePath { get; set; } // 相对于所属根目录的路径
     public int LineCount { get; set; } // 行数（仅日志文件有效）
     public bool IsImage { get; set; } // 是否为图片文件
 }

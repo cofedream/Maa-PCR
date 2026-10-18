@@ -20,7 +20,7 @@ R55→R56 精确补丁只适用于正式 R55，不能用同修订号候选替代
 
 ## 本地检查
 
-使用完整的 **CPython 3.13**（CI 为 3.13.16）和 `global.json` 固定的 .NET SDK。Python 开发依赖按 `requirements-dev.txt` 校验哈希安装；GUI 依赖预先准备到本地 NuGet 缓存。不要使用玩家的嵌入式 Python 做完整开发测试，它可能缺少 `venv` 或忽略子进程的 `PYTHONPATH`。
+使用完整的 **CPython 3.13**（CI 为 3.13.16）和 `global.json` 固定的 .NET SDK。Python 开发依赖按 `requirements-dev.txt` 校验哈希安装；GUI 依赖预先准备到本地 NuGet 缓存。不要使用玩家的嵌入式 Python 做完整开发测试，它可能缺少 `venv` 或忽略子进程的 `PYTHONPATH`。首次准备环境（Python 与 .NET SDK 安装、NuGet 缓存、GUI 本地启动）见[本地开发环境初始化](DEVELOPMENT_SETUP.md)。
 
 统一入口为 `scripts/verify.py`，默认执行公开 Python 回归：
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
@@ -12,15 +13,6 @@ using MFAAvalonia.ViewModels.Pages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 namespace MFAAvalonia.Pcr;
-public partial class PcrLabyrinthGoal(int id, string name) : ObservableObject {
-    public int GuildId { get; } = id;
-    public string Name { get; } = name;
-    [ObservableProperty] private bool enabled;
-    [ObservableProperty] private string clears = "1";
-    public string[] TargetModes { get; } = { "通关次数", "尝试次数" };
-    [ObservableProperty] private string targetMode = "通关次数";
-    [ObservableProperty] private string openingRoster = "";
-}
 public partial class PcrLabyrinthSettings : ObservableObject {
     public const string Key = "PcrLabyrinthSettingsV1";
     public const string CredentialsKey = "PcrLabyrinthCredentialsV1";
@@ -30,9 +22,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private string? saved;
     private int? loadedMaxSeconds;
     private string? loadedMaxMinutes;
-    public ObservableCollection<PcrLabyrinthGoal> Goals { get; } = new(new[] {
-        new PcrLabyrinthGoal(1,"美食殿堂"), new PcrLabyrinthGoal(2,"破晓之星"), new PcrLabyrinthGoal(3,"咲恋救济院"),
-        new PcrLabyrinthGoal(4,"王宫骑士团"),new PcrLabyrinthGoal(5,"拉比林斯") });
+    public ObservableCollection<PcrLabyrinthGoal> Goals { get; }
     public string[] RouteModes { get; } = { "价值路线 v2", "固定模板路线" };
     public string[] ThirdChoices { get; } = { "必须遗物", "必须事件", "两者都行" };
     [ObservableProperty] private string difficulty = "1";
@@ -85,8 +75,18 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string credentialsStatus = "玩家 ID 与账号凭据自动加密保存到本机当前 Windows 用户。";
     [ObservableProperty] private string status = "设置自动保存；默认再次开始会放弃旧局后新开。";
     [ObservableProperty] private string progress = "尚未开始";
+    private PcrLabyrinthCharacterCatalog? characterCatalog;
+    public PcrLabyrinthCharacterCatalog CharacterCatalog => characterCatalog ??= CreateCharacterCatalog();
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRosterStatus))]
+    private string rosterStatus = "";
+    public bool HasRosterStatus => RosterStatus.Length>0;
     public PcrLabyrinthSettings(TaskQueueViewModel owner) {
-        vm=owner; Goals[0].Enabled=true;
+        vm=owner;
+        Goals=new(new[] {
+            new PcrLabyrinthGoal(1,"美食殿堂",this), new PcrLabyrinthGoal(2,"破晓之星",this), new PcrLabyrinthGoal(3,"咲恋救济院",this),
+            new PcrLabyrinthGoal(4,"王宫骑士团",this),new PcrLabyrinthGoal(5,"拉比林斯",this) });
+        Goals[0].Enabled=true;
         saved=vm.Processor.InstanceConfiguration.GetValue(Key, "");
         if (!string.IsNullOrEmpty(saved)) {
             try {
@@ -115,7 +115,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
                     RefreshFromArea=strategy["refresh_from_area"]?.ToString() ?? "5";
                     NormalWinRate=strategy["normal_win_rate"]?.ToString() ?? "95";
                     ExtremeWinRate=strategy["extreme_win_rate"]?.ToString() ?? "70";
-                    if (strategy["opening_rosters"] is JObject rosters) foreach (var goal in Goals) if (rosters[goal.GuildId.ToString(CultureInfo.InvariantCulture)] is JArray slots) goal.OpeningRoster=string.Join(" / ",slots.Select(slot=>string.Join(",",slot.Values<string>())));
+                    if (strategy["opening_rosters"] is JObject rosters) foreach (var goal in Goals) if (rosters[goal.GuildId.ToString(CultureInfo.InvariantCulture)] is JArray slots) goal.LoadOpeningRoster(slots);
                     BossMode=(string?)strategy["boss_mode"]=="single" ? BossModes[1] : BossModes[0];
                     if (strategy["deployment_weights"] is JArray weights) DeploymentWeights=string.Join(",",weights.Select(x=>x.ToString(Formatting.None)));
                     var scores=strategy["scoring_overrides"];
@@ -141,9 +141,32 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         foreach (var g in Goals) g.PropertyChanged+=(_,_)=>Save();
         ready=true;
     }
+    private PcrLabyrinthCharacterCatalog CreateCharacterCatalog() => PcrLabyrinthCharacterCatalog.Load();
+    internal PcrLabyrinthCharacterCatalog? TryCharacterCatalog() {
+        try {
+            characterCatalog ??= CreateCharacterCatalog();
+            RosterStatus="";
+            return characterCatalog;
+        } catch (Exception ex) { RosterStatus="角色图鉴加载失败："+ex.Message; return null; }
+    }
+    internal IReadOnlyList<PcrLabyrinthCharacter> PoolForGuild(PcrLabyrinthGoal goal) {
+        if (TryCharacterCatalog() is not { } catalog) return Array.Empty<PcrLabyrinthCharacter>();
+        var roster=catalog.ForGuild(goal.GuildId);
+        foreach (var character in roster.Characters)
+            character.ToggleCommand=new RelayCommand(()=>goal.Toggle(character));
+        return roster.Characters;
+    }
+    internal PcrLabyrinthCharacter PlaceholderCharacter(string id) =>
+        new(id, $"未列入预置名单（{id}）", PcrLabyrinthCharacterCatalog.Normalize(id), null, placeholder:true);
+    internal void RosterEdited() {
+        if (!ready) return;
+        vm.NotifyPcrSelectionChanged();
+        Save();
+    }
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
-        if (!ready || e.PropertyName is nameof(ShowCredentials) or nameof(CredentialMask) or nameof(CredentialsVisibilityText) or nameof(CredentialsStatus)) return;
+        if (!ready || e.PropertyName is nameof(ShowCredentials) or nameof(CredentialMask) or nameof(CredentialsVisibilityText) or nameof(CredentialsStatus)
+                or nameof(RosterStatus) or nameof(HasRosterStatus)) return;
         vm.NotifyPcrSelectionChanged();
         if (e.PropertyName is nameof(ExpectedPlayerId) or nameof(Username) or nameof(Password)) {
             credentialsDirty=true;
@@ -202,12 +225,15 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     }
     private JObject OpeningRostersSnapshot() {
         var rosters=new JObject();
-        foreach (var goal in Goals.Where(g=>!string.IsNullOrWhiteSpace(g.OpeningRoster))) {
-            var slots=goal.OpeningRoster.Split('/',StringSplitOptions.TrimEntries).Select(s=>s.Split(',',StringSplitOptions.TrimEntries)).ToArray();
-            var roles=slots.SelectMany(s=>s).ToArray();
-            if (slots.Length!=3 || roles.Any(s=>!System.Text.RegularExpressions.Regex.IsMatch(s,@"^[0-9]{4,6}$")) || roles.Distinct().Count()!=roles.Length)
-                throw new InvalidOperationException($"{goal.Name}开局方案需要三个槽位；槽位用 / 分隔，候选角色ID用逗号分隔，角色不能重复。");
-            rosters[goal.GuildId.ToString(CultureInfo.InvariantCulture)]=new JArray(slots.Select(slot=>new JArray(slot)));
+        foreach (var goal in Goals) {
+            var filled=goal.Slots.Where(slot=>slot.Candidates.Count>0).ToArray();
+            if (filled.Length==0) continue;
+            if (filled.Length!=goal.Slots.Count)
+                throw new InvalidOperationException($"{goal.Name}的开局候选需要三个槽位都至少选择一个角色；若沿用上游默认，请把三个槽位都清空。");
+            var roles=goal.Slots.SelectMany(slot=>slot.Candidates.Select(character=>character.Id)).ToArray();
+            if (roles.Any(id=>!System.Text.RegularExpressions.Regex.IsMatch(id,@"^[0-9]{4,6}$")) || roles.Distinct().Count()!=roles.Length)
+                throw new InvalidOperationException($"{goal.Name}的开局候选包含无效或重复的角色 ID。");
+            rosters[goal.GuildId.ToString(CultureInfo.InvariantCulture)]=new JArray(goal.Slots.Select(slot=>new JArray(slot.Candidates.Select(character=>character.Id))));
         }
         return rosters;
     }

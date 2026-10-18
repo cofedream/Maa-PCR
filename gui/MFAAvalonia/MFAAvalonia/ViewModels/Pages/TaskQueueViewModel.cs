@@ -1258,6 +1258,57 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public DisposableObservableCollection<LogItemViewModel> LogItemViewModels => Processor.LogItemViewModels;
 
     /// <summary>
+    /// 黎明界实时日志：只装本次黎明界运行的分步行，与共享日志解耦，
+    /// 所以日常/截图/更新日志不会混进来。
+    /// </summary>
+    private const int LabyrinthMaxLogCount = 500;
+
+    /// <summary>黎明界实时日志的一行：时间与内容分开，才能对齐显示并逐行选中复制。</summary>
+    public sealed record LabyrinthLogRow(string Time, string Content);
+
+    public ObservableCollection<LabyrinthLogRow> LabyrinthLogRows { get; } = new();
+
+    /// <summary>
+    /// 写一行黎明界实时日志。文件那一份同步写（导出读的就是日志文件，
+    /// UI 忙或挂住时也留有记录）；面板那一份投到 UI 线程追加。
+    /// 纯展示：任何写入失败都不能影响本次运行结果。
+    /// </summary>
+    public void AddLabyrinthLog(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return;
+        try
+        {
+            LoggerHelper.Info("[黎明界] " + content);
+        }
+        catch
+        {
+            // 文件写入失败不影响面板与运行。
+        }
+
+        DispatcherHelper.PostOnMainThread(() =>
+        {
+            try
+            {
+                LabyrinthLogRows.Add(new LabyrinthLogRow(DateTime.Now.ToString("HH':'mm':'ss"), content));
+                while (LabyrinthLogRows.Count > LabyrinthMaxLogCount) LabyrinthLogRows.RemoveAt(0);
+            }
+            catch
+            {
+                // A trace line is never business evidence.
+            }
+        }, DispatcherPriority.Normal);
+    }
+
+    /// <summary>
+    /// 只清黎明界面板，不动日志文件。
+    /// </summary>
+    [RelayCommand]
+    private void ClearLabyrinthLog()
+    {
+        LabyrinthLogRows.Clear();
+    }
+
+    /// <summary>
     /// 清理超出限制的旧日志，防止内存泄漏
     /// DisposableObservableCollection 会自动调用被移除元素的 Dispose()
     /// </summary>
