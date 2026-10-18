@@ -6,8 +6,12 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions.MaaFW;
@@ -23,6 +27,9 @@ if (args.Length != 2 || args.Any(arg => !Path.IsPathFullyQualified(arg)) || !Ope
 }
 try
 {
+    AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
+    Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
+    Application.Current!.Styles.Add(new SukiUI.SukiTheme());
     var count = 0;
     void Require(bool result, string name)
     {
@@ -316,6 +323,48 @@ try
     Require(rosterExpanderNode.Descendants(xaml + "ItemsControl").Any(node => (string?)node.Attribute("ItemsSource") == "{Binding Candidates}")
         && rosterExpanderNode.Descendants(xaml + "Button").Any(node => ClassesOf(node).Contains("OpeningSelected")
             && (string?)node.Attribute("Command") == "{Binding ToggleCommand}"), "opening_saved_candidates_have_remove_buttons");
+    var guiConfig = new InstanceConfiguration("pcr-labyrinth-roster-buttons");
+    guiConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,
+        new JObject { ["goals"] = new JArray(new JObject { ["guild_id"] = 2, ["clears"] = 1 }),
+            ["strategy"] = new JObject { ["opening_rosters"] = new JObject {
+                ["2"] = new JArray(new JArray("1089"), new JArray("1088"), new JArray("1801")) } } }.ToString(Newtonsoft.Json.Formatting.None));
+    var guiOwner = Owner(guiConfig);
+    var guiView = new PcrLabyrinthView { DataContext = guiOwner, Background = Brushes.White };
+    var guiExpander = guiView.GetLogicalDescendants().OfType<Expander>().Single(control => (string?)control.Header == "各公会开局三人候选");
+    guiExpander.IsExpanded = true;
+    var guiWindow = new Window { Content = guiView, Width = 1100, Height = 1400, ShowActivated = false,
+        ShowInTaskbar = false, Position = new PixelPoint(-12000, -12000) };
+    try
+    {
+        guiWindow.Show();
+        Dispatcher.UIThread.RunJobs();
+        guiView.UpdateLayout();
+        guiExpander.BringIntoView();
+        Dispatcher.UIThread.RunJobs();
+        using (var frame = new RenderTargetBitmap(new PixelSize(1100, 1400))) {
+            frame.Render(guiView); frame.Save(Path.Combine(root, "opening-roster-before.png"));
+        }
+        Button[] SelectedButtons() => guiView.GetLogicalDescendants().OfType<Button>()
+            .Where(button => button.Classes.Contains("OpeningSelected")).ToArray();
+        var actualButtons = SelectedButtons();
+        Require(actualButtons.Length == 3 && actualButtons.All(button => button.Command?.CanExecute(button.CommandParameter) == true),
+            "opening_actual_saved_buttons_are_enabled");
+        var click = typeof(Button).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        click.Invoke(actualButtons.Single(button => button.DataContext is PcrLabyrinthCharacter { Id: "1801" }), null);
+        Dispatcher.UIThread.RunJobs();
+        Require(guiOwner.LabyrinthSettings.Goals[1].Slots[2].IsEmpty, "opening_actual_button_removes_retained_placeholder");
+        foreach (var button in SelectedButtons()) click.Invoke(button, null);
+        Dispatcher.UIThread.RunJobs();
+        Require(JObject.Parse(guiConfig.GetValue(PcrLabyrinthSettings.Key, ""))["strategy"]?["opening_rosters"] is JObject { Count: 0 },
+            "opening_actual_buttons_clear_and_persist_default");
+        Require(!guiOwner.LabyrinthSettings.Goals[1].Pool.Any(character => character.IsSelected), "opening_actual_buttons_clear_pool_selection");
+        System.Threading.Thread.Sleep(250);
+        Dispatcher.UIThread.RunJobs();
+        guiView.UpdateLayout();
+        using var after = new RenderTargetBitmap(new PixelSize(1100, 1400));
+        after.Render(guiView); after.Save(Path.Combine(root, "opening-roster-after.png"));
+    }
+    finally { guiWindow.Close(); Dispatcher.UIThread.RunJobs(); }
     Require(!File.ReadAllText(Path.Combine(args[1], "gui", "MFAAvalonia", "MFAAvalonia", "Pcr", "PcrLabyrinthView.axaml")).Contains("OpeningRoster"),
         "opening_legacy_textbox_removed_from_view");
     Require(!MaaProcessorManager.IsInstanceCreated && !Directory.EnumerateFiles(root, "*.tmp", SearchOption.AllDirectories).Any(),
