@@ -7125,34 +7125,34 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_normal_battle_active.png",
-          "local_sha256": "ecae3d5e16b280aaa698768042bd09fd484e17d3c9da3cfe2523cc806ed881c5",
+          "local_sha256": "33b6945964b293adc218a66c3fd5e1c3d4b2d2575f125aa14cd4aff19921ff2e",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_normal_battle_active.png",
           "upstream_sha256": "1635c4b3cd35408890c0c7ca07d66c95fcafd2a34a4d5310520e5b68d840e502",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_normal_battle_active_bottom.png",
-          "local_sha256": "fc0e44bb5217a3081a14cc16bf2265f0156b276db8b36394697ae3d244adc923",
+          "local_sha256": "33b6945964b293adc218a66c3fd5e1c3d4b2d2575f125aa14cd4aff19921ff2e",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_normal_battle_active_bottom.png",
           "upstream_sha256": "83685eb465a55426a12e7518a80a6671466d07d8d5a52a14040de22a390b540d",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_normal_battle_inactive.png",
-          "local_sha256": "80581c803bc0f6e3f2b69e6c22c65ca131a7d24cff05fd9617bc4a2d854faec9",
+          "local_sha256": "7c974f77feed6f11a09d0bf7ac59c82dbd8b3f680c43b3ceba3bf9aee3c18827",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_normal_battle_inactive.png",
           "upstream_sha256": "6fae06f9e23a731a383124e8a56ba06988ea5cf3e445388761ee09133a08545a",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_normal_battle_inactive_bottom.png",
-          "local_sha256": "f1d5f9be1f84bcd0a077a8cd54adbf02c645121c3764ed4bce56007739a81153",
+          "local_sha256": "7c974f77feed6f11a09d0bf7ac59c82dbd8b3f680c43b3ceba3bf9aee3c18827",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_normal_battle_inactive_bottom.png",
           "upstream_sha256": "f6323d08d6b8be597bbdf2b71132a11a977985e4a25bb2248012c5eaad6f4755",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
@@ -7213,10 +7213,10 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_relic_inactive.png",
-          "local_sha256": "d5169005f7bb5052933eba673e00fdb8eb80da84df3cb91722c050a217f22021",
+          "local_sha256": "a28a51f741337d5f8c94f10e4212e7344ad4540374e91d329c812e023b779dfe",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_relic_inactive.png",
           "upstream_sha256": "e41557e330a96f93a043e04429dba5e3944448ff5bb8f47e2a680f3731c032d2",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
@@ -7245,18 +7245,18 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_event_inactive.png",
-          "local_sha256": "6061686405bd27cc173fad441cc172dd7b02d6c1f2e2ade6da36c662edadd634",
+          "local_sha256": "de6f46a25c9d8921008322c2f433763e3f6cf11b087b383fd5c66719a7ee39db",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_event_inactive.png",
           "upstream_sha256": "2b1c2f8da6b775b09dace7b58910607790b601578114379e2a54a0260b592209",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_event_inactive_bottom.png",
-          "local_sha256": "d89b840f590047c4f9e920a1094b5c6c5f5b15e22c5624d80b69ee256a17486f",
+          "local_sha256": "de6f46a25c9d8921008322c2f433763e3f6cf11b087b383fd5c66719a7ee39db",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_event_inactive_bottom.png",
           "upstream_sha256": "6eb1b6726c738b487681db419f51e853b126131f71f5eee940e99a7c58ad10f5",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
@@ -7277,10 +7277,10 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_link_inactive.png",
-          "local_sha256": "c7f9a6117dab3dee932118e2fdd1063bf1f66363c74b2a56ac4e1efbae2290c4",
+          "local_sha256": "761f1a7b0f74824556172e5a6ec5b23adf419470c39d06f71cb5143882a6676c",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_link_inactive.png",
           "upstream_sha256": "745936100157b5e9d81c33645237aee75c6d1d6ca2d5d4fe9d7329e258b57d49",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
