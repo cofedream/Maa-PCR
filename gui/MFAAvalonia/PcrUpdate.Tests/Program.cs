@@ -121,6 +121,44 @@ Directory.CreateDirectory(testRoot);
 Require(PcrSoftwareUpdateService.InstalledVersion(testRoot) == "Maa-PCR（开发模式）", "missing_manifest_is_not_a_release");
 File.WriteAllText(Path.Combine(testRoot, "package-manifest.json"), "{\"update\":{\"revision\":39,\"version\":\"v0.1.0\"}}");
 Require(PcrSoftwareUpdateService.InstalledVersion(testRoot) == "v0.1.0 / R39", "installed_business_version");
+File.WriteAllText(Path.Combine(testRoot, "package-manifest.json"), "{\"update\":{\"revision\":53,\"version\":\"v0.1.9\"}}");
+Require(PcrSoftwareUpdateService.InstalledVersion(testRoot) == "v0.1.9 / R53", "updated_manifest_replaces_display_version");
+var displayManifest = Path.Combine(AppContext.BaseDirectory, "package-manifest.json");
+if (Directory.Exists(displayManifest)) throw new InvalidOperationException("display_manifest_fixture_is_directory");
+var savedDisplayManifest = File.Exists(displayManifest) ? File.ReadAllBytes(displayManifest) : null;
+try
+{
+    var versionRoot = (MFAAvalonia.ViewModels.Windows.RootViewModel)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(
+        typeof(MFAAvalonia.ViewModels.Windows.RootViewModel));
+    foreach (var sample in new[] { (Revision: 53, Version: "v0.1.9"), (Revision: 57, Version: "v0.1.12") })
+    {
+        File.WriteAllText(displayManifest, new JObject { ["update"] = new JObject {
+            ["revision"] = sample.Revision, ["version"] = sample.Version } }.ToString());
+        var expectedVersion = $"{sample.Version} / R{sample.Revision}";
+        Require(MFAAvalonia.ViewModels.Windows.RootViewModel.Version == expectedVersion,
+            "pcr_version_reads_replaced_manifest_R" + sample.Revision);
+        versionRoot.ShowResourceVersion("0.1.3-alpha");
+        Require(versionRoot.ResourceVersion == expectedVersion,
+            "pcr_header_ignores_legacy_interface_version_R" + sample.Revision);
+        versionRoot.ShowResourceVersion("debug");
+        Require(versionRoot.ResourceVersion == expectedVersion,
+            "pcr_header_keeps_manifest_identity_on_resource_reload_R" + sample.Revision);
+        var title = (string)new MFAAvalonia.Helper.Converters.TitleConverter().Convert(
+            new object?[] { null, false, "Maa-PCR", MFAAvalonia.ViewModels.Windows.RootViewModel.Version,
+                "PCR Alpha", versionRoot.ResourceVersion, true }, typeof(string), null, System.Globalization.CultureInfo.InvariantCulture)!;
+        Require(title.Contains(expectedVersion) && !title.Contains("0.1.3-alpha")
+            && (sample.Revision != 57 || !title.Contains("v0.1.9")),
+            "pcr_window_title_uses_replaced_manifest_R" + sample.Revision);
+    }
+}
+finally
+{
+    if (savedDisplayManifest is null) File.Delete(displayManifest);
+    else File.WriteAllBytes(displayManifest, savedDisplayManifest);
+}
+Require(savedDisplayManifest is null ? !File.Exists(displayManifest)
+    : File.ReadAllBytes(displayManifest).AsSpan().SequenceEqual(savedDisplayManifest),
+    "display_manifest_fixture_restored_byte_for_byte");
 File.WriteAllText(Path.Combine(testRoot, "package-manifest.json"), "{\"update\":{\"revision\":\"39\",\"version\":\"v2.16.6\"}}");
 Require(PcrSoftwareUpdateService.InstalledVersion(testRoot) == "Maa-PCR（版本清单无效）", "gui_semver_is_not_business_revision");
 var recoveryPlayer = Path.Combine(testRoot, "recovery-player");

@@ -57,6 +57,7 @@ internal static class PcrLabyrinthOwner
         "account_mismatch"=>"协议账号与期望游戏玩家 ID 不一致，本次已停止。",
         "runtime_components_missing"=>"黎明界运行组件或依赖缺失，请核对完整候选包。",
         "runtime_resources_timeout"=>"本地识别资源加载超时，本次已停止。请核对完整程序包与本机资源占用。",
+        "runtime_ocr_preparation_failed"=>"本地文字识别初始化未通过，本次未开始游戏任务。请导出黎明界诊断记录。",
         "controller_connection_timeout" or "controller_connection_failed"=>"连接所选设备失败或超时，本次已停止。请核对设备与 ADB 目标。",
         "content_update_required"=>"游戏资源版本已更新，当前程序需匹配新版数据；本次未开始游戏任务。",
         "protocol_version_invalid"=>"服务器资源版本信息未通过校验，本次未开始游戏任务。请稍后重试或导出诊断记录。",

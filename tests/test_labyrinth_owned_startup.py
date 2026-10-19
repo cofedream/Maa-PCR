@@ -103,7 +103,7 @@ def test_preload_failure_clears_credentials_before_starting_stop_listener(monkey
     assert capsys.readouterr().out == ''
 
 
-def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=False):
+def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=False, ocr_job=None, ocr_hook=None):
     from pcr_maa import native
     from pcr_maa.labyrinth import timing
     import maa.controller
@@ -136,6 +136,13 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
     class Tasker:
         inited = True
         def bind(self, *args): return True
+        def post_recognition(self, kind, params, image):
+            assert kind == 'OCR' and params.expected == ['^PCR$']
+            assert params.only_rec is False and params.roi == (0, 0, 192, 64)
+            assert image.shape == (64, 192, 3) and image.min() == 0 and image.max() == 255
+            calls.append('ocr_prepare')
+            if ocr_hook is not None: ocr_hook()
+            return ocr_job if ocr_job is not None else NS(done=True, succeeded=True)
         def post_stop(self):
             calls.append('native_stop')
             return NS(succeeded=True)
@@ -169,13 +176,77 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     assert not (tmp_path / 'assets/labyrinth/protocol-version.json').exists()
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
     assert [value['stage'] for value in events] == [
-        'dependencies', 'resources', 'connecting', 'authenticating', 'recovering', 'ready']
+        'dependencies', 'resources', 'connecting', 'resources', 'authenticating', 'recovering', 'ready']
+    assert calls.index('ocr_prepare') < calls.index('client') < calls.index('authenticate')
     assert calls.index('authenticate') < calls.index('restart_check') < calls.index('batch')
     assert calls.index('authenticate') < calls.index('batch')
     assert 'client_close' in calls and 'native_stop' in calls
     assert owned.request.username == owned.request.password == ''
     assert 'synthetic-user' not in json.dumps(events)
     assert 'synthetic-password' not in json.dumps(events)
+
+
+def test_failed_ocr_preparation_stops_before_login_without_retry(tmp_path, monkeypatch):
+    owned, events, calls = runtime(tmp_path, monkeypatch, ocr_job=NS(done=True, succeeded=False))
+    assert owned.run() == dict(outcome='runtime_ocr_preparation_failed', batch_complete=False)
+    assert calls.count('ocr_prepare') == 1 and 'native_stop' in calls
+    assert not {'client', 'authenticate', 'batch'} & set(calls)
+    assert events[-1] == dict(kind='progress', stage='resources')
+    assert owned.request.username == owned.request.password == ''
+
+
+@pytest.mark.parametrize('done', [False, True])
+def test_stop_during_ocr_preparation_takes_priority_and_never_logs_in(tmp_path, monkeypatch, done):
+    owned, events, calls = runtime(tmp_path, monkeypatch, ocr_job=NS(done=done, succeeded=False),
+        ocr_hook=lambda: owned.stop.request())
+    assert owned.run() == dict(outcome='stopped', batch_complete=False)
+    assert calls.count('ocr_prepare') == 1 and 'native_stop' in calls
+    assert not {'client', 'authenticate', 'batch'} & set(calls)
+    assert owned.request.username == owned.request.password == ''
+
+
+@pytest.mark.parametrize('completed_late', [False, True])
+def test_ocr_preparation_has_own_bounded_budget_and_cleans_up(tmp_path, monkeypatch, completed_late):
+    from pcr_maa.labyrinth import owned_runtime
+    clock = [0.]
+    class Job:
+        succeeded = True
+        @property
+        def done(self):
+            if completed_late: clock[0] = 31
+            return completed_late
+    owned, events, calls = runtime(tmp_path, monkeypatch, ocr_job=Job())
+    original = owned._prepare_ocr
+    def prepare():
+        with monkeypatch.context() as patch:
+            patch.setattr(owned_runtime.time, 'monotonic', lambda: clock[0])
+            patch.setattr(owned_runtime.time, 'sleep', lambda _: clock.__setitem__(0, 31))
+            original()
+    owned._prepare_ocr = prepare
+    assert owned.run() == dict(outcome='runtime_resources_timeout', batch_complete=False)
+    assert calls.count('ocr_prepare') == 1 and 'native_stop' in calls
+    assert not {'client', 'authenticate', 'batch'} & set(calls)
+    assert owned.request.username == owned.request.password == ''
+
+
+def test_expired_outer_deadline_prevents_ocr_submission(tmp_path, monkeypatch):
+    from pcr_maa import native
+    from pcr_maa.labyrinth.batch import BatchStopped
+    owned, _, _ = runtime(tmp_path, monkeypatch)
+    owned.tasker = NS(post_recognition=lambda *args: pytest.fail('expired preparation submitted native work'))
+    token = native.RUN_DEADLINE.set(0)
+    try:
+        with pytest.raises(BatchStopped, match='^runtime_resources_timeout$'): owned._prepare_ocr()
+        assert native.RUN_DEADLINE.get() == 0
+    finally: native.RUN_DEADLINE.reset(token)
+
+
+def test_stop_before_ocr_preparation_prevents_submission(tmp_path, monkeypatch):
+    from pcr_maa.labyrinth.batch import BatchStopped
+    owned, _, _ = runtime(tmp_path, monkeypatch)
+    owned.stop.request()
+    owned.tasker = NS(post_recognition=lambda *args: pytest.fail('stopped preparation submitted native work'))
+    with pytest.raises(BatchStopped, match='^stopped$'): owned._prepare_ocr()
 
 
 def test_missing_installed_version_stops_before_sdk_login_and_keeps_credentials_private(tmp_path,monkeypatch):

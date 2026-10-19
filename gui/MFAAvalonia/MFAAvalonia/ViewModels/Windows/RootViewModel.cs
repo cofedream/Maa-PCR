@@ -246,8 +246,9 @@ public partial class RootViewModel : ViewModelBase
 
     public void ShowResourceVersion(string version)
     {
-        version = version.StartsWith("v") ? version : "v" + version;
-        ResourceVersion = version;
+        // PCR releases use the installed manifest; interface metadata is a legacy resource marker.
+        ResourceVersion = MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled ? Version
+            : version.StartsWith("v") ? version : "v" + version;
     }
 
     public void ShowCustomTitle(string title)

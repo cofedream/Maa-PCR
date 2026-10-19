@@ -2873,10 +2873,13 @@ public class MaaProcessor
         }
         if ((!string.IsNullOrWhiteSpace(name) && !name.Equals("debug", StringComparison.OrdinalIgnoreCase)) || !string.IsNullOrWhiteSpace(back))
             Instances.RootViewModel.ShowResourceKeyAndFallBack(name, back);
-        if (!string.IsNullOrWhiteSpace(version) && !version.Equals("debug", StringComparison.OrdinalIgnoreCase))
+        if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled
+            || !string.IsNullOrWhiteSpace(version) && !version.Equals("debug", StringComparison.OrdinalIgnoreCase))
         {
             Instances.RootViewModel.ShowResourceVersion(version);
-            Instances.VersionUpdateSettingsUserControlModel.ResourceVersion = version;
+            var displayVersion = MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled
+                ? Instances.RootViewModel.ResourceVersion ?? version : version;
+            Instances.VersionUpdateSettingsUserControlModel.ResourceVersion = displayVersion;
 
             // 首次初始化时，根据资源版本自动设置更新来源
             // 优先级：内测(Alpha=0) > 公测(Beta=1) > 稳定(Stable=2)
@@ -2904,7 +2907,8 @@ public class MaaProcessor
 
         if (Interface != null)
         {
-            AppendVersionLog(Interface.Version);
+            AppendVersionLog(MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled
+                ? Instances.RootViewModel.ResourceVersion : Interface.Version);
             TasksSource.Clear();
             LoadTasks(Interface.Task ?? new List<MaaInterface.MaaInterfaceTask>(), dragItem);
         }

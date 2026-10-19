@@ -9,6 +9,7 @@ import json
 import re
 import sys
 import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import uuid4
@@ -239,6 +240,34 @@ class OwnedRuntime:
         from .restart import prepare_restart
         prepare_restart(self.request, self.port, journal, self.stop, self._progress)
 
+    def _prepare_ocr(self):
+        """Run the first inference before login or any business wait/input."""
+        import cv2
+        import numpy as np
+        from maa.pipeline import JOCR, JRecognitionType
+        from .. import native
+        from .batch import BatchStopped
+        self._checkpoint()
+        deadline = min(time.monotonic() + 30, native.RUN_DEADLINE.get())
+        sample = np.full((64, 192, 3), 255, np.uint8)
+        cv2.putText(sample, 'PCR', (15, 48), cv2.FONT_HERSHEY_SIMPLEX,
+                    1.5, (0, 0, 0), 3, cv2.LINE_AA)
+        if time.monotonic() >= deadline:
+            raise BatchStopped('runtime_resources_timeout')
+        # Recognition-only API uses this synthetic image, never the controller.
+        job = self.tasker.post_recognition(JRecognitionType.OCR,
+            JOCR(expected=['^PCR$'], roi=(0, 0, 192, 64), threshold=.8), sample)
+        while not job.done:
+            self._checkpoint()
+            if time.monotonic() >= deadline:
+                raise BatchStopped('runtime_resources_timeout')
+            time.sleep(.05)
+        self._checkpoint()
+        if time.monotonic() >= deadline:
+            raise BatchStopped('runtime_resources_timeout')
+        if not job.succeeded:
+            raise BatchStopped('runtime_ocr_preparation_failed')
+
     def _finish_timings(self):
         try:
             if self.native_timings is not None:self.native_timings.finish_native_trace()
@@ -315,6 +344,8 @@ class OwnedRuntime:
                 self.tasker=Tasker()
                 if not self.tasker.bind(resource,self.controller) or not self.tasker.inited:
                     raise BatchStopped('controller_connection_failed')
+                self._progress(dict(stage='resources'))
+                self._prepare_ocr()
                 timings=self.timings
                 self.native_timings=NativeTimings(self.tasker,self.controller,timings,
                     trace_path=native.RUNTIME/'maa/maafw.log')
