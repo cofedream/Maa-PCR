@@ -146,7 +146,11 @@ def test_reward_and_joined_portraits_share_current_frame(matcher,monkeypatch):
     assert len(calls)==3 and all(value is calls[0] for value in calls)
     reward_prepared=calls[0];calls.clear()
     monkeypatch.setattr(c,'card_presence',lambda *a:1)
-    def read(name,image):return None if name in ('LabyDateChangedObserved','LabyDisconnect6002Observed') else NS(hit=True)
+    for slot,role in enumerate(('1001','1002','1003')):
+        index=next(i for i,e in enumerate(matcher.entries) if e['character_id']==role)
+        frame[233+94*slot:293+94*slot,353:413]=cv2.resize(matcher.images[index][...,::-1],(60,60))
+    def read(name,image):
+        return NS(hit=False) if name in ('LabyDateChangedObserved','LabyDisconnect6002Observed') or 'JoinedName' in name else NS(hit=True)
     result=c.CharacterRecognition('Perf',recognizer).analyze(NS(tasker=NS(stopping=False),run_recognition=read),
         NS(image=frame,custom_recognition_param=json.dumps(dict(mode='read',page='joined'))))
     assert result is not None and len(calls)==3 and all(value is calls[0] for value in calls)

@@ -92,9 +92,11 @@ public static class FileLogExporter
                 var labyrinthRoot = PcrRuntimePaths.ResolveDataRepository(baseDirectory);
 
                 // 获取符合条件的日志文件和图片文件
-                var eligibleFiles = await Task.Run(() => GetEligibleFiles(baseDirectory, labyrinthRoot, options ?? new ExportLogPackageOptions()));
+                options ??= new ExportLogPackageOptions();
+                var eligibleFiles = await Task.Run(() => GetEligibleFiles(baseDirectory, labyrinthRoot, options));
+                var ocrEvidence = await Task.Run(() => PcrOcrEvidence.Sources(baseDirectory, labyrinthRoot, options));
 
-                if (!eligibleFiles.Any())
+                if (!eligibleFiles.Any() && ocrEvidence.Count == 0)
                 {
                     LoggerHelper.Warning("未找到符合条件的日志文件或图片。");
                     ToastHelper.Warn(LangKeys.ExportLog.ToLocalization(), LangKeys.ExportLogNoEligibleFiles.ToLocalization());
@@ -136,6 +138,19 @@ public static class FileLogExporter
                             {
                                 skippedCount++;
                                 LoggerHelper.Warning($"导出日志时跳过文件（可能正在占用）: {file.FullName}\n{ex.Message}");
+                            }
+                        }
+                        foreach (var evidence in ocrEvidence)
+                        {
+                            try
+                            {
+                                PcrOcrEvidence.WriteSnapshot(evidence.Root, evidence.Path, tempDir, evidence.Owner);
+                                copiedCount++;
+                            }
+                            catch (Exception ex)
+                            {
+                                skippedCount++;
+                                LoggerHelper.Warning("OCR 失败证据导出未完成：" + ex.GetType().Name);
                             }
                         }
                     });

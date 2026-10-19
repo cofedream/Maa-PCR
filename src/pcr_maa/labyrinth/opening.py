@@ -1,5 +1,5 @@
 """Upstream configured invitations with fresh Maa selection and joined feedback.
-Each input belongs to a locked Batch intent; actual full names and final Map
+Each input belongs to a locked Batch intent; actual joined identities and final Map
 are read independently. Private SDK creation/account qualification remains
 with the caller. Generic card resources come from the pinned upstream pack.
 """
@@ -20,10 +20,10 @@ class MaaOpening:
         if input and not any(n['name']==node and n.get('action') and n['action']['success'] for n in receipt['nodes']):
             raise BatchStopped('opening_input_unknown')
         return receipt
-    def _wait_invitation_joined(self,batch,enter_id,invited,node):
+    def _wait_invitation_joined(self,batch,enter_id,invited,node=None):
         from .scene import MaaSceneRuntime
-        # Both existing joined readers have a 3000ms node budget. Animation
-        # advancement and the final identity read share it, including an outer
+        # Keep the original 3000ms budget. Animation and the independent
+        # joined identity read share it, including an outer
         # deadline; upstream 40 clicks/30s is a ceiling, not an added wait here.
         deadline=min(native.RUN_DEADLINE.get(),time.monotonic()+3)
         token=native.RUN_DEADLINE.set(deadline)
@@ -32,9 +32,12 @@ class MaaOpening:
                 batch,{'joined','role_reward','free_role_reward','map'},timeout=3,
                 reason='opening_readback_unknown',acquisition_fields=dict(
                     enter_id=enter_id,invitation_operation_id=invited['operation_id']))
-            # The invitation source or its MAP background hands off to the original
-            # joined reader; only actual named identities can complete the invitation.
-            batch.checkpoint();return self._run(node)
+            # A MAP background supplies no identities; the shared joined reader
+            # must independently confirm the actual arrivals.
+            batch.checkpoint()
+            if node is not None:return self._run(node) # Legacy saved-receipt readers remain available offline.
+            _,receipt=self.characters.read(batch,'joined',stable=False,timeout=3)
+            return receipt
         finally:native.RUN_DEADLINE.reset(token)
     @property
     def characters(self):
@@ -89,7 +92,7 @@ class MaaOpening:
             _,sent=characters.run('InviteOnce',dict(mode='invite',page='opening',expected_selected=selected),input=True)
             return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('opening_invite',fields,invite)
-        batch.checkpoint();receipt=self._wait_invitation_joined(batch,enter_id,clicked,'LabyOpeningAnyJoinedObserved')
+        batch.checkpoint();receipt=self._wait_invitation_joined(batch,enter_id,clicked)
         _,actual=joined_portrait_readback(receipt);ids=sorted(person.character_id for person in actual)
         if ids!=selected:raise BatchStopped('opening_joined_unknown')
         joined=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,roles_joined=ids,native=receipt,input_native=clicked['input_native']),**fields)
@@ -140,12 +143,11 @@ class MaaOpening:
         if hit=='LabyDisconnect6002Observed':raise BatchStopped('disconnected')
         return hit,receipt
     def observe_joined(self,batch,enter_id):
-        """Actual strict one/two/three-row full names; no input or owned inference."""
+        """Shared same-frame joined identities; no input or owned inference."""
         from .portrait_cache import joined_portrait_readback
         self._creation_key(enter_id,None);self._install_joined()
-        names=['LabyDateChangedObserved','LabyDisconnect6002Observed']+[f'LabyPortraitJoined{count}Observed' for count in (1,2,3)]
-        hit,_=self._choice(batch,'LabyOpeningAnyActualJoinedWait',names)
-        batch.checkpoint();receipt=self._run(hit);batch.checkpoint()
+        _,receipt=self.characters.read(batch,'joined',stable=False,timeout=3)
+        batch.checkpoint()
         layout,items=joined_portrait_readback(receipt)
         observed=self.stamp(source='maa',enter_id=enter_id,page='joined',roles_joined=sorted(item.character_id for item in items),native=receipt)
         batch.observation(observed,enter_id=enter_id,page='joined')

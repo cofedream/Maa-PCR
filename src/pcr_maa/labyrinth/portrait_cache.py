@@ -130,7 +130,9 @@ class RunPortraitCache:
             if item.character_id in self._portraits and self._portraits[item.character_id].portrait_sha256!=portrait_hash:
                 raise BatchStopped('portrait_conflicting')
             prepared[item.character_id]=(Portrait(item.character_id,item.canonical_name,item.raw_text,
-                source_reference,frame_hash,portrait_hash,box,layout,item.box,item.score,receipt_hash),image)
+                source_reference,frame_hash,portrait_hash,box,layout,
+                item.box if item.raw_text else None,
+                item.score if item.alias_source!='full-pack-portrait' else None,receipt_hash),image)
         for key,(portrait,image) in prepared.items():
             if key not in self._portraits:
                 self._portraits[key]=portrait;self._images[key]=image
@@ -272,6 +274,8 @@ def joined_portrait_readback(receipt):
     if type(nodes) is not list or len(nodes)!=1 or type(nodes[0]) is not dict:unknown()
     root=nodes[0];name=root.get('name');raw=root.get('recognition')
     if root.get('completed') is not True:unknown()
+    if type(name) is str and re.fullmatch(r'LabyCharacters[0-9a-f]{32}Read',name):
+        return _fullpack_joined_readback(root)
     if name=='LabyCharactersArrivedObserved':
         return 'arrival3',arrivals.characters_arrived(receipt)
     if name in ('LabyOpeningJoinedCloseOnce','LabyOpeningAnyJoinedCloseOnce'):
@@ -356,3 +360,50 @@ def joined_portrait_readback(receipt):
                 or not 1580<=values[0]['count']<=1600
                 or detail.get('all')!=values or detail.get('best')!=values[0]):unknown()
     return layout,tuple(items)
+
+
+def _fullpack_joined_readback(root):
+    """Validate the shared same-frame reader, without expected/configured IDs."""
+    from .character_recognition import CONFIDENCE,RIVAL_MARGIN,canonical_id,load_character_pack,resolve_character_name
+    from .roles import load_optimizer
+    def unknown():raise BatchStopped('portrait_joined_unknown')
+    raw=root.get('recognition');action=root.get('action')
+    if (type(raw) is not dict or type(action) is not dict
+            or action.get('name')!=root['name'] or action.get('success') is not True):unknown()
+    best=raw.get('best');detail=best.get('detail') if type(best) is dict else None
+    if (raw.get('all')!=[best] or raw.get('filtered')!=[best] or type(detail) is not dict
+            or detail.get('page')!='joined' or detail.get('joined_identity_schema')!='joined-fullpack-v1'):unknown()
+    portraits=detail.get('portraits')
+    if type(portraits) is not list or not 1<=len(portraits)<=3:unknown()
+    entries,_,_=load_character_pack();icons={e['unit_icon_id']:e['character_id'] for e in entries}
+    optimizer=load_optimizer();items=[]
+    for slot,p in enumerate(portraits):
+        if (type(p) is not dict or type(p.get('slot')) is not int or p['slot']!=slot
+                or p.get('box')!=[353,233+94*slot,60,60] or p.get('trusted') is not True):unknown()
+        key=p.get('character_id')
+        if type(key) is not str or canonical_id(key)!=key or key=='1000' or key not in optimizer.profiles:unknown()
+        words=p.get('name_native');word=None;named=None
+        if type(words) is not list or len(words)>1:unknown()
+        if words:
+            word=words[0]
+            if (type(word) is not dict or type(word.get('text')) is not str
+                    or type(word.get('score')) not in (int,float) or not arrivals.THRESHOLD<=word['score']<=1
+                    or type(word.get('box')) is not list or not _inside(word['box'],arrivals.NAME_ROIS[slot])):unknown()
+            try:named=resolve_character_name(word['text'])
+            except BatchStopped:pass
+        if p.get('identity_source')=='portrait':
+            confidence=p.get('confidence');rival=p.get('rival_confidence');margin=p.get('rival_margin')
+            if (any(type(v) not in (int,float) or not math.isfinite(v) or not 0<=v<=1 for v in (confidence,rival,margin))
+                    or confidence<CONFIDENCE or margin<RIVAL_MARGIN or abs(confidence-rival-margin)>1e-6
+                    or type(p.get('unit_icon_id')) is not str or icons.get(p['unit_icon_id'])!=key
+                    or named is not None and named!=key):unknown()
+            source='full-pack-portrait';score=confidence
+        elif p.get('identity_source')=='maa_name':
+            if word is None or named!=key:unknown()
+            source='upstream-complete-catalog-name';score=word['score']
+        else:unknown()
+        items.append(arrivals.Arrival(slot,key,word['text'] if word else '',optimizer.profiles[key].data['displayName'],
+            source,tuple(word['box'] if word else p['box']),score))
+    ids=[item.character_id for item in items]
+    if len(set(ids))!=len(ids) or detail.get('roles_joined')!=ids or detail.get('portrait')!=portraits[0]:unknown()
+    return f'joined{len(items)}',tuple(items)

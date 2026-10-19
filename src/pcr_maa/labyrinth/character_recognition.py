@@ -1356,21 +1356,29 @@ class CharacterRecognition(CustomRecognition):
                 for slot,y in enumerate((233,327,421)):
                     box=(353,y,60,60)
                     if card_presence(argv.image,box)<.055:continue
+                    if slot!=len(portraits):return None
                     mask=IconMask(right=True,top_left=True)
                     match=matcher.match(argv.image,box,mask=mask,_prepared=prepared)
                     if not match.trusted:match=matcher.refine(argv.image,box,match,mask=mask,_prepared=prepared)
-                    portrait=asdict(match)
-                    if not match.trusted:
-                        # Existing joined-name ROI/catalog resolves untrusted art;
-                        # trusted icons retain their original identity path.
+                    portrait=dict(asdict(match),slot=slot,box=list(box),identity_source='portrait',name_native=[])
+                    word=named=None
+                    try:
                         word=_native_word(context.run_recognition(self.namespace+'JoinedName'+str(slot),argv.image))
-                        portrait.update(character_id=resolve_character_name(word['text']),
-                            name=word['text'],trusted=True,identity_source='maa_name',name_native=[word])
+                    except BatchStopped:pass
+                    if word is not None:
+                        portrait['name_native']=[word]
+                        try:named=resolve_character_name(word['text'])
+                        except BatchStopped:pass
+                    if match.trusted:
+                        if named is not None and named!=match.character_id:return None
+                    elif named is not None:
+                        portrait.update(character_id=named,name=word['text'],trusted=True,identity_source='maa_name')
+                    else:return None
                     portraits.append(portrait)
-                roles=list(dict.fromkeys(p['character_id'] for p in portraits))
-                if not roles:return None
+                roles=[p['character_id'] for p in portraits]
+                if not roles or len(set(roles))!=len(roles):return None
                 if params.get('expected_role') is not None and roles!=[params['expected_role']]:return None
-                return self.AnalyzeResult([0,0,1,1],dict(page='joined',roles_joined=roles,
+                return self.AnalyzeResult([0,0,1,1],dict(page='joined',joined_identity_schema='joined-fullpack-v1',roles_joined=roles,
                     portrait=portraits[0],portraits=portraits))
             if page=='reward':
                 if mode!='read':return None
@@ -1680,6 +1688,9 @@ class MaaCharacters:
             detail=best.get('detail') if type(best) is dict else None
 
             if type(detail) is not dict or detail.get('page')!=params['page']:raise BatchStopped('character_readback_unknown')
+            if params['page']=='joined':
+                from .portrait_cache import joined_portrait_readback
+                joined_portrait_readback(receipt)
             if suffix=='FilterStable' and detail.get('filter_frozen') is not True:raise BatchStopped('character_readback_unknown')
 
         except BaseException:

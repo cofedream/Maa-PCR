@@ -31,6 +31,7 @@ internal static class LogExportChecks
         RunPublishChecks(Path.Combine(root, "publish"), Check);
         RunSingleArchiveChecks(Path.Combine(root, "single-archive"), Check);
         RunRotationChecks(Path.Combine(root, "rotation"), Check);
+        OcrEvidenceChecks.Run(fixtureDirectory, Check);
         var now = DateTime.UtcNow;
         string Put(string relative, string content, int age = 0)
         {
@@ -367,9 +368,18 @@ internal static class LogExportChecks
         for (var index = 0; index < 3; index++)
             File.WriteAllBytes(Path.Combine(images, $"frame{index}.png"), bytes);
         File.WriteAllText(Path.Combine(input, "debug", "maafw.log"), "complete log\n");
+        var evidence = OcrEvidenceChecks.CreateJoinedFailure(input, "daily");
+        var sourceBefore = Directory.GetFiles(input, "*", SearchOption.AllDirectories).ToDictionary(
+            path => path, path => SHA256.HashData(File.ReadAllBytes(path)));
         var expected = Directory.GetFiles(input, "*", SearchOption.AllDirectories).ToDictionary(
             path => Path.GetRelativePath(input, path).Replace('\\', '/'),
             path => SHA256.HashData(File.ReadAllBytes(path)));
+        foreach (var raw in expected.Keys.Where(path => path.StartsWith(".runtime/ocr-failures/", StringComparison.Ordinal)).ToArray()) expected.Remove(raw);
+        var expectedEvidence = Path.Combine(root,"expected-evidence");
+        typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrOcrEvidence",true)!
+            .GetMethod("WriteSnapshot",BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null,[input,evidence,expectedEvidence,"daily"]);
+        foreach (var path in Directory.GetFiles(expectedEvidence,"*",SearchOption.AllDirectories))
+            expected.Add(Path.GetRelativePath(expectedEvidence,path).Replace('\\','/'),SHA256.HashData(File.ReadAllBytes(path)));
         var dataRoot = typeof(AppPaths).GetProperty(nameof(AppPaths.DataRoot))!;
         AppPaths.Initialize();
         var savedRoot = AppPaths.DataRoot;
@@ -400,6 +410,8 @@ internal static class LogExportChecks
                 check(Directory.GetFiles(output, "*-part*.zip").All(path => File.ReadAllText(path) == "previous export must remain"), "existing_sibling_archives_preserved");
                 check(Directory.GetFiles(output).Length == (local ? 2 : 4), "no_extra_export_files");
                 using var zip = ZipFile.OpenRead(chosen);
+                check(zip.Entries.Count(entry=>entry.FullName.StartsWith(".runtime/ocr-export/",StringComparison.Ordinal))==2
+                    && !zip.Entries.Any(entry=>entry.FullName.Contains("ocr-failures") || entry.FullName.EndsWith("-frame.png")),"actual_export_includes_only_derived_ocr_evidence");
                 check(zip.Entries.Count == expected.Count, "single_zip_contains_all_files");
                 foreach (var entry in zip.Entries)
                 {
@@ -407,7 +419,7 @@ internal static class LogExportChecks
                     check(expected[entry.FullName].SequenceEqual(SHA256.HashData(stream)), "single_zip_preserves_file_bytes");
                 }
             }
-            check(expected.All(pair => pair.Value.SequenceEqual(SHA256.HashData(File.ReadAllBytes(Path.Combine(input, pair.Key))))), "export_preserves_source_files");
+            check(sourceBefore.All(pair => pair.Value.SequenceEqual(SHA256.HashData(File.ReadAllBytes(pair.Key)))), "export_preserves_source_files");
             var gate = (System.Threading.SemaphoreSlim)typeof(FileLogExporter)
                 .GetField("ExportSemaphore", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
             gate.Wait();
