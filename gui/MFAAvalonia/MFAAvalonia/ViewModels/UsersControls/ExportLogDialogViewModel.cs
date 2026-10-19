@@ -28,7 +28,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartExportCommand))]
-    private bool _includeLabyrinthLog = true;
+    private bool _includeLabyrinthLog;
 
     [ObservableProperty] private ExportLogTimeRangeOption _selectedLabyrinthLogTimeRange;
     [ObservableProperty] private string _storageUsage = "正在统计日志占用…";
@@ -54,6 +54,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
     [ObservableProperty] private bool _isExporting;
 
     public IReadOnlyList<ExportLogTimeRangeOption> ImageTimeRangeOptions { get; }
+    public bool IsLabyrinthProfile { get; }
 
     public string MaaLogLabel => "maa.log";
     public string GuiLogLabel => "gui.log";
@@ -65,11 +66,13 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
         : LangKeys.ExportLogDialogStart.ToLocalization();
 
     public bool CanStartExport =>
-        !IsExporting && (IncludeMaaLog || IncludeGuiLog || IncludeCustomLog || IncludeLabyrinthLog || IncludeOnErrorImages || IncludeVisionImages || IncludeOtherImages);
+        !IsExporting && (IncludeMaaLog || IncludeGuiLog || IncludeCustomLog || (IsLabyrinthProfile && IncludeLabyrinthLog) || IncludeOnErrorImages || IncludeVisionImages || IncludeOtherImages);
 
-    public ExportLogDialogViewModel(ISukiDialog dialog)
+    public ExportLogDialogViewModel(ISukiDialog dialog, bool isLabyrinthProfile)
     {
         _dialog = dialog;
+        IsLabyrinthProfile = isLabyrinthProfile;
+        _includeLabyrinthLog = isLabyrinthProfile;
 
         ImageTimeRangeOptions =
         [
@@ -82,7 +85,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
         _selectedOnErrorImageTimeRange = ImageTimeRangeOptions[0];
         _selectedVisionImageTimeRange = ImageTimeRangeOptions[0];
         _selectedOtherImageTimeRange = ImageTimeRangeOptions[0];
-        _selectedLabyrinthLogTimeRange = ImageTimeRangeOptions[3];
+        _selectedLabyrinthLogTimeRange = ImageTimeRangeOptions[0];
         _ = RefreshStorageUsage();
     }
 
@@ -92,7 +95,9 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
         {
             var usage = await Task.Run(() => PcrLogFiles.Usage(AppPaths.DataRoot,
                 PcrRuntimePaths.ResolveDataRepository(AppPaths.InstallRoot)));
-            StorageUsage = $"普通日志和诊断截图：{usage.Ordinary / 1048576d:F1} MiB；黎明界独立记录：{usage.Labyrinth / 1048576d:F1} MiB（压缩前）。";
+            StorageUsage = $"普通日志和诊断截图：{usage.Ordinary / 1048576d:F1} MiB"
+                + (IsLabyrinthProfile ? $"；黎明界独立记录：{usage.Labyrinth / 1048576d:F1} MiB" : "")
+                + "（压缩前）。";
         }
         catch { StorageUsage = "日志占用统计未完成，部分文件无法访问。"; }
     }
@@ -137,7 +142,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
             IncludeMaaLog = IncludeMaaLog,
             IncludeGuiLog = IncludeGuiLog,
             IncludeCustomLog = IncludeCustomLog,
-            IncludeLabyrinthLog = IncludeLabyrinthLog,
+            IncludeLabyrinthLog = IsLabyrinthProfile && IncludeLabyrinthLog,
             LabyrinthLogTimeRange = SelectedLabyrinthLogTimeRange.Value,
             IncludeOnErrorImages = IncludeOnErrorImages,
             IncludeVisionImages = IncludeVisionImages,

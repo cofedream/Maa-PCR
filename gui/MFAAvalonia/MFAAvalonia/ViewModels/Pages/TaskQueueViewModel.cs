@@ -2598,7 +2598,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
 
         Instances.DialogManager.CreateDialog()
             .WithTitle(LangKeys.ExportLog.ToLocalization())
-            .WithViewModel(dialog => new ExportLogDialogViewModel(dialog))
+            .WithViewModel(dialog => new ExportLogDialogViewModel(dialog, IsLabyrinthProfile))
             .Dismiss().ByClickingBackground()
             .TryShow();
 

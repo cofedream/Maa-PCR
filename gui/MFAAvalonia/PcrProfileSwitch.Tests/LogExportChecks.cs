@@ -199,7 +199,39 @@ internal static class LogExportChecks
         Lang.Avalonia.I18nManager.Instance.Register(language, defaultCulture: new System.Globalization.CultureInfo("zh-CN"), error: out var languageError);
         if (!language.IsLoaded) language.Load(new System.Globalization.CultureInfo("zh-CN"));
         Application.Current!.Styles.Insert(0, new Avalonia.Themes.Fluent.FluentTheme());
-        var vm = new ExportLogDialogViewModel(null!);
+        ExportLogPackageOptions Options(ExportLogDialogViewModel model) => (ExportLogPackageOptions)typeof(ExportLogDialogViewModel)
+            .GetMethod("BuildOptions", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(model, null)!;
+        var dailyVm = new ExportLogDialogViewModel(null!, isLabyrinthProfile: false);
+        var vm = new ExportLogDialogViewModel(null!, isLabyrinthProfile: true);
+        Check(!dailyVm.IsLabyrinthProfile && !dailyVm.IncludeLabyrinthLog && dailyVm.IncludeGuiLog && dailyVm.IncludeMaaLog,
+            "daily_defaults_exclude_labyrinth_and_keep_gui_maa");
+        Check(vm.IsLabyrinthProfile && vm.IncludeLabyrinthLog && vm.IncludeGuiLog && vm.IncludeMaaLog
+            && vm.SelectedLabyrinthLogTimeRange.Value == ExportLogTimeRange.All, "labyrinth_defaults_include_all_diagnostics_gui_maa");
+        foreach (var model in new[] { dailyVm, vm })
+        {
+            var profile = model.IsLabyrinthProfile ? "labyrinth" : "daily";
+            var files = (List<FileInfoEx>)select.Invoke(null, [root, root, Options(model)])!;
+            Check(files.Any(file => file.FullName == guiRecent) && files.Any(file => file.FullName == active), profile + "_keeps_gui_maa");
+            Check(model.IsLabyrinthProfile ? all.All(path => files.Any(file => file.FullName == path))
+                : !files.Any(file => file.FullName!.StartsWith(Path.Combine(root, ".runtime"))), profile + "_diagnostic_scope");
+            Check(!files.Any(file => file.FullName == secret || file.FullName!.EndsWith("login.json")), profile + "_excludes_credentials");
+            var profileSnapshot = Path.Combine(root, profile + "-snapshot");
+            foreach (var file in files)
+            {
+                var target = Path.Combine(profileSnapshot, file.RelativePath!, Path.GetFileName(file.FullName)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                typeof(FileLogExporter).GetMethod("CopyFileSnapshot", hidden)!.Invoke(null, [file.FullName, target]);
+            }
+            var profileArchives = (List<string>)typeof(FileLogExporter).GetMethod("CreateArchiveVolumes", hidden)!
+                .Invoke(null, [profileSnapshot, false])!;
+            using var archive = ZipFile.OpenRead(profileArchives.Single());
+            Check(archive.Entries.Count == files.Count, profile + "_zip_contains_all_selected_files");
+            foreach (var entry in archive.Entries)
+            {
+                using var stream = entry.Open();
+                Check(Convert.ToHexString(SHA256.HashData(stream)) == Hash(Path.Combine(root, entry.FullName)), profile + "_zip_source_bytes_match");
+            }
+        }
         vm.IncludeMaaLog = vm.IncludeGuiLog = vm.IncludeCustomLog = vm.IncludeOnErrorImages = vm.IncludeOtherImages = vm.IncludeVisionImages = false;
         Check(vm.CanStartExport, "labyrinth_only_enables_export");
         vm.IncludeLabyrinthLog = false;
@@ -211,7 +243,7 @@ internal static class LogExportChecks
         Check(!vm.CanStartExport, "export_disables_repeat_export");
         vm.IsExporting = false;
         Check(vm.CanStartExport, "export_reenabled");
-        vm.IncludeLabyrinthLog = true;
+        vm.IncludeMaaLog = vm.IncludeGuiLog = vm.IncludeCustomLog = vm.IncludeOnErrorImages = vm.IncludeOtherImages = vm.IncludeLabyrinthLog = true;
         var window = new Window { Width = 580, Height = 740, Content = view, Background = Avalonia.Media.Brushes.White,
             Foreground = Avalonia.Media.Brushes.Black, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light };
         window.Show();
@@ -220,12 +252,32 @@ internal static class LogExportChecks
         vm.StorageUsage = $"普通日志和诊断截图：{usage.Item1 / 1048576d:F1} MiB；黎明界独立记录：{usage.Item2 / 1048576d:F1} MiB（隔离夹具）。";
         window.UpdateLayout();
         Check(view.GetVisualDescendants().OfType<CheckBox>().Any(box => box.Content?.ToString() == "黎明界运行日志" && box.IsChecked == true), "labyrinth_checkbox_bound");
+        var labyrinthCheckbox = view.GetVisualDescendants().OfType<CheckBox>().Single(box => box.Content?.ToString() == "黎明界运行日志");
+        var labyrinthTimeRange = view.GetVisualDescendants().OfType<ComboBox>()
+            .Single(box => Avalonia.Automation.AutomationProperties.GetName(box) == "黎明界原生日志时间范围");
+        Check(labyrinthCheckbox.IsEffectivelyVisible && labyrinthTimeRange.IsEffectivelyVisible
+            && ((ExportLogTimeRangeOption)labyrinthTimeRange.SelectedItem!).Value == ExportLogTimeRange.All, "labyrinth_options_visible_with_all_time_selected");
         Check(!view.GetVisualDescendants().OfType<Button>().Any(button => button.Content?.ToString()?.Contains("清理") == true), "no_manual_cleanup_button");
         using (var frame = new RenderTargetBitmap(new PixelSize(580, 740)))
         {
             frame.Render(view);
             frame.Save(Path.Combine(root, "export-dialog.png"));
         }
+        view.DataContext = dailyVm;
+        dailyVm.StorageUsage = $"普通日志和诊断截图：{usage.Item1 / 1048576d:F1} MiB（隔离夹具）。";
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        Check(!labyrinthCheckbox.IsEffectivelyVisible && !labyrinthTimeRange.IsEffectivelyVisible, "daily_hides_labyrinth_checkbox_and_time_range");
+        Check(view.GetVisualDescendants().OfType<CheckBox>().Count(box => box.IsEffectivelyVisible && box.IsChecked == true
+            && (box.Content?.ToString() == "gui.log" || box.Content?.ToString() == "maa.log")) == 2, "daily_gui_maa_defaults_visible");
+        using (var frame = new RenderTargetBitmap(new PixelSize(580, 740)))
+        {
+            frame.Render(view);
+            frame.Save(Path.Combine(root, "export-dialog-daily.png"));
+        }
+        dailyVm.IncludeMaaLog = dailyVm.IncludeGuiLog = dailyVm.IncludeCustomLog = dailyVm.IncludeOnErrorImages = dailyVm.IncludeOtherImages = dailyVm.IncludeVisionImages = false;
+        dailyVm.IncludeLabyrinthLog = true;
+        Check(!dailyVm.CanStartExport && !Options(dailyVm).IncludeLabyrinthLog, "daily_ignores_hidden_labyrinth_option");
         window.Close();
         Console.WriteLine($"PCR log export/retention checks passed: {count}; synthetic fixtures only, no player cleanup");
     }
