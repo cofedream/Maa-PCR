@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -130,7 +131,13 @@ try
 {
     var versionRoot = (MFAAvalonia.ViewModels.Windows.RootViewModel)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(
         typeof(MFAAvalonia.ViewModels.Windows.RootViewModel));
-    foreach (var sample in new[] { (Revision: 53, Version: "v0.1.9"), (Revision: 57, Version: "v0.1.12") })
+    var versionSamples = new List<(int Revision, string Version)> { (53, "v0.1.9"), (57, "v0.1.12") };
+    if (savedDisplayManifest is not null)
+    {
+        var installed = JObject.Parse(Encoding.UTF8.GetString(savedDisplayManifest))["update"]!;
+        versionSamples.Add((installed["revision"]!.Value<int>(), installed["version"]!.Value<string>()!));
+    }
+    foreach (var sample in versionSamples)
     {
         File.WriteAllText(displayManifest, new JObject { ["update"] = new JObject {
             ["revision"] = sample.Revision, ["version"] = sample.Version } }.ToString());
@@ -149,6 +156,7 @@ try
         Require(title.Contains(expectedVersion) && !title.Contains("0.1.3-alpha")
             && (sample.Revision != 57 || !title.Contains("v0.1.9")),
             "pcr_window_title_uses_replaced_manifest_R" + sample.Revision);
+        Console.WriteLine($"PCR installed version display verified: {expectedVersion}");
     }
 }
 finally

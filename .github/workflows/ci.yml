@@ -51,7 +51,7 @@ jobs:
                   (target / name).write_bytes(data)
           '@ | python -X utf8 -B -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r56-package-manifest.json --vc-redist .runtime/ci/vc-redist-r51
+          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r57-package-manifest.json --vc-redist .runtime/ci/vc-redist-r51
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: GUI Update Contract Checks
         run: |
