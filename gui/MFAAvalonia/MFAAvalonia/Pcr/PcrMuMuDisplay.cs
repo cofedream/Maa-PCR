@@ -32,7 +32,7 @@ internal static class PcrMuMuDisplay
                 (string?)binding["connection"]?["adb_path"], (string?)binding["connection"]?["serial"], out _, out _)
             || ((string?)binding["mumu"]?["app_package"] != Package
                 && (string?)controller?["kind"] != "adb"))
-            throw new InvalidOperationException("Selected local ADB transport/package invalid");
+            throw new InvalidOperationException("Selected ADB transport/package invalid");
     }
 
     internal static string ComponentPattern(string package, string activity)

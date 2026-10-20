@@ -19,6 +19,7 @@ using MFAAvalonia.Pcr;
 using MFAAvalonia.ViewModels.UsersControls;
 using MFAAvalonia.ViewModels.Windows;
 using MFAAvalonia.Views.UserControls;
+using Newtonsoft.Json.Linq;
 
 internal static class LogExportChecks
 {
@@ -208,6 +209,9 @@ internal static class LogExportChecks
             "daily_defaults_exclude_labyrinth_and_keep_gui_maa");
         Check(vm.IsLabyrinthProfile && vm.IncludeLabyrinthLog && vm.IncludeGuiLog && vm.IncludeMaaLog
             && vm.SelectedLabyrinthLogTimeRange.Value == ExportLogTimeRange.All, "labyrinth_defaults_include_all_diagnostics_gui_maa");
+        Check(vm.IncludeOnErrorImages && Options(vm).IncludeOnErrorImages
+            && vm.OnErrorFolderLabel=="失败现场截图" && dailyVm.OnErrorFolderLabel=="on_error",
+            "labyrinth_failure_frames_default_on_and_daily_label_preserved");
         foreach (var model in new[] { dailyVm, vm })
         {
             var profile = model.IsLabyrinthProfile ? "labyrinth" : "daily";
@@ -258,6 +262,12 @@ internal static class LogExportChecks
             .Single(box => Avalonia.Automation.AutomationProperties.GetName(box) == "黎明界原生日志时间范围");
         Check(labyrinthCheckbox.IsEffectivelyVisible && labyrinthTimeRange.IsEffectivelyVisible
             && ((ExportLogTimeRangeOption)labyrinthTimeRange.SelectedItem!).Value == ExportLogTimeRange.All, "labyrinth_options_visible_with_all_time_selected");
+        var failureCheckbox=view.GetVisualDescendants().OfType<CheckBox>().Single(box=>box.Content?.ToString()=="失败现场截图");
+        Check(failureCheckbox.IsEffectivelyVisible && failureCheckbox.IsChecked==true,"failure_frame_checkbox_bound");
+        failureCheckbox.IsChecked=false;Dispatcher.UIThread.RunJobs();
+        Check(!vm.IncludeOnErrorImages && !Options(vm).IncludeOnErrorImages,"failure_frame_checkbox_opt_out");
+        failureCheckbox.IsChecked=true;Dispatcher.UIThread.RunJobs();
+        Check(vm.IncludeOnErrorImages && Options(vm).IncludeOnErrorImages,"failure_frame_checkbox_opt_in");
         Check(!view.GetVisualDescendants().OfType<Button>().Any(button => button.Content?.ToString()?.Contains("清理") == true), "no_manual_cleanup_button");
         using (var frame = new RenderTargetBitmap(new PixelSize(580, 740)))
         {
@@ -368,7 +378,14 @@ internal static class LogExportChecks
         for (var index = 0; index < 3; index++)
             File.WriteAllBytes(Path.Combine(images, $"frame{index}.png"), bytes);
         File.WriteAllText(Path.Combine(input, "debug", "maafw.log"), "complete log\n");
-        var evidence = OcrEvidenceChecks.CreateJoinedFailure(input, "daily");
+        var evidence = OcrEvidenceChecks.CreateJoinedFailure(input, "labyrinth");
+        var failure=JObject.Parse(File.ReadAllText(evidence));
+        failure["node"]="LabyGamePortOpeningObserved";failure["hit"]=false;
+        failure["recognition"]=new JObject { ["all"]=new JArray(new JObject { ["text"]="BOSS" }), ["password"]="PRIVATE_SECRET" };
+        File.WriteAllText(evidence,failure.ToString());
+        var originalFrame=Path.Combine(Path.GetDirectoryName(evidence)!,Path.GetFileNameWithoutExtension(evidence)+"-frame.png");
+        var failureEntry=".runtime/ocr-export/labyrinth/"+Path.GetFileName(Path.GetDirectoryName(evidence))+"/"
+            +Path.GetFileNameWithoutExtension(evidence)+"-failure.png";
         var sourceBefore = Directory.GetFiles(input, "*", SearchOption.AllDirectories).ToDictionary(
             path => path, path => SHA256.HashData(File.ReadAllBytes(path)));
         var expected = Directory.GetFiles(input, "*", SearchOption.AllDirectories).ToDictionary(
@@ -377,7 +394,7 @@ internal static class LogExportChecks
         foreach (var raw in expected.Keys.Where(path => path.StartsWith(".runtime/ocr-failures/", StringComparison.Ordinal)).ToArray()) expected.Remove(raw);
         var expectedEvidence = Path.Combine(root,"expected-evidence");
         typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrOcrEvidence",true)!
-            .GetMethod("WriteSnapshot",BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null,[input,evidence,expectedEvidence,"daily"]);
+            .GetMethod("WriteSnapshot",BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null,[input,evidence,expectedEvidence,"labyrinth"]);
         foreach (var path in Directory.GetFiles(expectedEvidence,"*",SearchOption.AllDirectories))
             expected.Add(Path.GetRelativePath(expectedEvidence,path).Replace('\\','/'),SHA256.HashData(File.ReadAllBytes(path)));
         var dataRoot = typeof(AppPaths).GetProperty(nameof(AppPaths.DataRoot))!;
@@ -411,7 +428,10 @@ internal static class LogExportChecks
                 check(Directory.GetFiles(output).Length == (local ? 2 : 4), "no_extra_export_files");
                 using var zip = ZipFile.OpenRead(chosen);
                 check(zip.Entries.Count(entry=>entry.FullName.StartsWith(".runtime/ocr-export/",StringComparison.Ordinal))==2
-                    && !zip.Entries.Any(entry=>entry.FullName.Contains("ocr-failures") || entry.FullName.EndsWith("-frame.png")),"actual_export_includes_only_derived_ocr_evidence");
+                    && !zip.Entries.Any(entry=>entry.FullName.Contains("ocr-failures") || entry.FullName.EndsWith("-frame.png")),"actual_export_excludes_raw_ocr_metadata_and_source_paths");
+                using(var image=zip.GetEntry(failureEntry)?.Open())
+                    check(image!=null && SHA256.HashData(image).SequenceEqual(SHA256.HashData(File.ReadAllBytes(originalFrame))),
+                        "actual_zip_contains_original_labyrinth_failure_frame");
                 check(zip.Entries.Count == expected.Count, "single_zip_contains_all_files");
                 foreach (var entry in zip.Entries)
                 {

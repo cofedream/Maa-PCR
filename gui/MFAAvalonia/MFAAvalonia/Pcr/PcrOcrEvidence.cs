@@ -11,7 +11,7 @@ using SkiaSharp;
 
 namespace MFAAvalonia.Pcr;
 
-// Derived copies only: raw recognition, full frames and pipeline parameters stay local.
+// Explicit local exports include Labyrinth failure frames; raw recognition and pipeline data stay local.
 internal static class PcrOcrEvidence
 {
     private static readonly Regex Id = new("^[0-9a-f]{32}$");
@@ -92,15 +92,17 @@ internal static class PcrOcrEvidence
         safe["resource_hashes"] = fingerprints;
         var directory = System.IO.Path.Combine(destination, ".runtime", "ocr-export", row["owner"]!.ToString(), run!);
         Directory.CreateDirectory(directory);
-        var exportImage = System.IO.Path.Combine(directory, stem + "-joined.png");
+        var fullFailure = owner == "labyrinth";
+        var imageName = stem + (fullFailure ? "-failure.png" : "-joined.png");
+        var exportImage = System.IO.Path.Combine(directory, imageName);
         File.Delete(exportImage);
-        // The sampled joined modal is the only account-free image region qualified here.
+        // Daily exports retain the qualified joined crop; failed Labyrinth pages need the complete frame.
         var joined = row["hit"]?.Type == JTokenType.Boolean && row["hit"]!.Value<bool>()
             && (Regex.IsMatch(node, "^Laby(?:Opening(?:Any)?JoinedObserved|PortraitJoined[123]Observed)$")
                 && row["recognition"]?.SelectTokens("$..text").Any(x => (string?)x == "角色加入") == true
                 || Regex.IsMatch(node, "^LabyCharacters[0-9a-f]{32}Read$")
                     && row["recognition"]?.SelectTokens("$..page").Any(x => x.Type == JTokenType.String && (string?)x == "joined") == true);
-        if (joined)
+        if (fullFailure || joined)
         {
             try
             {
@@ -116,14 +118,21 @@ internal static class PcrOcrEvidence
                     || BinaryPrimitives.ReadUInt32BigEndian(frame.AsSpan(16,4)) != 1280
                     || BinaryPrimitives.ReadUInt32BigEndian(frame.AsSpan(20,4)) != 720) throw new IOException("Invalid frame hash or dimensions");
                 using var bitmap = SKBitmap.Decode(frame);
-                using var crop = new SKBitmap();
-                if (bitmap == null || !bitmap.ExtractSubset(crop, new SKRectI(340,90,940,620))) throw new IOException("Invalid joined crop");
-                using var encoded = crop.Encode(SKEncodedImageFormat.Png, 100);
-                var output = encoded.ToArray();
+                if (bitmap == null || bitmap.Width != 1280 || bitmap.Height != 720) throw new IOException("Invalid failure frame");
+                byte[] output;
+                if (fullFailure) output = frame;
+                else
+                {
+                    using var crop = new SKBitmap();
+                    if (!bitmap.ExtractSubset(crop, new SKRectI(340,90,940,620))) throw new IOException("Invalid joined crop");
+                    using var encoded = crop.Encode(SKEncodedImageFormat.Png, 100);
+                    output = encoded.ToArray();
+                    safe["crop"] = new JArray(340,90,600,530);
+                }
                 File.WriteAllBytes(exportImage, output);
                 safe["image_status"] = "saved"; safe["image_reason"] = null;
-                safe["source_frame_sha256"] = hash; safe["crop"] = new JArray(340,90,600,530);
-                safe["image"] = new JObject { ["path"] = stem + "-joined.png",
+                safe["source_frame_sha256"] = hash;
+                safe["image"] = new JObject { ["path"] = imageName,
                     ["sha256"] = Convert.ToHexStringLower(SHA256.HashData(output)) };
             }
             catch (Exception ex) when (ex is IOException or ArgumentException or UnauthorizedAccessException)

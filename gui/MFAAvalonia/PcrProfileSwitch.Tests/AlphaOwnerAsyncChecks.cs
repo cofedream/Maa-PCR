@@ -18,6 +18,7 @@ using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.Pcr;
 using MFAAvalonia.ViewModels.Other;
 using MFAAvalonia.ViewModels.Pages;
+using MFAAvalonia.ViewModels.UsersControls;
 using MFAAvalonia.ViewModels.UsersControls.Settings;
 using Newtonsoft.Json.Linq;
 
@@ -92,6 +93,64 @@ internal static class AlphaOwnerAsyncChecks
         var original = config.ToString();
         AdbDeviceInfo Target(string serial) => new("isolated fixture", adb, serial,
             AdbScreencapMethods.Encode, AdbInputMethods.AdbShell, "{}");
+        var describe = owner.Assembly.GetType("MFAAvalonia.Pcr.PcrAdbDiscovery")!
+            .GetMethod("Describe", BindingFlags.Public | BindingFlags.Static)!;
+        var transport = owner.Assembly.GetType("MFAAvalonia.Pcr.PcrMuMuDisplay")!
+            .GetMethod("RequireTransport", Hidden)!;
+        var managerSource = owner.Assembly.GetType("MFAAvalonia.Pcr.PcrMuMuIdentity")!
+            .GetMethod("HasManagerSource", Hidden)!;
+        foreach (var serial in new[] { "emulator-5556", "emulator-1", "emulator-65535",
+                     "127.0.0.1:5555", "127.0.0.1:1", "127.0.0.1:65535",
+                     "192.168.1.4:5555", "192.168.0.1:1", "192.168.255.254:65535",
+                     "10.0.0.1:1", "10.255.255.254:65535", "172.16.0.1:5555", "172.31.255.254:5555" })
+        {
+            Require(AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(adb, serial, out var normalizedPath, out var normalizedSerial)
+                && normalizedPath == adb && normalizedSerial == serial, "adb_target_preserves_selected_address: " + serial);
+            var raw = new AdbDeviceInfo("raw Finder fixture", adb, serial,
+                AdbScreencapMethods.Default, AdbInputMethods.Maatouch, "{\"finder_only\":true}");
+            var described = (AdbDeviceInfo)describe.Invoke(null, [raw])!;
+            Require(described.Name.StartsWith("【ADB】") && described.AdbSerial == serial && described.AdbPath == adb
+                && described.Config == "{}" && raw.Config == "{\"finder_only\":true}"
+                && described.ScreencapMethods == AdbScreencapMethods.Encode && described.InputMethods == AdbInputMethods.AdbShell,
+                "finder_preserves_target_and_clears_extras: " + serial);
+            transport.Invoke(null, [new JObject { ["connection"] = new JObject { ["adb_path"] = adb, ["serial"] = serial },
+                ["controller"] = new JObject { ["kind"] = "adb", ["app_package"] = "com.bilibili.priconne" } }]);
+            Require(PcrAlphaPolicy.IsSupportedAdbTarget(described), "owner_transport_accepts_target: " + serial);
+            var managerConnection = new JObject {
+                ["adb_path"] = Path.Combine(fixture, "nx_device", "12.0", "shell", "adb.exe"), ["serial"] = serial };
+            Require((bool)managerSource.Invoke(null, [managerConnection])! == serial.StartsWith("127.0.0.1:"),
+                "lan_target_never_inherits_local_mumu_identity: " + serial);
+        }
+        var mumuFinder = Path.Combine(fixture, "MuMu", "nx_main", "adb.exe");
+        var mumuShell = Path.Combine(fixture, "MuMu", "nx_device", "12.0", "shell", "adb.exe");
+        foreach (var file in new[] { mumuFinder, mumuShell })
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+            File.WriteAllText(file, "OFFLINE FIXTURE - MUST NEVER EXECUTE");
+        }
+        var mumuRaw = new AdbDeviceInfo("MuMu LAN fixture", mumuFinder, "192.168.1.4:5555",
+            AdbScreencapMethods.Default, AdbInputMethods.Maatouch, "{\"finder_only\":true}");
+        var mumuMapped = (AdbDeviceInfo)describe.Invoke(null, [mumuRaw])!;
+        Require(mumuMapped.Name.StartsWith("【MuMu】") && mumuMapped.AdbPath == mumuShell
+            && mumuMapped.AdbSerial == mumuRaw.AdbSerial && mumuMapped.Config == "{}" && mumuRaw.AdbPath == mumuFinder,
+            "mumu_finder_mapping_preserves_lan_endpoint_and_raw_source");
+        foreach (var serial in new string?[] {
+                     null, "", "remote.example:5555", "8.8.8.8:5555", "11.0.0.1:5555",
+                     "172.15.255.254:5555", "172.32.0.1:5555", "192.169.1.4:5555",
+                     "127.0.0.2:5555", "169.254.1.1:5555", "100.64.1.4:5555",
+                     "0.0.0.0:5555", "224.0.0.1:5555", "255.255.255.255:5555",
+                     "[::1]:5555", "[::ffff:192.168.1.4]:5555",
+                     "192.168.1.256:5555", "192.168.001.4:5555", "192.168.1:5555",
+                     "0xc0a80104:5555", "3232235780:5555",
+                     "192.168.1.4:0", "192.168.1.4:65536", "192.168.1.4:05555",
+                     "192.168.1.4:+5555", "192.168.1.4:5 555",
+                     "192.168.1.4:5555:5556", "192.168.1.4:5555;calc", "192.168.1.4\n:5555",
+                     "emulator-0", "emulator-65536", "emulator-05556" })
+            Require(!AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(adb, serial, out _, out _),
+                "non_lan_or_noncanonical_target_rejected: " + serial);
+        foreach (var invalidPath in new[] { "adb.exe", @"\\server\share\adb.exe", Path.Combine(fixture, "missing", "adb.exe") })
+            Require(!AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(invalidPath, "192.168.1.4:5555", out _, out _),
+                "lan_target_still_requires_existing_local_adb: " + invalidPath);
         var selected = Target("127.0.0.1:16384");
         var alternate = Target("127.0.0.1:16385");
         var device = typeof(TaskQueueViewModel).GetField("_currentDevice", Hidden)!;
@@ -143,8 +202,12 @@ internal static class AlphaOwnerAsyncChecks
             PcrAlphaOwner.SelectConfiguration = () => Task.FromResult<string?>(path);
             PcrAlphaOwner.Confirm = _ => Task.FromResult<PcrStartConsent?>(new("", "", [], false));
 
+            foreach (var serial in new[] { "127.0.0.1:16384", "192.168.1.4:5555" })
             foreach (var scenario in new[] { "stop_activity", "stop_input", "target_drift", "config_drift", "restart_after_cancel" })
             {
+                config["connection"]!["serial"] = serial;
+                original = config.ToString();
+                selected = Target(serial);
                 File.WriteAllText(path, original);
                 device.SetValue(vm, selected);
                 processor.LogItemViewModels.Clear();
@@ -195,9 +258,9 @@ internal static class AlphaOwnerAsyncChecks
                 if (scenario == "target_drift") Require(Logs(processor).Contains("GUI 目标与当前 v3 配置不一致"), "target_drift_rechecked_after_mapping");
                 else if (scenario == "config_drift") Require(Logs(processor).Contains("Configuration changed during mapping"), "config_drift_rechecked_after_mapping");
                 else Require(reads == (pauseAt == PcrDisplayRead.Activity ? 1 : 2), scenario + "_late_result_does_not_resume_reads");
-                attempts.Add(new JObject { ["scenario"] = scenario, ["reads"] = reads, ["controller_allocations"] = allocations,
+                attempts.Add(new JObject { ["serial"] = serial, ["scenario"] = scenario, ["reads"] = reads, ["controller_allocations"] = allocations,
                     ["owner_cleared"] = true, ["idle"] = vm.Idle, ["log"] = Logs(processor) });
-                Console.WriteLine("PCR alpha async scenario passed: " + scenario);
+                Console.WriteLine("PCR alpha async scenario passed: " + serial + " " + scenario);
             }
             File.WriteAllText(Path.Combine(fixture, "async-results.json"), attempts.ToString());
             Console.WriteLine($"PCR alpha async checks passed: {count}; controller/agent/grant starts=0; fixture={fixture}");

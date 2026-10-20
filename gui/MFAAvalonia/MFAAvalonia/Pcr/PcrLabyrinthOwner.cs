@@ -123,7 +123,7 @@ internal static class PcrLabyrinthOwner
                 if (!long.TryParse(settings.ExpectedPlayerId,NumberStyles.None,CultureInfo.InvariantCulture,out var accountId) || accountId<=0)
                     throw new InvalidOperationException("请填写游戏玩家 ID（个人简介，非B站 UID），必须为正整数。");
                 if (vm.CurrentDevice is not AdbDeviceInfo device || !AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(device.AdbPath,device.AdbSerial,out var path,out var serial))
-                    throw new InvalidOperationException("请先在设备栏选择有效的本机 ADB 目标。");
+                    throw new InvalidOperationException("请先在设备栏选择有效的 ADB 目标。");
                 request=new JObject { ["version"]=1,["settings"]=snapshot,["account_id"]=accountId,
                     ["keep_old_run"]=settings.KeepOldRun,
                     ["connection"]=new JObject { ["adb_path"]=path,["serial"]=serial },

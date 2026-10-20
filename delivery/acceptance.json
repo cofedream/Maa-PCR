@@ -1,136 +1,14 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "revision": 58,
-  "expected_version": "v0.1.13",
-  "base_release_manifest_sha256": "aeafa623f25910427b08dbe27f78718a2d31c3670e3e4271497feea2c633c07b",
-  "accepted_owned_payload_sha256": "22da98858f77e637805c6308fe390fb1def609da79233b732e52538026b9f4be",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 39284802309,
-    "run_attempt": 1,
-    "artifact_id": 12205111784,
-    "source_commit": "31eb9745ed882859ac39e3da2f15ca587034c5c7",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.13-win-x64.zip",
-      "size": 309497003,
-      "sha256": "896c4e9891ec042b121e9628acb90437eb36c6a88c765c5fd07f0dc74ed924c0"
-    }
-  },
-  "accepted_staging_manifest_sha256": "fbd41d3f8e5c8ffb4934099f92e5bb63269a4dd414761d950c9593469b1d30e6",
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "public_tests": {
-    "passed": 3200,
-    "skipped": 308,
-    "failed": 0,
-    "errors": 0,
-    "deselected": 152,
-    "subtests_passed": 42,
-    "subtest_count_authority": "JUnit suite total minus individual main testcase nodes; no console subtotal is claimed."
-  },
-  "public_count_authority": "Exact main CI console and individual testcase nodes.",
-  "bundled_runtime_tests_passed": 3,
-  "gui_counted_assertions": 1003,
-  "ci_gui_counted_assertions": 999,
-  "packaged_update_counts": {
-    "GUI update": 65,
-    "GUI dependency": 52
-  },
-  "ci_update_counts": {
-    "GUI update": 61,
-    "GUI dependency": 52
-  },
-  "gui_core_sha256": "06420e1f10b1ad38a55e4f4cf63940d0ce0d6130e60451f4c7051367fab65b54",
-  "gui_ocr_and_configuration_recovery": "passed",
-  "isolated_update_routes": 2,
-  "synthetic_private_files_per_route": 9,
-  "cold_ocr_preparation": {
-    "prepare_max_seconds": 2.1499880999908783,
-    "status": "passed",
-    "business_budget_seconds": 3,
-    "lifecycle_count": 12,
-    "observations": 36,
-    "controller_inputs": 0,
-    "read_max_seconds": 2.2673343000060413,
-    "read_min_seconds": 0.8287466999900062,
-    "original_3_second_budget": true,
-    "package_binding_sha256": "745e8807519b80bbad8fa646a6229bdca6e2eb17ee7411cfffd0f2a732e10c3e"
-  },
-  "native_logger_version": "v5.13.0",
-  "native_logger_evidence": "Exact packaged DLL hashes match the synthetic rotation and expiry verification.",
-  "real_installation_written": false,
-  "device_started": false,
-  "game_inputs": 0,
-  "evidence": [
-    {
-      "name": "r58-release-20261020/packaged-cold/PACKAGE_BINDING.json",
-      "sha256": "745e8807519b80bbad8fa646a6229bdca6e2eb17ee7411cfffd0f2a732e10c3e"
-    },
-    {
-      "name": "r58-release-20261020/check_packaged_cold.py",
-      "sha256": "eef4507078801759d5700c30b53177bb350963ee66d6801dc1d7c10f9e6c663a"
-    },
-    {
-      "name": "r58-release-20261020/packaged-cold/RESULT.json",
-      "sha256": "c86a11441a2db71bce975dd16b7c86d5516519db98287673dacc50bc83dc2298"
-    },
-    {
-      "name": "r58-release-20261020/checkout/.runtime/packaged-runtime-native/result.json",
-      "sha256": "9866135ef548679ed385d407aa1f37fdf580c69f16661f193fe39f8ef4a60d41"
-    },
-    {
-      "name": "r58-release-20261020/packaged-runtime.xml",
-      "sha256": "967f11273f3c1b1e512d314520d3b927f31262378bada58d5c6bec364f5dc1d3"
-    },
-    {
-      "name": "r58-release-20261020/SOURCE_REVIEW.json",
-      "sha256": "03fbb63fd962a4f551de067b1325a12ba300df9fb8a8af22b551bf2ab23a49ec"
-    },
-    {
-      "name": "r58-release-20261020/CI_BINDING.json",
-      "sha256": "e2cc08eaf34e1a736e6a4300c6868302ab5a63ae1fb41f15a4a85583666645fc"
-    },
-    {
-      "name": "r58-release-20261020/PACKAGE_VERIFIED.json",
-      "sha256": "563f55eb78f5272e699330d932974519a3d7074b5722028cafc8ea22e72c8249"
-    },
-    {
-      "name": "r58-release-20261020/packaged-gui/RESULT.json",
-      "sha256": "b2476bff16b089a323e8472a1d389bd0d21ffd52648ea0bca280f3890b612915"
-    },
-    {
-      "name": "r58-release-20261020/packaged-gui-native/result.json",
-      "sha256": "b1701a9001b8624f35e2a2510ee7e45cf62f4832853701c07d7cd97c53b364aa"
-    },
-    {
-      "name": "r58-release-20261020/GUI_VISUAL_VERIFIED.json",
-      "sha256": "bac3dc2bebf7416080a1a92619e92b29ea1d7e2e04e730725bcb50430e9eb042"
-    },
-    {
-      "name": "r58-release-20261020/ci-artifact/public-tests.xml",
-      "sha256": "e417d6d698462f281302ae4263ca2d9df2664c1d90075def269efc0c325e0590"
-    },
-    {
-      "name": "r58-release-20261020/ci-artifact/bundled-runtime.xml",
-      "sha256": "75d20250a0b362fc2defe395ecb834f32c8da6fe2fdda6cd2d358284d7982749"
-    },
-    {
-      "name": "r58-release-20261020/metadata/run.json",
-      "sha256": "8babd03b9da7f011c012d835039696927bfb437c53a7309d1dac74e7854863f4"
-    },
-    {
-      "name": "r58-release-20261020/metadata/artifact.json",
-      "sha256": "72032b4b44fffc5ff8268f6df16daaf9bea0f54f243e67c3bed787d03902d5db"
-    }
-  ],
+  "status": "pending",
+  "revision": 59,
+  "expected_version": "v0.1.14",
+  "base_release_manifest_sha256": "8eee3c459ec4405dfb583ded58b8561dd4497771ac49f3ce52f9ba1b04cd1a32",
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
   "limits": [
-    "GUI contracts use offscreen controls and synthetic callbacks, not real product window clicks.",
-    "Full and patch updates use isolated ordinary copies with synthetic private state.",
-    "Unavailable private evidence and replay exclusions remain recorded in exact CI results.",
-    "No new MuMu feedback-device, live-game or real-installation acceptance is claimed.",
-    "Public attachments and the default R57 updater are verified after publication."
+    "Pending exact main CI artifact and isolated package verification; no real installation, device or game acceptance."
   ]
 }

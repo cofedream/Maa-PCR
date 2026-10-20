@@ -552,7 +552,7 @@ public static partial class PcrAlphaOwner
         if (vm.CurrentDevice is not AdbDeviceInfo device
             || !AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(device.AdbPath, device.AdbSerial,
                 out var path, out var serial))
-            throw new InvalidOperationException("设备栏：请选择有效的本机 ADB 目标后开始；任务草稿已保留。");
+            throw new InvalidOperationException("设备栏：请选择有效的 ADB 目标后开始；任务草稿已保留。");
         return new GuiTarget(path, serial);
     }
     private static void RequireSelectedTarget(TaskQueueViewModel vm, GuiTarget target, ValidatedConfig snapshot)

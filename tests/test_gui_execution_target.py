@@ -5,17 +5,18 @@ from pcr_maa import supported_daily as chain, abyss, native
 from pcr_maa.preset_execution import Journal
 from pcr_maa.schedule_quick import gui_device
 from pcr_maa.game_day import current_game_day
-from test_gui_adb_schedule import config
+from test_gui_adb_schedule import config, GUI_SERIALS
 from test_abyss import Port, reading
 
 @pytest.mark.parametrize('name',['event','abyss','deep','very_hard','hard','normal','rewards','rewards_final'])
-def test_all_gui_modules_accept_same_ordinary_adb_target(tmp_path,monkeypatch,name):
-    cfg=config(tmp_path)
+@pytest.mark.parametrize('serial', GUI_SERIALS)
+def test_all_gui_modules_accept_same_ordinary_adb_target(tmp_path,monkeypatch,name,serial):
+    cfg=config(tmp_path,serial)
     result=chain.validate(cfg,execute=True,game_day='',context='gui-current-state',
         selected_modules=[name] if name!='rewards_final' else [],rewards_final=name=='rewards_final')
-    assert gui_device(result)==dict(serial='emulator-5556',source='gui_adb_session_v1',app_package='com.bilibili.priconne')
+    assert gui_device(result)==dict(serial=serial,source='gui_adb_session_v1',app_package='com.bilibili.priconne')
 
-@pytest.mark.parametrize('serial',['emulator-5556','127.0.0.1:5555'])
+@pytest.mark.parametrize('serial',['emulator-5556','127.0.0.1:5555','192.168.1.4:5555'])
 def test_real_abyss_routing_uses_gui_target_not_mumu(tmp_path,monkeypatch,serial):
     from pcr_maa import abyss_native
     cfg=config(tmp_path,serial);port=Port()
@@ -29,22 +30,24 @@ def test_real_abyss_routing_uses_gui_target_not_mumu(tmp_path,monkeypatch,serial
     assert result['device']==gui_device(cfg)
 
 @pytest.mark.parametrize('change',['new_start','new_day','new_serial','new_package'])
-def test_ordinary_adb_unknown_keeps_original_ledger_and_blocks_new_start(tmp_path,change):
-    cfg=config(tmp_path);device=gui_device(cfg);journal=Journal(tmp_path/'ledger')
+@pytest.mark.parametrize('serial', ['emulator-5556', '192.168.1.4:5555'])
+def test_ordinary_adb_unknown_keeps_original_ledger_and_blocks_new_start(tmp_path,change,serial):
+    cfg=config(tmp_path,serial);device=gui_device(cfg);journal=Journal(tmp_path/'ledger')
     first=abyss.execute_abyss(Port(),journal,game_day=current_game_day(),context='gui-current-state',device=device,execute=True)
     assert first['outcome']=='unknown_settlement' and first['consumption_sent']
     before=journal.path.read_bytes();port=Port();day=current_game_day()
     if change=='new_day':day='2026-10-03'
-    if change=='new_serial':device=gui_device(config(tmp_path,'emulator-5558'))
+    if change=='new_serial':device=gui_device(config(tmp_path,'192.168.1.5:5555'))
     if change=='new_package':device=device|dict(app_package='example.channel.client')
     result=abyss.execute_abyss(port,journal,game_day=day,context='gui-current-state',device=device,execute=True)
     assert result['outcome']=='blocked_in_flight' and port.calls==[]
     assert journal.path.read_bytes()==before
 
 @pytest.mark.parametrize('context',['user-reported-unreset','same-day-unreset'])
-def test_generic_target_does_not_grant_cli_or_maintenance_identity(tmp_path,context):
+@pytest.mark.parametrize('serial', ['emulator-5556', '192.168.1.4:5555'])
+def test_generic_target_does_not_grant_cli_or_maintenance_identity(tmp_path,context,serial):
     port=Port();journal=Journal(tmp_path/'ledger')
-    result=abyss.execute_abyss(port,journal,game_day=current_game_day(),context=context,device=gui_device(config(tmp_path)),execute=True)
+    result=abyss.execute_abyss(port,journal,game_day=current_game_day(),context=context,device=gui_device(config(tmp_path,serial)),execute=True)
     assert result['outcome']=='blocked_or_failed' and port.calls==[] and journal.events()==[]
 
 @pytest.mark.parametrize('target_change',['serial','package','extra'])
@@ -77,12 +80,13 @@ def test_settled_generic_target_new_start_reads_current_page_without_replay(tmp_
     assert 'submit' not in port.calls and journal.path.read_bytes()==original
 
 @pytest.mark.parametrize('changed',[False,True])
-def test_generic_target_checkpoint_recovers_only_same_target(tmp_path,changed):
+@pytest.mark.parametrize('serial', ['emulator-5556', '192.168.1.4:5555'])
+def test_generic_target_checkpoint_recovers_only_same_target(tmp_path,changed,serial):
     import time
     from pcr_maa import result_checkpoint as cp
     from test_result_checkpoint import consumer,frame,anchors
     from test_abyss import quotation
-    device=gui_device(config(tmp_path));journal=Journal(tmp_path/'ledger');before=reading();quote=quotation()
+    device=gui_device(config(tmp_path,serial));journal=Journal(tmp_path/'ledger');before=reading();quote=quotation()
     with journal.locked():
         journal.append(dict(state='in_flight',scope=abyss.SCOPE,device=device,game_day=current_game_day(),
             at=time.time(),quote=quote,abyss_identity=before['abyss_identity']))
@@ -92,7 +96,7 @@ def test_generic_target_checkpoint_recovers_only_same_target(tmp_path,changed):
     page=reading()
     for row in page['rows']:row['remaining']=0
     port.read=lambda:page
-    if changed:device=device|dict(serial='emulator-5558')
+    if changed:device=device|dict(serial='192.168.1.5:5555')
     result=abyss.execute_abyss(port,journal,game_day=current_game_day(),context='gui-current-state',device=device,execute=True)
     if changed:
         assert result['outcome']=='blocked_or_failed' and port.calls==[] and journal.path.read_bytes()==original

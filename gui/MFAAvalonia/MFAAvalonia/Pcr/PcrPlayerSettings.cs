@@ -239,7 +239,7 @@ public partial class PcrPlayerSettings : ObservableObject
         if (!vm.CanEditPcrTarget) throw new InvalidOperationException("请先停止当前任务");
         if (vm.CurrentDevice is not AdbDeviceInfo target ||
             !AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(target.AdbPath, target.AdbSerial, out var path, out var serial))
-            throw new InvalidOperationException("设备栏：请选择有效的本机 ADB 目标后开始；任务草稿已保留。");
+            throw new InvalidOperationException("设备栏：请选择有效的 ADB 目标后开始；任务草稿已保留。");
         connection = new JObject { ["adb_path"] = path, ["serial"] = serial };
         var modules = selection?["selected_modules"]?.Values<string>().ToArray();
         if (selection != null) _ = ConsentForStart(selection);

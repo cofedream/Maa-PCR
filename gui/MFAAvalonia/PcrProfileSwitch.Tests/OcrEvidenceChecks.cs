@@ -62,6 +62,8 @@ internal static class OcrEvidenceChecks
         try { write.Invoke(null,[source,metadata,output,selected.Owner]); }
         catch(TargetInvocationException ex) when (ex.InnerException is IOException) { refused=true; }
         check(refused,"ocr_owner_changed_after_selection_is_rejected");
+        row["node"]="LabyGamePortOpeningObserved";row["hit"]=false;
+        row["recognition"]=new JObject { ["all"]=new JArray(new JObject { ["text"]="BOSS" }), ["password"]="PRIVATE_SECRET" };
         File.WriteAllText(metadata,row.ToString());
         var before = Directory.GetFiles(source,"*",SearchOption.AllDirectories).ToDictionary(x=>x,Hash);
         check(Collect().Count==1,"ocr_sources_deduplicate_roots");
@@ -73,16 +75,19 @@ internal static class OcrEvidenceChecks
         Write();
         var target = Path.Combine(output,".runtime","ocr-export","labyrinth",run);
         var safe = JObject.Parse(File.ReadAllText(Path.Combine(target,stem+".json")));
-        var exported = Path.Combine(target,stem+"-joined.png");
-        using(var crop=SKBitmap.Decode(exported))
-            check(crop.Width==600 && crop.Height==530 && crop.Pixels.All(p=>p==SKColors.Blue),"ocr_crop_excludes_private_outside_region");
+        var exported = Path.Combine(target,stem+"-failure.png");
+        check(File.Exists(exported),"labyrinth_unknown_page_exports_full_failure_frame");
+        using(var full=SKBitmap.Decode(exported))
+            check(full.Width==1280 && full.Height==720 && full.GetPixel(0,0)==SKColors.Red
+                && full.GetPixel(500,200)==SKColors.Blue,"labyrinth_failure_preserves_full_frame");
         var text=safe.ToString();
         check(!text.Contains("PRIVATE_SECRET") && !text.Contains("1234567890123") && safe["recognition"]==null
             && safe["pipeline"]==null && (string?)safe["source_metadata_sha256"]==Hash(metadata),"ocr_metadata_allowlist_and_source_binding");
-        check((string?)safe["image"]?["sha256"]==Hash(exported),"ocr_export_crop_hash");
+        check((string?)safe["image"]?["sha256"]==Hash(frame) && Hash(exported)==Hash(frame)
+            && safe["crop"]==null,"labyrinth_failure_png_bytes_and_hash_preserved");
         check((string?)safe["resource_hashes"]?["model/ocr/rec.onnx"]==new string('a',64)
             && safe["resource_hashes"]?["../credentials"]==null,"ocr_export_keeps_only_asset_fingerprints");
-        // Repeat real PNG decode/crop/encode and snapshot writes; source bytes stay unchanged.
+        // Repeat PNG decoding and snapshot writes; source bytes stay unchanged.
         for(var i=0;i<100;i++) Write();
         check(before.All(x=>Hash(x.Key)==x.Value),"ocr_100_snapshots_preserve_source_bytes");
         row["images"]!["frame"]!["path"]="../credentials.png"; File.WriteAllText(metadata,row.ToString());
@@ -92,10 +97,26 @@ internal static class OcrEvidenceChecks
         File.WriteAllText(metadata,row.ToString()); Write();
         safe=JObject.Parse(File.ReadAllText(Path.Combine(target,stem+".json")));
         check((string?)safe["image_status"]=="missing","ocr_changed_frame_refused");
-        row["images"]!["frame"]!["sha256"]=Hash(frame); row["hit"]=false;
-        File.WriteAllText(metadata,row.ToString()); Write();
+        var originalFrame=File.ReadAllBytes(frame);
+        var corrupt=new byte[24];
+        new byte[] {137,80,78,71,13,10,26,10}.CopyTo(corrupt,0);
+        corrupt[18]=5;corrupt[22]=2;corrupt[23]=208;
+        File.WriteAllBytes(frame,corrupt);row["images"]!["frame"]!["sha256"]=Hash(frame);
+        File.WriteAllText(metadata,row.ToString());Write();
         safe=JObject.Parse(File.ReadAllText(Path.Combine(target,stem+".json")));
-        check((string?)safe["image_status"]=="missing","ocr_unconfirmed_page_never_exports_image");
+        check((string?)safe["image_status"]=="missing" && !File.Exists(exported),"labyrinth_corrupt_png_refused_after_matching_hash");
+        File.WriteAllBytes(frame,originalFrame);
+        row["images"]!["frame"]!["sha256"]=Hash(frame);
+        row["owner"]="daily";row["node"]="LabyCharacters"+new string('a',32)+"Read";row["hit"]=true;
+        row["recognition"]=new JObject { ["page"]="joined",["password"]="PRIVATE_SECRET" };
+        File.WriteAllText(metadata,row.ToString()); Write();
+        target=Path.Combine(output,".runtime","ocr-export","daily",run);
+        exported=Path.Combine(target,stem+"-joined.png");
+        using(var crop=SKBitmap.Decode(exported))
+            check(crop.Width==600 && crop.Height==530 && crop.Pixels.All(p=>p==SKColors.Blue),"daily_crop_still_excludes_private_outside_region");
+        row["hit"]=false;File.WriteAllText(metadata,row.ToString());Write();
+        safe=JObject.Parse(File.ReadAllText(Path.Combine(target,stem+".json")));
+        check((string?)safe["image_status"]=="missing" && !File.Exists(exported),"daily_unconfirmed_page_never_exports_image");
         row["owner"]="daily";row["node"]="ClientTitlePlayerId";row["hit"]=true;
         File.WriteAllText(metadata,row.ToString());Write();
         target=Path.Combine(output,".runtime","ocr-export","daily",run);
@@ -108,6 +129,6 @@ internal static class OcrEvidenceChecks
         check(Collect().Count==0,"ocr_export_time_filter");
         var archive=Path.Combine(root,"evidence.zip");ZipFile.CreateFromDirectory(output,archive);
         using(var zip=ZipFile.OpenRead(archive))
-            check(zip.Entries.All(e=>!e.FullName.Contains("ocr-failures") && !e.FullName.EndsWith("-frame.png")),"ocr_zip_has_no_raw_evidence");
+            check(zip.Entries.All(e=>!e.FullName.Contains("ocr-failures") && !e.FullName.EndsWith("-frame.png")),"ocr_zip_excludes_raw_metadata_and_source_paths");
     }
 }

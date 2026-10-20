@@ -13,6 +13,8 @@ using SukiUI.Dialogs;
 using System;
 using System.IO;
 using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace MFAAvalonia.ViewModels.UsersControls;
@@ -97,7 +99,7 @@ public partial class AdbEditorDialogViewModel : ObservableObject
             if (!TryNormalizePcrAdbTarget(AdbPath, AdbSerial, out var path, out var serial))
             {
                 ToastHelper.Warn(LangKeys.Warning.ToLocalization(),
-                    "请填写本机 127.0.0.1:端口或 emulator-串号，并选择存在的 adb.exe 完整路径。");
+                    "请填写本机或局域网 IPv4:端口，或 emulator-串号，并选择本机已有 adb.exe 的完整路径。");
                 return;
             }
 
@@ -130,11 +132,22 @@ public partial class AdbEditorDialogViewModel : ObservableObject
         normalizedPath = string.Empty;
         normalizedSerial = string.Empty;
         var address = serial?.Trim();
-        // Maa's LDPlayer Finder returns emulator-N as well as loopback TCP.
-        // Preserve the exact selected serial; do not derive or connect aliases.
-        var prefix = address?.StartsWith("127.0.0.1:", StringComparison.Ordinal) == true ? "127.0.0.1:"
-            : address?.StartsWith("emulator-", StringComparison.Ordinal) == true ? "emulator-" : null;
-        if (prefix == null || !int.TryParse(address![prefix.Length..], NumberStyles.None,
+        // Preserve the selected endpoint; LAN addresses do not prove local MuMu identity.
+        var prefix = address?.StartsWith("emulator-", StringComparison.Ordinal) == true ? "emulator-" : null;
+        if (prefix == null)
+        {
+            var separator = address?.LastIndexOf(':') ?? -1;
+            if (separator < 1 || !IPAddress.TryParse(address![..separator], out var ip)
+                || ip.AddressFamily != AddressFamily.InterNetwork || ip.ToString() != address[..separator])
+                return false;
+            var octets = ip.GetAddressBytes();
+            if (address[..separator] != "127.0.0.1" && octets[0] != 10
+                && !(octets[0] == 172 && octets[1] is >= 16 and <= 31)
+                && !(octets[0] == 192 && octets[1] == 168))
+                return false;
+            prefix = address[..(separator + 1)];
+        }
+        if (!int.TryParse(address![prefix.Length..], NumberStyles.None,
                 CultureInfo.InvariantCulture, out var port) || port is < 1 or > 65535
             || address != prefix + port.ToString(CultureInfo.InvariantCulture))
             return false;

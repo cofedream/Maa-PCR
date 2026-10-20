@@ -539,12 +539,13 @@ def test_login_success_identity_and_human_wait_are_retained(monkeypatch, captcha
     value.close()
 
 
-def test_launcher_emits_configuration_stage_before_runner(tmp_path, monkeypatch):
+@pytest.mark.parametrize('serial', ['127.0.0.1:65530', '192.168.1.4:5555'])
+def test_launcher_emits_configuration_stage_before_runner(tmp_path, monkeypatch, serial):
     from pcr_maa.device import validate_connection
     # The normal request validator is retained; only a synthetic executable file is used.
     adb = tmp_path / 'adb.exe'
     adb.write_bytes(b'synthetic; never execute')
-    connection = validate_connection(dict(adb_path=str(adb), serial='127.0.0.1:65530'))
+    connection = validate_connection(dict(adb_path=str(adb), serial=serial))
     messages = io.StringIO()
     monkeypatch.setattr('sys.stdin', io.StringIO(json.dumps(dict(version=1,
         settings=Settings((Goal(1, 1),)).payload(), account_id=123,
@@ -557,6 +558,7 @@ def test_launcher_emits_configuration_stage_before_runner(tmp_path, monkeypatch)
         seen.append(value)
         return dict(outcome='stopped', batch_complete=False)
     assert launcher['main'](runner=runner) == 0
+    assert seen[0].connection == connection and seen[0].connection['serial'] == serial
     assert seen[0].username == seen[0].password == ''
     assert 'synthetic-password' not in messages.getvalue()
     assert json.loads(messages.getvalue().splitlines()[-1]) == dict(

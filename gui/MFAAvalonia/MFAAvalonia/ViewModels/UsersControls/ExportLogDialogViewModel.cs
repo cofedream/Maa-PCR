@@ -34,7 +34,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
     [ObservableProperty] private string _storageUsage = "正在统计日志占用…";
 
     public string LogRetentionDescription => "界面日志按天分文件，单份达到 64 MiB 时轮换，最多保留两份。底层日志沿用 16 MiB 轮换及 7 天过期规则，其诊断截图也保留 7 天。业务账本、检查点和独立运行记录保留。";
-    public string LabyrinthLogDescription => "运行记录、账本和检查点完整附带；下方时间范围仅筛选原生日志。记录可能含玩家 ID、设备标识及游戏识别信息，请按需分享。";
+    public string LabyrinthLogDescription => "运行记录、账本和检查点完整附带；勾选“失败现场截图”时附带完整失败画面。下方时间范围仅筛选原生日志。图片和记录可能含玩家 ID、设备标识及游戏信息，请按需分享。";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartExportCommand))]
@@ -59,7 +59,7 @@ public sealed partial class ExportLogDialogViewModel : ViewModelBase
     public string MaaLogLabel => "maa.log";
     public string GuiLogLabel => "gui.log";
     public string CustomLogLabel => "custom.log";
-    public string OnErrorFolderLabel => "on_error";
+    public string OnErrorFolderLabel => IsLabyrinthProfile ? "失败现场截图" : "on_error";
     public string VisionFolderLabel => "vision";
     public string StartExportLabel => IsExporting
         ? LangKeys.ExportLogInProgress.ToLocalization()

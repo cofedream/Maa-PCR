@@ -5,6 +5,7 @@ untouched; a fresh GUI invocation does not reconcile an older unknown result.
 """
 from copy import deepcopy
 from datetime import date
+from ipaddress import IPv4Address
 import json
 import re
 import time
@@ -57,7 +58,10 @@ def validate_gui_device(device):
         validate_app_target(device['app_package'])
         validate_serial(device['serial'])
         if not device['serial'].startswith(('emulator-', '127.0.0.1:')):
-            raise ValueError('gui_schedule_local_target_required')
+            octets = IPv4Address(device['serial'].split(':', 1)[0]).packed
+            if not (octets[0] == 10 or octets[0] == 172 and 16 <= octets[1] <= 31
+                    or octets[0] == 192 and octets[1] == 168):
+                raise ValueError('gui_schedule_local_target_required')
     elif stable_device(device):
         validate_stable_device(device)
     else:
