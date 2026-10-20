@@ -185,7 +185,7 @@ def test_shared_shop_loop_refreshes_exhausted_cycle_then_buys_fresh_relic(monkey
  monkeypatch.setattr(shops,'_readback',lambda value:value)
  class Runtime:
   observer=NS()
-  def observe(self):return Scene('shop',{}, {})
+  def observe(self,**kwargs):return Scene('shop',{}, {})
   def perform(self,*a):return {}
   def wait_for(self,*a,**kw):return Scene('map',{}, {'area':5})
  shop.scene=Runtime();batch.port.buy_relic=lambda q,oid:shop.purchase_once(q,oid,batch=batch)

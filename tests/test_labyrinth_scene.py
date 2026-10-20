@@ -70,7 +70,7 @@ def test_official_continuous_scene_shop_boss_and_clear_not_character_result(tmp_
         runtime=MaaSceneRuntime(tasker)
         kinds=[]
         for i in range(4):
-            controller.stage=i;controller.frame=0;scene=runtime.observe(timeout=20);kinds.append(scene.kind)
+            controller.stage=i;controller.frame=0;scene=runtime.observe();kinds.append(scene.kind)
             persist(path/f'scene-{i}.json',dict(kind=scene.kind,payload=scene.payload,native=scene.native))
         assert kinds==['shop','boss_summary','score_result','final_clear']
         assert not controller.clicks and not controller.swipes
@@ -79,7 +79,7 @@ def test_official_continuous_scene_shop_boss_and_clear_not_character_result(tmp_
 def test_action_fresh_scene_guard_stops_wrong_page_and_stop_with_zero_inputs(tmp_path):
     path,controller,tasker,token=setup(tmp_path,'wrong-page',[frame(SHOP),frame(SUMMARY)])
     try:
-        runtime=MaaSceneRuntime(tasker);shop=runtime.observe(timeout=20)
+        runtime=MaaSceneRuntime(tasker);shop=runtime.observe()
         controller.stage=1;controller.frame=0
         with pytest.raises((BatchStopped,RuntimeError)):runtime.perform(shop,'leave_shop')
         assert not controller.clicks and not controller.swipes
@@ -89,11 +89,11 @@ def test_action_fresh_scene_guard_stops_wrong_page_and_stop_with_zero_inputs(tmp
 def test_same_frame_scene_action_exact_shop_close_once(tmp_path):
     path,controller,tasker,token=setup(tmp_path,'close-shop',[frame(SHOP),frame(SUMMARY)])
     try:
-        runtime=MaaSceneRuntime(tasker);scene=runtime.observe(timeout=20);assert scene.kind=='shop'
+        runtime=MaaSceneRuntime(tasker);scene=runtime.observe();assert scene.kind=='shop'
         receipt=runtime.perform(scene,'leave_shop');persist(path/'input.json',receipt)
         assert len(controller.clicks)==1 and not controller.swipes
         assert 945<=controller.clicks[0][0]<=1235 and 600<=controller.clicks[0][1]<=680
-        assert runtime.observe(timeout=20).kind=='score_result'
+        assert runtime.observe().kind=='score_result'
     finally:finish(tasker,token)
 
 def test_terminal_and_malformed_score_boundaries_do_not_assert_clear(tmp_path):
@@ -112,7 +112,7 @@ def test_actual_run57_start_overlay_remains_read_only_battle(tmp_path,shift,monk
     if shift:image=cv2.warpAffine(image,np.float32([[1,0,shift],[0,1,0]]),(1280,720))
     path,controller,tasker,token=setup(tmp_path,'start57-'+str(shift),[image])
     try:
-        observed=MaaSceneRuntime(tasker).observe(timeout=20)
+        observed=MaaSceneRuntime(tasker).observe()
         assert observed.kind in ('battle','unknown')
         from types import SimpleNamespace
         from test_labyrinth_upstream_scene_reuse import actions,Batch,Runtime,receipt

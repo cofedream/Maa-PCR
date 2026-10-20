@@ -17,6 +17,8 @@ from .area import area_pipeline
 
 NODE='LabySceneObserved'
 NAME='LabyrinthScene'
+# Full-page OCR can exceed 10s; the caller's shorter business deadline still wins.
+OBSERVATION_TIMEOUT_SECONDS=20
 ASSETS=Path(__file__).resolve().parents[3]/'assets/resource/image/labyrinth'
 _OCR={
  'AREA':(r'^[1-5]$',[430,42,30,32]),
@@ -146,7 +148,7 @@ def scene_pipeline():
     for key,(pattern,roi) in _OCR.items():
         nodes['LabySceneWord_'+key]=dict(recognition='OCR',expected=pattern,roi=roi,threshold=.8,action='DoNothing',next=[],pre_delay=0,post_delay=0)
     nodes['LabySceneWord_AREA']['only_rec']=area_pipeline()['LabyAreaCurrent']['only_rec']
-    nodes[NODE]=dict(recognition='Custom',custom_recognition=NAME,roi=[0,0,1280,720],action='DoNothing',next=[],timeout=10000,rate_limit=250,pre_delay=0,post_delay=0)
+    nodes[NODE]=dict(recognition='Custom',custom_recognition=NAME,roi=[0,0,1280,720],action='DoNothing',next=[],timeout=OBSERVATION_TIMEOUT_SECONDS*1000,rate_limit=250,pre_delay=0,post_delay=0)
     return nodes
 
 def _primitive(detail,key):
@@ -310,7 +312,7 @@ def scene_readback(receipt):
     if kind not in _RULES and kind not in ('unknown','date_changed','disconnected'):raise BatchStopped('scene_unknown')
     return Scene(kind,receipt,payload)
 
-def observe_scene(tasker,*,stopped=None,timings=None,timeout=10,probe_kinds=None):
+def observe_scene(tasker,*,stopped=None,timings=None,timeout=OBSERVATION_TIMEOUT_SECONDS,probe_kinds=None):
     _checkpoint(tasker,stopped)
     if type(timeout) not in (int,float) or not math.isfinite(timeout) or not 0<timeout<=90:raise ValueError('scene_timeout_invalid')
     timings=timings or Timings()
@@ -401,7 +403,7 @@ class MaaSceneRuntime:
     def __init__(self,tasker,stamp=None,*,timings=None,stopped=None):
         self.tasker=tasker;self.stamp=stamp;self.timings=timings or Timings();self.stopped=stopped
         self.observer=install_scene(runtime_resource(tasker),stopped=stopped)
-    def observe(self,*,timeout=10,probe_kinds=None):return observe_scene(self.tasker,stopped=self.stopped,timings=self.timings,timeout=timeout,probe_kinds=probe_kinds if probe_kinds is not None else getattr(self,'_scene_probe_kinds',None))
+    def observe(self,*,timeout=OBSERVATION_TIMEOUT_SECONDS,probe_kinds=None):return observe_scene(self.tasker,stopped=self.stopped,timings=self.timings,timeout=timeout,probe_kinds=probe_kinds if probe_kinds is not None else getattr(self,'_scene_probe_kinds',None))
     def perform(self,scene,action,*,target=None):return perform_scene_action(self.tasker,scene,action,stopped=self.stopped,timings=self.timings,target=target)
     def wait_for(self,batch,allowed,*,source=None,accept=None,timeout=30,reason='scene_readback_unknown',acquisition_fields=None,final_fields=None):
         """Business wait with independent owned acquisition and final-settlement drivers."""
@@ -471,10 +473,14 @@ class MaaSceneRuntime:
                             acquisition_clicks+=1;last_acquisition=time.monotonic()
                     _poll_pause(self.tasker,batch,'LabySceneTransitionPollSpacing',reason);continue
 
-                if after.kind in allowed and not partial_map and (accept is None or accept(after)):
-                    if acquisition_fields is not None:
-                        after=Scene(after.kind,after.native,dict(after.payload,acquisition_driver_advanced=acquisition_clicks>0))
-                    return after
+                if after.kind in allowed and not partial_map:
+                    accepted=accept is None or accept(after)
+                    batch.checkpoint()
+                    if time.monotonic()>=deadline:raise BatchStopped(reason)
+                    if accepted:
+                        if acquisition_fields is not None:
+                            after=Scene(after.kind,after.native,dict(after.payload,acquisition_driver_advanced=acquisition_clicks>0))
+                        return after
                 if after.kind not in allowed and after.kind not in sources|{'unknown'}:raise BatchStopped(reason)
                 _poll_pause(self.tasker,batch,'LabySceneTransitionPollSpacing',reason)
         except RuntimeError as error:

@@ -274,6 +274,8 @@ class MaaEncounter:
                 except BatchStopped as error:
                     if str(error) not in ('encounter_readback_unknown','game_session_readback_unknown'):raise
                     continue
+                batch.checkpoint()
+                if time.monotonic()>=deadline:raise BatchStopped('encounter_readback_unknown')
                 if value.get('page')==page:return value,receipt
             finally:native.RUN_DEADLINE.reset(token)
         raise BatchStopped('encounter_readback_unknown')

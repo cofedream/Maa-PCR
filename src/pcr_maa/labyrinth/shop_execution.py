@@ -12,12 +12,14 @@ import numpy as np
 from maa.custom_recognition import CustomRecognition
 from .. import native
 from .batch import BatchStopped
-from .scene import MaaSceneRuntime,SceneRecognition,_primitive,_box,_checkpoint,runtime_resource
+from .scene import MaaSceneRuntime,SceneRecognition,_primitive,_box,_checkpoint,runtime_resource,_RULES
 from .strategies import Relic,shop_relic,choose_relic
 from .relics import Word,_attribute,RelicIconCapture,THRESHOLD
 from .timing import Timings
 
 NODE='LabyShopStateObserved';NAME='LabyrinthShop'
+# Keep every conflicting page; scoped recognition short-circuits missing anchors.
+_EXIT_PAGES=frozenset(_RULES)
 X=(56,441,825)
 # Fixed upstream shop card/dialog icon geometry, mapped from 1920x1080.
 SHOP_ICON_ROIS=((67,210,103,103),(453,210,103,103),(836,210,103,103))
@@ -462,7 +464,7 @@ class MaaShop:
                 batch.observation(self.stamp(operation_id=clicked['operation_id'],**close_fields,page='shop',native=after,input_native=clicked['input_native'],source='maa'),**close_fields)
             else:raise BatchStopped('shop_action_limit')
             fields=dict(enter_id=enter_id,block_id=block_id,phase='shop_leave')
-            scene=self.scene.observe()
+            scene=self.scene.observe(probe_kinds=_EXIT_PAGES)
             def leave(oid):
                 sent=self.scene.perform(scene,'leave_shop')
                 return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True,source='maa')
@@ -471,7 +473,7 @@ class MaaShop:
             result=batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,page=after.kind,native=after.native,input_native=clicked['input_native'],source='maa'),**fields)
             if result['page']=='shop_exit_confirmation':
                 fields=dict(enter_id=enter_id,block_id=block_id,navigation_target='map')
-                scene=self.scene.observe()
+                scene=self.scene.observe(probe_kinds=_EXIT_PAGES)
                 if scene.kind!='shop_exit_confirmation':raise BatchStopped('shop_exit_unknown')
                 def confirm_leave(oid):
                     sent=self.scene.perform(scene,'confirm_shop_exit')

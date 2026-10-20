@@ -1734,13 +1734,15 @@ class MaaCharacters:
 
             token=native.RUN_DEADLINE.set(deadline)
 
-            try:observation,receipt=self.read(batch,page,roster=roster,stable=False,**({'members_only':True} if members_only else {}))
-
+            try:
+                observation,receipt=self.read(batch,page,roster=roster,stable=False,**({'members_only':True} if members_only else {}))
+                batch.checkpoint()
+                if time.monotonic()>=deadline:raise BatchStopped('character_feedback_unknown')
+                accepted=observation['stable'] and predicate(observation)
+                batch.checkpoint()
+                if time.monotonic()>=deadline:raise BatchStopped('character_feedback_unknown')
+                if accepted:return observation,receipt
             finally:native.RUN_DEADLINE.reset(token)
-
-            if time.monotonic()>=deadline:raise BatchStopped('character_feedback_unknown')
-
-            if observation['stable'] and predicate(observation):return observation,receipt
 
 
 

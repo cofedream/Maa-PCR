@@ -218,7 +218,7 @@ def test_owned_opening_map_hands_off_immediately_to_original_name_read(monkeypat
 def test_owned_opening_map_cannot_supply_names_and_keeps_original3s(monkeypatch):
     from test_labyrinth_autoplay import receipt
     from pcr_maa.labyrinth import opening,autoplay
-    calls=[];clock=iter([0,0,0,0]);monkeypatch.setattr(s.time,'monotonic',lambda:next(clock))
+    calls=[];clock=iter([0,0,0,0]);monkeypatch.setattr(s.time,'monotonic',lambda:next(clock,0))
     runtime=NS(tasker=NS(),observe=lambda **kw:s.Scene('map',receipt(),dict(area=1)),perform=lambda *a,**kw:pytest.fail('no map input'))
     wait=s.MaaSceneRuntime.wait_for;runtime.wait_for=lambda *a,**kw:wait(runtime,*a,**kw)
     monkeypatch.setattr(s,'MaaSceneRuntime',lambda *a,**kw:runtime);monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:pytest.fail('must hand off to original name reader'))

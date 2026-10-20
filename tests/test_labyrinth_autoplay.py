@@ -6,7 +6,7 @@ from pcr_maa.labyrinth.autoplay import AutoplayRunner,bind_route_target
 from pcr_maa.labyrinth.batch import Batch,BatchStopped,Binding,GameRunSession
 from pcr_maa.labyrinth.config import Settings,Goal
 from pcr_maa.labyrinth.routes import Node,Route
-from pcr_maa.labyrinth.scene import Scene
+from pcr_maa.labyrinth.scene import Scene,OBSERVATION_TIMEOUT_SECONDS
 from pcr_maa.preset_execution import Journal
 
 def receipt(n=1,action=False):
@@ -31,7 +31,7 @@ def route_for(types,areas=None):
 class Runtime:
     def __init__(self,pages):
         self.pages=pages;self.i=0;self.inputs=[];self.reads=0
-    def observe(self,timeout=10):
+    def observe(self,timeout=OBSERVATION_TIMEOUT_SECONDS):
         self.reads+=1
         kind,payload=self.pages[self.i]
         return Scene(kind,receipt(self.reads),dict(frame_pixel_sha256=str(self.i),**payload))

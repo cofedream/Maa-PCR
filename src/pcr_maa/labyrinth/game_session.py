@@ -218,6 +218,7 @@ class MaaGameSession:
                 if hit=='LabyDateChangedObserved':raise BatchStopped('date_changed')
                 if hit=='LabyDisconnect6002Observed':raise BatchStopped('disconnected')
                 if hit=='LabyClientDownloadErrorObserved':
+                    if time.monotonic()>=expires:raise BatchStopped('game_session_readback_unknown')
                     # Retry ACK may leave the old dialog during its closing animation.
                     if download_retries:continue
                     download_retries+=1
