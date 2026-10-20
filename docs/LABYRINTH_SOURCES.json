@@ -365,7 +365,7 @@
           "sha256": "9f65df1a08613f39e93f8d6c707b4a0533db39df596623b686999a2933dff6cc"
         }
       ],
-      "local_sha256": "a1d349e8711592ef1ade35415551cab25212435446bc6ccc27e45aa76ebbe9be",
+      "local_sha256": "77ad1f2d493ae243661f987d82a0d32a9d2fde068e659e16861bf8966e9230ae",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true,
       "upstream_updates": [
@@ -421,7 +421,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "7548660bbe9a673a2f0b2fadc2dd65a8f0505da2d6b8e258d42d32c3ffe6aa57",
+      "local_sha256": "ecf86117efc2afd80c19abd3cc3aaf46d808c4b286ec2c6195350b2bfd413988",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -476,7 +476,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "c2d3d37cce5ba3c90ba32b0db0f2f302b4d687dda3471e06ad64750a7db63fa3",
+      "local_sha256": "8043a2394428cc4b2b4030f52299002114b574912cf10161707bb372e3145cdc",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -854,7 +854,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-10-07T17:44:40.312400+00:00",
+  "updated_at": "2026-10-20T15:58:41.795073+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -6535,13 +6535,13 @@
     {
       "local_root": "assets/resource/image/labyrinth",
       "kind": "full-public-scene-and-node-template-pack",
-      "file_count": 97,
-      "image_count": 95,
-      "inventory_sha256": "303342777bc2bf136990deffdd3681c8dd7ce64391ddf3110db3a6f2a3e58e6b",
+      "file_count": 100,
+      "image_count": 98,
+      "inventory_sha256": "5195af9c161e7362dcb516b7a3453fd3672ab1ce5a1bea4f5b5af9571ea99613",
       "inventory_sha256_format": "sorted local path TAB local_sha256 LF, UTF-8",
       "provenance": {
         "local": "assets/resource/image/labyrinth/SOURCE_NOTICE.json",
-        "sha256": "6f1cdc5a545a3eb4d73d2194dccf39aa3ee4fb61e31ccbf29b452497fce29bbb"
+        "sha256": "b55aab7ddda4f622ea053eb7cfc39d1bd8d8cd03e65e62263bdd5251de411412"
       },
       "source_code_license": "CC-BY-NC-SA-4.0 for adapted own contributions",
       "image_rights": "Third-party imagery retains respective rights. Attribution does not establish distribution permission. See upstream THIRD_PARTY_NOTICES.md.",
@@ -7165,10 +7165,18 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_ex_battle_inactive.png",
-          "local_sha256": "7581f97d397d4618b4ff1e2bd5bd690e5b229d95625ab81380c16bbf6a33f208",
+          "local_sha256": "94762881a281f7df6901ba81daef8a25ea3a03527fb76a0af14b512abdc88887",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_ex_battle_inactive.png",
           "upstream_sha256": "21998206ccaad69fb30be6f9230856396ae7214675727826c81a195497a27770",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
+          "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+        },
+        {
+          "local": "assets/resource/image/labyrinth/node/node_ex_battle_active.png",
+          "local_sha256": "664e89a6e3972dfbf969217061a00f42438a1232f2e03849da7f38054d4ad644",
+          "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_ex_battle_inactive.png",
+          "upstream_sha256": "21998206ccaad69fb30be6f9230856396ae7214675727826c81a195497a27770",
+          "transform": "tight crop from an actual live 1280x720 game frame; active 极难 state; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
@@ -7189,26 +7197,34 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_boss_platform.png",
-          "local_sha256": "57813dea8e492d1f3e3ac7684ae51870da3f831bf0b5619ddad6a388caa1fa3c",
+          "local_sha256": "2f1e7fb370fcec1e860062f60863a7dc50589736536dbf402a070bf1f30d5407",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_boss_platform.png",
           "upstream_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; reward icons removed",
+          "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+        },
+        {
+          "local": "assets/resource/image/labyrinth/node/node_boss_platform_reward.png",
+          "local_sha256": "c4e2044675f7b9a437428869e735222867fe1365d63981c056e62d619b4d2754",
+          "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_boss_platform.png",
+          "upstream_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",
+          "transform": "tight crop from an actual live 1280x720 game frame; reward icons kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_clear.png",
-          "local_sha256": "ffb1ec91fb221c76f46ddc7f0f9e640d9d8090b0d3f23af03cd6131464918cc9",
+          "local_sha256": "d9c2029034c084b06eebf6da13fb3c59a95f4627cbe083280a1b879b5fe09fbc",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_clear.png",
           "upstream_sha256": "22c06807f180a21b8d4af541c98ec3d5e62ad570a89743bda4be2880b2d087eb",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_relic_active.png",
-          "local_sha256": "fe9ce35b24f39c911e6dff086033994d1783451f3ddfcdfb189dc0381db83d2e",
+          "local_sha256": "6832d648f9666afe2e64716bd89f45035f5583ac79685c70f985d9e2c6ee6c73",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_relic_active.png",
           "upstream_sha256": "dd4fa951b84b0381d3cf5db5dc39e27dd6e44200a1f47eb746bd4c8b21b30e41",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
@@ -7221,26 +7237,26 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_relic_map.png",
-          "local_sha256": "fe9ce35b24f39c911e6dff086033994d1783451f3ddfcdfb189dc0381db83d2e",
+          "local_sha256": "6832d648f9666afe2e64716bd89f45035f5583ac79685c70f985d9e2c6ee6c73",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_relic_map.png",
           "upstream_sha256": "dd4fa951b84b0381d3cf5db5dc39e27dd6e44200a1f47eb746bd4c8b21b30e41",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_event_active.png",
-          "local_sha256": "5733b29fa0a0eb210c0c6ec0bc6cf1b115c6149dbb80b9d4c420716611c1542e",
+          "local_sha256": "be65fc4ff61b8cf94a23550752e0742440dc4e6f66dbdc7369dc8b5e34786828",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_event_active.png",
           "upstream_sha256": "f1565e6864618d53ac6c0d45509d394731022f87053d9b46a26cae41c519ab27",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_event_active_bottom.png",
-          "local_sha256": "c9d148ec6cafa3ba0bfba29656a9da16374716d34301ef0fdc04c66632780eb2",
+          "local_sha256": "be65fc4ff61b8cf94a23550752e0742440dc4e6f66dbdc7369dc8b5e34786828",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_event_active_bottom.png",
           "upstream_sha256": "0824af12ce7ad1c2cba33948ebc0a37d089f2e2afe5adf3ee38e1c310acb8861",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
@@ -7261,18 +7277,18 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_link_active.png",
-          "local_sha256": "42fc0d32235addf5c05afc7e3de1982267438ad0ac267612b548577dc6537bc1",
+          "local_sha256": "dbfe53e31ff3d6ce4e9dbc5e516ceee91b6acf37ea2b043e2a270a773ce6d236",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_link_active.png",
           "upstream_sha256": "e7a26e10c8f7e377a9efd0b0159f009387341ae93cd48bff717bd2d3b11e5453",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_link_map.png",
-          "local_sha256": "b1e40b0ca90df16e421ca60170a60183084de05a900e1d190fe5a01f072d3934",
+          "local_sha256": "dbfe53e31ff3d6ce4e9dbc5e516ceee91b6acf37ea2b043e2a270a773ce6d236",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_link_map.png",
           "upstream_sha256": "f8e145f8494ca044e3f0105d4f1178c420735410c71996e2f4fd774d6f36535e",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
@@ -7285,10 +7301,18 @@
         },
         {
           "local": "assets/resource/image/labyrinth/node/node_shop_active.png",
-          "local_sha256": "8275bf9bdc31dec7984cbfb68436b2a2a465816a87318172abacb8f2f374acf0",
+          "local_sha256": "b21e9fb7c3cc40b64a3276f627f8d407c89849c6e0b93366a405260cfc00e8bd",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_shop_active.png",
           "upstream_sha256": "58cc3ae5b86b643dbaa5bd1cf70651bc5b70a8e296a12032e05aea0a43e96c7b",
-          "transform": "2/3 INTER_AREA",
+          "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
+          "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+        },
+        {
+          "local": "assets/resource/image/labyrinth/node/node_shop_inactive.png",
+          "local_sha256": "163cae16ad7a89e67677e2b634cdadc966b73d4b99466d016e1906fba7ca3c08",
+          "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_shop_active.png",
+          "upstream_sha256": "58cc3ae5b86b643dbaa5bd1cf70651bc5b70a8e296a12032e05aea0a43e96c7b",
+          "transform": "tight crop from an actual live 1280x720 game frame; inactive shop state; upstream art reference kept",
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
@@ -7325,7 +7349,7 @@
         },
         {
           "local": "assets/resource/image/labyrinth/SOURCE_NOTICE.json",
-          "local_sha256": "6f1cdc5a545a3eb4d73d2194dccf39aa3ee4fb61e31ccbf29b452497fce29bbb",
+          "local_sha256": "b55aab7ddda4f622ea053eb7cfc39d1bd8d8cd03e65e62263bdd5251de411412",
           "kind": "derived-template-mapping-and-source-notice"
         }
       ]
@@ -7406,7 +7430,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/autoplay.py",
-      "local_sha256": "a1d349e8711592ef1ade35415551cab25212435446bc6ccc27e45aa76ebbe9be",
+      "local_sha256": "77ad1f2d493ae243661f987d82a0d32a9d2fde068e659e16861bf8966e9230ae",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7442,13 +7466,13 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/character_recognition.py",
-      "local_sha256": "c2d3d37cce5ba3c90ba32b0db0f2f302b4d687dda3471e06ad64750a7db63fa3",
+      "local_sha256": "8043a2394428cc4b2b4030f52299002114b574912cf10161707bb372e3145cdc",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
     {
       "local": "src/pcr_maa/labyrinth/config.py",
-      "local_sha256": "4bf6187f9660ad7658150fa7883dd60eb764d2ff95beb5bdbb685dea716a7383",
+      "local_sha256": "037e103f2fcf452f306c2292f16d591fed2e7dcff8b917f2dea61e8bc7e0bb47",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7538,7 +7562,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/opening.py",
-      "local_sha256": "7548660bbe9a673a2f0b2fadc2dd65a8f0505da2d6b8e258d42d32c3ffe6aa57",
+      "local_sha256": "ecf86117efc2afd80c19abd3cc3aaf46d808c4b286ec2c6195350b2bfd413988",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

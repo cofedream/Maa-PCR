@@ -270,10 +270,6 @@ class NodePixels:
             # Public pack has already been rescaled from 1080p to Maa 720p.
             body=image[:round(image.shape[0]*.78)] if '_bottom' in path.name else image
             rgb=body[:,:,:3]
-            if path.name=='node_boss_platform.png':
-                h,w=rgb.shape[:2]
-                self.boss_label=cv2.resize(rgb[h*197//350:h*197//350+h*46//350,
-                    w*225//500:w*225//500+w*122//500],(81,31),interpolation=cv2.INTER_AREA)
             mask=body[:,:,3]>=128 if body.shape[2]==4 else np.ones(rgb.shape[:2],bool)
             # Upstream ignores artificial alpha-boundary edges, and compares
             # both luminance and |central dx|+|central dy| with masked NCC.
@@ -281,28 +277,56 @@ class NodePixels:
             light,gradient=self._features(rgb)
             self.templates.append((path.name,kind,rgb,mask,interior,light,gradient))
         if {t[1] for t in self.templates}!={2,3,4,5,6,7,8}: raise BatchStopped('node_resources_incomplete')
+        # Optional tight boss-platform anchors. node_boss_platform.png is the
+        # same platform crop with the per-run reward icons removed, so it stays
+        # valid when the reward content changes; node_boss_platform_reward.png is
+        # the icon-bearing variant, retained only as an extra evidence score.
+        self.boss_anchor=self.boss_check=None
+        for name,attribute in (('node_boss_platform.png','boss_anchor'),
+                               ('node_boss_platform_reward.png','boss_check')):
+            path=Path(root)/name
+            if not path.is_file():continue
+            image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),cv2.IMREAD_UNCHANGED)
+            if image is None or image.ndim!=3 or image.shape[2]!=4:raise BatchStopped('node_resource_invalid')
+            rgb=image[:,:,:3];mask=image[:,:,3]>=128
+            light,gradient=self._features(rgb)
+            interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
+            setattr(self,attribute,(rgb,mask,light,gradient,interior))
 
     def final_boss(self,image):
-        """Pinned FinalBossPlatformLocator: static nameplate, not moving Boss art."""
-        h,w=self.boss_label.shape[:2]
+        """Final Boss node locator; empty when the tight platform anchor is absent."""
+        if self.boss_anchor is None:return []
+        return self._final_boss_anchor(image)
+
+    def _final_boss_anchor(self,image):
+        """Locate the static boss platform with the tight, reward-icon-free anchor.
+
+        The anchor keeps the lock, the 首领 nameplate and the platform base but
+        drops the per-run reward icons, so it survives reward changes. The band
+        is widened for the taller anchor. The icon-bearing reward variant is only
+        recorded as independent evidence, never required.
+        """
+        rgb,mask,light,gradient,interior=self.boss_anchor
+        h,w=light.shape
         lights,gradients=self._features(image)
-        refs=self._features(self.boss_label)
-        # Upstream bounded platform band and independent minimum channel score.
-        left,right=round(1280*.18),round(1280*.96)
-        top,bottom=round(720*.46),round(720*.69)
-        mask=np.zeros((h,w),np.uint8);mask[1:-1,1:-1]=1
+        left,right=round(1280*.10),round(1280*.98)
+        top,bottom=round(720*.40),round(720*.76)
         channels=[cv2.matchTemplate(frame[top:bottom,left:right],ref,
-            cv2.TM_CCOEFF_NORMED,mask=mask) for frame,ref in zip((lights,gradients),refs)]
+            cv2.TM_CCOEFF_NORMED,mask=interior) for frame,ref in ((lights,light),(gradients,gradient))]
         scores=np.maximum(*channels)
         scores[(np.minimum(*channels)<.35)|~np.isfinite(scores)]=-1
-        matches=[]
+        candidates=[]
         for _ in range(8):
             _,score,_,(px,py)=cv2.minMaxLoc(scores)
-            if score<.72:break
-            x,y=px+left,py+top
+            if score<.80:break
+            candidates.append((float(score),px+left,py+top))
+            dx,dy=math.ceil(w*.65),h
+            scores[max(0,py-dy+1):py+dy,max(0,px-dx+1):px+dx]=-1
+        matches=[]
+        for score,x,y in candidates:
             actual=image[y:y+h,x:x+w]
             color=1-float(np.mean(np.abs(actual[1:-1:2,1:-1:2].astype(np.float32)-
-                self.boss_label[1:-1:2,1:-1:2].astype(np.float32))))/255
+                rgb[1:-1:2,1:-1:2].astype(np.float32))))/255
             cx=x+w/2
             def band(x1,x2,y1,y2):
                 a,b=math.floor(cx+w*x1+.5),math.floor(cx+w*x2+.5)
@@ -311,14 +335,21 @@ class NodePixels:
                 blue,green,red=cv2.split(image[c:d+1:3,a:b+1:3].astype(np.int16))
                 return float(np.mean((red>=130)&(blue>=140)&(red-green>=30)&(blue-green>=35)))
             purple=min(band(-1.35,-.95,-.7,2.6),band(.95,1.35,-.7,2.6),band(-.8,.8,2,3))
+            check_score=None
+            if self.boss_check is not None:
+                _,_,check_light,check_gradient,check_interior=self.boss_check
+                if check_light.shape==(h,w):
+                    check_score=max(float(cv2.matchTemplate(lights[y:y+h,x:x+w],check_light,
+                        cv2.TM_CCOEFF_NORMED,mask=check_interior)[0,0]),
+                        float(cv2.matchTemplate(gradients[y:y+h,x:x+w],check_gradient,
+                        cv2.TM_CCOEFF_NORMED,mask=check_interior)[0,0]))
             if color>=.80 or score>=.80 and purple>=.20:
-                matches.append(dict(box=[x,y+math.floor(h*.18+.5),w,h],block_type=8,
-                    active=True,score=float(score),color_score=color,purple_glow=purple,
-                    template='node_boss_platform.png',activation_basis='upstream_boss_nameplate',
-                    score_method='pinned FinalBossPlatformLocator masked gradient/luminance NCC'))
-            dx,dy=math.ceil(w*.65),h
-            scores[max(0,py-dy+1):py+dy,max(0,px-dx+1):px+dx]=-1
-        # Upstream click rect needs one unambiguous fresh nameplate.
+                matches.append(dict(box=[x,y,w,h],block_type=8,active=True,score=score,
+                    color_score=color,purple_glow=purple,platform2_check_score=check_score,
+                    template='node_boss_platform.png',activation_basis='tight_boss_platform_anchor',
+                    score_method='anchored masked gradient/luminance NCC'))
+        # One unambiguous platform only; the box is the node body, so the shared
+        # preview click (center x, 32% height) lands on the nameplate area.
         return [matches] if len(matches)==1 else []
 
     @staticmethod
