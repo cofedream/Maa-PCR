@@ -854,19 +854,28 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-10-21T12:36:53.566893+00:00",
+  "updated_at": "2026-10-21T15:15:07.874429+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
-      "kind": "full-upstream-character-pack",
+      "kind": "upstream-character-pack-with-local-name-correction",
       "file_count": 807,
       "icon_count": 801,
       "icon_formats": {
         "png": 795,
         "webp": 6
       },
-      "inventory_sha256": "6e397e84cda4ea79b2717b0cf5b2f51aad01ddeaac3e17198ad8d18445f55935",
+      "inventory_sha256": "0b17beb122f978fb814e098c81ee0ab478059267ece46356ce77e55c5bd7c856",
       "inventory_sha256_format": "sorted local path TAB local_sha256 LF, UTF-8",
+      "local_edits": [
+        {
+          "path": "assets/labyrinth/character-pack/characters.landosolroster.json",
+          "field": "characters[id=1357].officialName",
+          "before": "",
+          "after": "日和莉（沙漠）",
+          "reason": "上游目录漏填该形态的官方名；同系列 1275 咲恋（沙漠）、1276 流夏（沙漠）及基础 1001 日和莉 均为官方名，该条 aliases 已含 日和莉(沙漠)。仅补官方显示名，不改 ID、别名、头像与识别数据。"
+        }
+      ],
       "provenance": {
         "local": "assets/labyrinth/character-pack/PROVENANCE.json",
         "sha256": "50a08b7266673fc977209687db3305d3ea8ae48002814634db9b0489c0470a1a"
@@ -878,7 +887,8 @@
       "files": [
         {
           "local": "assets/labyrinth/character-pack/characters.landosolroster.json",
-          "local_sha256": "a4e38ecbbd0b278d4f51163ed95c6c4f22c53205319442ed68ef6ccbfce966a5",
+          "local_sha256": "93a53d2825b79c0dcd5c25a415b1359c3f59988491dce43b44fce35d7af5e503",
+          "local_edit": "officialName[id=1357] 日和莉（沙漠）；见 asset_packages.local_edits",
           "upstream": {
             "path": "android/app/src/main/assets/resource-packs/cn-bilibili/characters.landosolroster.json",
             "sha256": "a4e38ecbbd0b278d4f51163ed95c6c4f22c53205319442ed68ef6ccbfce966a5"
