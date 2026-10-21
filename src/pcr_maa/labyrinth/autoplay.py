@@ -767,6 +767,7 @@ class MaaRunActions:
         self.last_failed_team[node.block_id]=signature
 
     def start_battle(self,route,node):
+        from .scene import _RULES
         if self.team is None:raise BatchStopped('team_not_prepared')
         self.battle_result_scene=None
         def read(enter,block):
@@ -776,7 +777,7 @@ class MaaRunActions:
                 while True:
                     self.batch.checkpoint();sampled_at=time.monotonic();remaining=deadline-sampled_at
                     if remaining<=0:raise BatchStopped('battle_timeout')
-                    scene=self.runtime.observe(timeout=min(30,remaining));_native_ok(scene.native)
+                    scene=self.runtime.observe(timeout=min(30,remaining),probe_kinds=tuple(_RULES));_native_ok(scene.native)
                     self.batch.checkpoint();now=time.monotonic()
                     if now>=deadline:raise BatchStopped('battle_timeout')
                     if scene.kind in ('battle_victory','battle_defeat','boss_summary'):

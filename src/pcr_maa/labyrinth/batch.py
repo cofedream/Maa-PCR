@@ -156,8 +156,8 @@ class Batch:
         try:
             with self.stopped.defer() if hasattr(self.stopped,'defer') else nullcontext():
                 self.checkpoint()
-                events=self.journal.events()
-                if events and events[-1]['state']=='in_flight':
+                last=self.journal.last_event()
+                if last and last['state']=='in_flight':
                     self.invalidate_game_session();raise BatchStopped('blocked_in_flight')
                 operation_id=operation_id or uuid4().hex
                 intent=dict(state='in_flight',operation=operation,operation_id=operation_id,

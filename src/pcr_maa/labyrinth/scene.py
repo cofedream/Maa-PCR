@@ -255,6 +255,9 @@ class SceneRecognition(CustomRecognition):
             result=self.event.analyze(context,argv)
             if result.box is not None:
                 event=result.detail;kind='event';score=event['score']
+        # An owned Boss result can lack WIN text; retain its original next-button evidence.
+        if scope is not None and set(scope)==set(_RULES) and kind=='unknown':
+            for key in ('NEXT','BATTLE_RESULT_BOSS_SUMMARY_NEXT_BUTTON','BATTLE_RESULT_NEXT_BUTTON'):read(key)
         # Read optional registered controls on the identified page before availability checks.
         for kinds,key in _ACTIONS.values():
             if kind in kinds and (key in self.specs or key in _OCR):read(key)

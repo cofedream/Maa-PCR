@@ -27,6 +27,7 @@ def save(path,value):
 class Journal:
     def __init__(self):self.values=[]
     def events(self):return self.values[:]
+    def last_event(self):return self.values[-1] if self.values else None
     def append(self,value):self.values.append(value)
 def setup(tmp_path,label,images):
     path=tmp_path/label;native.RUNTIME=path/'native';controller=SavedImages([[image] for image in images]);resource=native.load_resource(ROOT/'assets/resource');tasker=native.bind(resource,controller)

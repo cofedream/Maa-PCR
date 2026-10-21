@@ -105,6 +105,9 @@ class Journal:
     def __init__(self, directory):
         self.directory = Path(directory)
         self.path = self.directory / 'transactions.jsonl'
+        self._locked = False
+        self._cached_events = None
+        self._cached_stamp = None
 
     @contextmanager
     def locked(self):
@@ -122,46 +125,82 @@ class Journal:
                 import fcntl
                 fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
             try:
+                self._locked = True
+                self._cached_events = None
+                self._cached_stamp = None
                 yield self
             finally:
+                self._locked = False
+                self._cached_events = None
+                self._cached_stamp = None
                 handle.seek(0)
                 if os.name == 'nt':
                     msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
                 else:
                     fcntl.flock(handle, fcntl.LOCK_UN)
 
-    def events(self):
-        if not self.path.exists():
-            return []
-        events = [json.loads(line) for line in self.path.read_text(encoding='utf-8').splitlines()]
-        if any(not isinstance(e, dict) or e.get('state') not in ('in_flight', 'settled', 'historical_unknown') for e in events):
+    @staticmethod
+    def _stamp(stat):
+        return stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
+
+    def _file_stamp(self):
+        try:
+            return self._stamp(self.path.stat())
+        except FileNotFoundError:
+            return None
+
+    @staticmethod
+    def _validate_event(event, index, previous):
+        if not isinstance(event, dict) or event.get('state') not in ('in_flight', 'settled', 'historical_unknown'):
             raise ValueError('Journal malformed; parent reconciliation required')
+        closed_run = False
+        if index % 2 and event.get('recovery_scope') == 'labyrinth_restart':
+            from .labyrinth.restart import is_closed_run_history
+            closed_run = is_closed_run_history(event, previous)
+        retired_invitation = (index % 2 and event.get('state') == 'historical_unknown'
+            and event.get('operation') == 'opening_invite'
+            and event.get('resolution') == 'user_confirmed_retired'
+            and event.get('original_result_unknown') is True
+            and event.get('replay_forbidden') is True
+            and type(event.get('enter_id')) is int and event['enter_id'] > 0
+            and type(event.get('evidence')) is dict
+            and event.get('evidence', {}).get('source') == 'user_confirmation'
+            and event.get('evidence', {}).get('retired') is True
+            and all(event.get(key) == previous.get(key) for key in
+                    ('operation', 'operation_id', 'binding', 'enter_id', 'expected_roles')))
+        if (event['state'] != ('in_flight' if index % 2 == 0 else 'settled')
+                and not (index % 2 and event['state'] == 'historical_unknown'
+                         and event.get('operation') == 'schedule_onekey')
+                and not retired_invitation and not closed_run):
+            raise ValueError('Journal sequence invalid')
+
+    def _current_events(self):
+        stamp = self._file_stamp()
+        if self._locked and self._cached_events is not None:
+            if stamp != self._cached_stamp:
+                raise ValueError('Journal changed while locked')
+            return self._cached_events
+        events = [] if stamp is None else [json.loads(line) for line in self.path.read_text(encoding='utf-8').splitlines()]
         for index, event in enumerate(events):
-            closed_run = False
-            if index % 2 and event.get('recovery_scope') == 'labyrinth_restart':
-                from .labyrinth.restart import is_closed_run_history
-                closed_run = is_closed_run_history(event, events[index - 1])
-            retired_invitation = (index % 2 and event.get('state') == 'historical_unknown'
-                and event.get('operation') == 'opening_invite'
-                and event.get('resolution') == 'user_confirmed_retired'
-                and event.get('original_result_unknown') is True
-                and event.get('replay_forbidden') is True
-                and type(event.get('enter_id')) is int and event['enter_id'] > 0
-                and type(event.get('evidence')) is dict
-                and event.get('evidence', {}).get('source') == 'user_confirmation'
-                and event.get('evidence', {}).get('retired') is True
-                and all(event.get(key) == events[index - 1].get(key) for key in
-                        ('operation', 'operation_id', 'binding', 'enter_id', 'expected_roles')))
-            if (event['state'] != ('in_flight' if index % 2 == 0 else 'settled')
-                    and not (index % 2 and event['state'] == 'historical_unknown'
-                             and event.get('operation') == 'schedule_onekey')
-                    and not retired_invitation and not closed_run):
-                raise ValueError('Journal sequence invalid')
+            self._validate_event(event, index, events[index - 1] if index else None)
+        if self._file_stamp() != stamp:
+            raise ValueError('Journal changed during read')
+        if self._locked:
+            self._cached_events, self._cached_stamp = events, stamp
         return events
+
+    def events(self):
+        events = self._current_events()
+        # Callers historically receive independent dictionaries, never the cache.
+        return deepcopy(events) if self._locked else events
+
+    def last_event(self):
+        events = self._current_events()
+        return deepcopy(events[-1]) if events else None
 
     def append_not_sent(self, intent, receipt):
         # Only close the intent created by this call; old unknowns stay untouched.
-        if self.events()[-1] != intent or receipt.get('input_execution') != 'not_sent':
+        if self.last_event() != intent or receipt.get('input_execution') != 'not_sent':
             raise ValueError('Current not-sent intent proof required')
         self.append(dict(intent, state='settled', at=time.time(),
                          input_execution='not_sent', consumption_sent=False,
@@ -169,10 +208,29 @@ class Journal:
                          native_evidence=receipt))
 
     def append(self, event):
+        encoded = json.dumps(event, ensure_ascii=False, separators=(',', ':')) + '\n'
+        if self._locked:
+            events = self._current_events()
+            frozen = json.loads(encoded)
+            self._validate_event(frozen, len(events), events[-1] if events else None)
         with self.path.open('a', encoding='utf-8', newline='\n') as handle:
-            handle.write(json.dumps(event, ensure_ascii=False, separators=(',', ':')) + '\n')
+            before = self._stamp(os.fstat(handle.fileno()))
+            if self._locked:
+                current = self._file_stamp()
+                changed = current != self._cached_stamp if self._cached_stamp is not None else before[2] != 0
+                # Windows fstat and path stat expose different ctime semantics.
+                if current is None or before[:3] != current[:3] or changed:
+                    raise ValueError('Journal changed before append')
+            handle.write(encoded)
             handle.flush()
             os.fsync(handle.fileno())
+            after = self._stamp(os.fstat(handle.fileno()))
+        if self._locked:
+            current = self._file_stamp()
+            if current is None or current[:3] != after[:3] or after[2] != before[2] + len(encoded.encode('utf-8')):
+                raise ValueError('Journal changed during append')
+            self._cached_stamp = current
+            self._cached_events.append(frozen)
 
 
 def execute_one(port, preset, context, journal, *, execute=False, preview=False, fit_remaining=False,

@@ -28,6 +28,7 @@ def save(path,value):
 class Journal:
     def __init__(self):self.values=[]
     def events(self):return self.values[:]
+    def last_event(self):return self.values[-1] if self.values else None
     def append(self,value):self.values.append(value)
 def setup(tmp_path,label,images):
     path=tmp_path/label;native.RUNTIME=path/'native';c=SavedImages([[i] for i in images]);r=native.load_resource(ROOT/'assets/resource');t=native.bind(r,c);token=native.RUN_DEADLINE.set(time.monotonic()+70)

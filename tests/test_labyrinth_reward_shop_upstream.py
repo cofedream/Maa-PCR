@@ -11,6 +11,7 @@ from test_labyrinth_autoplay import receipt as native_receipt
 class Journal:
  def __init__(self):self.values=[]
  def events(self):return self.values[:]
+ def last_event(self):return self.values[-1] if self.values else None
  def append(self,value):self.values.append(value)
 
 def harness(strategy=None):

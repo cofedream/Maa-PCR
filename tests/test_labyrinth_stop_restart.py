@@ -1,5 +1,6 @@
 """Stop at the real Batch transaction boundary; retain true unknown results."""
 import io
+import json
 import threading
 
 import pytest
@@ -92,9 +93,17 @@ def test_retired_invitation_history_preserves_unknown_and_requires_exact_scope(t
     with journal.locked():
         journal.append(pending)
         before = journal.path.read_bytes()
-        journal.append(history)
+        if invalid:
+            with pytest.raises(ValueError, match='Journal sequence invalid'):
+                journal.append(history)
+            assert journal.path.read_bytes() == before
+        else:
+            journal.append(history)
     assert journal.path.read_bytes().startswith(before)
     if invalid:
+        # Existing malformed history must still be refused after a fresh read.
+        with journal.path.open('a', encoding='utf-8') as stream:
+            stream.write(json.dumps(history) + '\n')
         with pytest.raises(ValueError, match='Journal sequence invalid'):
             journal.events()
     else:

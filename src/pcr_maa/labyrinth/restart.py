@@ -96,7 +96,7 @@ def _archive(journal, pending, top):
         original_result_unknown=True, replay_forbidden=True,
         resolved_at=datetime.now(timezone.utc).isoformat(),
         evidence=dict(top, source='authenticated_protocol_top'))
-    if not is_closed_run_history(event, pending) or journal.events()[-1] != pending:
+    if not is_closed_run_history(event, pending) or journal.last_event() != pending:
         raise BatchStopped('restart_records_invalid')
     journal.append(event)
 

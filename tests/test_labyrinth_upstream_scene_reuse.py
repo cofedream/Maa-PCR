@@ -29,7 +29,7 @@ class Batch:
 
 class Runtime:
     def __init__(self,pages):self.pages=list(pages);self.reads=0
-    def observe(self,timeout=scene_module.OBSERVATION_TIMEOUT_SECONDS):
+    def observe(self,timeout=scene_module.OBSERVATION_TIMEOUT_SECONDS,*,probe_kinds=None):
         self.reads+=1
         if not self.pages:raise AssertionError('unexpected scene read')
         return self.pages.pop(0)
