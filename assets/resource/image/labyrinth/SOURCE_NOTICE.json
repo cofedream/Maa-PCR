@@ -688,15 +688,6 @@
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
-      "key": "node.normal_battle.inactive.video",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_normal_battle_inactive_video.png",
-      "source_sha256": "f74ea7068ea874efdfd74fabb7dbab8e73e648a9b668f6949aa62c4e579fdbd9",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_inactive_video.png",
-      "local_sha256": "bbdd50966d0304052030b4daf2481ce06f1a1447b0a0539aacfa84bbcb931e9e",
-      "transform": "2/3 INTER_AREA",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
       "key": "node.ex_battle.inactive",
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_ex_battle_inactive.png",
       "source_sha256": "21998206ccaad69fb30be6f9230856396ae7214675727826c81a195497a27770",

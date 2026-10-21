@@ -854,7 +854,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-10-21T15:15:07.874429+00:00",
+  "updated_at": "2026-10-21T15:24:48.692927+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -6545,13 +6545,13 @@
     {
       "local_root": "assets/resource/image/labyrinth",
       "kind": "full-public-scene-and-node-template-pack",
-      "file_count": 98,
-      "image_count": 96,
-      "inventory_sha256": "c02467c2e5a678d78d62fbc42c275a521db6789572e26337600419b0219053bc",
+      "file_count": 97,
+      "image_count": 95,
+      "inventory_sha256": "d9fa678842d78f20409c2a216f22a16eb4ff7fd7547ae6020418a1ac4c9b9631",
       "inventory_sha256_format": "sorted local path TAB local_sha256 LF, UTF-8",
       "provenance": {
         "local": "assets/resource/image/labyrinth/SOURCE_NOTICE.json",
-        "sha256": "8160213a139b6cf1afc0eca1d06c38587f5ab59c9d1550f2d2a772b98983e354"
+        "sha256": "96f6966da24b9927118ebac16ace83608872921fbcf5bf5e88f02010b9366756"
       },
       "source_code_license": "CC-BY-NC-SA-4.0 for adapted own contributions",
       "image_rights": "Third-party imagery retains respective rights. Attribution does not establish distribution permission. See upstream THIRD_PARTY_NOTICES.md.",
@@ -7166,14 +7166,6 @@
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
-          "local": "assets/resource/image/labyrinth/node/node_normal_battle_inactive_video.png",
-          "local_sha256": "bbdd50966d0304052030b4daf2481ce06f1a1447b0a0539aacfa84bbcb931e9e",
-          "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_normal_battle_inactive_video.png",
-          "upstream_sha256": "f74ea7068ea874efdfd74fabb7dbab8e73e648a9b668f6949aa62c4e579fdbd9",
-          "transform": "2/3 INTER_AREA",
-          "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-        },
-        {
           "local": "assets/resource/image/labyrinth/node/node_ex_battle_inactive.png",
           "local_sha256": "94762881a281f7df6901ba81daef8a25ea3a03527fb76a0af14b512abdc88887",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_ex_battle_inactive.png",
@@ -7343,7 +7335,7 @@
         },
         {
           "local": "assets/resource/image/labyrinth/SOURCE_NOTICE.json",
-          "local_sha256": "8160213a139b6cf1afc0eca1d06c38587f5ab59c9d1550f2d2a772b98983e354",
+          "local_sha256": "96f6966da24b9927118ebac16ace83608872921fbcf5bf5e88f02010b9366756",
           "kind": "derived-template-mapping-and-source-notice"
         }
       ]
