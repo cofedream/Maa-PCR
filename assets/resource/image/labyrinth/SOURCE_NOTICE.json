@@ -715,24 +715,6 @@
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
-      "key": "node.boss.yellow",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_yellow.png",
-      "source_sha256": "958552cb5c310a817a8ccde3b1ce4f166d8c7b3ca45300c24009515f8bd459fe",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_yellow.png",
-      "local_sha256": "bba1eb26fec67e5038012f789c65c3a5bb138477c4d8bb16ac2b0885749313c7",
-      "transform": "2/3 INTER_AREA",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
-      "key": "node.boss.dragon",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_dragon.png",
-      "source_sha256": "4843c005ba6e412c97e715280ed67adf129097c1f8b1be1c2d9353ed70dc8f19",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_dragon.png",
-      "local_sha256": "6794c8e793d78a1ac5bc5451718c2af378e44421bcf4e6d13d0fd71dcf184ece",
-      "transform": "2/3 INTER_AREA",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
       "key": "node.boss.platform",
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_platform.png",
       "source_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",

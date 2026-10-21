@@ -276,7 +276,12 @@ class NodePixels:
             interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
             light,gradient=self._features(rgb)
             self.templates.append((path.name,kind,rgb,mask,interior,light,gradient))
-        if {t[1] for t in self.templates}!={2,3,4,5,6,7,8}: raise BatchStopped('node_resources_incomplete')
+        # Boss (8) has no mandatory node-body template: the retired
+        # node_boss_yellow/dragon card crops never matched live 720p frames, and
+        # the final Boss is located only by the optional tight platform anchor
+        # below. A missing anchor must merely disable final_boss, so only the
+        # seven real node types are required; 8 is accepted when present.
+        if not {2,3,4,5,6,7}<={t[1] for t in self.templates}: raise BatchStopped('node_resources_incomplete')
         # Optional tight boss-platform anchors. node_boss_platform.png is the
         # same platform crop with the per-run reward icons removed, so it stays
         # valid when the reward content changes; node_boss_platform_reward.png is

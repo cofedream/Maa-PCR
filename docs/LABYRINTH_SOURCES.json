@@ -854,7 +854,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-10-20T15:58:41.795073+00:00",
+  "updated_at": "2026-10-21T12:36:53.566893+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -6535,13 +6535,13 @@
     {
       "local_root": "assets/resource/image/labyrinth",
       "kind": "full-public-scene-and-node-template-pack",
-      "file_count": 100,
-      "image_count": 98,
-      "inventory_sha256": "5195af9c161e7362dcb516b7a3453fd3672ab1ce5a1bea4f5b5af9571ea99613",
+      "file_count": 98,
+      "image_count": 96,
+      "inventory_sha256": "c02467c2e5a678d78d62fbc42c275a521db6789572e26337600419b0219053bc",
       "inventory_sha256_format": "sorted local path TAB local_sha256 LF, UTF-8",
       "provenance": {
         "local": "assets/resource/image/labyrinth/SOURCE_NOTICE.json",
-        "sha256": "b55aab7ddda4f622ea053eb7cfc39d1bd8d8cd03e65e62263bdd5251de411412"
+        "sha256": "8160213a139b6cf1afc0eca1d06c38587f5ab59c9d1550f2d2a772b98983e354"
       },
       "source_code_license": "CC-BY-NC-SA-4.0 for adapted own contributions",
       "image_rights": "Third-party imagery retains respective rights. Attribution does not establish distribution permission. See upstream THIRD_PARTY_NOTICES.md.",
@@ -7180,22 +7180,6 @@
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
-          "local": "assets/resource/image/labyrinth/node/node_boss_yellow.png",
-          "local_sha256": "bba1eb26fec67e5038012f789c65c3a5bb138477c4d8bb16ac2b0885749313c7",
-          "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_boss_yellow.png",
-          "upstream_sha256": "958552cb5c310a817a8ccde3b1ce4f166d8c7b3ca45300c24009515f8bd459fe",
-          "transform": "2/3 INTER_AREA",
-          "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-        },
-        {
-          "local": "assets/resource/image/labyrinth/node/node_boss_dragon.png",
-          "local_sha256": "6794c8e793d78a1ac5bc5451718c2af378e44421bcf4e6d13d0fd71dcf184ece",
-          "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_boss_dragon.png",
-          "upstream_sha256": "4843c005ba6e412c97e715280ed67adf129097c1f8b1be1c2d9353ed70dc8f19",
-          "transform": "2/3 INTER_AREA",
-          "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-        },
-        {
           "local": "assets/resource/image/labyrinth/node/node_boss_platform.png",
           "local_sha256": "2f1e7fb370fcec1e860062f60863a7dc50589736536dbf402a070bf1f30d5407",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_boss_platform.png",
@@ -7349,7 +7333,7 @@
         },
         {
           "local": "assets/resource/image/labyrinth/SOURCE_NOTICE.json",
-          "local_sha256": "b55aab7ddda4f622ea053eb7cfc39d1bd8d8cd03e65e62263bdd5251de411412",
+          "local_sha256": "8160213a139b6cf1afc0eca1d06c38587f5ab59c9d1550f2d2a772b98983e354",
           "kind": "derived-template-mapping-and-source-notice"
         }
       ]
