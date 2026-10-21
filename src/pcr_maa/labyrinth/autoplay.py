@@ -24,6 +24,12 @@ _TARGET = 'LabyAutoplayTarget'
 _CLICK = 'LabyAutoplayPreviewOnce'
 _NAME = 'LabyrinthAutoplayTarget'
 _TYPES = {'normal_battle':2,'ex_battle':3,'link':4,'event':5,'relic':6,'shop':7,'boss':8}
+# Measured inactive node-body floor. Live area-5 scenery cleared the inactive
+# color band (.84) at only .60-.63 masked NCC and was accepted as nodes; the
+# pinned node-body templates matched real inactive nodes at >=.917 across all
+# captured frames, so require the body floor for inactive non-EX templates.
+# EX keeps its calibrated purple fallback and boss is active by definition.
+_INACTIVE_NODE_SCORE = .75
 _ARRIVALS = {2:{'normal_challenge','team'},3:{'ex_challenge','team'},
     4:{'link_reward'},5:{'event','event_animation','rest'},
     6:{'relic_reward'},7:{'shop'},8:{'boss_challenge','team'}}
@@ -478,7 +484,8 @@ class NodePixels:
                     corrected=self._type_support(image,lights,gradients,[x,y,w,h],semantic)
                 # Pinned classifyNode 528-530: an active LINK needs its own
                 # independent LINK type; scenery with unknown type is not LINK.
-                accepted=((score>=.40 or ex_fallback) and color>=threshold
+                floor=.40 if active or kind in (3,8) else _INACTIVE_NODE_SCORE
+                accepted=((score>=floor or ex_fallback) and color>=threshold
                         and (semantic in (None,kind) or corrected is not None)
                         and (not active or kind!=4 or semantic is not None))
                 if accepted:
