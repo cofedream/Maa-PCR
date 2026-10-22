@@ -94,7 +94,7 @@ def test_plain_dark_or_purple_background_cannot_become_active_ex(pixels, color):
 
 @pytest.mark.parametrize('name, kind', [('node_normal_battle_active.png', 2),
     ('node_link_active.png', 4), ('node_event_active.png', 5), ('node_relic_active.png', 6),
-    ('node_shop_active.png', 7), ('node_boss_yellow.png', 8)])
+    ('node_shop_active.png', 7), ('node_boss_platform_active.png', 8)])
 def test_other_active_node_types_remain_independently_identified(pixels, name, kind):
     path = DATA.parents[1] / 'assets/resource/image/labyrinth/node' / name
     sprite = cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_UNCHANGED)
@@ -109,9 +109,12 @@ def test_other_active_node_types_remain_independently_identified(pixels, name, k
 
 
 @pytest.mark.parametrize('bands', [((550, 260, 190, 85),), ((540, 380, 210, 80),),
-    ((535, 225, 55, 180), (710, 225, 55, 180))],
+    ((566, 260, 40, 167), (675, 260, 40, 167))],
     ids=['missing-monster', 'missing-platform', 'missing-side-rails'])
 def test_original_ex_still_needs_independent_monster_platform_and_rails(pixels, bands):
+    # The side-rail bands track the tight node_ex_battle_active.png crop
+    # (566..715 x 260..427), so blanking both rails removes the active-state
+    # template's evidence exactly as the loose upstream card did before.
     frame = original_frame('labyrinth-map-ex-20261022-target.png')
     for x, y, w, h in bands:
         frame[y:y+h, x:x+w] = 0
