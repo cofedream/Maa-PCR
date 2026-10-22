@@ -147,13 +147,13 @@ public static partial class PcrAlphaOwner
 
     public static async Task RequestStartAsync(TaskQueueViewModel vm)
     {
-        if (vm.Processor.InstanceId == PcrClanGuide.ProfileId)
-            PcrClanDailyExecution.RequireStartAllowed(PcrClanDailyExecution.ModeFor(AppPaths.ConfigDirectory));
         PendingStart attempt;
         lock (PcrProfileRunGate.StartGate)
         lock (Gate)
         {
             if (prompting != 0 || PcrLabyrinthOwner.IsActive || PcrGuideSyncOwner.IsActive || PcrProfileRunGate.UpdatePending || PcrProfileRunGate.ConnectionPending) return;
+            if (vm.Processor.InstanceId == PcrClanGuide.ProfileId)
+                PcrClanDailyExecution.RequireStartAllowed(PcrClanDailyExecution.ModeFor(AppPaths.ConfigDirectory));
             prompting = 1;
             pendingStart = attempt = new PendingStart(vm.Processor);
         }
