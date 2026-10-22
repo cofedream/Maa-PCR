@@ -20,6 +20,9 @@ internal static class ClanPostSaveFailureChecks
         var faultDirectory = Path.Combine(root, "write-only-fault"); Directory.CreateDirectory(faultDirectory);
         var faultGuide = Path.Combine(faultDirectory, "agent-guide-review.json"); var probe = Path.Combine(faultDirectory, "proof.txt");
         var info = new DirectoryInfo(faultDirectory); var originalAcl = info.GetAccessControl(AccessControlSections.Access);
+        // Stabilize this fixture's inherited ACL; new files still inherit the injected deny below.
+        originalAcl.SetAccessRuleProtection(true, true); info.SetAccessControl(originalAcl);
+        originalAcl = info.GetAccessControl(AccessControlSections.Access);
         var originalSddl = originalAcl.GetSecurityDescriptorSddlForm(AccessControlSections.Access);
         var currentSid = WindowsIdentity.GetCurrent().User ?? throw new InvalidOperationException("Current Windows SID unavailable.");
         var view = new PcrClanGuideView(sourceRoot, faultGuide, config); view.Display(original);

@@ -209,7 +209,10 @@ internal static class ClanFormalChecks
         view.Reload(); check(view.ExecutionConfirmationForStart == view.Capture().ConfirmedFor && Selector(view).SelectedIndex == 0, "io_failure_recovers_only_after_reload");
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("The mode post-save ACL fault requires Windows.");
         File.Delete(modePath); File.Delete(modePath + ".lock"); view.Reload();
-        var info = new DirectoryInfo(isolated); var originalSddl = info.GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        var info = new DirectoryInfo(isolated); var baselineAcl = info.GetAccessControl(AccessControlSections.Access);
+        // Stabilize this fixture's inherited ACL; new files still inherit the injected deny below.
+        baselineAcl.SetAccessRuleProtection(true, true); info.SetAccessControl(baselineAcl);
+        var originalSddl = info.GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access);
         var sid = WindowsIdentity.GetCurrent().User ?? throw new InvalidOperationException("Current Windows SID unavailable.");
         var oldFiles = Directory.EnumerateFiles(isolated).ToHashSet(StringComparer.OrdinalIgnoreCase); var readDenied = false;
         try
@@ -231,7 +234,10 @@ internal static class ClanFormalChecks
                 acl.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.FullControl, AccessControlType.Allow)); file.SetAccessControl(acl);
             }
         }
-        check(info.GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access) == originalSddl, "postsave_fixture_acl_restored");
+        var restoredSddl = info.GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        File.WriteAllText(Path.Combine(root, "mode-acl-restoration.json"), new JObject { ["original_access_sddl"] = originalSddl,
+            ["restored_access_sddl"] = restoredSddl, ["directory"] = isolated }.ToString(), new UTF8Encoding(false));
+        check(restoredSddl == originalSddl, "postsave_fixture_acl_restored");
         check(PcrClanDailyExecution.Read(modePath, out _).Mode == PcrClanDailyExecution.FormalDaily && File.ReadAllBytes(copiedGuide).SequenceEqual(guideBytes), "postsave_actual_write_and_original_guide_preserved");
         view.Reload(); check(view.ExecutionMode == PcrClanDailyExecution.FormalDaily && Selector(view).SelectedIndex == 1 && view.ExecutionConfirmationForStart == null, "postsave_reload_reads_saved_mode_without_old_confirmation");
         Select(0); check(view.ExecutionConfirmationForStart == view.Capture().ConfirmedFor && view.Capture().Job.ToString() == draft, "postsave_explicit_mode_selection_preserves_team");
