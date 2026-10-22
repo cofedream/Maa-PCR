@@ -33,8 +33,14 @@ def test_daily_resources_have_no_game_image_templates():
                 for child in value:
                     visit(child)
         visit(json.loads(path.read_text(encoding='utf-8')))
-    assert references == []
-    assert all(path.name == 'labyrinth' and path.is_dir()
+    # Guide trial owns these templates; clan_battle.json and all daily pipelines stay pixel-free.
+    for filename, node in references:
+        assert filename == 'guide_trial.json', filename
+        templates = node['template']
+        assert isinstance(templates, list) and templates
+        assert all(isinstance(template, str) and Path(template).parent == Path('guide-trial')
+                   for template in templates), (filename, templates)
+    assert all(path.name in {'labyrinth', 'guide-trial'} and path.is_dir()
                for path in native.RESOURCE.joinpath('image').iterdir())
 
 

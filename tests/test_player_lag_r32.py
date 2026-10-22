@@ -81,6 +81,7 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  # R50/R51 add guarded result-only branches; all existing guard fields stay frozen.
  additions={
   'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish','AbyssLevelUpDismiss'},
+  'alpha_entry.json':{'PCRAlphaSelectGuideTrial','PCRAlphaSelectClanBattleSimulation','PCRAlphaSelectClanBattleDaily'},
   'preset_execution.json':{'ExecSweepSkipButton','ExecSweepAnimationRound','ExecSweepAnimationExp',
                            'ExecSweepAnimationPanel','ExecSweepSkipGuard','ExecSweepSkipFinish',
                            'ExecLevelUpTitle','ExecLevelUpBody','ExecLevelUpButton','ExecLevelUpDismiss'},
@@ -120,6 +121,11 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
   added=additions.get(filename,set())
   assert added<=pipeline.keys()
   for name in added:
+   if filename=='alpha_entry.json':
+    # R64 only adds disabled selection metadata, never input or automatic successors.
+    assert pipeline[name]==dict(enabled=False,recognition='DirectHit',action='DoNothing',
+                               attach=dict(selected=False),next=[],on_error=[]),name
+    assert pipeline[name]['enabled'] is False and pipeline[name]['attach']['selected'] is False,name
    if pipeline[name].get('action')=='Click':
     assert pipeline[name].get('max_hit')==(3 if name=='OneKeyQuickLevelUpDismiss' else 1),name
    if name.endswith('LevelUpDismiss'):
