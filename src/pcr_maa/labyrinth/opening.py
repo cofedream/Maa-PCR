@@ -7,6 +7,9 @@ import time
 from .. import native
 from .batch import BatchStopped
 from .timing import Timings
+
+JOINED_CONFIRMATION_TIMEOUT_SECONDS=12
+
 class MaaOpening:
     def __init__(self,tasker,stamp,*,timings=None,characters=None):
         self.tasker,self.stamp=tasker,stamp
@@ -22,21 +25,19 @@ class MaaOpening:
         return receipt
     def _wait_invitation_joined(self,batch,enter_id,invited,node=None):
         from .scene import MaaSceneRuntime
-        # Keep the original 3000ms budget. Animation and the independent
-        # joined identity read share it, including an outer
-        # deadline; upstream 40 clicks/30s is a ceiling, not an added wait here.
-        deadline=min(native.RUN_DEADLINE.get(),time.monotonic()+3)
+        # Transition and identity reads share one budget, capped by the Owner.
+        deadline=min(native.RUN_DEADLINE.get(),time.monotonic()+JOINED_CONFIRMATION_TIMEOUT_SECONDS)
         token=native.RUN_DEADLINE.set(deadline)
         try:
             MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(
-                batch,{'joined','role_reward','free_role_reward','map'},timeout=3,
+                batch,{'joined','role_reward','free_role_reward','map'},timeout=JOINED_CONFIRMATION_TIMEOUT_SECONDS,
                 reason='opening_readback_unknown',acquisition_fields=dict(
                     enter_id=enter_id,invitation_operation_id=invited['operation_id']))
             # A MAP background supplies no identities; the shared joined reader
             # must independently confirm the actual arrivals.
             batch.checkpoint()
             if node is not None:return self._run(node) # Legacy saved-receipt readers remain available offline.
-            _,receipt=self.characters.read(batch,'joined',stable=False,timeout=3)
+            _,receipt=self.characters.read(batch,'joined',stable=False,timeout=JOINED_CONFIRMATION_TIMEOUT_SECONDS)
             return receipt
         finally:native.RUN_DEADLINE.reset(token)
     @property
@@ -146,7 +147,7 @@ class MaaOpening:
         """Shared same-frame joined identities; no input or owned inference."""
         from .portrait_cache import joined_portrait_readback
         self._creation_key(enter_id,None);self._install_joined()
-        _,receipt=self.characters.read(batch,'joined',stable=False,timeout=3)
+        _,receipt=self.characters.read(batch,'joined',stable=False,timeout=JOINED_CONFIRMATION_TIMEOUT_SECONDS)
         batch.checkpoint()
         layout,items=joined_portrait_readback(receipt)
         observed=self.stamp(source='maa',enter_id=enter_id,page='joined',roles_joined=sorted(item.character_id for item in items),native=receipt)

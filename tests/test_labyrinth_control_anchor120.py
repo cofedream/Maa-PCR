@@ -215,7 +215,7 @@ def test_owned_opening_map_hands_off_immediately_to_original_name_read(monkeypat
     assert actual['native_ok'] and waits==[] and names==[node]
 
 
-def test_owned_opening_map_cannot_supply_names_and_keeps_original3s(monkeypatch):
+def test_owned_opening_map_cannot_supply_names_and_keeps_confirmation_budget(monkeypatch):
     from test_labyrinth_autoplay import receipt
     from pcr_maa.labyrinth import opening,autoplay
     calls=[];clock=iter([0,0,0,0]);monkeypatch.setattr(s.time,'monotonic',lambda:next(clock,0))
@@ -224,7 +224,7 @@ def test_owned_opening_map_cannot_supply_names_and_keeps_original3s(monkeypatch)
     monkeypatch.setattr(s,'MaaSceneRuntime',lambda *a,**kw:runtime);monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:pytest.fail('must hand off to original name reader'))
     port=opening.MaaOpening(NS(),lambda **kw:kw)
     def names(node):
-        calls.append(node);assert native.RUN_DEADLINE.get()==3
+        calls.append(node);assert native.RUN_DEADLINE.get()==opening.JOINED_CONFIRMATION_TIMEOUT_SECONDS
         raise s.BatchStopped('opening_joined_unknown')
     port._run=names
     with pytest.raises(s.BatchStopped,match='^opening_joined_unknown$'):
@@ -245,7 +245,7 @@ def test_owned_opening_background_wait_keeps_terminal_pages_fail_closed(monkeypa
 
 
 @pytest.mark.parametrize('node',['LabyOpeningAnyJoinedObserved','LabyOpeningJoinedObserved'])
-def test_run129_actual_joined_names_in_original3s_zero_input(tmp_path,monkeypatch,offline,node):
+def test_run129_actual_joined_names_in_confirmation_budget_zero_input(tmp_path,monkeypatch,offline,node):
     from pcr_maa.labyrinth.opening import MaaOpening,opening_catalog_pipeline
     from pcr_maa.labyrinth.portrait_cache import joined_portrait_readback
     screen=Path(__file__).resolve().parents[1]/'.runtime/acceptance-after109/.runtime/labyrinth-work/runs/aa73ebfd5d5c4470a79c7ac7447a53e7/acceptance-ending/screen.png'
@@ -259,7 +259,7 @@ def test_run129_actual_joined_names_in_original3s_zero_input(tmp_path,monkeypatc
     finally:assert native.wait_job(tasker.post_stop(),seconds=10).succeeded
 
 
-def test_run130_prior_map_then_actual_joined_original3s_zero_input(tmp_path,monkeypatch,offline):
+def test_run130_prior_map_then_actual_joined_confirmation_budget_zero_input(tmp_path,monkeypatch,offline):
     from pcr_maa.labyrinth.opening import MaaOpening,opening_catalog_pipeline
     from pcr_maa.labyrinth.portrait_cache import joined_portrait_readback
     root=Path(__file__).resolve().parents[1];source=root.parent/'evidence/opening-sample/close-joined-after.png'

@@ -320,7 +320,7 @@
           "sha256": "9f65df1a08613f39e93f8d6c707b4a0533db39df596623b686999a2933dff6cc"
         }
       ],
-      "local_sha256": "21c71332545c4dfc0c78ee528e24f498f5d8240416e466234b21fdde1b2ace54",
+      "local_sha256": "6b54068fefc5d891026e95aeecb890a588f1e39320b6d91c57dee44d62eb42db",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -362,7 +362,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "b2516247f8c51461090a592b7e4ddba9f1246d133546bbc764984300ada9451c",
+      "local_sha256": "0455437ece654744198d05daf01efc94fbde25cd1c0d104a1681cc75e45b7750",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -7159,7 +7159,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/autoplay.py",
-      "local_sha256": "21c71332545c4dfc0c78ee528e24f498f5d8240416e466234b21fdde1b2ace54",
+      "local_sha256": "6b54068fefc5d891026e95aeecb890a588f1e39320b6d91c57dee44d62eb42db",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7291,7 +7291,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/opening.py",
-      "local_sha256": "b2516247f8c51461090a592b7e4ddba9f1246d133546bbc764984300ada9451c",
+      "local_sha256": "0455437ece654744198d05daf01efc94fbde25cd1c0d104a1681cc75e45b7750",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

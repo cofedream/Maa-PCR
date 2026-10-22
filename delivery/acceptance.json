@@ -1,143 +1,15 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "revision": 64,
-  "expected_version": "v0.1.17",
-  "base_release_manifest_sha256": "ea4396bff4162622af42008bb8c109addc06b30663fadac455c52fbac8589a4a",
-  "accepted_owned_payload_sha256": "1d08e7d9d01a90730d35dd97545cbb7e4e19acdecbcde194ce717640eec3a1b6",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 39779145550,
-    "run_attempt": 1,
-    "artifact_id": 12426739934,
-    "source_commit": "09a4a7bdc4a8169dade5c08a7b14b891efa068dc",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.17-win-x64.zip",
-      "size": 310559717,
-      "sha256": "c5ad896c75240a8a92fec89d3d25a4f58a7b287debf7c4c6e69b05b231992332"
-    }
-  },
-  "accepted_staging_manifest_sha256": "7cd0dd808bc63edcc44f1739591750c98765cdbc41243992deb82334191c341a",
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "public_tests": {
-    "passed": 4800,
-    "skipped": 393,
-    "failed": 0,
-    "errors": 0
-  },
-  "bundled_runtime_tests_passed": 3,
-  "gui_core_sha256": "24b19999d885fa30365dd100a04aaf52e70f694ae090c97cb9e62fffb9bd0437",
-  "packaged_gui_assertions": {
-    "update": {
-      "app path initialization": 4,
-      "GUI update": 65,
-      "GUI dependency": 52
-    },
-    "update-controls": {
-      "update control": 9
-    },
-    "credentials": {
-      "credential": 105
-    },
-    "profile": {
-      "clan guide": 68,
-      "guide review": 84,
-      "guide data": 126,
-      "guide draft": 45,
-      "capture performance": 26,
-      "channel config": 99,
-      "log export/retention": 166,
-      "alpha owner": 45,
-      "Agent profile": 22,
-      "Agent shutdown": 56,
-      "module drag behavior": 116,
-      "alpha async": 509,
-      "live view": 44,
-      "preview connection": 118,
-      "run feedback": 15,
-      "profile switch": 275
-    },
-    "profile-registration-only": {
-      "profile registration": 48
-    },
-    "clan-daily-only": {
-      "clan daily plan": 53
-    },
-    "clan-workflow-only": {
-      "clan workflow": 56
-    },
-    "clan-formal-only": {
-      "clan workflow": 56,
-      "clan formal configuration": 61
-    },
-    "clan-postsave-only": {
-      "clan workflow": 56,
-      "clan post-save ACL": 13
-    }
-  },
-  "gui_counted_assertions": 2392,
-  "offline_ui_checks": 52,
-  "offline_ui_screenshots": 14,
-  "isolated_update_routes": [
-    {
-      "base_revision": 61,
-      "archive_kind": "delta",
-      "preserved_synthetic_files": 10
-    },
-    {
-      "base_revision": 61,
-      "archive_kind": "full",
-      "preserved_synthetic_files": 10
-    },
-    {
-      "base_revision": 62,
-      "archive_kind": "full",
-      "preserved_synthetic_files": 10
-    },
-    {
-      "base_revision": 63,
-      "archive_kind": "full",
-      "preserved_synthetic_files": 10
-    }
-  ],
-  "clan_battle": {
-    "code_included": true,
-    "live_calibrated": false,
-    "single_auto_simulation_verified": false,
-    "simulation_execution_enabled": false,
-    "formal_execution_enabled": false,
-    "compensation_execution_enabled": false
-  },
-  "local_installation_updated": false,
-  "device_connected": false,
-  "game_task_started": false,
-  "evidence_sha256": {
-    "SOURCE_REVIEW.json": "4fc3162e069e9574891d7fba3f649228843bb71a6af8566cfb79a863e6387616",
-    "LOCAL_REGRESSION.json": "164a53c788d91011c9d828865dfe6f6772fb70da3c4096fd827098332ad32194",
-    "DEPENDENCY_WARNING_REVIEW.md": "84e87308bfb2279f13a57e3dc187392e9fd71f9a1550139b5b28ee3fecc2a401",
-    "checkout/.runtime/owner-update-gate/RESULT.json": "168dde8fe08c9040034db38577d00aa77e4010d64522648820aacffe9be38fba",
-    "checkout/.runtime/guide-root-cwd/RESULT.json": "83e4496ad0a64e7e00b14df4f7b7316d33b3fe87a22ba2df85fea978fd56830e",
-    "checkout/.runtime/acl-roundtrip/RESULT.json": "3f785bf01f1e2c079d049e336f65faf166870f33c4ed2ad6e1cf5ea1d9280e17",
-    "CI_BINDING.json": "c78ded0bc8ce2bdb236a3a0aa263268f80424929f739e26be81c4d664fecda11",
-    "metadata/run.json": "fb1319fe52f546f93489cec40db2c04c0694bdd49e715ae514a20b17df58924c",
-    "metadata/artifact.json": "8d05c95e5bdcef8c61cfd2d3b8e61db7ee0056a0410c63e9c2e340430732e2a1",
-    "metadata/jobs.json": "a84917021f60328afd225d3ca796184bb51a21056d57378163aecca63e3dfc76",
-    "package-checks/PACKAGE_VERIFIED.json": "79f39533ee44a348b11d4080e291b6526674ecdbddd3e9a46d0fa4d0ee9ea9bc",
-    "packaged-gui/RESULT.json": "04659794473d5ef55783818d88751a78b22445549c7172dfd9740e50b8f63d78",
-    "packaged-ui/verification-summary-ci-1.json": "8b361e042a3a2563d656b1d6636028225a94c6417e76aaf95e40b9e36a373268",
-    "packaged-ui/VISUAL_REVIEW.json": "66340ce49f184e4a4f68265b978514747839a0096c5b255f659d99a30298c0fa",
-    "RUNTIME_VERIFIED.json": "859b6ca18c86b214fd5fd9fe53bea5db105bf354ea1bde55e2b7ec00c52f1edc",
-    "UNICODE_ENTRY_VERIFIED.json": "226b5e059541837dfb120c9781f10898b169c70785754d4549a0358d86aa85c4",
-    "ci-artifact/public-tests.xml": "05066b98a9549e78099692eb58de622fa1ea6586e5c051217df1e30e96ed3bbd",
-    "ci-artifact/bundled-runtime.xml": "76376ed22e9624987b737d904f6cfd97140e48d8ea339fb0cfb648da78fb2102"
-  },
+  "status": "pending",
+  "revision": 65,
+  "expected_version": "v0.1.18",
+  "base_release_manifest_sha256": "05cb9d27d89f860abaa8965003602eee574aa15e8c454bae3d01dbc68a0298ad",
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
   "limits": [
-    "Offline synthetic checks, exact CI package and isolated updates only; no real installation, account, device or game acceptance.",
-    "100/150 percent offscreen rendering is not actual OS scaling or installed-window acceptance; existing white button glyph rendering limitation remains.",
-    "Clan import/review/save/plans are included, but the calibration index is empty; real AUTO simulation/damage/return and formal/compensation execution remain unavailable.",
-    "R62 EX-node saved-frame regression does not establish a new real-game full successor. No end-to-end startup or game speed claim."
+    "R65 must bind the new exact successful main CI payload and isolated update checks before promotion.",
+    "No real installation, account, device or game acceptance."
   ]
 }

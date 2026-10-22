@@ -81,7 +81,7 @@ def test_untrusted_art_requires_exact_native_name(monkeypatch):
     assert callback(monkeypatch,trusted=False) is None
 
 
-def test_opening_uses_shared_reader_with_original_deadline(monkeypatch):
+def test_opening_uses_shared_reader_with_confirmation_deadline(monkeypatch):
     from pcr_maa import native
     from pcr_maa.labyrinth import opening,scene
     from types import SimpleNamespace as NS
@@ -93,7 +93,7 @@ def test_opening_uses_shared_reader_with_original_deadline(monkeypatch):
     port=opening.MaaOpening(NS(),lambda **kw:kw,characters=NS(read=read))
     port._run=lambda *a,**kw:pytest.fail('active opening must use shared reader')
     assert port._wait_invitation_joined(NS(checkpoint=lambda:None,stopped=lambda:False),1,{'operation_id':'a'})==evidence
-    assert calls==[('joined',dict(stable=False,timeout=3))]
+    assert calls==[('joined',dict(stable=False,timeout=opening.JOINED_CONFIRMATION_TIMEOUT_SECONDS))]
 
 
 def test_handoff_accepts_independent_shared_receipt_and_rejects_wrapper_ids(monkeypatch):

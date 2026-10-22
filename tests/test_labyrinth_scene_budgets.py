@@ -40,7 +40,7 @@ class SlowOwner(Tasker):
             params = self.resource.get_node_data(entry)['recognition']['param']
             scope = params.get('custom_recognition_param', {}).get('probe_kinds')
             self.observations.append((native.RUN_DEADLINE.get() - clock.now, scope))
-            elapsed = self.seconds if scope is None else min(self.seconds, 3.2)
+            elapsed = self.seconds if scope is None or set(scene._RULES) <= set(scope) else min(self.seconds, 3.2)
             key = 'SHOP_CLOSE' if self.kind == 'shop' else 'SHOP_EXIT_CONFIRM_BUTTON'
             payload = dict(area=3, controls={key: dict(anchor=key,
                 box=[100, 100, 40, 30], score=.99)})

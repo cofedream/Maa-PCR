@@ -18,7 +18,7 @@ from .. import native
 from .batch import BatchStopped
 from .routes import Route
 from .roles import Context
-from .scene import Scene
+from .scene import Scene, OBSERVATION_TIMEOUT_SECONDS
 
 _TARGET = 'LabyAutoplayTarget'
 _CLICK = 'LabyAutoplayPreviewOnce'
@@ -851,7 +851,7 @@ class AutoplayRunner:
         return dict(source='maa',enter_id=self.route.enter_id,block_id=node.block_id,
             block_type=node.block_type,settlement_phase=phase)
 
-    def _observe(self,batch,route,timeout=10,*,drive_final=True):
+    def _observe(self,batch,route,timeout=OBSERVATION_TIMEOUT_SECONDS,*,drive_final=True):
         batch.checkpoint()
         from .scene import _RULES
         scene=self.runtime.wait_for(batch,set(_RULES),source='unknown',
