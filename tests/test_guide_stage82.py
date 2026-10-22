@@ -6,6 +6,7 @@ from pcr_maa.guide_identity import read_source, require_source_team, SOURCE_82_S
 from pcr_maa.guide_trial import validate_plan
 from pcr_maa.guide_trial_battle import battle_pipeline
 from test_guide_trial import plan
+from test_guide_identity import assert_same_source_identity
 
 
 def plan82():
@@ -14,7 +15,7 @@ def plan82():
 
 def test_82_independent_source_and_exact_form_match():
     p=plan82(); source=read_source(p['stage'])
-    assert source==json.loads((SOURCE_PATH.parent/'fire82-source-identity.json').read_text(encoding='utf-8'))
+    assert_same_source_identity(source, json.loads((SOURCE_PATH.parent/'fire82-source-identity.json').read_text(encoding='utf-8')))
     assert [m['UnitId'] for m in source['Members']]==p['unit_ids']
     assert source['Members'][2]['UnitId']==134701 and source['Members'][2]['Name']=='凤凰'
     assert all(m['Score']>=.82 and m['Margin']>=.08 for m in source['Members'])

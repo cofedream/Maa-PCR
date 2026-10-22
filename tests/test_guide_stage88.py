@@ -9,13 +9,14 @@ from pcr_maa.guide_trial_battle import battle_pipeline
 from pcr_maa.preset_execution import Journal
 from test_guide_opening import candidate, SimulatedMaa
 from test_guide_trial import plan as legacy_plan
+from test_guide_identity import assert_same_source_identity
 
 STAGE = '红焰深域 8-8'
 
 
 def test_preserved_real_row_and_source_binding():
     source = read_source(STAGE)
-    assert source == json.loads((SOURCE_PATH.parent/'fire88-source-identity.json').read_text(encoding='utf-8'))
+    assert_same_source_identity(source, json.loads((SOURCE_PATH.parent/'fire88-source-identity.json').read_text(encoding='utf-8')))
     assert [(m['UnitId'],m['IconUnitId']) for m in source['Members']] == [
         (129701,129731),(116701,116731),(134701,134731),(180901,180931),(107101,107161)]
     assert source['ImportedSource']['OriginalSha256'] == 'e0b31de83020c03ea36b310004b75ee99368849ed69cbb33c3b78dcc110f6119'

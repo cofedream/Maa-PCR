@@ -8,13 +8,14 @@ from pcr_maa.guide_trial_characters import GuideTrialCharacters
 from pcr_maa.preset_execution import Journal
 from test_guide_opening import candidate, SimulatedMaa
 from test_guide_trial import plan as legacy_plan
+from test_guide_identity import assert_same_source_identity
 
 STAGE = '红焰深域 8-5'
 
 
 def test_independent_row_identity_and_legacy_plan_rejection():
     source = read_source(STAGE)
-    assert source == json.loads((SOURCE_PATH.parent / 'fire85-source-identity.json').read_text(encoding='utf-8'))
+    assert_same_source_identity(source, json.loads((SOURCE_PATH.parent / 'fire85-source-identity.json').read_text(encoding='utf-8')))
     assert [(m['UnitId'], m['IconUnitId']) for m in source['Members']] == [
         (129701,129731),(116701,116731),(134701,134731),(135501,135531),(104701,104761)]
     p = candidate(31, STAGE)
