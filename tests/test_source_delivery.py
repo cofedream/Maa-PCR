@@ -107,6 +107,7 @@ class SourceDeliveryTests(unittest.TestCase):
                       'delivery/runtime-downloads.json', 'delivery/acceptance.json',
                       'delivery/baselines/r38-package-manifest.json',
                       'delivery/baselines/r46-package-manifest.json', 'delivery/baselines/r49-package-manifest.json', 'delivery/baselines/r50-package-manifest.json', 'delivery/baselines/r51-package-manifest.json', 'delivery/baselines/r52-package-manifest.json', 'delivery/baselines/r53-package-manifest.json', 'delivery/baselines/r55-package-manifest.json', 'delivery/baselines/r56-package-manifest.json', 'delivery/baselines/r57-package-manifest.json', 'delivery/baselines/r58-package-manifest.json', 'delivery/baselines/r59-package-manifest.json', 'delivery/baselines/r60-package-manifest.json', 'delivery/baselines/r61-package-manifest.json', 'src/pcr_maa/labyrinth/example.py',
+                      'delivery/baselines/r64-package-manifest.json',
                       'vendor/autopcr_sync/example.py', 'assets/labyrinth/icons/icon.png',
                       'assets/resource/image/labyrinth/scene/home_level.png',
                       'third_party/materials/LICENSE', '.github/workflows/ci.yml',
