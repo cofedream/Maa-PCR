@@ -724,6 +724,15 @@
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
+      "key": "node.boss.platform.active",
+      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_platform.png",
+      "source_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",
+      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_platform_active.png",
+      "local_sha256": "5b2f4e498acfe011776ad0a7f5d25bee4d676fa321e7caf32fa2c776d552dbc5",
+      "transform": "tight crop from an actual live 1280x720 game frame; unlocked active 首领 state; reward icons removed; upstream art reference kept",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
       "key": "node.clear",
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_clear.png",
       "source_sha256": "22c06807f180a21b8d4af541c98ec3d5e62ad570a89743bda4be2880b2d087eb",

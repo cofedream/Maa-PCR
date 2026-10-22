@@ -1,4 +1,5 @@
-"""Boss platform anchor: final_boss uses the tight icon-free 720p platform."""
+"""Boss platform anchors: final_boss uses the tight icon-free 720p platform in
+both the locked (grey-blue) and the unlocked (magenta-glowing) state."""
 import shutil
 import sys
 from pathlib import Path
@@ -11,6 +12,8 @@ sys.path.insert(0, str(ROOT / 'src'))
 from pcr_maa.labyrinth.autoplay import NodePixels
 
 NODE = ROOT / 'assets/resource/image/labyrinth/node'
+BOSS_TEMPLATES = ('node_boss_platform.png', 'node_boss_platform_active.png',
+                  'node_boss_platform_reward.png')
 
 
 def read(name):
@@ -56,6 +59,31 @@ def test_platform_is_also_collected_as_block_type_8():
     assert rows[0]['block_type'] == 8 and rows[0]['template'] == 'node_boss_platform.png'
 
 
+def test_active_anchor_locates_unlocked_boss_platform():
+    rgb, mask = read('node_boss_platform_active.png')
+    frame = blank()
+    paste(frame, rgb, mask, 900, 360)
+    pixels = NodePixels()
+    assert pixels.boss_anchor_active is not None
+    result = pixels.final_boss(frame)
+    assert len(result) == 1 and len(result[0]) == 1
+    row = result[0][0]
+    assert row['box'] == [900, 360, 203, 141]
+    assert row['block_type'] == 8 and row['active'] is True
+    assert row['template'] == 'node_boss_platform_active.png'
+    assert row['score'] >= .99 and row['color_score'] >= .95
+
+
+def test_active_platform_is_collected_as_block_type_8():
+    rgb, mask = read('node_boss_platform_active.png')
+    frame = blank()
+    paste(frame, rgb, mask, 900, 360)
+    rows = [node for column in NodePixels().collect(frame) for node in column]
+    assert len(rows) == 1
+    assert rows[0]['block_type'] == 8
+    assert rows[0]['template'] == 'node_boss_platform_active.png'
+
+
 def test_two_platforms_are_rejected_as_ambiguous():
     rgb, mask = read('node_boss_platform.png')
     frame = blank()
@@ -64,17 +92,50 @@ def test_two_platforms_are_rejected_as_ambiguous():
     assert NodePixels().final_boss(frame) == []
 
 
+def test_locked_and_unlocked_platforms_are_rejected_as_ambiguous():
+    locked_rgb, locked_mask = read('node_boss_platform.png')
+    active_rgb, active_mask = read('node_boss_platform_active.png')
+    frame = blank()
+    paste(frame, locked_rgb, locked_mask, 200, 360)
+    paste(frame, active_rgb, active_mask, 900, 360)
+    assert NodePixels().final_boss(frame) == []
+
+
 def test_no_platform_returns_nothing():
     assert NodePixels().final_boss(blank()) == []
 
 
-def test_missing_anchor_disables_final_boss(tmp_path):
+def test_missing_anchors_disable_final_boss(tmp_path):
     destination = tmp_path / 'node'
     destination.mkdir()
     for path in NODE.glob('node_*.png'):
-        if path.name in ('node_boss_platform.png', 'node_boss_platform_reward.png'):
+        if path.name in BOSS_TEMPLATES:
             continue
         shutil.copy2(path, destination / path.name)
     pixels = NodePixels(destination)
-    assert pixels.boss_anchor is None and pixels.boss_check is None
+    assert pixels.boss_anchor is None and pixels.boss_anchor_active is None
+    assert pixels.boss_check is None
     assert pixels.final_boss(blank()) == []
+    active_rgb, active_mask = read('node_boss_platform_active.png')
+    frame = blank()
+    paste(frame, active_rgb, active_mask, 900, 360)
+    assert pixels.final_boss(frame) == []
+
+
+def test_missing_active_anchor_keeps_locked_detection(tmp_path):
+    destination = tmp_path / 'node'
+    destination.mkdir()
+    for path in NODE.glob('node_*.png'):
+        if path.name == 'node_boss_platform_active.png':
+            continue
+        shutil.copy2(path, destination / path.name)
+    pixels = NodePixels(destination)
+    assert pixels.boss_anchor is not None and pixels.boss_anchor_active is None
+    locked_rgb, locked_mask = read('node_boss_platform.png')
+    frame = blank()
+    paste(frame, locked_rgb, locked_mask, 900, 360)
+    assert len(pixels.final_boss(frame)) == 1
+    active_rgb, active_mask = read('node_boss_platform_active.png')
+    frame = blank()
+    paste(frame, active_rgb, active_mask, 900, 360)
+    assert pixels.final_boss(frame) == []

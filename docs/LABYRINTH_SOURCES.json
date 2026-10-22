@@ -365,7 +365,7 @@
           "sha256": "9f65df1a08613f39e93f8d6c707b4a0533db39df596623b686999a2933dff6cc"
         }
       ],
-      "local_sha256": "77ad1f2d493ae243661f987d82a0d32a9d2fde068e659e16861bf8966e9230ae",
+      "local_sha256": "e5a73df8d1547c8ccc8d6f5c8b0e13db729553e0d03a7d561b8e90f8d5224ae5",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true,
       "upstream_updates": [
@@ -854,7 +854,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-10-21T15:24:48.692927+00:00",
+  "updated_at": "2026-10-22T13:39:00.027218+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -6545,13 +6545,13 @@
     {
       "local_root": "assets/resource/image/labyrinth",
       "kind": "full-public-scene-and-node-template-pack",
-      "file_count": 97,
-      "image_count": 95,
-      "inventory_sha256": "d9fa678842d78f20409c2a216f22a16eb4ff7fd7547ae6020418a1ac4c9b9631",
+      "file_count": 98,
+      "image_count": 96,
+      "inventory_sha256": "034f258b4f7bc4166ac285d55e59df77a4353fce73ab3ba0b9e8942959cb3f95",
       "inventory_sha256_format": "sorted local path TAB local_sha256 LF, UTF-8",
       "provenance": {
         "local": "assets/resource/image/labyrinth/SOURCE_NOTICE.json",
-        "sha256": "96f6966da24b9927118ebac16ace83608872921fbcf5bf5e88f02010b9366756"
+        "sha256": "c20de12bec8908bf141310ea45e60ff923d8ebb3baaa4e16b35fef840c3212e5"
       },
       "source_code_license": "CC-BY-NC-SA-4.0 for adapted own contributions",
       "image_rights": "Third-party imagery retains respective rights. Attribution does not establish distribution permission. See upstream THIRD_PARTY_NOTICES.md.",
@@ -7198,6 +7198,14 @@
           "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
         },
         {
+          "local": "assets/resource/image/labyrinth/node/node_boss_platform_active.png",
+          "local_sha256": "5b2f4e498acfe011776ad0a7f5d25bee4d676fa321e7caf32fa2c776d552dbc5",
+          "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_boss_platform.png",
+          "upstream_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",
+          "transform": "tight crop from an actual live 1280x720 game frame; unlocked active 首领 state; reward icons removed; upstream art reference kept",
+          "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+        },
+        {
           "local": "assets/resource/image/labyrinth/node/node_clear.png",
           "local_sha256": "d9c2029034c084b06eebf6da13fb3c59a95f4627cbe083280a1b879b5fe09fbc",
           "upstream": "android/app/src/main/assets/resource-packs/cn-bilibili/vision/node_clear.png",
@@ -7335,7 +7343,7 @@
         },
         {
           "local": "assets/resource/image/labyrinth/SOURCE_NOTICE.json",
-          "local_sha256": "96f6966da24b9927118ebac16ace83608872921fbcf5bf5e88f02010b9366756",
+          "local_sha256": "c20de12bec8908bf141310ea45e60ff923d8ebb3baaa4e16b35fef840c3212e5",
           "kind": "derived-template-mapping-and-source-notice"
         }
       ]
@@ -7416,7 +7424,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/autoplay.py",
-      "local_sha256": "77ad1f2d493ae243661f987d82a0d32a9d2fde068e659e16861bf8966e9230ae",
+      "local_sha256": "e5a73df8d1547c8ccc8d6f5c8b0e13db729553e0d03a7d561b8e90f8d5224ae5",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
