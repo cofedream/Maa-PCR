@@ -1,15 +1,180 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 65,
   "expected_version": "v0.1.18",
+  "verified_at_utc": "2026-10-22T17:14:52.056670+00:00",
   "base_release_manifest_sha256": "05cb9d27d89f860abaa8965003602eee574aa15e8c454bae3d01dbc68a0298ad",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
+  "accepted_owned_payload_sha256": "1c61ffdc16a54342ef56578a0820bc3f61c8e2ea180ebbba67762a1d1901a25e",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 39814424241,
+    "run_attempt": 1,
+    "artifact_id": 12444145450,
+    "source_commit": "619c5b07e39a317b08ffac959c643120437e0489",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.18-win-x64.zip",
+      "size": 310560510,
+      "sha256": "a13264ba6ae10e89ffeff7da8db87a206b7891a67a582ae9719d9e936fbba124"
+    }
+  },
+  "accepted_staging_manifest_sha256": "06ba63136894ff0c3c472554a714e68c56ec00d15eb572ed6e806addd6810f6b",
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 4832,
+    "skipped": 393,
+    "failed": 0,
+    "errors": 0
+  },
+  "bundled_runtime_tests_passed": 3,
+  "local_public_tests": {
+    "passed": 4809,
+    "skipped": 397,
+    "deselected": 159,
+    "subtests_passed": 54,
+    "exit_code": 0,
+    "evidence": "../log-diagnosis-20261022-220654/public-py313-extended-summary.json",
+    "source_fix_byte_identical": true
+  },
+  "confirmation_budget_regressions": 13,
+  "gui_core_sha256": "c80806f7fe84ca839d726010971a28038410a09293ddf88638486bfc0c63d857",
+  "packaged_gui_assertions": {
+    "update": {
+      "app path initialization": 4,
+      "GUI update": 65,
+      "GUI dependency": 52
+    },
+    "update-controls": {
+      "update control": 9
+    },
+    "credentials": {
+      "credential": 105
+    },
+    "profile": {
+      "clan guide": 68,
+      "guide review": 84,
+      "guide data": 126,
+      "guide draft": 45,
+      "capture performance": 26,
+      "channel config": 99,
+      "log export/retention": 166,
+      "alpha owner": 45,
+      "Agent profile": 22,
+      "Agent shutdown": 56,
+      "module drag behavior": 116,
+      "alpha async": 509,
+      "live view": 44,
+      "preview connection": 118,
+      "run feedback": 15,
+      "profile switch": 275
+    },
+    "profile-registration-only": {
+      "profile registration": 48
+    },
+    "clan-daily-only": {
+      "clan daily plan": 53
+    },
+    "clan-workflow-only": {
+      "clan workflow": 56
+    },
+    "clan-formal-only": {
+      "clan workflow": 56,
+      "clan formal configuration": 61
+    },
+    "clan-postsave-only": {
+      "clan workflow": 56,
+      "clan post-save ACL": 13
+    }
+  },
+  "gui_counted_assertions": 2392,
+  "local_packaged_gui_groups_passed": 7,
+  "current_main_ci_gui_modes_reused": [
+    "clan-formal-only",
+    "clan-postsave-only"
+  ],
+  "local_gui_fixture_limit": "One local ACL fault fixture cannot add a deny rule to its inherited noncanonical ACL; exact-Core main CI formal/post-save modes pass. Local failure retained, not counted as passing.",
+  "gui_evidence_reused_by_exact_binary_identity": false,
+  "gui_and_runtime_unchanged_files": 2396,
+  "changed_gui_binary_files": [
+    "MFAAvalonia.dll",
+    "MFAAvalonia.exe",
+    "libs/ColorDocument.Avalonia.dll",
+    "libs/ColorTextBlock.Avalonia.dll",
+    "libs/MFAAvalonia.Core.dll",
+    "libs/Markdown.Avalonia.Full.dll",
+    "libs/Markdown.Avalonia.Html.dll",
+    "libs/Markdown.Avalonia.Math.dll",
+    "libs/Markdown.Avalonia.Svg.dll",
+    "libs/Markdown.Avalonia.SyntaxHigh.dll",
+    "libs/Markdown.Avalonia.dll",
+    "libs/SukiUI.dll",
+    "libs/locales/en-US/MFAAvalonia.Core.resources.dll",
+    "libs/locales/ja-JP/MFAAvalonia.Core.resources.dll",
+    "libs/locales/zh-Hant/MFAAvalonia.Core.resources.dll"
+  ],
+  "isolated_update_routes": [
+    {
+      "base_revision": 64,
+      "archive_kind": "delta",
+      "preserved_synthetic_files": 10
+    },
+    {
+      "base_revision": 64,
+      "archive_kind": "full",
+      "preserved_synthetic_files": 10
+    }
+  ],
+  "source_alignment": {
+    "schema_version": 1,
+    "passed": true,
+    "verified_at": "2026-10-22T17:14:51.991100+00:00",
+    "revision": 65,
+    "source_inventory_sha256": "7013a0fcdbeb0fc2538de74e9b1caf2036ebe561eb4506b328bc7bcfdcbdbd18",
+    "source_payload_count": 2535,
+    "source_payload_bytes": 133615899,
+    "staged_player_manifest_sha256": "06ba63136894ff0c3c472554a714e68c56ec00d15eb572ed6e806addd6810f6b",
+    "owned_program_source_alignment_count": 1388,
+    "gui_build_input_source_alignment_count": 911,
+    "sealed_runtime_manifest_snapshot_present_and_matching": true,
+    "source_privacy_and_extra_file_checks_passed": true,
+    "no_archive_or_publication_performed": true,
+    "scope": "owned source bytes, exact public inventory and optional sealed runtime manifest",
+    "deterministic_dependency_rebuild_claimed": false,
+    "formal_legal_opinion": false
+  },
+  "local_installation_updated": false,
+  "device_connected": false,
+  "game_task_started": false,
+  "evidence_sha256": {
+    "SOURCE_COMMIT.json": "0cdb2a666d4ef899e1c11fc9b3b5f6992a59bf67286bb35d955e86ac4005686f",
+    "SOURCE_REVIEW.json": "4f839a84466d303fbb2ae4e77541bec133950d07c9b166f9184ea59f0a812089",
+    "CI_BINDING.json": "76f6adc07cc1255e243340bf58f18f8955c5c011771163133d2b9e69f911a9f1",
+    "metadata/run.json": "1f8c43f2e305810c6ce47f7e0f61c500fab473fc4b2aca07ab16b44d1b68b27e",
+    "metadata/artifact.json": "e3bf75a99d6ab56e277436ca86c5e8460f87be687c6fa1e221b2ac1711a3816b",
+    "metadata/jobs.json": "4a345ffdfb4ed9fed69120c1c8c4b54a3e92e4e0a301eabd1afd9f0d3734f383",
+    "BASELINE_VERIFIED.json": "ce5b151bba5c4fec781bfe6c5b8867b9fbade9d6619401e6ce6bf5ba35fc3c11",
+    "package-checks-serial/PACKAGE_VERIFIED.json": "bc8629a3d50b49c9725df491f4a4cd9d989eb01cccce6904a72e8b545864d057",
+    "GUI_VERIFIED.json": "4341bc7f9d5aa4eff3971850b3e2170b13a8d19a87b6224c3264305561a11d9d",
+    "packaged-gui/RESULT.json": "63c6e14af4d4cca277da7211c2763ac1dd871770df7bd0268aa6cb508024ccba",
+    "ci-artifact/public-tests.xml": "44cbb4ff9465eecc6f008dc7c1d94e029314bd304aa262ec52e9ca46ea4cd06b",
+    "ci-artifact/bundled-runtime.xml": "f8291231c53cd522cfdcd167c9bff4310b080b9c4daeabe8fa32c3e7135c0224",
+    "release-metadata/result.json": "6a776596eef93f49f05371678d875a624577fe9e834dc5d17d0c4855679bd44d",
+    "source-baseline-red/result.json": "b92473d0f1c750d7a912ceaa508382b9ac88e21fc60d12e602e169e50e180636",
+    "source-baseline-green/result.json": "c76fcbb41b2a940d9ec5e85c5d2eca4e4e3e2684b9a382627dfce5c91e92fccd",
+    "CI39810239608_FAILED.json": "3545be684e2ed9efc73dcbede0c8434feed4de6c0aecea3a5bd85997c6f50fff",
+    "ci-fixture-green/result.json": "ced29c9a931224841c6057e73192496f48ce9380248159983cef316a726d3ea9",
+    "SCORE_BACKENDS_VERIFIED.json": "a3fdb5d6695e4e805912146b541bc41c2b8bd10f2cb111df29c0667788ee4d5f",
+    "score-backends-native/result.json": "79ef35403ed463b0af8432c33566ef225287c04abf8705c8d5e8cb0b991fb945",
+    "package-checks-native/result.json": "7fccfd583719f458f7f5c2ecbb19b4d274f73c331df24ba92faed1ce35194b12",
+    "package-checks-serial-native/result.json": "f52039033a7fafca982fb0e66984ce040131dfeb42d321f18bc3b843c9e39986"
+  },
   "limits": [
-    "R65 must bind the new exact successful main CI payload and isolated update checks before promotion.",
-    "No real installation, account, device or game acceptance."
+    "Offline source/native fixtures, exact CI package and isolated synthetic updates only; no real installation, account, device or game acceptance.",
+    "Seven local exact-Core GUI contract groups exit zero. Formal/post-save ACL results reuse the successful current main CI with the same Core hash; local fixture-construction failure is retained. Three bundled-runtime checks pass. Prior layout images are historical R64 evidence; no new manual GUI or render claim.",
+    "The separate login-after-title timeout lacks a saved frame and remains undiagnosed.",
+    "Clan simulation/calibration, formal and compensation execution remain unavailable as in R64."
   ]
 }
