@@ -15,6 +15,8 @@ internal static class GuideOpeningChecks
     public static void Run(string sourceRoot,string directory)
     {
         var root=Path.Combine(directory,"guide-opening"); Directory.CreateDirectory(root);
+        // Imported source icons use the Owner repository, independent of the process working directory.
+        PcrAlphaOwner.Install(sourceRoot,Path.Combine(root,"isolated-owner.json"));
         var count=0; var now=DateTimeOffset.Now; var date=now.ToString("yyyy-MM-dd"); var plans=new JArray();
         void Check(bool value,string name) { if(!value)throw new Exception("opening_"+name);count++; }
         void Reject(Action action,string name) { try { action(); } catch { count++;return; } throw new Exception("opening_expected_rejection_"+name); }
