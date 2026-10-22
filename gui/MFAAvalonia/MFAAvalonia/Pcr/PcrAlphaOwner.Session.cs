@@ -31,6 +31,7 @@ public static partial class PcrAlphaOwner
         public readonly MaaProcessor Processor = processor;
         public readonly JObject Selection = (JObject)selection.DeepClone();
         public readonly ValidatedConfig Config = config;
+        public Action<string>? ReportSummary { get; init; }
         public string? SelectedConfigPath { get; init; }
         public string? ConfigFileHash { get; init; }
         public bool PreparationOnly { get; init; }
@@ -214,7 +215,11 @@ public static partial class PcrAlphaOwner
                                 ? process.SendGrant(reply.ToString(Formatting.None))
                                 : process.Send(reply.ToString(Formatting.None)));
                         }
-                        else if (line.StartsWith("info:") || line.StartsWith("error:") || line.StartsWith("warning:")) request.Output(line);
+                        else if (line.StartsWith("info:") || line.StartsWith("error:") || line.StartsWith("warning:"))
+                        {
+                            request.Output(line);
+                            owner.ReportSummary?.Invoke(line);
+                        }
                     }
                 }
                 catch (Exception ex) { request.Output("error: PCR owner channel: " + ex.GetType().Name); }

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 
 namespace MFAAvalonia.Helper;
 
@@ -57,9 +56,9 @@ public static class AppPaths
         Directory.CreateDirectory(TempDirectory);
         Directory.CreateDirectory(BackupDirectory);
 
-        LogInitializationStatus();
-
+        // Logging reads configuration, which can re-enter Initialize.
         _initialized = true;
+        LogInitializationStatus();
     }
 
     private static string ResolveConfigDirectory()
@@ -116,11 +115,7 @@ public static class AppPaths
             LoggerHelper.Info($"是否使用本地配置目录：{IsUsingLocalConfigDirectory}");
             LoggerHelper.Info($"日志目录：{LogsDirectory}");
 
-            var backupCount = Directory.Exists(DataRoot)
-                ? Directory.EnumerateFiles(DataRoot, "*.backupMFA", SearchOption.AllDirectories).Count()
-                : 0;
             var tempDirExists = Directory.Exists(TempDirectory);
-            LoggerHelper.Info($"备份文件数量：{backupCount}");
             LoggerHelper.Info($"临时目录是否存在：{tempDirExists}");
         }
         catch

@@ -62,6 +62,7 @@ try
     var decodedProbe = ProtectedData.Unprotect(protectedProbe, null, DataProtectionScope.CurrentUser);
     try { Require(probe.SequenceEqual(decodedProbe), "windows_current_user_dpapi_available"); }
     finally { CryptographicOperations.ZeroMemory(probe); CryptographicOperations.ZeroMemory(decodedProbe); }
+    SettingsUxChecks.Run(args[1], root, Owner, Require);
     var settings = new PcrLabyrinthSettings(firstOwner);
     Require(!settings.KeepOldRun, "keep_old_run_defaults_off_for_old_and_new_config");
     settings.KeepOldRun = true;
@@ -147,7 +148,7 @@ try
     Dispatcher.UIThread.RunJobs();
     Require(keepToggle.IsChecked == false, "real_switch_model_update_restores_off: " + keepToggle.IsChecked);
     Require(!Reload().KeepOldRun, "real_switch_restart_restores_off: " + liveOwner.LabyrinthSettings.Status);
-    Require(liveOwner.LabyrinthSettings.Status == "黎明界设置已保存。", "real_switch_persistence_verified_at_actual_profile_path");
+    Require(liveOwner.LabyrinthSettings.Status == "已自动保存黎明界设置。", "real_switch_persistence_verified_at_actual_profile_path");
     var liveInputs = liveView.GetLogicalDescendants().OfType<TextBox>()
         .Where(input => new[] { player, username, password }.Contains(input.Text)).ToArray();
     Require(liveInputs.Length == 3 && liveInputs.All(input => input.PasswordChar == '*'),

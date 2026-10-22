@@ -1,6 +1,8 @@
 """Keep portable-runtime probes ahead of release sealing without running a build."""
 from pathlib import Path
 import re
+import subprocess
+import sys
 
 import pytest
 
@@ -14,6 +16,17 @@ PROBES = {
 EXIT_CHECK = 'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'
 
 
+@pytest.mark.parametrize('arguments', [
+    ['-c', 'from scripts import build_release; assert "docs/GUIDE_CHECK.md" in build_release.LOCAL_ONLY_FILES'],
+    ['scripts/build_release.py', '--help'],
+    ['-m', 'scripts.build_release', '--help'],
+], ids=['package-import', 'script-help', 'package-help'])
+def test_release_builder_imports_in_a_fresh_process(arguments):
+    completed = subprocess.run([sys.executable, '-E', '-X', 'utf8', '-B', *arguments],
+        cwd=ROOT, capture_output=True, text=True, encoding='utf-8', timeout=30)
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
 def test_token_check_is_manual_read_only_and_never_publishes():
     text = (ROOT / '.github/workflows/release-token-check.yml').read_text(encoding='utf-8')
     assert '\non: workflow_dispatch\n' in text
@@ -22,6 +35,30 @@ def test_token_check_is_manual_read_only_and_never_publishes():
     assert 'p.fetch_metadata(' in text and "str(exc) != 'accepted_source_changed'" in text
     assert 'tests/test_release_promotion.py tests/test_runtime_workflows.py' in text
     assert 'write' not in text and 'gh release' not in text and 'build_release.py' not in text
+
+
+def test_ci_runs_all_profile_contract_modes_from_one_build_with_bounded_evidence():
+    text = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
+    steps = {part.splitlines()[0].removeprefix('name: '): part
+             for part in text.split('\n      - ') if part.startswith('name: ')}
+    checks = steps['Labyrinth GUI Contract Checks']
+    modes = re.search(r"foreach \(\$mode in @\(([^\n]+)\)\)", checks)
+    assert modes is not None
+    assert re.findall(r"'([^']+)'", modes[1]) == [
+        'default', 'clan-daily-only', 'clan-workflow-only', 'clan-formal-only',
+        'clan-postsave-only', 'profile-registration-only']
+    assert checks.count('dotnet build gui/MFAAvalonia/PcrProfileSwitch.Tests/') == 1
+    assert 'dotnet run --project gui/MFAAvalonia/PcrProfileSwitch.Tests/' not in checks
+    assert checks.index('dotnet build ') < checks.index('foreach ($mode ')
+    assert 'PcrProfileSwitch.Tests/bin/x64/Release/net10.0' in checks
+    assert '"fixtures/$mode"' in checks and '$arguments += "--$mode"' in checks
+    assert '-WorkingDirectory $binary -WindowStyle Hidden -PassThru' in checks
+    assert '"$mode.log"' in checks and '"$mode.stderr.log"' in checks
+    assert '$check.WaitForExit(600000)' in checks and '$check.Kill($true)' in checks
+    assert re.search(r'WaitForExit\(600000\)[^\n]*\n\s+if \(\$check.ExitCode -ne 0\)', checks)
+    assert checks.count('Get-FileHash -Algorithm SHA256') == 2
+    assert '"$mode.core.sha256"' in checks
+    assert '.runtime/ci/profile-checks/' in steps['Publish Build Evidence']
 
 
 @pytest.mark.parametrize('name,folder,evidence,candidate_step', [
@@ -61,7 +98,7 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
             '.runtime/ci/build/Maa-PCR-*-source.zip',
             '.runtime/ci/build/Maa-PCR-R*-to-R*.patch.zip',
         }
-    assert '--base-manifest delivery/baselines/r60-package-manifest.json' in text
+    assert '--base-manifest delivery/baselines/r61-package-manifest.json' in text
 
 
 def test_release_promotes_only_the_exact_reviewed_ci_artifact_without_rebuilding():

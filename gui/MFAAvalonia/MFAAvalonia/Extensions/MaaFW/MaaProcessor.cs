@@ -4078,9 +4078,26 @@ public class MaaProcessor
         var taskParams = SerializeTaskParams(taskModels);
         if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled && task.InterfaceItem?.Entry == "PCRAlphaEntry")
         {
-            var selectedModules = task.InterfaceItem.Option?.SingleOrDefault(option => option.Name == "AlphaModules")?.SelectedCases
-                ?? Interface?.Option?.GetValueOrDefault("AlphaModules")?.DefaultCases ?? new List<string>();
-            taskParams = MFAAvalonia.Pcr.PcrModuleOrderList.ApplySelectionOrder(task.InterfaceItem.Entry, taskParams, selectedModules);
+            if (InstanceId == MFAAvalonia.Pcr.PcrClanGuide.ProfileId)
+            {
+                // Agent execution mode is independent of daily checkboxes; formal input remains gated.
+                var formalDaily = MFAAvalonia.Pcr.PcrClanDailyExecution.ModeFor(MFAAvalonia.Helper.AppPaths.ConfigDirectory) == MFAAvalonia.Pcr.PcrClanDailyExecution.FormalDaily;
+                var selection = new JObject();
+                foreach (var node in new[] { "Schedule", "Event", "Abyss", "Deep", "Rewards", "VeryHard", "Hard", "Normal", "GuideTrial", "ClanBattleSimulation", "ClanBattleDaily", "RewardsFinal" })
+                    selection["PCRAlphaSelect" + node] = new JObject { ["attach"] = new JObject { ["selected"] = node == (formalDaily ? "ClanBattleDaily" : "ClanBattleSimulation") } };
+                selection["PCRAlphaEntry"] = new JObject { ["custom_action_param"] = new JObject {
+                    ["selection_mode"] = "pi_nodes_v1", ["selected_modules"] = new JArray(formalDaily ? "clan_battle_daily" : "clan_battle_simulation") } };
+                var original = JToken.Parse(taskParams);
+                var layers = original as JArray ?? new JArray(original);
+                layers.Add(selection);
+                taskParams = layers.ToString(Formatting.None);
+            }
+            else
+            {
+                var selectedModules = task.InterfaceItem.Option?.SingleOrDefault(option => option.Name == "AlphaModules")?.SelectedCases
+                    ?? Interface?.Option?.GetValueOrDefault("AlphaModules")?.DefaultCases ?? new List<string>();
+                taskParams = MFAAvalonia.Pcr.PcrModuleOrderList.ApplySelectionOrder(task.InterfaceItem.Entry, taskParams, selectedModules);
+            }
         }
         // var settings = new JsonSerializerSettings
         // {
@@ -4098,7 +4115,8 @@ public class MaaProcessor
             Index = index,
             Name = task.Name,
             Entry = task.InterfaceItem?.Entry,
-            Count = task.InterfaceItem?.Repeatable == true ? (task.InterfaceItem?.RepeatCount ?? 1) : 1,
+            Count = InstanceId == MFAAvalonia.Pcr.PcrClanGuide.ProfileId ? 1
+                : task.InterfaceItem?.Repeatable == true ? (task.InterfaceItem?.RepeatCount ?? 1) : 1,
             // Tasks = tasks,
             Param = taskParams,
             SourceItem = task,

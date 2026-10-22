@@ -427,7 +427,8 @@ class NodePixels:
                     activation=np.zeros_like(purple);activation[:,:side]=True;activation[:,-side:]=True;activation[lower:]=True
                     # Upstream purple score samples activation rails/platform,
                     # not the animated monster and background inside the body.
-                    ex_fallback=(float(np.mean(purple[activation]))>=.08
+                    # Sparse purple rails still require the independent monster/platform checks.
+                    ex_fallback=(float(np.mean(purple[activation]))>=.06
                         and float(np.mean((cr>=140)&(cb>=90)&(cr-cg>=45)&(cb-cg>=10)))>=.15
                         and float(np.mean((lr>=140)&(lb>=90)&(lr-lg>=45)&(lb-lg>=10)))>=.25
                         and float(np.mean((cr>=100)&(cr-cg>=30)&(cr-cb>=10)))>=.10

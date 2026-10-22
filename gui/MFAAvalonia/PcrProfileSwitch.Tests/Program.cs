@@ -18,16 +18,39 @@ using MFAAvalonia.ViewModels.Pages;
 
 try
 {
-if (args.Length != 3)
-    throw new ArgumentException("Usage: PcrProfileSwitch.Tests <source-root> <isolated-fixture-directory> <development-python>");
+Console.OutputEncoding = System.Text.Encoding.UTF8;
+if (args.Length != 3 && !(args.Length == 4 && args[3] is "--guide-only" or "--guide-owner" or "--clan-only" or "--clan-daily-only" or "--clan-workflow-only" or "--clan-workflow-window" or "--clan-package-fixture" or "--clan-formal-only" or "--clan-postsave-only" or "--profile-registration-only"))
+    throw new ArgumentException("Usage: PcrProfileSwitch.Tests <source-root> <isolated-fixture-directory> <development-python> [--guide-only|--guide-owner|--clan-only|--clan-daily-only|--clan-workflow-only|--clan-workflow-window|--clan-package-fixture|--clan-formal-only|--clan-postsave-only|--profile-registration-only]");
 // Initialize rendering services for log themes without creating a window or the product App.
 AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
+Application.Current!.Styles.Add(new Avalonia.Themes.Fluent.FluentTheme());
 Application.Current!.Styles.Add(new SukiUI.SukiTheme());
+if (args.Length == 4 && args[3] == "--clan-package-fixture") { ClanWorkflowChecks.SeedPackage(args[0], args[1]); return 0; }
+if (args.Length == 4 && args[3] == "--clan-formal-only") { ClanFormalChecks.Run(args[0], args[1]); return 0; }
+if (args.Length == 4 && args[3] == "--clan-postsave-only") { ClanPostSaveFailureChecks.Run(args[0], args[1]); return 0; }
+if (args.Length == 4 && args[3] == "--clan-workflow-only") { ClanWorkflowChecks.Run(args[0], args[1]); return 0; }
+if (args.Length == 4 && args[3] == "--clan-workflow-window") { ClanWorkflowChecks.ShowWindow(args[0], args[1]); return 0; }
+if (args.Length == 4 && args[3] == "--clan-daily-only") { ClanDailyPlanChecks.Run(args[0], args[1]); return 0; }
+if (args.Length == 4 && args[3] == "--profile-registration-only") { AgentProfileRegistrationChecks.Run(args[1]); return 0; }
+ClanUiFlowChecks.Run(args[1]);
+ClanGuideChecks.Run(args[1]);
+if (args.Length == 4 && args[3] == "--clan-only") return 0;
+GuideReviewChecks.Run(args[1]);
+GuideDataChecks.Run(args[0], args[1]);
+GuideDraftChecks.Run(args[1]);
+GuideAccountChecks.Run(args[1]);
+GuideOpeningChecks.Run(args[0], args[1]);
+GuideMinimumChecks.Run(args[1]);
+GuideSourceChecks.Run(args[0], args[1]);
+GuideProgressChecks.Run(args[0], args[1], args[2]);
+if (args.Length == 4 && args[3] == "--guide-only") return 0;
+var guideOwnerOnly = args.Length == 4 && args[3] == "--guide-owner";
 // Exercise the real selector and Owner using isolated fixtures without allocating
 // a controller or reading the player's installed settings.
 var viewModel = (InstanceTabBarViewModel)RuntimeHelpers.GetUninitializedObject(typeof(InstanceTabBarViewModel));
 var labyrinth = (InstanceTabViewModel)RuntimeHelpers.GetUninitializedObject(typeof(InstanceTabViewModel));
 var daily = (InstanceTabViewModel)RuntimeHelpers.GetUninitializedObject(typeof(InstanceTabViewModel));
+var agent = (InstanceTabViewModel)RuntimeHelpers.GetUninitializedObject(typeof(InstanceTabViewModel));
 var type = typeof(InstanceTabBarViewModel);
 var active = type.GetField("_activeTab", BindingFlags.Instance | BindingFlags.NonPublic)!;
 var gate = type.Assembly.GetType("MFAAvalonia.Pcr.PcrProfileRunGate", true)!;
@@ -54,7 +77,7 @@ taskType.GetField("_liveViewTimer", BindingFlags.Instance | BindingFlags.NonPubl
 taskType.GetField("_liveViewRefreshRate", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(taskViewModel, 30.0);
 var viewModels = new Dictionary<string, TaskQueueViewModel> { [processor.InstanceId] = taskViewModel };
 managerType.GetField("_viewModels", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(manager, viewModels);
-foreach (var tab in new[] { labyrinth, daily })
+foreach (var tab in new[] { labyrinth, daily, agent })
 {
     var id = "switch-fixture-" + Guid.NewGuid().ToString("N");
     typeof(InstanceTabViewModel).GetField("Processor")!.SetValue(tab, processor);
@@ -72,7 +95,7 @@ viewModel.PropertyChanged += (_, e) =>
 };
 try
 {
-    var tabs = new InstanceTabsControl { ItemsSource = new[] { labyrinth, daily }, DataContext = viewModel };
+    var tabs = new InstanceTabsControl { ItemsSource = new[] { labyrinth, daily, agent }, DataContext = viewModel };
     using var tabBinding = tabs.Bind(SelectingItemsControl.SelectedItemProperty, new Binding(nameof(InstanceTabBarViewModel.ActiveTab)) { Mode = BindingMode.TwoWay });
     using var tabEnabledBinding = tabs.Bind(Control.IsEnabledProperty, new Binding("ActiveTab.TaskQueueViewModel.CanEditPcrTarget"));
     var dropdown = new Button { DataContext = viewModel };
@@ -83,7 +106,7 @@ try
     typeof(SettingsViewModel).GetField("_currentConfiguration", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(settings, labyrinth);
     var settingsHandler = (PropertyChangedEventHandler)typeof(SettingsViewModel).GetMethod("OnInstanceTabBarViewModelPropertyChanged", BindingFlags.Instance | BindingFlags.NonPublic)!.CreateDelegate(typeof(PropertyChangedEventHandler), settings);
     viewModel.PropertyChanged += settingsHandler;
-    var settingsSelector = new ComboBox { ItemsSource = new[] { labyrinth, daily }, DataContext = settings };
+    var settingsSelector = new ComboBox { ItemsSource = new[] { labyrinth, daily, agent }, DataContext = settings };
     using var settingsBinding = settingsSelector.Bind(ComboBox.SelectedItemProperty, new Binding(nameof(SettingsViewModel.CurrentConfiguration)) { Mode = BindingMode.TwoWay });
     using var settingsEnabledBinding = settingsSelector.Bind(Control.IsEnabledProperty, new Binding("ActiveTab.TaskQueueViewModel.CanEditPcrTarget") { Source = viewModel });
     Require(ReferenceEquals(tabs.SelectedItem, labyrinth) && ReferenceEquals(settingsSelector.SelectedItem, labyrinth), "initial_bound_selection");
@@ -93,9 +116,10 @@ try
         notify.Invoke(null, null);
         Require(!tabs.IsEnabled && !dropdown.IsEnabled && !settingsSelector.IsEnabled, boundary + "_disables_all_profile_entries");
         foreach (var surface in new SelectingItemsControl[] { tabs, settingsSelector })
+        foreach (var target in new[] { daily, agent })
         {
             notifications = 0;
-            surface.SetCurrentValue(SelectingItemsControl.SelectedItemProperty, daily);
+            surface.SetCurrentValue(SelectingItemsControl.SelectedItemProperty, target);
             Dispatcher.UIThread.RunJobs();
             Require(ReferenceEquals(viewModel.ActiveTab, labyrinth), boundary + "_retains_original_profile");
             string Selected(object? item) => ReferenceEquals(item, labyrinth) ? "labyrinth" : ReferenceEquals(item, daily) ? "daily" : "null";
@@ -136,15 +160,27 @@ try
     settingsSelector.SetCurrentValue(ComboBox.SelectedItemProperty, labyrinth);
     Dispatcher.UIThread.RunJobs();
     Require(ReferenceEquals(viewModel.ActiveTab, labyrinth) && labyrinth.IsActive && !daily.IsActive, "normal_selection_can_return_to_original");
+    tabs.SetCurrentValue(SelectingItemsControl.SelectedItemProperty, agent);
+    Dispatcher.UIThread.RunJobs();
+    Require(ReferenceEquals(viewModel.ActiveTab, agent) && agent.IsActive && !labyrinth.IsActive, "normal_selection_can_select_agent");
+    settingsSelector.SetCurrentValue(ComboBox.SelectedItemProperty, labyrinth);
+    Dispatcher.UIThread.RunJobs();
+    Require(ReferenceEquals(viewModel.ActiveTab, labyrinth) && labyrinth.IsActive && !agent.IsActive, "normal_selection_can_return_from_agent");
     Require(PcrAlphaOwner.ControllerCreations == 0 && PcrAlphaOwner.AgentCreations == 0 && PcrAlphaOwner.Grants == 0 && PcrAlphaOwner.SessionCreations == 0, "no_device_or_run_created");
-    ChannelConfigChecks.Run(args.Length > 1 ? args[1] : System.IO.Path.GetTempPath());
-    LogExportChecks.Run(args[1]);
+    if (!guideOwnerOnly) {
+        ChannelConfigChecks.Run(args.Length > 1 ? args[1] : System.IO.Path.GetTempPath());
+        LogExportChecks.Run(args[1]);
+    }
     AlphaOwnerChecks.Run();
+    AgentProfileChecks.Run(processor, taskViewModel, manager);
     AgentShutdownChecks.Run(args);
-    ModuleOrderChecks.Run(taskViewModel, args[1]);
+    if (!guideOwnerOnly) ModuleOrderChecks.Run(taskViewModel, args[1]);
     AlphaOwnerAsyncChecks.Run(processor, taskViewModel, manager, CheckBlocked, args);
-    LiveViewChecks.Run();
-    PreviewConnectionChecks.Run(manager, args[1]);
+    if (!guideOwnerOnly) {
+        LiveViewChecks.Run();
+        PreviewConnectionChecks.Run(manager, args[1]);
+        RunFeedbackChecks.Run();
+    }
     Console.WriteLine($"PCR profile switch checks passed: {count}; final ActiveTab notifications={notifications}; controller/agent/grant starts=0");
     return 0;
 }
@@ -169,7 +205,6 @@ void Require(bool value, string check)
 }
 catch (Exception error)
 {
-    var failure = error.GetBaseException();
-    Console.Error.WriteLine("PCR profile switch fixture failed: " + failure.GetType().Name + ": " + failure.Message);
+    Console.Error.WriteLine("PCR profile switch fixture failed: " + error);
     return 1;
 }

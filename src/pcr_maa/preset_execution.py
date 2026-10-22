@@ -153,6 +153,16 @@ class Journal:
     def _validate_event(event, index, previous):
         if not isinstance(event, dict) or event.get('state') not in ('in_flight', 'settled', 'historical_unknown'):
             raise ValueError('Journal malformed; parent reconciliation required')
+        guide_exited = False
+        guide_progressed = False
+        if index % 2 and event.get('recovery_scope') == 'guide_trial_external_progress':
+            from .guide_trial_progress import is_progress_history
+            guide_progressed = is_progress_history(event, previous)
+            if not guide_progressed:
+                raise ValueError('Journal sequence invalid')
+        if index % 2 and event.get('recovery_scope') == 'guide_trial_user_exit':
+            from .guide_trial import is_user_exit_history
+            guide_exited = is_user_exit_history(event, previous)
         closed_run = False
         if index % 2 and event.get('recovery_scope') == 'labyrinth_restart':
             from .labyrinth.restart import is_closed_run_history
@@ -171,7 +181,7 @@ class Journal:
         if (event['state'] != ('in_flight' if index % 2 == 0 else 'settled')
                 and not (index % 2 and event['state'] == 'historical_unknown'
                          and event.get('operation') == 'schedule_onekey')
-                and not retired_invitation and not closed_run):
+                and not retired_invitation and not closed_run and not guide_exited and not guide_progressed):
             raise ValueError('Journal sequence invalid')
 
     def _current_events(self):

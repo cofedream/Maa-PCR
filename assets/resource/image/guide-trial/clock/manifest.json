@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "evidence": "offline_local_saved_frame_digits",
+  "production_enabled": false,
+  "device_calibrated": false,
+  "normalizer": "border_components_glyph_otsu_24x24_padding2_iou",
+  "roi": [
+    1060,
+    12,
+    70,
+    45
+  ],
+  "templates": [
+    {
+      "digit": 0,
+      "sha256": "c88ca91ba18d40213ab12183507bfcf9098893e66a13e9d87f0e9f54b217f6e3",
+      "source_image_sha256": "624a1e0ef60fc15dc6b8891af1f82e6a3af7b6ec5ad1adacbdfc65ccc73314f0"
+    },
+    {
+      "digit": 1,
+      "sha256": "7d58cdd1c0421bc0efee1cf03de23f004b6b1596c479c9322501370fa5fa1b09",
+      "source_image_sha256": "dcbdcc684ff52747aa2fea4fa68289245ea667d4fe579ee943676c49b87a2f52"
+    },
+    {
+      "digit": 2,
+      "sha256": "a753d71ce8b40bfd1f507a27c097a42e87d2a0d038f306a4328a88dc146fffc1",
+      "source_image_sha256": "e8b570f7882151fa66ce8720e6ea84096be7dda9ec756a7eb78e49647219d56e"
+    },
+    {
+      "digit": 3,
+      "sha256": "b07df18b94ee16a42380ac71aea23e52dbaa1f39fe2f67facd974a789687619f",
+      "source_image_sha256": "48a223e90a799ce180b9efb6cd9208257c8436ed590e9e4b2fa00d5d016fffdb"
+    },
+    {
+      "digit": 4,
+      "sha256": "c920ba06a68c87d9728e9b215061da41fa52920fc6a4961562038dc64c9696c3",
+      "source_image_sha256": "624a1e0ef60fc15dc6b8891af1f82e6a3af7b6ec5ad1adacbdfc65ccc73314f0"
+    },
+    {
+      "digit": 5,
+      "sha256": "168fbbc95e8e2d8fe7238a55a861d4c3b0d7a67b7b346b47b8644f91d8291a01",
+      "source_image_sha256": "44ecfcf2fd883f62c7bb7251983ff0a9a74de71e91884c9422ab341f9424cd32"
+    },
+    {
+      "digit": 6,
+      "sha256": "88a61c55a09567c017ce9d84b168807962a33b0efbe745145193ece8ae5b0952",
+      "source_image_sha256": "3f0541f0f041cc50262abce8eec94e0606b39ad3a9a71665787083a998c6df50"
+    },
+    {
+      "digit": 7,
+      "sha256": "982b7fef4ccf84eba8ed27cd6f11511c99466a27e21404fceda8db616dac0fa7",
+      "source_image_sha256": "32bcd39e5f6ae5a02139da16df3e33f8e468fdfa75b43fd51954ee04bf35e93d"
+    },
+    {
+      "digit": 8,
+      "sha256": "80b7b62f07ee39d07fcd78685451defccda1b955aec04a9c5342b6b5d90ac549",
+      "source_image_sha256": "de1f085de5575548fba563896d89aff964a0a60557ec6af5ddc22b3c354cf57f"
+    },
+    {
+      "digit": 9,
+      "sha256": "a18ac9049bedeb801bfba513b09752b8e575b028499072dc66d9ac86b0b80b43",
+      "source_image_sha256": "dcbdcc684ff52747aa2fea4fa68289245ea667d4fe579ee943676c49b87a2f52"
+    }
+  ]
+}

@@ -47,6 +47,33 @@ namespace MFAAvalonia.Views.Pages;
 
 public partial class TaskQueueView : UserControl
 {
+    private SukiWindow? guideReviewWindow;
+    private void PcrGuideReview_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is TaskQueueViewModel { IsAgentProfile: false }) OpenGuideReview(false);
+    }
+    private void OpenGuideReview(bool accountPage)
+    {
+        if (guideReviewWindow != null)
+        {
+            if (accountPage && guideReviewWindow.Content is MFAAvalonia.Pcr.PcrGuideReviewView existing) existing.ShowAccountPage();
+            guideReviewWindow.Activate(); return;
+        }
+        if (DataContext is not TaskQueueViewModel vm) return;
+        var review = new MFAAvalonia.Pcr.PcrGuideReviewView(System.IO.Path.Combine(AppPaths.ConfigDirectory, "guide-review.json"),
+            (input, token) => MFAAvalonia.Pcr.PcrGuideSyncOwner.ReadAsync(vm, input, token),
+            MFAAvalonia.Pcr.PcrGuideSyncOwner.ConfiguredAccountId);
+        if (accountPage) review.ShowAccountPage();
+        guideReviewWindow = new SukiWindow
+        {
+            Title = "Maa PCR · 攻略检查", Width = 960, Height = 760, MinWidth = 720, MinHeight = 520,
+            Content = review
+        };
+        guideReviewWindow.Closed += (_, _) => { guideReviewWindow = null; _pcrClanGuide?.RefreshAccounts(); };
+        if (TopLevel.GetTopLevel(this) is Window owner) guideReviewWindow.Show(owner);
+        else guideReviewWindow.Show();
+    }
+
     // 动画持续时间
     private static readonly TimeSpan AnimationDuration = TimeSpan.FromMilliseconds(250);
     private DragItemViewModel? _lastTaskMenuItem;
@@ -61,11 +88,36 @@ public partial class TaskQueueView : UserControl
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         DataContextChanged += OnDataContextChanged;
+        PcrAgentGuideHost.EffectiveViewportChanged += (_, _) => EnsurePcrClanGuide();
     }
 
     private void ConnectionStatusButton_OnClick(object? sender, RoutedEventArgs e)
     {
         NavigateToConnectSettings();
+    }
+
+    private void PcrLocateSettings_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not TaskQueueViewModel vm || !vm.CanEditPcrTarget) return;
+        if (vm.PcrStartError.Contains("ADB", StringComparison.Ordinal)
+            || vm.PcrStartError.Contains("设备", StringComparison.Ordinal))
+        {
+            PcrDeviceComboBox.BringIntoView();
+            PcrDeviceComboBox.Focus();
+        }
+        else if (vm.IsLabyrinthProfile)
+            PcrLabyrinthSettingsView.RevealValidationField(vm.PcrStartError);
+        else if (vm.IsAgentProfile)
+        {
+            if (_pcrClanGuide?.Content is ScrollViewer scroll) scroll.Offset = default;
+            PcrAgentGuideHost.BringIntoView();
+        }
+        else
+        {
+            PcrAdvancedSettings.IsExpanded = true;
+            PcrAdvancedSettings.BringIntoView();
+            PcrAdvancedSettings.Focus();
+        }
     }
 
     // 折叠期间日志照常在累积，但面板不参与布局；展开后等布局完成再补一次滚到底，
@@ -112,14 +164,29 @@ public partial class TaskQueueView : UserControl
         ApplyLiveViewCardState();
         UpdatePcrSettingsViewport();
         RefreshPcrWorkspace();
+        EnsurePcrClanGuide();
     }
 
     private TaskQueueViewModel? _subscribedViewModel;
+    private Func<string?>? _pcrClanGuideConfirmation;
+    private MFAAvalonia.Pcr.PcrClanGuideView? _pcrClanGuide;
+
+    private void EnsurePcrClanGuide()
+    {
+        if (_pcrClanGuide != null || !IsLoaded || !IsEffectivelyVisible || DataContext is not TaskQueueViewModel { IsAgentProfile: true }) return;
+        _pcrClanGuide = new MFAAvalonia.Pcr.PcrClanGuideView();
+        _pcrClanGuide.ExecutionModeChanged += OnPcrExecutionModeChanged;
+        _pcrClanGuide.AccountRefreshRequested += (_, _) => OpenGuideReview(true);
+        PcrAgentGuideHost.Content = _pcrClanGuide;
+    }
 
     private void UpdateViewModelSubscription(TaskQueueViewModel? newVm)
     {
+        if (_pcrClanGuide != null) _pcrClanGuide.ExecutionModeChanged -= OnPcrExecutionModeChanged;
         if (_subscribedViewModel != null)
         {
+            if (ReferenceEquals(_subscribedViewModel.PcrClanGuideConfirmation, _pcrClanGuideConfirmation))
+                _subscribedViewModel.PcrClanGuideConfirmation = null;
             _subscribedViewModel.PropertyChanged -= OnTaskQueueViewModelPropertyChanged;
             _subscribedViewModel.SetOptionRequested -= OnSetOptionRequested;
             _subscribedViewModel.TaskItemViewModels.CollectionChanged -= OnTaskItemsCollectionChanged;
@@ -129,6 +196,10 @@ public partial class TaskQueueView : UserControl
 
         if (_subscribedViewModel != null)
         {
+            _pcrClanGuideConfirmation = () => ReferenceEquals(DataContext, newVm) && IsEffectivelyVisible && newVm.IsAgentProfile
+                ? _pcrClanGuide?.ExecutionConfirmationForStart : null;
+            _subscribedViewModel.PcrClanGuideConfirmation = _pcrClanGuideConfirmation;
+            if (_pcrClanGuide != null) _pcrClanGuide.ExecutionModeChanged += OnPcrExecutionModeChanged;
             _subscribedViewModel.PropertyChanged += OnTaskQueueViewModelPropertyChanged;
             _subscribedViewModel.SetOptionRequested += OnSetOptionRequested;
             _subscribedViewModel.TaskItemViewModels.CollectionChanged += OnTaskItemsCollectionChanged;
@@ -136,6 +207,9 @@ public partial class TaskQueueView : UserControl
             Dispatcher.UIThread.Post(ApplyLiveViewCardState, DispatcherPriority.Background);
         }
     }
+
+    private void OnPcrExecutionModeChanged(object? sender, EventArgs e)
+    { if (_subscribedViewModel is { } vm) { MFAAvalonia.Pcr.PcrAlphaOwner.Revoke(vm.Processor); vm.NotifyPcrSelectionChanged(); } }
 
     private void OnTaskItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -2898,6 +2972,7 @@ public partial class TaskQueueView : UserControl
 
         UpdateViewModelSubscription(DataContext as TaskQueueViewModel);
         ApplyLiveViewCardState();
+        EnsurePcrClanGuide();
     }
 
     private void ApplyLiveViewCardState()

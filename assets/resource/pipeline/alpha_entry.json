@@ -103,5 +103,35 @@
     },
     "next": [],
     "on_error": []
+  },
+  "PCRAlphaSelectClanBattleSimulation": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectClanBattleDaily": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectGuideTrial": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
   }
 }

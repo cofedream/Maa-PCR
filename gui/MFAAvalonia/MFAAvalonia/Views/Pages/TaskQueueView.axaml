@@ -344,7 +344,25 @@
 
     <Grid>
     <Grid x:Name="PcrWorkspace" IsVisible="{Binding IsPcrMode}" RowDefinitions="Auto,*,Auto,Auto" Margin="15,12,15,12" RowSpacing="10">
-        <pcr:PcrLabyrinthView Grid.Row="1" IsVisible="{Binding IsLabyrinthProfile}" />
+        <pcr:PcrLabyrinthView x:Name="PcrLabyrinthSettingsView" Grid.Row="1" IsVisible="{Binding IsLabyrinthProfile}" />
+        <Grid x:Name="PcrAgentWorkspace" Grid.Row="1" IsVisible="{Binding IsAgentProfile}" IsEnabled="{Binding CanEditPcrTarget}"
+              RowDefinitions="Auto,*" RowSpacing="8" MinHeight="0">
+            <suki:GlassCard Padding="14,8" IsAnimated="False">
+                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" RowSpacing="5">
+                    <TextBlock Text="渠道" VerticalAlignment="Center" />
+                    <ComboBox x:Name="PcrAgentChannelSelector" Grid.Column="1" ItemsSource="{Binding PcrSettings.Channels}"
+                              SelectedItem="{Binding PcrSettings.SelectedChannel, Mode=TwoWay}" HorizontalAlignment="Stretch" PlaceholderText="请选择已收录渠道">
+                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <CheckBox x:Name="PcrAgentDisplayMappingCheckBox" Grid.Column="2" Content="多显示屏映射校验"
+                              IsChecked="{Binding PcrSettings.ValidateDisplayMapping, Mode=TwoWay}" />
+                    <Button Grid.Column="3" Content="保存设置" Command="{Binding PcrSettings.SaveCommand}" />
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Text="首版会战模拟仅支持国服 B 站；请核对上方设备与当前渠道。账号资料使用下方所选原缓存。"
+                               FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource SukiLowText}" />
+                </Grid>
+            </suki:GlassCard>
+            <ContentControl x:Name="PcrAgentGuideHost" Grid.Row="1" />
+        </Grid>
         <suki:GlassCard Grid.Row="0" Padding="14,10" IsAnimated="False">
             <Grid RowDefinitions="Auto,Auto" RowSpacing="5">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
@@ -362,11 +380,12 @@
                         <Button Content="连接" Command="{Binding ReconnectCommand}" IsEnabled="{Binding CanEditPcrTarget}" />
                     </StackPanel>
                 </Grid>
-                <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                     <TextBlock Text="● 已连接" Foreground="{DynamicResource SukiPrimaryColor}" IsVisible="{Binding IsConnected}" FontSize="12" />
                     <TextBlock Text="○ 未连接" Foreground="{DynamicResource SukiLowText}" IsVisible="{Binding !IsConnected}" FontSize="12" />
                     <TextBlock Grid.Column="1" Text="{Binding PcrDiscoveryStatus}" FontSize="12" Foreground="{DynamicResource SukiLowText}"
                                TextTrimming="CharacterEllipsis" MaxLines="1" ToolTip.Tip="{Binding PcrDiscoveryStatus}" />
+                    <Button Grid.Column="2" Content="攻略检查" Click="PcrGuideReview_OnClick" Padding="10,3" IsVisible="{Binding !IsAgentProfile}" />
                 </Grid>
             </Grid>
         </suki:GlassCard>
@@ -431,7 +450,7 @@
                             <Border BorderBrush="{DynamicResource SukiControlBorderBrush}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
                                 <StackPanel Spacing="7">
                                     <TextBlock Text="{Binding PcrSettings.Status}" TextWrapping="Wrap" FontSize="12" />
-                                    <Button x:Name="PcrSaveSettingsButton" Content="保存设置" Command="{Binding PcrSettings.SaveCommand}" IsEnabled="{Binding CanEditPcrTarget}" HorizontalAlignment="Left" />
+                                    <Button x:Name="PcrSaveSettingsButton" Content="{Binding PcrSettings.SaveButtonText}" Command="{Binding PcrSettings.SaveCommand}" IsEnabled="{Binding CanEditPcrTarget}" HorizontalAlignment="Left" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -575,15 +594,24 @@
         </Grid>
 
         <suki:GlassCard x:Name="PcrRunBar" Grid.Row="2" Padding="14,10" IsAnimated="False">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="6">
                 <StackPanel VerticalAlignment="Center" Spacing="3">
-                    <TextBlock Text="{Binding PcrRunStatus}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" />
+                    <TextBlock x:Name="PcrRunStatusText" Text="{Binding PcrRunStatus}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding PcrSelectionSummary}" ToolTip.Tip="{Binding PcrSelectionSummary}" MaxLines="2" TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{DynamicResource SukiLowText}" TextWrapping="Wrap" />
+                    <Button x:Name="PcrLocateSettingsButton" Content="定位设置" Click="PcrLocateSettings_OnClick"
+                            IsVisible="{Binding PcrHasStartError}" IsEnabled="{Binding CanEditPcrTarget}"
+                            HorizontalAlignment="Left" Padding="8,3" FontSize="12" />
                 </StackPanel>
                 <Button x:Name="PcrStartStopButton" Grid.Column="1" Command="{Binding ToggleCommand}" IsEnabled="{Binding ToggleEnable}"
                         Classes="Flat Rounded" Background="{DynamicResource SukiPrimaryColor}" Foreground="White" Padding="20,12" MinWidth="112" VerticalAlignment="Center">
                     <Grid><TextBlock Text="开始任务" IsVisible="{Binding !IsRunning}" FontWeight="SemiBold" /><TextBlock Text="停止任务" IsVisible="{Binding IsRunning}" FontWeight="SemiBold" /></Grid>
                 </Button>
+                <Expander x:Name="PcrRunResult" Grid.Row="1" Grid.ColumnSpan="2" Header="本次结果" IsExpanded="True"
+                          IsVisible="{Binding PcrHasRunSummary}" HorizontalAlignment="Stretch">
+                    <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <SelectableTextBlock Text="{Binding PcrRunSummary}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    </ScrollViewer>
+                </Expander>
             </Grid>
         </suki:GlassCard>
 

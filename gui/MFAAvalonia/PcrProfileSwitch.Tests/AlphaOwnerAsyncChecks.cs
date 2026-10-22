@@ -171,6 +171,10 @@ internal static class AlphaOwnerAsyncChecks
             cache[guiType] = new Lazy<object>(() => gui);
             Set(null, owner, "repository", fixture);
             Set(null, owner, "configPath", path);
+            Set(processor, typeof(MaaProcessor), "<InstanceId>k__BackingField", "pcr-alpha-v1");
+            var profileViews = new Dictionary<string, TaskQueueViewModel>((Dictionary<string, TaskQueueViewModel>)typeof(MaaProcessorManager).GetField("_viewModels", Hidden)!.GetValue(manager)!) {
+                ["pcr-alpha-v1"] = vm, [PcrClanGuide.ProfileId] = vm };
+            Set(manager, typeof(MaaProcessorManager), "_viewModels", profileViews);
             foreach (var name in new[] { "_agentContexts", "_screenshotTaskerInitLock", "_liveViewScreencapJobLock",
                          "_detachedScreenshotTaskersLock", "_detachedScreenshotTaskers", "<LogItemViewModels>k__BackingField" })
                 NewField(processor, name);
@@ -262,6 +266,106 @@ internal static class AlphaOwnerAsyncChecks
                     ["owner_cleared"] = true, ["idle"] = vm.Idle, ["log"] = Logs(processor) });
                 Console.WriteLine("PCR alpha async scenario passed: " + serial + " " + scenario);
             }
+            config["connection"]!["serial"] = "127.0.0.1:16384";
+            selected = Target("127.0.0.1:16384");
+            nodes["PCRAlphaSelectRewards"]!["attach"]!["selected"] = false;
+            nodes["PCRAlphaSelectGuideTrial"] = new JObject { ["attach"] = new JObject { ["selected"] = true } };
+            item.InterfaceItem!.Option![0].SelectedCases = ["guide_trial"];
+            device.SetValue(vm, selected);
+            var plans = JArray.Parse(File.ReadAllText(Path.Combine(args[1],"guide-opening","managed-plan-cases.json")));
+            var forwarded = 0;
+            foreach (var plan in plans)
+            {
+                config["guide_trial"] = plan.DeepClone(); File.WriteAllText(path,config.ToString());
+                var reached = false;
+                PcrAlphaOwner.Confirm = prompt => {
+                    Require(JToken.DeepEquals(prompt["configuration"]?["guide_trial"],plan),"guide_owner_preserves_version_team_and_sets");
+                    Require(prompt["combination"]?["selected_modules"]?.ToString(Newtonsoft.Json.Formatting.None)=="[\"guide_trial\"]","guide_owner_keeps_single_module");
+                    reached = true; return Task.FromResult<PcrStartConsent?>(null);
+                };
+                request=PcrAlphaOwner.RequestStartAsync(vm);
+                Until(()=>request.IsCompleted,"guide_owner_preflight"); request.GetAwaiter().GetResult();
+                Require(reached && vm.Idle && current.GetValue(null)==null && pending.GetValue(null)==null,"guide_owner_validates_then_cancels_without_authority: "+Logs(processor));
+                Require((PcrAlphaOwner.ControllerCreations,PcrAlphaOwner.AgentCreations,PcrAlphaOwner.Grants)==initial && allocations==0,"guide_owner_never_allocates_device");
+                forwarded++;
+            }
+            attempts.Add(new JObject{["scenario"]="guide_saved_plans_through_original_start_owner",["plans"]=forwarded,["controller_allocations"]=0,["cancelled_before_grant"]=true});
+            Set(processor, typeof(MaaProcessor), "<InstanceId>k__BackingField", PcrClanGuide.ProfileId);
+            config.Remove("guide_trial");
+            var clanPlans = JArray.Parse(File.ReadAllText(Path.Combine(args[1], "clan-guide", "managed-plan-cases.json")));
+            string? visibleClanHash = null;
+            Set(vm, typeof(TaskQueueViewModel), "<PcrClanGuideConfirmation>k__BackingField", new Func<string?>(() => visibleClanHash));
+            var clanSelections = 0;
+            PcrAlphaOwner.SelectConfiguration = () => { clanSelections++; return Task.FromResult<string?>(path); };
+            request = PcrAlphaOwner.RequestStartAsync(vm);
+            Until(() => request.IsCompleted, "clan_unsaved_editor_refused"); request.GetAwaiter().GetResult();
+            Require(clanSelections == 0 && vm.Idle && pending.GetValue(null) == null && current.GetValue(null) == null,
+                "clan_unsaved_editor_refused_before_config_or_authority");
+            config["clan_battle_simulation"] = clanPlans[0].DeepClone(); File.WriteAllText(path, config.ToString());
+            visibleClanHash = new string('0', 64);
+            request = PcrAlphaOwner.RequestStartAsync(vm);
+            Until(() => request.IsCompleted, "clan_other_saved_plan_refused"); request.GetAwaiter().GetResult();
+            Require(clanSelections == 1 && vm.Idle && pending.GetValue(null) == null && current.GetValue(null) == null,
+                "clan_editor_confirmation_must_match_saved_plan");
+            var clanForwarded = 0;
+            foreach (var plan in clanPlans)
+            {
+                config["clan_battle_simulation"] = plan.DeepClone(); File.WriteAllText(path, config.ToString());
+                visibleClanHash = (string?)plan["confirmed_for"];
+                var reached = false;
+                PcrAlphaOwner.Confirm = prompt => {
+                    Require(JToken.DeepEquals(prompt["configuration"]?["clan_battle_simulation"], plan), "clan_owner_preserves_reviewed_simulation_plan");
+                    Require(prompt["combination"]?["selected_modules"]?.ToString(Newtonsoft.Json.Formatting.None) == "[\"clan_battle_simulation\"]"
+                        && (bool?)prompt["combination"]?["rewards_final"] == false, "clan_owner_keeps_single_simulation_without_rewards");
+                    Require((string?)owner.GetProperty("ActiveProfile", Hidden)!.GetValue(null) == PcrClanGuide.ProfileId, "clan_owner_retains_source_profile_during_validation");
+                    reached = true; return Task.FromResult<PcrStartConsent?>(null);
+                };
+                request = PcrAlphaOwner.RequestStartAsync(vm);
+                Until(() => request.IsCompleted, "clan_owner_preflight"); request.GetAwaiter().GetResult();
+                Require(reached && vm.Idle && current.GetValue(null) == null && pending.GetValue(null) == null,
+                    "clan_owner_validates_then_cancels_without_authority: " + Logs(processor));
+                Require((PcrAlphaOwner.ControllerCreations, PcrAlphaOwner.AgentCreations, PcrAlphaOwner.Grants) == initial && allocations == 0,
+                    "clan_owner_never_allocates_device");
+                clanForwarded++;
+            }
+            attempts.Add(new JObject { ["scenario"] = "clan_saved_plans_through_original_start_owner", ["plans"] = clanForwarded,
+                ["controller_allocations"] = 0, ["cancelled_before_grant"] = true });
+            config["clan_battle_simulation"] = clanPlans[0].DeepClone(); File.WriteAllText(path, config.ToString());
+            visibleClanHash = (string?)clanPlans[0]["confirmed_for"];
+            held = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            var clanReadEntered = false; var clanReadToken = default(CancellationToken);
+            PcrAlphaOwner.Confirm = _ => Task.FromResult<PcrStartConsent?>(new("", "", [], false));
+            PcrAlphaOwner.OfflineDisplayReader = (command, token) => {
+                if (command == PcrDisplayRead.Activity) { clanReadEntered = true; clanReadToken = token; return held.Task; }
+                return Task.FromResult(Input);
+            };
+            request = PcrAlphaOwner.RequestStartAsync(vm);
+            Until(() => clanReadEntered || request.IsCompleted, "clan_owner_reaches_read");
+            Require(clanReadEntered && !request.IsCompleted && !vm.CanEditPcrTarget, "clan_start_exposes_original_stop_before_native_allocation: " + Logs(processor));
+            checkSelectors("clan_preparing");
+            vm.ToggleCommand.Execute(null);
+            Until(() => request.IsCompleted, "clan_real_stop_unwinds_owner"); request.GetAwaiter().GetResult();
+            Require(clanReadToken.IsCancellationRequested && vm.Idle && current.GetValue(null) == null && pending.GetValue(null) == null
+                && !PcrAlphaOwner.ClaimStart(processor), "clan_real_stop_cancels_original_owner_and_prevents_late_start");
+            Require(!held.Task.IsCompleted && allocations == 0
+                && (PcrAlphaOwner.ControllerCreations, PcrAlphaOwner.AgentCreations, PcrAlphaOwner.Grants) == initial,
+                "clan_real_stop_has_no_controller_agent_or_grant");
+            held.SetResult(Activity);
+            Dispatcher.UIThread.RunJobs();
+            Require(current.GetValue(null) == null && !PcrAlphaOwner.ClaimStart(processor), "clan_late_read_cannot_rearm_owner");
+            attempts.Add(new JObject { ["scenario"] = "clan_original_start_stop_before_allocation", ["controller_allocations"] = 0,
+                ["owner_cleared"] = true, ["cancelled_before_grant"] = true, ["late_result_ignored"] = true });
+            held = new(TaskCreationOptions.RunContinuationsAsynchronously); clanReadEntered = false;
+            request = PcrAlphaOwner.RequestStartAsync(vm);
+            Until(() => clanReadEntered || request.IsCompleted, "clan_editor_drift_reaches_read");
+            Require(clanReadEntered && !request.IsCompleted, "clan_editor_drift_starts_at_read_boundary");
+            visibleClanHash = null; held.SetResult(Activity);
+            Until(() => request.IsCompleted, "clan_editor_drift_unwinds"); request.GetAwaiter().GetResult();
+            Require(vm.Idle && pending.GetValue(null) == null && current.GetValue(null) == null && !PcrAlphaOwner.ClaimStart(processor)
+                && allocations == 0 && (PcrAlphaOwner.ControllerCreations, PcrAlphaOwner.AgentCreations, PcrAlphaOwner.Grants) == initial,
+                "clan_unsaved_change_during_preparation_stops_before_allocation");
+            attempts.Add(new JObject { ["scenario"] = "clan_editor_confirmation_guard", ["unsaved_rejected_before_configuration"] = true,
+                ["different_saved_plan_rejected"] = true, ["preparation_change_rejected"] = true, ["controller_allocations"] = 0 });
             File.WriteAllText(Path.Combine(fixture, "async-results.json"), attempts.ToString());
             Console.WriteLine($"PCR alpha async checks passed: {count}; controller/agent/grant starts=0; fixture={fixture}");
         }

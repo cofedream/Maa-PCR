@@ -320,6 +320,7 @@ public partial class RootView : SukiWindow
     {
         if (Interlocked.Exchange(ref _beforeClosed, 1) != 0) return;
         MFAAvalonia.Pcr.PcrSoftwareUpdateService.CancelPendingWork();
+        MFAAvalonia.Pcr.PcrGuideSyncOwner.Stop();
 
         if (!GlobalHotkeyService.IsStopped)
         {

@@ -22,6 +22,11 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(ROOT / 'src'))
 from pcr_maa import player_maintenance as maintenance
 
+if __package__:
+    from .source_delivery import LOCAL_ONLY_FILES
+else:
+    from source_delivery import LOCAL_ONLY_FILES
+
 SDK_VERSION = '10.0.101'
 R38_MANIFEST_SHA256 = '59fa329ba5ac76de8e51ee10765573a7be737b81228137aa2aaf0cac55726668'
 R39_MANIFEST_SHA256 = 'b009f708728937026ef66828aef4e7c5d924f4de248f7eaaf7792dd168cdd6bd'
@@ -39,12 +44,14 @@ R57_MANIFEST_SHA256 = 'aeafa623f25910427b08dbe27f78718a2d31c3670e3e4271497feea2c
 R58_MANIFEST_SHA256 = '8eee3c459ec4405dfb583ded58b8561dd4497771ac49f3ce52f9ba1b04cd1a32'
 R59_MANIFEST_SHA256 = '6b20732e5e9a988f290696b435688bb4dd26ed1c10c69138f054deb8a08ad4ed'
 R60_MANIFEST_SHA256 = 'bbda52a6990393ccd41a86148682e15e2f548bb9f109bb270c7417ec0c25e3fe'
+R61_MANIFEST_SHA256 = 'ea4396bff4162622af42008bb8c109addc06b30663fadac455c52fbac8589a4a'
 GUI_PROJECT = 'gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj'
 PAYLOAD_DIRS = ('src', 'vendor', 'assets', 'third_party', 'licenses', 'docs')
 PAYLOAD_SCRIPTS = ('pcr.py', 'validate-alpha-config.py', 'start-alpha-agent.py',
                    'start-alpha-owned-agent.py', 'start-labyrinth-owned-agent.py',
                    'player-maintenance.py', 'player-update.py', 'recover-player-update.ps1',
-                   'ocr_benchmark.py', 'ocr_inventory.py')
+                   'ocr_benchmark.py', 'ocr_inventory.py',
+                   'read-guide-snapshot.py', 'prepare-clan-guide.py')
 IGNORED = {'__pycache__', '.git', '.runtime', '.venv', 'bin', 'obj', 'tests'}
 CRT_FILES = ('concrt140.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll',
              'msvcp140_atomic_wait.dll', 'msvcp140_codecvt_ids.dll', 'vccorlib140.dll',
@@ -134,6 +141,8 @@ def copy_tree(source, target, *, ignore=IGNORED):
     snapshot = {}
     for path in sorted(source.rglob('*')):
         relative = path.relative_to(source)
+        if path.is_relative_to(ROOT) and path.relative_to(ROOT).as_posix() in LOCAL_ONLY_FILES:
+            continue
         if any(part in ignore for part in relative.parts) or path.suffix in ('.pyc', '.pdb'):
             continue
         if path.is_symlink() or getattr(path.lstat(), 'st_file_attributes', 0) & 0x400:
@@ -307,7 +316,7 @@ def package_outputs(player, output, base=None, base_manifest=None):
             result = patcher.build_patch(base, player, patch)
         else:
             expected = {38: R38_MANIFEST_SHA256, 39: R39_MANIFEST_SHA256,
-                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256}.get(base_version['revision'])
+                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256, 61: R61_MANIFEST_SHA256}.get(base_version['revision'])
             if expected is None:
                 raise ValueError('unsupported_patch_baseline')
             result = patcher.build_patch_from_manifest(base_path, player, patch, expected)
@@ -486,8 +495,8 @@ def build(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--revision', type=int, default=61)
-    parser.add_argument('--version', default='v0.1.16')
+    parser.add_argument('--revision', type=int, default=64)
+    parser.add_argument('--version', default='v0.1.17')
     parser.add_argument('--dotnet', type=Path)
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--nuget-source', type=Path, help='optional official package cache/feed for offline builds')
@@ -495,7 +504,7 @@ def main(argv=None):
     parser.add_argument('--wheelhouse', type=Path, help='optional directory of hash-locked official wheels')
     baseline = parser.add_mutually_exclusive_group()
     baseline.add_argument('--base', type=Path, help='immutable exact manifest-bound patch baseline')
-    baseline.add_argument('--base-manifest', type=Path, help='exact public R38, R39, R41, R45, R46, R49, R50, R51, R52, R53, R55, R56, R57, R58, R59 or R60 manifest; installation verifies old files')
+    baseline.add_argument('--base-manifest', type=Path, help='exact public R38, R39, R41, R45, R46, R49, R50, R51, R52, R53, R55, R56, R57, R58, R59, R60 or R61 manifest; installation verifies old files')
     args = parser.parse_args(argv)
     try:
         print(json.dumps(build(args), ensure_ascii=False))

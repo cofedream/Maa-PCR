@@ -255,9 +255,57 @@ def test_complete_unicode_update_preserves_settings_unknown_and_evidence(update_
     backup = Path(result['backup_path'])
     assert (backup / 'MFAAvalonia.Core.dll').read_bytes() == old['MFAAvalonia.Core.dll']
     assert not list(backup.rglob('unknown.json'))
+    assert not (backup.parent / 'staged').exists()
+    assert json.loads((backup.parent / 'verification.json').read_text(encoding='utf-8')) == result
     assert not (player / '.runtime/player-maintenance/update-in-progress.json').exists()
     with pytest.raises(ValueError, match='update_not_newer'):
         maintenance.apply_update(player, packet, process_probe=lambda _: [])
+    assert_private(update_case)
+
+
+@pytest.mark.parametrize('residual', ['unexpected', 'changed', 'locked_file', 'locked_directory'])
+def test_successful_update_cleanup_preserves_unknown_or_busy_staging(update_case, monkeypatch, residual):
+    player, packet, old, new, _, _ = update_case
+    save, unlink, rmdir = maintenance._save, Path.unlink, Path.rmdir
+    retained = None
+
+    def save_receipt(path, value, **kwargs):
+        nonlocal retained
+        result = save(path, value, **kwargs)
+        if path.name == 'verification.json':
+            staged = path.parent / 'staged'
+            retained = staged / ('unexpected/keep.txt' if residual == 'unexpected'
+                else 'runtime/python/python.exe' if residual in ('changed', 'locked_file')
+                else 'runtime/python')
+            if residual in ('unexpected', 'changed'):
+                retained.parent.mkdir(parents=True, exist_ok=True)
+                retained.write_bytes(b'preserve concurrent content')
+        return result
+
+    def unlink_staged(path, *args, **kwargs):
+        if residual == 'locked_file' and path == retained:
+            raise PermissionError('synthetic busy staged file')
+        return unlink(path, *args, **kwargs)
+
+    def rmdir_staged(path, *args, **kwargs):
+        if residual == 'locked_directory' and path == retained:
+            raise PermissionError('synthetic busy staged directory')
+        return rmdir(path, *args, **kwargs)
+
+    monkeypatch.setattr(maintenance, '_save', save_receipt)
+    monkeypatch.setattr(Path, 'unlink', unlink_staged)
+    monkeypatch.setattr(Path, 'rmdir', rmdir_staged)
+    result = maintenance.apply_update(player, packet, process_probe=lambda _: [])
+    assert result['status'] == 'updated' and retained.exists()
+    work = Path(result['backup_path']).parent
+    assert json.loads((work / 'verification.json').read_text(encoding='utf-8')) == result
+    assert not (work / 'failure.json').exists()
+    assert not (work.parent / 'update-in-progress.json').exists()
+    for name, data in new.items():
+        assert (player / name).read_bytes() == data
+    assert (work / 'before/MFAAvalonia.Core.dll').read_bytes() == old['MFAAvalonia.Core.dll']
+    if residual in ('unexpected', 'changed'):
+        assert retained.read_bytes() == b'preserve concurrent content'
     assert_private(update_case)
 
 

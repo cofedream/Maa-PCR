@@ -109,8 +109,10 @@ internal static class PcrLabyrinthOwner
     internal static async Task RequestStartAsync(TaskQueueViewModel vm) {
         Run run;
         JObject request;
+        long feedbackRun;
         lock (PcrProfileRunGate.StartGate) {
             if (PcrProfileRunGate.Busy || !vm.CanEditPcrTarget) return;
+            feedbackRun=vm.BeginPcrRunFeedback();
             // 从点击开始就记：启动阶段失败也要在面板上有据可查。
             Trace(vm,$"—— 本次开始 {DateTime.Now:MM-dd HH:mm} ——");
             Trace(vm,"已请求开始，正在校验黎明界配置与运行资源…");
@@ -134,6 +136,7 @@ internal static class PcrLabyrinthOwner
                 PcrProfileRunGate.Notify();
             } catch (Exception ex) {
                 vm.LabyrinthSettings.Status=ex.Message;
+                vm.ShowPcrStartError(feedbackRun,"本次未能开始："+ex.Message);
                 Trace(vm,"本次未能开始："+ex.Message);
                 vm.Processor.AddLog(ex.Message,(IBrush?)null);
                 return;
@@ -216,11 +219,13 @@ internal static class PcrLabyrinthOwner
                     var outcome=(string?)value["outcome"];
                     vm.LabyrinthSettings.Progress=outcome=="complete" ? "目标次数已全部完成。" : "本次任务已停止。";
                     vm.LabyrinthSettings.Status=SettingsStatusFor(outcome);
-                    // 设置卡片保持原内容，具体原因只写进实时日志面板。
+                    // 固定运行栏与日志复用同一原因；设置卡片保持原内容。
                     lastLogged=vm.LabyrinthSettings.Progress+ProgressCount(value,request);
                     vm.LabyrinthSettings.Progress=lastLogged;
                     Trace(vm,lastLogged);
-                    Trace(vm,StatusFor(outcome));
+                    var reason=StatusFor(outcome);
+                    if (outcome!="complete") vm.ShowPcrStartError(feedbackRun,reason);
+                    Trace(vm,reason);
                     break; // Terminal receipt; the owned Job closes descendant pipes in finally.
                 }
             }
@@ -232,6 +237,7 @@ internal static class PcrLabyrinthOwner
             vm.LabyrinthSettings.Progress="已请求停止；正在回收执行组件…";
             Trace(vm,vm.LabyrinthSettings.Progress);
             vm.LabyrinthSettings.Status=timedOut ? waiting+"等待超时，本次已停止。" : "已停止本次任务。";
+            if (timedOut) vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
             Trace(vm,vm.LabyrinthSettings.Status);
             if (run.Child is { Exited: false }) {
                 try {
@@ -244,6 +250,7 @@ internal static class PcrLabyrinthOwner
             // Local construction failures contain no credentials. The child's
             // network errors are intentionally never interpolated into UI logs.
             vm.LabyrinthSettings.Status=ex is IOException ? "黎明界组件通信失败，请核对运行记录。" : ex.Message;
+            vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
             Trace(vm,vm.LabyrinthSettings.Status);
         } finally {
             request.Remove("credentials");
@@ -252,6 +259,7 @@ internal static class PcrLabyrinthOwner
                 released=true;
             } catch {
                 vm.LabyrinthSettings.Status="执行组件退出尚未确认，请退出 Maa PCR 后重新打开。原记录会保留，下次开始时会核对旧局状态。";
+                vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
             }
             if (released) {
                 if (cancelled) vm.LabyrinthSettings.Progress="本次任务已停止。";

@@ -14,6 +14,8 @@ import sys
 from xml.sax.saxutils import quoteattr
 
 ROOT = Path(__file__).resolve().parents[1]
+PROFILE_CHECK_MODES = ("clan-daily-only", "clan-workflow-only", "clan-formal-only",
+                       "clan-postsave-only", "profile-registration-only")
 
 
 def check_python() -> None:
@@ -62,6 +64,11 @@ def gui_commands(dotnet: str, gui: Path, output: Path) -> list[tuple[str, list[s
         if name == "PcrProfileSwitch.Tests":
             command.extend([str(ROOT), str(output / "fixtures" / name), sys.executable])
         commands.append((name + "-run", command, binary))
+        if name == "PcrProfileSwitch.Tests":
+            for mode in PROFILE_CHECK_MODES:
+                commands.append((name + "-" + mode + "-run",
+                    [dotnet, str(binary / (name + ".dll")), str(ROOT),
+                     str(output / "fixtures" / (name + "-" + mode)), sys.executable, "--" + mode], binary))
     return commands
 
 

@@ -34,6 +34,15 @@ internal sealed class PcrWindowsChild : IDisposable
     private static Action<string> checkpoint = _ => { };
     private static Action<IntPtr> terminate = h => Check(TerminateJobObject(h, 1), "TerminateJobObject");
     internal bool Exited => process != IntPtr.Zero && Wait(process, 0);
+    internal uint? ExitCode
+    {
+        get
+        {
+            if (!Exited) return null;
+            Check(GetExitCodeProcess(process, out var code), "GetExitCodeProcess");
+            return code;
+        }
+    }
     internal string? StartupFailure
     {
         get

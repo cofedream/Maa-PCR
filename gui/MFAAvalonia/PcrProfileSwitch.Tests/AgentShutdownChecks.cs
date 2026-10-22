@@ -76,6 +76,18 @@ internal static class AgentShutdownChecks
         void CheckOwnedTcp(string[] arguments)
         {
             var childType = assembly.GetType("MFAAvalonia.Pcr.PcrWindowsChild", true)!;
+            foreach(var expected in new uint[]{0,7})
+            {
+                using var childExit=(IDisposable)Activator.CreateInstance(childType,nonPublic:true)!;
+                childType.GetMethod("Start",Hidden)!.Invoke(childExit,[Path.GetFullPath(arguments[2]),Path.GetFullPath(arguments[1]),new[]{"-c","import sys; sys.stdin.readline(); raise SystemExit("+expected+")"}]);
+                Require(childType.GetProperty("ExitCode",Hidden)!.GetValue(childExit)==null,"running_child_has_no_exit_code");
+                ((Task)childType.GetMethod("Send",Hidden)!.Invoke(childExit,["finish"])!).GetAwaiter().GetResult();
+                var deadline=Stopwatch.StartNew();
+                while(!(bool)childType.GetProperty("Exited",Hidden)!.GetValue(childExit)!) {
+                    if(deadline.Elapsed>TimeSpan.FromSeconds(5)) throw new TimeoutException("child_exit_code"); Thread.Sleep(5);
+                }
+                Require((uint?)childType.GetProperty("ExitCode",Hidden)!.GetValue(childExit)==expected,"real_child_exit_code_"+expected);
+            }
             var connection = assembly.GetType("MFAAvalonia.Pcr.PcrAgentConnection", true)!;
             var read = connection.GetMethod("EstablishedPort", Hidden)!;
             var query = connection.GetField("readTable", Hidden)!;

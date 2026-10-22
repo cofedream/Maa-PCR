@@ -13,7 +13,7 @@ from uuid import uuid4
 
 LEGACY_ORDER = ('event', 'deep', 'rewards', 'very_hard', 'hard')
 ORDER = LEGACY_ORDER + ('rewards_final',)
-MODULE_ORDER = ('schedule_onekey', 'event', 'abyss') + LEGACY_ORDER[1:] + ('normal',)
+MODULE_ORDER = ('schedule_onekey', 'event', 'abyss') + LEGACY_ORDER[1:] + ('normal', 'guide_trial', 'clan_battle_simulation', 'clan_battle_daily')
 _DEFAULT_REWARDS_FINAL = object()
 REWARD_STEPS = ('rewards', 'rewards_final')
 PRESET_STEPS = ('deep', 'very_hard', 'hard', 'normal')
@@ -54,6 +54,12 @@ def build_plan(*, selected_modules=None, rewards_final=_DEFAULT_REWARDS_FINAL,
     if len(set(selected_modules)) != len(selected_modules):
         raise ValueError('duplicate_selected_module')
     ordered = tuple(selected_modules)
+    if 'guide_trial' in ordered and (ordered != ('guide_trial',) or rewards_final is True):
+        raise ValueError('guide_trial_must_run_alone')
+    if 'clan_battle_simulation' in ordered and (ordered != ('clan_battle_simulation',) or rewards_final is True):
+        raise ValueError('clan_battle_simulation_must_run_alone')
+    if 'clan_battle_daily' in ordered and (ordered != ('clan_battle_daily',) or rewards_final is True):
+        raise ValueError('clan_battle_daily_must_run_alone')
     return ordered + (('rewards_final',) if rewards_final is True else ())
 
 
@@ -341,6 +347,8 @@ def validate(config, *, execute, game_day, context, include_schedule_onekey=Fals
     if execute is not True:
         raise ValueError('必须显式 --execute；只读请使用 inspect-daily')
     config = validate_config(config)
+    if 'clan_battle_daily' in plan and 'clan_battle_daily' not in config:
+        raise ValueError('clan_battle_daily_configuration_required')
     if config['version'] in (3, 4):
         if selected_modules is None:
             raise ValueError(f"v{config['version']}_requires_explicit_alpha_selection")
@@ -637,6 +645,12 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
                       schedule_authorizations=(), schedule_attest_current_plan=False,
                       selected_modules=None, rewards_final=_DEFAULT_REWARDS_FINAL,
                       schedule_confirm_new_cycle=False):
+    if selected_modules is not None and 'guide_trial' in selected_modules:
+        raise ValueError('guide_trial_requires_alpha_owner_entry')
+    if selected_modules is not None and 'clan_battle_simulation' in selected_modules:
+        raise ValueError('clan_battle_simulation_requires_alpha_owner_entry')
+    if selected_modules is not None and 'clan_battle_daily' in selected_modules:
+        raise ValueError('clan_battle_daily_requires_alpha_owner_entry')
     if type(schedule_confirm_new_cycle) is not bool or (schedule_confirm_new_cycle and
             (execute is not True or context != 'gui-current-state')):
         raise ValueError('new_cycle_confirmation_requires_current_gui_start')
@@ -813,6 +827,65 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
 
 def summary(report, *, player=False):
     """Share module facts while keeping CLI diagnostics out of the player heading."""
+    if report.get('selected_modules') == ['clan_battle_daily']:
+        result = report['steps'][0].get('result', {})
+        reason = str(result.get('error') or '')
+        if reason.startswith('clan_battle_daily_calibration_missing') or reason == 'production_daily_adapter_unavailable':
+            return '正式三刀：会战页面与消费读回尚未校准，当前不可执行。未发出正式或补偿开战，实际剩余次数与尾刀库存仍未知。'
+        finished = result.get('regular_settled') == 3 and result.get('remaining_count') == 0
+        if result.get('outcome') == 'remind_carryover' and finished and result.get('held_carryovers'):
+            return f"正式三刀：3 次主刀均已结算，普通剩余次数为 0。仍有 {len(result['held_carryovers'])} 份尾刀未出，已保留；目标可用后可再次 Start 核对接续。"
+        if result.get('outcome') == 'no_available_target':
+            slots = '、'.join(str(row['slot']) for row in result.get('held_regular', []) if type(row) is dict and type(row.get('slot')) is int)
+            return '正式三刀：本轮没有可执行目标，已结束。' + (f'第 {slots} 刀目标已保留。' if slots else '') + '不会自动更换 BOSS、队伍或重发。'
+        if result.get('outcome') == 'complete' and finished:
+            return '正式三刀：本批已核实完成，记录已保存。'
+        return '正式三刀：已停止。未核实的次数、结果或补偿不能视为完成；请保留记录，不要删账或重发。' + ('\n原因：' + reason if reason else '')
+    if report.get('selected_modules') == ['clan_battle_simulation']:
+        result = report['steps'][0].get('result', {})
+        target = f"{result.get('phase', '')} 面 {result.get('boss', '?')} 号 BOSS"
+        if result.get('outcome') == 'simulated' and result.get('damage_verified') is True:
+            returned = ('已返回会战目标页。' if result.get('return_verified') is True
+                else '返回会战目标页尚未核实，请手动核对页面；已知伤害记录保留，不会重开模拟。')
+            return f"公会战模拟：{target} 已完成。实际伤害 {result['damage']:,}。{returned}本次只执行一局，未正式出刀。"
+        if result.get('outcome') == 'unavailable':
+            return '公会战模拟：当前未开放，未发出开战。已保留所选作业。'
+        started = '本次模拟开战结果尚未确认，已保留未决记录，请勿直接重开。' if result.get('simulation_started') else '本次没有确认完成模拟战。'
+        error = result.get('error')
+        reason = str(error) if error else ''
+        reasons = {
+            'clan_battle_calibration_missing': '会战页面尚未完成真实校准，当前不可执行。',
+            'clan_battle_timing_not_calibrated': '尚未核定秒数读取和操作耗时，此切换轴不可执行。',
+            'clan_battle_timing_window_unproven': '同一秒内的全部操作和读回无法确认完成，此切换轴不可执行。',
+            'clan_battle_previous_result_unknown': '上次模拟结果仍未决，已阻止再次开战。',
+            'clan_battle_switch_missed': '已错过目标秒数，停止且不补点。',
+            'clan_battle_controls_unknown': 'SET／AUTO 状态不明，停止且不补点。',
+            'clan_battle_disconnected_6002': '检测到 6002 断线，请先手动重连并核对结果；程序不会补点或重开。',
+        }
+        for code, message in reasons.items():
+            if reason == code or reason.startswith(code + ':'):
+                reason = message
+                break
+        return '公会战模拟：已停止。' + started + ('\n原因：' + reason if reason else '')
+    if report.get('selected_modules') == ['guide_trial']:
+        result = report['steps'][0].get('result', {})
+        label = {'victory': '已通关', 'already_cleared': '已有通关记录，未重打',
+                 'defeat': '本次未通关，已停止，不自动重试',
+                 'control_checked_exit': '开场设置核对完成并已退出，未记通关',
+                 'progress_observed': '账号和地图已读取，旧战斗结果仍未决',
+                 'completed_externally': '地图已完成，原战斗结果保留未知，未重打',
+                 'attempt_limit': '已用完三次尝试，停止', 'stopped': '已停止'}.get(result.get('outcome'), '结果未知，停止')
+        scope = '本次授权已尝试' if result.get('authorization_id') else '累计尝试'
+        history = f"旧队伍 {result['historical_attempts']} 次记录保留。" if result.get('historical_attempts') else ''
+        returned = ('已返回地图。' if result.get('stage_return_verified') else '返回地图尚未确认。') if result.get('outcome') in ('victory', 'defeat', 'already_cleared') else ''
+        error = result.get('error') or ''
+        if error.startswith('guide_trial_disconnected_6002:battle_start='):
+            started = {'not_sent': '本次未发出开战。', 'sent': '本次已发出开战，战斗结果仍以原记录为准。',
+                       'unknown': '本次开战是否发出无法确认，保留原未决。',
+                       'previously_sent': '正在处理原战斗，本次未新增开战。'}.get(error.rsplit('=', 1)[-1], '开战状态无法确认。')
+            error = '游戏已断线（6002），已停止。' + started + '请手动重连；本次不会自动登录或重发。\n诊断信息：' + error
+        return f"{result.get('stage', '所选关卡')}：{label}。{returned}{scope} {result.get('attempts_used', 0)}/3。{history}" + (
+            '\n原因：' + error if error else '')
     labels = dict(schedule_onekey='日程一键', event='活动', abyss='深渊前哨', deep='深域',
                   rewards='每日任务/礼物（早段）', rewards_final='每日任务/礼物（收尾）',
                   very_hard='高难', hard='困难', normal='普通（每关本次次数）')

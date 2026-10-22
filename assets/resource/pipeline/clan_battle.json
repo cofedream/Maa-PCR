@@ -1,0 +1,63 @@
+{
+  "CBClosedTitleReadOnly": {
+    "recognition": "OCR",
+    "expected": "^(?:行会战|公会战)$",
+    "roi": [0, 0, 1280, 720],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "CBClosedNoticeReadOnly": {
+    "recognition": "OCR",
+    "expected": "^(?:行会战|公会战)(?:尚未开放|未开放|尚未开始|未开始)[。！!]?$",
+    "roi": [0, 0, 1280, 720],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "CBClosedReadOnly": {
+    "recognition": "And",
+    "all_of": ["CBClosedTitleReadOnly", "CBClosedNoticeReadOnly"],
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "CBReadPage": {
+    "recognition": "Custom",
+    "custom_recognition": "ClanBattlePage",
+    "custom_recognition_param": {"page": "uncalibrated"},
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "CBReadTeam": {
+    "recognition": "Custom",
+    "custom_recognition": "ClanBattleCharacters",
+    "custom_recognition_param": {"mode": "read"},
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "CBReadSettings": {
+    "recognition": "Custom",
+    "custom_recognition": "ClanBattleCharacters",
+    "custom_recognition_param": {"mode": "battle_read"},
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 1000,
+    "pre_delay": 0,
+    "post_delay": 0
+  }
+}

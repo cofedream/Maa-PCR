@@ -46,11 +46,11 @@ def parse_selection(raw, *, context=None):
         # Fixed PI data slots, never a caller-supplied registry or node path.
         nodes = ('PCRAlphaSelectSchedule', 'PCRAlphaSelectEvent', 'PCRAlphaSelectAbyss', 'PCRAlphaSelectDeep',
                  'PCRAlphaSelectRewards', 'PCRAlphaSelectVeryHard', 'PCRAlphaSelectHard',
-                 'PCRAlphaSelectNormal', 'PCRAlphaSelectRewardsFinal')
+                 'PCRAlphaSelectNormal', 'PCRAlphaSelectGuideTrial', 'PCRAlphaSelectClanBattleSimulation', 'PCRAlphaSelectClanBattleDaily', 'PCRAlphaSelectRewardsFinal')
         flags = []
         for name in nodes:
             node = context.get_node_data(name)
-            if name == 'PCRAlphaSelectAbyss' and node is None:
+            if name in ('PCRAlphaSelectAbyss', 'PCRAlphaSelectGuideTrial', 'PCRAlphaSelectClanBattleSimulation', 'PCRAlphaSelectClanBattleDaily') and node is None:
                 flags.append(False)  # Older bundles do not contain the new opt-in slot.
                 continue
             if (type(node) is not dict or node.get('enabled') is not False
@@ -75,9 +75,9 @@ def parse_selection(raw, *, context=None):
         flags = value['module_flags']
         if (set(value) != {'version', 'module_flags', 'rewards_final'}
                 or type(flags) is not dict
-                or set(flags) not in (set(supported_daily.MODULE_ORDER),
-                    set(supported_daily.MODULE_ORDER) - {'abyss'},
-                    set(supported_daily.MODULE_ORDER) - {'abyss', 'normal'})
+                or set(flags) - {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily'} not in (set(supported_daily.MODULE_ORDER) - {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily'},
+                    set(supported_daily.MODULE_ORDER) - {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily', 'abyss'},
+                    set(supported_daily.MODULE_ORDER) - {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily', 'abyss', 'normal'})
                 or any(type(enabled) is not bool for enabled in flags.values())):
             raise ValueError('invalid_module_flags')
         value = dict(version=value['version'],
@@ -230,13 +230,23 @@ class AlphaEntry(CustomAction):
             try:
                 with self.registry.scope(context, deadline=native.RUN_DEADLINE.get(),
                                          owner_source=grant.observation_source) as facade:
-                    report = supported_daily.execute_supported(facade, config,
-                        execute=grant.execute, game_day=grant.game_day, context=grant.count_context,
-                        directory=directory, source='Alpha Agent owner-bound invocation',
-                        schedule_authorizations=grant.schedule_authorizations,
-                        schedule_attest_current_plan=grant.schedule_attest_current_plan,
-                        **(dict(schedule_confirm_new_cycle=True) if grant.schedule_confirm_new_cycle else {}),
-                        selected_modules=selection['selected_modules'], rewards_final=selection['rewards_final'])
+                    if selection['selected_modules'] == ['guide_trial']:
+                        from .guide_trial import run_owned
+                        report = run_owned(facade, config, directory)
+                    elif selection['selected_modules'] == ['clan_battle_simulation']:
+                        from .clan_battle import run_owned
+                        report = run_owned(facade, config, directory)
+                    elif selection['selected_modules'] == ['clan_battle_daily']:
+                        from .clan_battle_batch import run_owned
+                        report = run_owned(facade, config, directory)
+                    else:
+                        report = supported_daily.execute_supported(facade, config,
+                            execute=grant.execute, game_day=grant.game_day, context=grant.count_context,
+                            directory=directory, source='Alpha Agent owner-bound invocation',
+                            schedule_authorizations=grant.schedule_authorizations,
+                            schedule_attest_current_plan=grant.schedule_attest_current_plan,
+                            **(dict(schedule_confirm_new_cycle=True) if grant.schedule_confirm_new_cycle else {}),
+                            selected_modules=selection['selected_modules'], rewards_final=selection['rewards_final'])
                 # Scope exit must succeed before interpreting a business report.
             finally:
                 native.RUN_DEADLINE.reset(token)

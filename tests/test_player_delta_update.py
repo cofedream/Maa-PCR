@@ -129,6 +129,7 @@ def test_delta_changed_added_removed_preserves_all_private_bytes(delta_case, mon
         set(case['old']).difference(case['new'])) | {maintenance.MANIFEST}
     assert {p.relative_to(backup).as_posix() for p in backup.rglob('*') if p.is_file()} == expected_backup
     assert (backup / maintenance.MANIFEST).read_bytes() == case['old_bytes']
+    assert not (backup.parent / 'staged').exists()
     assert not (case['player'] / '.runtime/player-maintenance/update-in-progress.json').exists()
 
 

@@ -64,16 +64,20 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string normalWinRate = "95";
     [ObservableProperty] private string extremeWinRate = "70";
     private JObject personalScores = new();
-    [ObservableProperty] private string expectedPlayerId = "";
-    [ObservableProperty] private string username = "";
-    [ObservableProperty] private string password = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(AccountSummary))] private string expectedPlayerId = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(AccountSummary))] private string username = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(AccountSummary))] private string password = "";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CredentialMask), nameof(CredentialsVisibilityText))]
     private bool showCredentials;
     public char CredentialMask => ShowCredentials ? '\0' : '*';
     public string CredentialsVisibilityText => ShowCredentials ? "隐藏" : "查看";
     [ObservableProperty] private string credentialsStatus = "玩家 ID 与账号凭据自动加密保存到本机当前 Windows 用户。";
-    [ObservableProperty] private string status = "设置自动保存；默认再次开始会放弃旧局后新开。";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(SaveButtonText))] private string status = "修改后自动保存；默认再次开始会放弃旧局后新开。";
+    public string SaveButtonText => credentialsDirty || Status.StartsWith("保存失败", StringComparison.Ordinal) ? "重试保存" : "重新保存";
+    public string AccountSummary => credentialsDirty ? "账号有未保存修改，请展开后重试。"
+        : string.IsNullOrWhiteSpace(ExpectedPlayerId) || string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password) ? "账号待填写，展开后设置。"
+        : "账号已填写，默认隐藏。";
     [ObservableProperty] private string progress = "尚未开始";
     private PcrLabyrinthCharacterCatalog? characterCatalog;
     public PcrLabyrinthCharacterCatalog CharacterCatalog => characterCatalog ??= CreateCharacterCatalog();
@@ -138,7 +142,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             } catch { saved=null; Status="保存的黎明界设置无法读取，请核对后重新保存。原文件已保留。"; }
         }
         LoadCredentials();
-        foreach (var g in Goals) g.PropertyChanged+=(_,_)=>Save();
+        foreach (var g in Goals) g.PropertyChanged+=(_,_)=>SaveCore(automatic:true);
         ready=true;
     }
     private PcrLabyrinthCharacterCatalog CreateCharacterCatalog() => PcrLabyrinthCharacterCatalog.Load();
@@ -161,18 +165,18 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     internal void RosterEdited() {
         if (!ready) return;
         vm.NotifyPcrSelectionChanged();
-        Save();
+        SaveCore(automatic:true);
     }
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
         if (!ready || e.PropertyName is nameof(ShowCredentials) or nameof(CredentialMask) or nameof(CredentialsVisibilityText) or nameof(CredentialsStatus)
-                or nameof(RosterStatus) or nameof(HasRosterStatus)) return;
+                or nameof(RosterStatus) or nameof(HasRosterStatus) or nameof(AccountSummary) or nameof(SaveButtonText)) return;
         vm.NotifyPcrSelectionChanged();
         if (e.PropertyName is nameof(ExpectedPlayerId) or nameof(Username) or nameof(Password)) {
             credentialsDirty=true;
             if (vm.CanEditPcrTarget) SaveCredentials();
         }
-        else if (e.PropertyName is not (nameof(Status) or nameof(Progress))) Save();
+        else if (e.PropertyName is not (nameof(Status) or nameof(Progress))) SaveCore(automatic:true);
     }
     [RelayCommand] public void ToggleCredentials() => ShowCredentials=!ShowCredentials;
     public void HideCredentials() => ShowCredentials=false;
@@ -206,6 +210,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             credentialsDirty=false;
             CredentialsStatus="账号凭据已加密保存；重开软件自动载入。";
         } catch { CredentialsStatus="账号凭据保存失败，原有保存内容已保留；请重试。输入内容仍可用于本次运行。"; }
+        OnPropertyChanged(nameof(AccountSummary));
+        OnPropertyChanged(nameof(SaveButtonText));
     }
     private static int Number(string s,int min,int max,string label) {
         if (!int.TryParse(s,NumberStyles.None,CultureInfo.InvariantCulture,out var n) || n<min || n>max) throw new InvalidOperationException($"{label}请输入 {min}–{max} 的整数。");
@@ -293,7 +299,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
                 ["area3_bosses"]=Bosses(Area3BossIds,new[]{301206,303306,319604,312505,306604}),
                 ["area5_bosses"]=Bosses(Area5BossIds,new[]{302501,301701,310103,315004,319401}) } };
     }
-    [RelayCommand] public void Save() {
+    [RelayCommand] public void Save() => SaveCore(automatic:false);
+    private void SaveCore(bool automatic) {
         if (!ready || !vm.CanEditPcrTarget) return;
         vm.NotifyPcrSelectionChanged();
         SaveCredentials();
@@ -302,10 +309,11 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             data["keep_old_run"]=KeepOldRun;
             data["draft_goals"]=new JArray(Goals.Select(g=>new JObject { ["guild_id"]=g.GuildId,["enabled"]=g.Enabled,["clears"]=g.Clears,["mode"]=g.TargetMode==g.TargetModes[0] ? "clears":"attempts" }));
             var value=data.ToString(Formatting.None);
-            if (value==saved) return;
+            if (value==saved) { Status=credentialsDirty ? "任务设置已保存；账号尚未保存，请重试。" : "设置已保存，没有待保存的任务修改。"; return; }
             vm.Processor.InstanceConfiguration.SetValueAndPersist(Key,value);
             if (InstanceConfiguration.ReadValueFromFile(vm.Processor.InstanceId,Key)!=value) throw new InvalidOperationException("设置未写入磁盘，请重新保存。");
-            saved=value; Status="黎明界设置已保存。";
-        } catch (Exception ex) { Status=ex.Message; }
+            saved=value; Status=credentialsDirty ? "任务设置已保存；账号尚未保存，请重试。"
+                : automatic ? "已自动保存黎明界设置。" : "黎明界设置已保存。";
+        } catch (Exception ex) { Status="保存失败："+ex.Message; }
     }
 }

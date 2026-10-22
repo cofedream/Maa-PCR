@@ -1,0 +1,54 @@
+name: 问题反馈
+description: 报告运行、界面、连接或更新问题。
+title: "[问题] "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 软件版本与 R 修订号
+      placeholder: 例如 v0.1.17-r62-candidate / R62，以窗口显示为准。
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: 出问题的模块
+      options:
+        - 日常与扫荡
+        - 黎明界
+        - 公会战候选
+        - 设备连接
+        - 软件更新
+        - 其他
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Windows 与模拟器版本
+      placeholder: 使用实体设备时填写设备型号和 Android 版本。
+  - type: textarea
+    id: steps
+    attributes:
+      label: 操作步骤与发生时间
+      description: 说明你做了什么、何时发生；无需重新执行结果未知的操作。
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 预期行为与实际结果
+      placeholder: |
+        预期：
+        实际：
+        最后停留的画面或提示：
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 日志、截图或性能补充
+      description: |
+        使用软件现有日志导出入口，选择相关模块和时间范围，检查内容后再附上 ZIP。
+        不要上传配置、账号密码、SDK 票据、会话、原始账本或未经审核的原始日志；截图先移除玩家 ID 等身份信息，并说明允许的使用范围。
+        性能问题请补任务顺序、开始与结束时间，以及具体慢在哪一步。

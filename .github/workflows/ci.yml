@@ -51,7 +51,7 @@ jobs:
                   (target / name).write_bytes(data)
           '@ | python -X utf8 -B -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r60-package-manifest.json --vc-redist .runtime/ci/vc-redist-r51
+          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r61-package-manifest.json --vc-redist .runtime/ci/vc-redist-r51
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: GUI Update Contract Checks
         run: |
@@ -67,8 +67,23 @@ jobs:
           dotnet run --project gui/MFAAvalonia/PcrLabyrinthCredentials.Tests/PcrLabyrinthCredentials.Tests.csproj --configuration Release -p:PcrCoreDirectory=$core -p:PcrNativeDirectory=$native -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -- $evidence $source | Tee-Object -FilePath .runtime/ci/credentials-checks.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $python = (Get-Command python).Source
-          dotnet run --project gui/MFAAvalonia/PcrProfileSwitch.Tests/PcrProfileSwitch.Tests.csproj --configuration Release -p:PcrCoreDirectory=$core -p:PcrNativeDirectory=$native -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true -- $source $evidence $python | Tee-Object -FilePath .runtime/ci/profile-checks.log
+          dotnet build gui/MFAAvalonia/PcrProfileSwitch.Tests/PcrProfileSwitch.Tests.csproj --configuration Release -p:Platform=x64 -p:PcrCoreDirectory=$core -p:PcrNativeDirectory=$native -p:RestorePackagesWithLockFile=true -p:RestoreLockedMode=true
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $binary = Join-Path $source 'gui/MFAAvalonia/PcrProfileSwitch.Tests/bin/x64/Release/net10.0'
+          $dll = Join-Path $binary 'PcrProfileSwitch.Tests.dll'
+          $profileEvidence = Join-Path $source '.runtime/ci/profile-checks'
+          New-Item -ItemType Directory -Force $profileEvidence | Out-Null
+          foreach ($mode in @('default', 'clan-daily-only', 'clan-workflow-only', 'clan-formal-only', 'clan-postsave-only', 'profile-registration-only')) {
+            $coreHash = (Get-FileHash -Algorithm SHA256 (Join-Path $core 'MFAAvalonia.Core.dll')).Hash
+            if ((Get-FileHash -Algorithm SHA256 (Join-Path $binary 'MFAAvalonia.Core.dll')).Hash -ne $coreHash) { throw 'Profile checks do not reference the current packaged Core build.' }
+            $coreHash | Set-Content -Encoding utf8 (Join-Path $profileEvidence "$mode.core.sha256")
+            $fixture = Join-Path $profileEvidence "fixtures/$mode"
+            $arguments = @($dll, $source, $fixture, $python) | ForEach-Object { '"' + $_ + '"' }
+            if ($mode -ne 'default') { $arguments += "--$mode" }
+            $check = Start-Process -FilePath (Get-Command dotnet).Source -ArgumentList $arguments -WorkingDirectory $binary -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $profileEvidence "$mode.log") -RedirectStandardError (Join-Path $profileEvidence "$mode.stderr.log")
+            if (-not $check.WaitForExit(600000)) { $check.Kill($true); throw "Profile check $mode timed out." }
+            if ($check.ExitCode -ne 0) { throw "Profile check $mode exited $($check.ExitCode)." }
+          }
       - name: Bundled Runtime Checks
         run: |
           $env:PCR_PLAYER_PACKAGE_ROOT = [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE '.runtime/ci/build/player'))
@@ -88,7 +103,7 @@ jobs:
             .runtime/ci/bundled-runtime-temp/
             .runtime/ci/gui-checks.log
             .runtime/ci/credentials-checks.log
-            .runtime/ci/profile-checks.log
+            .runtime/ci/profile-checks/
             .runtime/ci/build/*.json
             .runtime/ci/build/*.log
             .runtime/ci/build/Maa-PCR-*-win-x64.zip

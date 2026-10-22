@@ -1,135 +1,27 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "revision": 61,
-  "expected_version": "v0.1.16",
-  "base_release_manifest_sha256": "bbda52a6990393ccd41a86148682e15e2f548bb9f109bb270c7417ec0c25e3fe",
-  "accepted_owned_payload_sha256": "a5276dc3f368b1a3bed7e5748d92f877947268378bddce0f80874f5e7e5ef0c1",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 39558605065,
-    "run_attempt": 1,
-    "artifact_id": 12327706885,
-    "source_commit": "4687f32b53d3450478a3c63628d683cde43213ca",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.16-win-x64.zip",
-      "size": 309500648,
-      "sha256": "6a4591aaa4a7c33395e5cfad54bbfd0483506c4254987b0e92210ad5cf91b4a6"
-    }
-  },
-  "accepted_staging_manifest_sha256": "eff16d596d761cafab1848376bd820612605e96cddb7f3ebe501acf8521dac50",
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "public_tests": {
-    "passed": 3514,
-    "skipped": 308,
-    "failed": 0,
-    "errors": 0
-  },
-  "new_performance_regressions_passed": 83,
-  "bundled_runtime_tests_passed": 3,
-  "gui_counted_assertions": 1201,
-  "packaged_update_counts": {
-    "GUI update": 65,
-    "GUI dependency": 52
-  },
-  "gui_core_sha256": "8ef9242e2ff330d32a336891872f381591260cd4f96252e5cebc9ff42520c8e1",
-  "isolated_update_routes": 2,
-  "synthetic_private_files_per_route": 10,
-  "cold_ocr_preparation": {
-    "status": "passed",
-    "business_budget_seconds": 3,
-    "lifecycle_count": 12,
-    "observations": 36,
-    "controller_inputs": 0,
-    "read_max_seconds": 1.0459952999954112,
-    "original_3_second_budget": true
-  },
-  "performance": {
-    "synthetic": true,
-    "device_or_game": false,
-    "journal": [
-      {
-        "rows": 1000,
-        "bytes": 1061780,
-        "before_initial_ms": 5.1710999687202275,
-        "before_tail_median_ms": 5.004800041206181,
-        "after_initial_ms": 6.8416999420151114,
-        "after_tail_median_ms": 0.04980002995580435
-      },
-      {
-        "rows": 10000,
-        "bytes": 10627780,
-        "before_initial_ms": 53.61740000080317,
-        "before_tail_median_ms": 54.677899985108525,
-        "after_initial_ms": 76.14530000137165,
-        "after_tail_median_ms": 0.04830001853406429
-      },
-      {
-        "rows": 12812,
-        "bytes": 13616936,
-        "before_initial_ms": 75.12599998153746,
-        "before_tail_median_ms": 72.17030000174418,
-        "after_initial_ms": 101.45329998340458,
-        "after_tail_median_ms": 0.04770001396536827
-      }
-    ],
-    "recognition": [
-      {
-        "scene": "battle",
-        "full": 122,
-        "short_circuit": 34,
-        "full_ocr": 39,
-        "short_ocr": 16
-      },
-      {
-        "scene": "shop",
-        "full": 122,
-        "short_circuit": 41,
-        "full_ocr": 39,
-        "short_ocr": 17
-      },
-      {
-        "scene": "team",
-        "full": 122,
-        "short_circuit": 39,
-        "full_ocr": 39,
-        "short_ocr": 17
-      },
-      {
-        "scene": "map",
-        "full": 122,
-        "short_circuit": 39,
-        "full_ocr": 39,
-        "short_ocr": 17
-      }
-    ]
-  },
-  "unreleased_clan_changes_included": false,
-  "evidence_sha256": {
-    "SOURCE_REVIEW.json": "f906c27f9a0675e4aa05e2f81abb3efb52b80141153ac565e367b49e5a3588a9",
-    "CI_BINDING.json": "bbeca386e55825b5b9ff8f2993b5f5772e4a9cdf630960390cbfce67e20c8aff",
-    "metadata/run.json": "69604908b87978155ff8fbf790e75c6c7675f0e48a02cedf231dbfdbb76af4cc",
-    "metadata/artifact.json": "49e219f72e8cdb825cf2db0109f9126b6949652103f449efa08ed5a3a906a77b",
-    "metadata/jobs.json": "95b19cd4fab3101f63b6d24045d28bdff53fdff4c9ab56bb944b1de8dab52e11",
-    "PACKAGE_VERIFIED.json": "4189376cf16160a3a99a07c16cd41197e7a683e95f78cdac631f73470a8779e4",
-    "packaged-gui/RESULT.json": "8bf3e6e86b753c67d5cd78d79c34905d46584f2cec1e81c9801f12a4a20aed0e",
-    "packaged-gui-native/result.json": "ef129b56a096b644ba92a35b619d0ac54b21cef3dc7e270cf5b81fa9864986ce",
-    "GUI_VISUAL_VERIFIED.json": "be36398c6b8adb6e24767467fb6e8ca9137a1f4da627176460f1a3906a87b93d",
-    "packaged-runtime-native/result.json": "9064484d04627dad78f2a578da799a01156df83e2e5c021fda0f1ba6f2207ad2",
-    "packaged-runtime.xml": "4319a5e7160b5adf238ca6ae4767ca693d0ec4d47c9474ac0948f7321a5a9a5b",
-    "unicode-entry-native/result.json": "5840faaab950732603dbf88225ad8c423914cac9a9a5439e10feb59b1a45257d",
-    "packaged-cold/RESULT.json": "91068a4b21d6f42616db8e75fcda29d1e43dac379dfd49ff7963c2ac51ac1f11",
-    "ci-artifact/public-tests.xml": "cb36d111d724b114939cd675a543435ecbb6731e3026e6a35d65e65ae4951173",
-    "ci-artifact/bundled-runtime.xml": "30854ab87bf903162bc9309d24d705a197f9c09432f906efae18adb9791b0b9c",
-    "PERFORMANCE.json": "412327ae4990d6e3d0054bf8e5c31d26fea174d62b8f590ea068dac3aa9f9194"
+  "status": "pending",
+  "revision": 64,
+  "expected_version": "v0.1.17",
+  "base_release_manifest_sha256": "ea4396bff4162622af42008bb8c109addc06b30663fadac455c52fbac8589a4a",
+  "accepted_owned_payload_sha256": null,
+  "accepted_ci_artifact": null,
+  "accepted_staging_manifest_sha256": null,
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
+  "clan_battle": {
+    "code_included": true,
+    "live_calibrated": false,
+    "single_auto_simulation_verified": false,
+    "simulation_execution_enabled": false,
+    "formal_execution_enabled": false,
+    "compensation_execution_enabled": false
   },
   "limits": [
-    "Offline synthetic tests, exact CI package and isolated update evidence only; no real installation or device/game acceptance.",
-    "GUI assertions and rendered synthetic controls are not a real account or player installation test.",
-    "Recognition-call and ledger-query measurements do not establish end-to-end game speed.",
-    "Unreleased clan battle changes remain in the local Agent working tree; formal daily input is disabled."
+    "R64 release acceptance is pending; R61 evidence does not accept this payload.",
+    "Clan guide import, review, save and three-team planning are included; live calibration and a complete real AUTO simulation remain unverified.",
+    "The bundled clan calibration index is empty; production simulation, formal and compensation execution remain unavailable."
   ]
 }

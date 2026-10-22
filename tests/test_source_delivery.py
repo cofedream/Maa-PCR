@@ -18,6 +18,23 @@ source_gate = importlib.util.module_from_spec(gate_spec)
 gate_spec.loader.exec_module(source_gate)
 
 
+def test_matching_source_excludes_only_the_local_guide_handoff(tmp_path):
+    source = tmp_path / 'source'
+    docs = source / 'docs'
+    (docs / 'archive').mkdir(parents=True)
+    private = docs / 'GUIDE_CHECK.md'
+    private.write_text('/'.join(('C:', 'Users', 'fixture-only', 'work-notes')), encoding='utf-8')
+    original = private.read_bytes()
+    (docs / 'public.md').write_bytes(b'public guide')
+    (docs / 'archive/GUIDE_CHECK.md').write_bytes(b'ordinary nested document')
+    prepared = tmp_path / 'prepared'
+    inventory = delivery.prepare(source, prepared)
+    assert {row['path'] for row in inventory['files']} == {'docs/public.md', 'docs/archive/GUIDE_CHECK.md'}
+    assert not (prepared / 'source/docs/GUIDE_CHECK.md').exists()
+    assert (prepared / 'source/docs/public.md').read_bytes() == b'public guide'
+    assert private.read_bytes() == original
+
+
 class SourceDeliveryTests(unittest.TestCase):
     def test_paths_and_retired_resources_are_rejected(self):
         for value in ('../secret', '/secret', 'C:/secret', 'a\\b', 'a/../b',
@@ -89,7 +106,7 @@ class SourceDeliveryTests(unittest.TestCase):
             public = ('README.md', 'requirements-runtime.lock', 'inspect-daily.bat',
                       'delivery/runtime-downloads.json', 'delivery/acceptance.json',
                       'delivery/baselines/r38-package-manifest.json',
-                      'delivery/baselines/r46-package-manifest.json', 'delivery/baselines/r49-package-manifest.json', 'delivery/baselines/r50-package-manifest.json', 'delivery/baselines/r51-package-manifest.json', 'delivery/baselines/r52-package-manifest.json', 'delivery/baselines/r53-package-manifest.json', 'delivery/baselines/r55-package-manifest.json', 'delivery/baselines/r56-package-manifest.json', 'delivery/baselines/r57-package-manifest.json', 'delivery/baselines/r58-package-manifest.json', 'delivery/baselines/r59-package-manifest.json', 'delivery/baselines/r60-package-manifest.json', 'src/pcr_maa/labyrinth/example.py',
+                      'delivery/baselines/r46-package-manifest.json', 'delivery/baselines/r49-package-manifest.json', 'delivery/baselines/r50-package-manifest.json', 'delivery/baselines/r51-package-manifest.json', 'delivery/baselines/r52-package-manifest.json', 'delivery/baselines/r53-package-manifest.json', 'delivery/baselines/r55-package-manifest.json', 'delivery/baselines/r56-package-manifest.json', 'delivery/baselines/r57-package-manifest.json', 'delivery/baselines/r58-package-manifest.json', 'delivery/baselines/r59-package-manifest.json', 'delivery/baselines/r60-package-manifest.json', 'delivery/baselines/r61-package-manifest.json', 'src/pcr_maa/labyrinth/example.py',
                       'vendor/autopcr_sync/example.py', 'assets/labyrinth/icons/icon.png',
                       'assets/resource/image/labyrinth/scene/home_level.png',
                       'third_party/materials/LICENSE', '.github/workflows/ci.yml',

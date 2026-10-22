@@ -31,6 +31,7 @@ if (args.Length == 2)
     return 0;
 }
 var count = 0;
+AppPathsChecks.Run();
 void Require(bool value, string test)
 {
     if (!value) throw new InvalidOperationException(test);

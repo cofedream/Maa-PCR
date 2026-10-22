@@ -140,7 +140,7 @@ public sealed class MaaProcessorManager
 
     private MaaProcessor CreateInstanceInternal(string instanceId, bool setCurrent)
     {
-        if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled && instanceId != "pcr-alpha-v1" && instanceId != "pcr-labyrinth-v1") throw new InvalidOperationException("MAA PCR supports two fixed profiles");
+        if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled && instanceId != "pcr-alpha-v1" && instanceId != "pcr-labyrinth-v1" && instanceId != MFAAvalonia.Pcr.PcrClanGuide.ProfileId) throw new InvalidOperationException("MAA PCR supports three fixed profiles");
         lock (_lock)
         {
             if (_instances.TryGetValue(instanceId, out var existing))
@@ -825,28 +825,40 @@ public sealed class MaaProcessorManager
         if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled)
         {
             LoadSingleInstance("pcr-alpha-v1");
-            var created = !File.Exists(Path.Combine(InstanceConfiguration.InstancesDir, "pcr-labyrinth-v1.json"));
-            LoadSingleInstance("pcr-labyrinth-v1");
-            if (!_instanceOrder.Contains("pcr-labyrinth-v1")) _instanceOrder.Add("pcr-labyrinth-v1");
-            foreach (var pair in new[] { ("pcr-alpha-v1", "日常&扫荡"), ("pcr-labyrinth-v1", "黎明界bot") }) {
+            var created = new[] { "pcr-labyrinth-v1", MFAAvalonia.Pcr.PcrClanGuide.ProfileId }
+                .Where(id => !File.Exists(Path.Combine(InstanceConfiguration.InstancesDir, id + ".json"))).ToArray();
+            foreach (var id in new[] { "pcr-labyrinth-v1", MFAAvalonia.Pcr.PcrClanGuide.ProfileId }) {
+                LoadSingleInstance(id);
+                if (!_instanceOrder.Contains(id)) _instanceOrder.Add(id);
+            }
+            foreach (var pair in new[] { ("pcr-alpha-v1", "日常&扫荡"), ("pcr-labyrinth-v1", "黎明界bot"), (MFAAvalonia.Pcr.PcrClanGuide.ProfileId, "公会战") }) {
                 var config = _instances[pair.Item1].InstanceConfiguration;
-                if (!config.GetValue("PcrProfileNamedV1", false)) {
+                if (!config.GetValue("PcrProfileNamedV1", false)
+                    || pair.Item1 == MFAAvalonia.Pcr.PcrClanGuide.ProfileId && config.GetValue(ConfigurationKeys.InstanceName, "") == "PCR Agent") {
                     SetInstanceName(pair.Item1, pair.Item2);
                     config.SetValue("PcrProfileNamedV1", true);
                 }
                 _instanceNames[pair.Item1] = config.GetValue(ConfigurationKeys.InstanceName, pair.Item2);
             }
-            if (created) {
-                var from = _instances["pcr-alpha-v1"].InstanceConfiguration;
-                var to = _instances["pcr-labyrinth-v1"].InstanceConfiguration;
-                foreach (var key in new[] { ConfigurationKeys.AdbDevice, ConfigurationKeys.CurrentController, ConfigurationKeys.CurrentControllerName, ConfigurationKeys.Resource }) {
-                    var value = from.GetValue<object?>(key, null);
+            foreach (var id in created) {
+                var sourcePath = _instances["pcr-alpha-v1"].InstanceConfiguration.GetConfigFilePath();
+                var source = File.Exists(sourcePath) ? JObject.Parse(File.ReadAllText(sourcePath)) : new JObject();
+                var to = _instances[id].InstanceConfiguration;
+                foreach (var key in new[] { ConfigurationKeys.AdbDevice, ConfigurationKeys.CurrentController, ConfigurationKeys.CurrentControllerName, ConfigurationKeys.Resource,
+                    "PcrPlayerSettingsV1" }) {
+                    if (id == "pcr-labyrinth-v1" && key == "PcrPlayerSettingsV1") continue;
+                    object? value = source[key]?.DeepClone();
+                    if (key == "PcrPlayerSettingsV1" && value != null) {
+                        var settings = JObject.Parse(Convert.ToString(value)!);
+                        value = new JObject(settings.Properties().Where(p => p.Name is "gamePackage" or "gameActivity" or "validateDisplayMapping")
+                            .Select(p => new JProperty(p.Name, p.Value.DeepClone()))).ToString(Formatting.None);
+                    }
                     if (value != null) to.SetValue(key, value);
                 }
-                _instances["pcr-labyrinth-v1"].ViewModel?.RestorePcrAdbSelection();
+                _instances[id].ViewModel?.RestorePcrAdbSelection();
             }
             var active=GlobalConfiguration.GetValue(ConfigurationKeys.LastActiveInstance, "pcr-alpha-v1");
-            Current=_instances[active=="pcr-labyrinth-v1" ? active : "pcr-alpha-v1"];
+            Current=_instances[active is "pcr-labyrinth-v1" or MFAAvalonia.Pcr.PcrClanGuide.ProfileId ? active : "pcr-alpha-v1"];
             SaveInstanceConfig();
             if (MFAAvalonia.Helper.Instances.TryGetResolved<MFAAvalonia.ViewModels.Other.InstanceTabBarViewModel>(out var tabs)) tabs.ReloadTabs();
             return;

@@ -1,0 +1,16 @@
+{
+  "source": "Original local Maa diagnostic frames, 2026-10-22. Full frames are byte-identical; no player name or account ID is visible.",
+  "purpose": "EX animation and map-target regression; does not establish live-game acceptance.",
+  "frames": {
+    "labyrinth-map-ex-20261022-target.png": {
+      "sha256": "f709a0691f9d7ef1300c057740283a452d520c55cec0c34df4208b84c0d34e8b",
+      "width": 1280,
+      "height": 720
+    },
+    "labyrinth-map-ex-20261022-poll.png": {
+      "sha256": "7dc4d6de9a98685ffa3171de3c4f6f5549f9c4999f9e0df1deeaa987853e24e5",
+      "width": 1280,
+      "height": 720
+    }
+  }
+}

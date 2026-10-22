@@ -26,6 +26,8 @@ from .home_guard import HomeNoKnownLargePanel
 
 
 RECOGNITIONS = frozenset({
+    'ClanBattleCharacters', 'ClanBattlePage',
+    'GuideTrialCharacters',
     'OneKeySnapshot', 'OneKeyPage', 'HousePage', 'SchedulePage', 'ScheduleDecision',
     'PresetPage', 'CountFitNumber', 'ConfirmationPage', 'ConfirmationCommitGuard',
     'CurrentResultEvidence', 'CurrentClanPrompt', 'EventPage', 'ClosedAdventurePage',

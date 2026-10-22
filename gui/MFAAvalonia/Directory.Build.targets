@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Optional build statistics write outside the workspace and can crash their collector under restricted permissions. -->
+    <UsedAvaloniaProducts></UsedAvaloniaProducts>
+  </PropertyGroup>
+</Project>

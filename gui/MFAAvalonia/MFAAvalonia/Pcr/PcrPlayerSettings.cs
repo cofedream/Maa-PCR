@@ -8,6 +8,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.ViewModels.Pages;
 using MFAAvalonia.ViewModels.UsersControls;
@@ -36,6 +37,7 @@ public partial class PcrPlayerSettings : ObservableObject
     private JObject? managerIdentity;
     private JObject? managerConnection;
     public string[] Slots { get; } = { "", "1", "2", "3", "4", "5", "6", "7" };
+    public string ClanExecutionMode => PcrClanDailyExecution.ModeFor(AppPaths.ConfigDirectory);
     [ObservableProperty] private string mumuPath = "";
     [ObservableProperty] private string sdkPath = "";
     [ObservableProperty] private string instanceIndex = "";
@@ -69,7 +71,8 @@ public partial class PcrPlayerSettings : ObservableObject
     [ObservableProperty] private bool attestPlan;
     // Legacy in-memory fields only; never persisted or used as execution facts.
     [ObservableProperty] private string gameDay = "";
-    [ObservableProperty] private string status = "设置自动保存；可先填写任务，再选择设备。";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(SaveButtonText))] private string status = "修改后自动保存；可先填写任务，再选择设备。";
+    public string SaveButtonText => Status.StartsWith("保存失败", StringComparison.Ordinal) ? "重试保存" : "重新保存";
     public ObservableCollection<PcrScheduleChoice> Schedule { get; } = new(new[] {
         new PcrScheduleChoice("arena_coins", "竞技场金币"), new PcrScheduleChoice("princess_arena_coins", "公主竞技场金币"),
         new PcrScheduleChoice("dungeon_skip", "地下城跳过"), new PcrScheduleChoice("mana_skip", "玛那探索（2券）"),
@@ -106,7 +109,7 @@ public partial class PcrPlayerSettings : ObservableObject
             base.OnPropertyChanged(new PropertyChangedEventArgs(nameof(SelectedChannel)));
             base.OnPropertyChanged(new PropertyChangedEventArgs(nameof(ChannelStatus)));
         }
-        if (ready && e.PropertyName != nameof(Status) && e.PropertyName != nameof(Summary) && vm != null)
+        if (ready && e.PropertyName is not (nameof(Status) or nameof(Summary) or nameof(SaveButtonText)) && vm != null)
         {
             PcrAlphaOwner.Revoke(vm.Processor);
             if (e.PropertyName != nameof(GameDay)) MarkDirty();
@@ -117,7 +120,7 @@ public partial class PcrPlayerSettings : ObservableObject
         if (!ready) return;
         if (saved != Payload().ToString(Formatting.None)) {
             Status = "有未保存的修改";
-            Save();
+            PersistDraft(revoke:true, automatic:true);
         }
         base.OnPropertyChanged(new PropertyChangedEventArgs(nameof(Summary)));
     }
@@ -214,7 +217,7 @@ public partial class PcrPlayerSettings : ObservableObject
         managerConnection = (JObject)selectedConnection.DeepClone();
     }
     [RelayCommand] private void Save() => PersistDraft(revoke: true);
-    private void PersistDraft(bool revoke)
+    private void PersistDraft(bool revoke, bool automatic = false)
     {
         try {
             if (!vm.CanEditPcrTarget) throw new InvalidOperationException("请先停止当前任务");
@@ -226,7 +229,7 @@ public partial class PcrPlayerSettings : ObservableObject
             vm.Processor.InstanceConfiguration.SetValueAndPersist(Key, payload);
             saved = payload; lastSaveError = null;
             if (revoke) PcrAlphaOwner.Revoke(vm.Processor);
-            Status = "已保存（自动保存草稿；开始时校验所选任务）";
+            Status = automatic ? "已自动保存；开始时校验所选任务。" : "设置已保存；修改后会自动保存。";
         } catch (Exception ex) {
             lastSaveError = ex.Message;
             Status = "保存失败：" + ex.Message;
@@ -236,14 +239,36 @@ public partial class PcrPlayerSettings : ObservableObject
     public string ExportForStart(string repository) => ExportForStart(repository, null);
     public string ExportForStart(string repository, JObject? selection)
     {
+        if (vm.IsAgentProfile) PcrClanDailyExecution.RequireStartAllowed(ClanExecutionMode);
+        if (selection != null) PcrClanDailyExecution.RequireSelectionAllowed(selection);
         if (!vm.CanEditPcrTarget) throw new InvalidOperationException("请先停止当前任务");
         if (vm.CurrentDevice is not AdbDeviceInfo target ||
             !AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(target.AdbPath, target.AdbSerial, out var path, out var serial))
             throw new InvalidOperationException("设备栏：请选择有效的 ADB 目标后开始；任务草稿已保留。");
         connection = new JObject { ["adb_path"] = path, ["serial"] = serial };
         var modules = selection?["selected_modules"]?.Values<string>().ToArray();
+        if (selection != null) PcrAlphaOwner.RequireProfileSelection(vm.Processor, selection);
         if (selection != null) _ = ConsentForStart(selection);
         var config = Config(modules);
+        if (modules?.Contains("guide_trial") == true)
+        {
+            if (GamePackage != "com.bilibili.priconne") throw new InvalidOperationException("本关试打仅支持国服 B 站。");
+            var guide = new PcrGuideStore(Path.Combine(AppPaths.ConfigDirectory, "guide-review.json")).Load();
+            config["guide_trial"] = PcrGuideTrial.CreatePlan(guide.Input, repository);
+        }
+        if (modules?.Contains("clan_battle_simulation") == true)
+        {
+            if (GamePackage != "com.bilibili.priconne") throw new InvalidOperationException("会战模拟首版仅支持国服 B 站。");
+            config["clan_battle_simulation"] = PcrClanGuide.CreatePlan(repository);
+            if ((string?)config["clan_battle_simulation"]?["confirmed_for"] != vm.PcrClanGuideConfirmationForStart())
+                throw new InvalidOperationException("当前会战作业与已保存确认不一致，请重新核对并保存后开始。");
+        }
+        if (modules?.Contains("clan_battle_daily") == true)
+        {
+            config["clan_battle_daily"] = PcrClanDailyExecution.CreatePlan(AppPaths.ConfigDirectory, repository, DateTimeOffset.Now);
+            if ((string?)config["clan_battle_daily"]?["confirmed_for"] != vm.PcrClanGuideConfirmationForStart())
+                throw new InvalidOperationException("正式三目标与当前确认不一致，请单独核对保存。");
+        }
         // This flush belongs to the already pending Start. Edits still revoke,
         // but writing the unchanged reviewed draft must not cancel its owner.
         PersistDraft(revoke: false);

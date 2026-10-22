@@ -96,13 +96,13 @@ public static partial class PcrAlphaOwner
                 p[node.Name] = combined;
             }
         }
-        string[] nodes = {"Schedule", "Event", "Abyss", "Deep", "Rewards", "VeryHard", "Hard", "Normal", "RewardsFinal"};
-        string[] modules = {"schedule_onekey", "event", "abyss", "deep", "rewards", "very_hard", "hard", "normal"};
+        string[] nodes = {"Schedule", "Event", "Abyss", "Deep", "Rewards", "VeryHard", "Hard", "Normal", "GuideTrial", "ClanBattleSimulation", "ClanBattleDaily", "RewardsFinal"};
+        string[] modules = {"schedule_onekey", "event", "abyss", "deep", "rewards", "very_hard", "hard", "normal", "guide_trial", "clan_battle_simulation", "clan_battle_daily"};
         var selected = new JArray(); bool final = false;
         for (int i = 0; i < nodes.Length; i++)
         {
             var token = p["PCRAlphaSelect" + nodes[i]]?["attach"]?["selected"];
-            if (nodes[i] == "Abyss" && token == null) continue; // old PI snapshots did not include this opt-in node
+            if ((nodes[i] is "Abyss" or "GuideTrial" or "ClanBattleSimulation" or "ClanBattleDaily") && token == null) continue; // optional nodes absent from older snapshots
             if (token?.Type != JTokenType.Boolean) throw new InvalidOperationException("Invalid selection node");
             if (i == nodes.Length - 1) final = (bool)token;
             else if ((bool)token) selected.Add(modules[i]);
@@ -120,19 +120,44 @@ public static partial class PcrAlphaOwner
             selected = new JArray(ids);
         }
         if (selected.Count == 0 && !final) throw new InvalidOperationException("请先选择本次模块或末尾补领");
+        if (selected.Values<string>().Contains("guide_trial") && (selected.Count != 1 || final))
+            throw new InvalidOperationException("单关试打须单独勾选，并关闭末尾补领。");
+        if (selected.Values<string>().Any(id => id is "clan_battle_simulation" or "clan_battle_daily") && (selected.Count != 1 || final))
+            throw new InvalidOperationException("会战模拟或正式三刀须单独运行，并关闭末尾补领。");
         return new JObject { ["version"] = 1, ["selected_modules"] = selected, ["rewards_final"] = final };
+    }
+
+    internal static void RequireProfileSelection(MaaProcessor processor, JObject selection)
+    {
+        var clan = selection["selected_modules"]!.Values<string>().Any(id => id is "clan_battle_simulation" or "clan_battle_daily");
+        if (processor.InstanceId == PcrClanGuide.ProfileId
+            ? !clan || selection["selected_modules"]!.Count() != 1 || (bool?)selection["rewards_final"] != false
+            : clan || processor.InstanceId == "pcr-labyrinth-v1")
+            throw new InvalidOperationException("所选任务与当前配置不一致，请在 PCR Agent 配置选择单次模拟或正式三刀预设。");
+    }
+
+    private static void RequireClanConfirmation(TaskQueueViewModel vm, ValidatedConfig snapshot, string? confirmedFor)
+    {
+        if (confirmedFor == null) return;
+        var config = JObject.Parse(snapshot.Json)["config"]!;
+        var module = config["clan_battle_daily"] != null ? "clan_battle_daily" : "clan_battle_simulation";
+        if (vm.PcrClanGuideConfirmationForStart() != confirmedFor || (string?)config[module]?["confirmed_for"] != confirmedFor)
+            throw new InvalidOperationException("当前会战作业与已保存确认不一致，请重新核对并保存后开始。");
     }
 
     public static async Task RequestStartAsync(TaskQueueViewModel vm)
     {
+        if (vm.Processor.InstanceId == PcrClanGuide.ProfileId)
+            PcrClanDailyExecution.RequireStartAllowed(PcrClanDailyExecution.ModeFor(AppPaths.ConfigDirectory));
         PendingStart attempt;
         lock (PcrProfileRunGate.StartGate)
         lock (Gate)
         {
-            if (prompting != 0 || PcrLabyrinthOwner.IsActive || PcrProfileRunGate.UpdatePending || PcrProfileRunGate.ConnectionPending) return;
+            if (prompting != 0 || PcrLabyrinthOwner.IsActive || PcrGuideSyncOwner.IsActive || PcrProfileRunGate.UpdatePending || PcrProfileRunGate.ConnectionPending) return;
             prompting = 1;
             pendingStart = attempt = new PendingStart(vm.Processor);
         }
+        var feedbackRun = vm.BeginPcrRunFeedback();
         var handedToProcessor = false;
         try
         {
@@ -145,6 +170,9 @@ public static partial class PcrAlphaOwner
             var offlineReader = OfflineDisplayReader;
             var node = vm.Processor.PreviewPcrTask();
             var selection = Selection(node.Entry!, node.Param!);
+            RequireProfileSelection(vm.Processor, selection);
+            PcrClanDailyExecution.RequireSelectionAllowed(selection);
+            var clanConfirmation = vm.IsAgentProfile ? vm.PcrClanGuideConfirmationForStart() : null;
             PcrFormalPreflight.RequireSelection(vm, selection); // before any Manager read or config selection
             if (PcrFormalPreflight.Enabled && (Confirm != null || SelectConfiguration != null || offline
                 || ControllerBuilder != null || OfflineMuMuFactory != null || OfflineAgentScript != null
@@ -187,6 +215,7 @@ public static partial class PcrAlphaOwner
             vm.IsRunning = true;
             var snapshot = await ValidateConfigAsync(selectedPath, review, attempt.Cancel.Token);
             RequirePendingStart(attempt);
+            RequireClanConfirmation(vm, snapshot, clanConfirmation);
             if (review) RequireSelectedTarget(vm, selectedTarget!, snapshot);
             if (PcrFormalPreflight.Enabled)
             {
@@ -211,6 +240,7 @@ public static partial class PcrAlphaOwner
                 throw new InvalidOperationException("Selection changed during confirmation; Start again");
             if (snapshot != await ValidateConfigAsync(selectedPath, review, attempt.Cancel.Token))
                 throw new InvalidOperationException("配置在确认期间已变化，请重新核对并开始");
+            RequireClanConfirmation(vm, snapshot, clanConfirmation);
             RequirePendingStart(attempt);
             if (review) RequireSelectedTarget(vm, selectedTarget!, snapshot);
             // Partial/ambiguous business hooks must not fall through to a device.
@@ -231,6 +261,7 @@ public static partial class PcrAlphaOwner
                 if (offline && offlineReader == null || offlineReader != null && offlineMuMu == null && offlineBuilder == null)
                     throw new InvalidOperationException("Offline allocation and fixed readback must be installed together");
                 current = new Session(vm.Processor, selection, snapshot, consent) {
+                    ReportSummary = line => vm.ReceivePcrRunOutput(feedbackRun, line),
                     SelectedConfigPath = review ? selectedPath : null,
                     ConfigFileHash = review ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(selectedPath))) : null,
                     PreparationOnly = !offline && offlineMuMu != null,
@@ -256,6 +287,7 @@ public static partial class PcrAlphaOwner
                         throw new InvalidOperationException("schedule_identity_drift_during_start");
                     if (snapshot != await ValidateConfigAsync(selectedPath, review, attempt.Cancel.Token))
                         throw new InvalidOperationException("Configuration changed during mapping");
+                    RequireClanConfirmation(vm, snapshot, clanConfirmation);
                     RequireConfigFile(s);
                     RequirePendingStart(attempt);
                     if (review) RequireSelectedTarget(vm, selectedTarget!, snapshot);
@@ -264,6 +296,7 @@ public static partial class PcrAlphaOwner
                         throw new InvalidOperationException("Selection changed during mapping");
                     lock (Gate) { RequirePendingStart(attempt); s.Mapping = mapping; s.MappingChecked = s.Watch.Elapsed; }
                 }
+                RequireClanConfirmation(vm, snapshot, clanConfirmation);
                 lock (Gate) { RequirePendingStart(attempt); s.Preparing = false; }
             }
             catch { lock (Gate) { s.Preparing = false; } Revoke(vm.Processor); Release(vm.Processor); throw; }
@@ -286,6 +319,7 @@ public static partial class PcrAlphaOwner
                 message += "\n无法确认所选模拟器中的 PCR 游戏画面，任务尚未开始。请打开并登录 PCR，切回游戏主页后再开始；请在高级设置选择正确渠道，未收录渠道请反馈维护者，仍提示冲突时请核对设备选择并保留日志。";
             else if (ex.Message.StartsWith("schedule_manager_", StringComparison.Ordinal))
                 message += "\n无法核验所选模拟器，任务尚未开始。请确认所选 MuMu 和 PCR 已打开并核对设备；仍失败时保留日志交维护端核查。";
+            vm.ShowPcrStartError(feedbackRun, message);
             vm.Processor.AddLog(message, (Avalonia.Media.IBrush?)null);
         }
         finally

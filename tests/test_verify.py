@@ -90,7 +90,8 @@ def test_malformed_sdk_config_is_a_failed_receipt(monkeypatch, tmp_path, content
     assert result["steps"] == []
 
 
-def test_gui_rejects_stale_core_before_running(monkeypatch, tmp_path):
+@pytest.mark.parametrize('mode', ['default', *verify.PROFILE_CHECK_MODES])
+def test_gui_rejects_stale_core_before_running(monkeypatch, tmp_path, mode):
     monkeypatch.setattr(verify, "ROOT", tmp_path)
     core = tmp_path / "gui/MFAAvalonia/bin/x64/Release/MFAAvalonia.Core.dll"
     core.parent.mkdir(parents=True)
@@ -100,12 +101,12 @@ def test_gui_rejects_stale_core_before_running(monkeypatch, tmp_path):
     (binary / core.name).write_bytes(b"stale")
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: pytest.fail("must not launch"))
     with pytest.raises(RuntimeError, match="current Desktop Core"):
-        verify.run_step("PcrProfileSwitch.Tests-run", ["sdk"], binary, tmp_path, {}, {"steps": []}, timeout=1)
+        verify.run_step("PcrProfileSwitch.Tests-" + mode + "-run", ["sdk"], binary, tmp_path, {}, {"steps": []}, timeout=1)
 
 
 def test_gui_plan_builds_before_checks_and_uses_matching_rids(tmp_path):
     commands = verify.gui_commands("sdk", tmp_path / "gui", tmp_path)
-    assert len(commands) == 11
+    assert len(commands) == 16
     assert [name for name, _, _ in commands][0:2] == ["MFAAvalonia.Desktop-restore", "MFAAvalonia.Desktop-build"]
     for name, command, cwd in commands:
         assert cwd.is_relative_to(tmp_path)
@@ -120,3 +121,22 @@ def test_gui_plan_builds_before_checks_and_uses_matching_rids(tmp_path):
             assert command[command.index("-r") + 1] == "win-x64"
         if name == "PcrProfileSwitch.Tests-run":
             assert command[-3:] == [str(verify.ROOT), str(tmp_path / "fixtures/PcrProfileSwitch.Tests"), sys.executable]
+
+
+def test_gui_plan_runs_each_clan_contract_in_a_separate_process_without_rebuilding(tmp_path):
+    commands = verify.gui_commands("sdk", tmp_path / "gui", tmp_path)
+    modes = {'clan-daily-only', 'clan-workflow-only', 'clan-formal-only',
+             'clan-postsave-only', 'profile-registration-only'}
+    profile = [(name, command, cwd) for name, command, cwd in commands if name.startswith('PcrProfileSwitch.Tests')]
+    assert [name for name, _, _ in profile[:3]] == [
+        'PcrProfileSwitch.Tests-restore', 'PcrProfileSwitch.Tests-build', 'PcrProfileSwitch.Tests-run']
+    runs = profile[2:]
+    assert len(runs) == 6
+    assert len({command[1] for _, command, _ in runs}) == 1
+    assert len({command[3] for _, command, _ in runs}) == 6
+    assert {command[-1].removeprefix('--') for _, command, _ in runs[1:]} == modes
+    for name, command, cwd in runs:
+        assert name.endswith('-run')  # run_step checks the Core hash for each subprocess.
+        assert Path(command[1]).parent == cwd
+        assert command[2] == str(verify.ROOT) and command[4] == sys.executable
+        assert Path(command[3]).is_relative_to(tmp_path / 'fixtures')

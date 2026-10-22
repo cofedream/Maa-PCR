@@ -19,6 +19,7 @@ OLD_GUI_IMAGES = frozenset((
     'gui/MFAAvalonia/SukiUI/OIG.N5o-removebg-preview.png',
     'gui/MFAAvalonia/docs/images/preview.png',
 ))
+LOCAL_ONLY_FILES = frozenset(('docs/GUIDE_CHECK.md',))
 EXCLUDED_PARTS = frozenset((
     '.runtime', '.git', '.vs', '.idea', '.cache', 'bin', 'obj', '__pycache__',
     '.pytest_cache', '.mypy_cache', '.ruff_cache', 'node_modules',
@@ -56,6 +57,7 @@ DELIVERY_FILES = frozenset((
     'delivery/baselines/r58-package-manifest.json',
     'delivery/baselines/r59-package-manifest.json',
     'delivery/baselines/r60-package-manifest.json',
+    'delivery/baselines/r61-package-manifest.json',
 ))
 TEXT_SUFFIXES = frozenset((
     '.py', '.cs', '.md', '.txt', '.json', '.toml', '.yml', '.yaml', '.xml',
@@ -144,6 +146,8 @@ def privacy_scan(path, name):
 
 
 def source_allowed(name):
+    if name in LOCAL_ONLY_FILES:
+        return False
     parts = PurePosixPath(name).parts
     return ((len(parts) == 1 and name in ROOT_FILES)
             or name in DELIVERY_FILES

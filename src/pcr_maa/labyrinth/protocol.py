@@ -132,10 +132,11 @@ class LabyrinthClient:
                 if sdk.is_risk:raise ProtocolFailure('captcha_rejected')
             started=await self._auth_request(CheckGameStartRequest(apptype=0,campaign_data='',campaign_user=random.randint(0,100000)&~1),expected_viewer_id)
             if not started.now_tutorial:raise ProtocolFailure('tutorial_incomplete')
-            await self._auth_request(LoadIndexRequest(carrier='OPPO'),expected_viewer_id)
+            load=await self._auth_request(LoadIndexRequest(carrier='OPPO'),expected_viewer_id)
             await self._auth_request(HomeIndexRequest(message_id=1,gold_history=0,is_first=1,tips_id_list=[]),expected_viewer_id)
             if not self._positive_id(self.auth.viewer_id) or self.auth.viewer_id!=expected_viewer_id:
                 raise ProtocolFailure('account_mismatch')
+            return load
         finally:proof=None
 
     async def login(self,expected_viewer_id):
@@ -191,7 +192,7 @@ class LabyrinthClient:
                 self.auth.content_version=version
                 self.auth.headers['MANIFEST-VER']=version
                 self.auth.headers['RES-VER']=resource_version
-                await self._login_game(uid,key,expected_viewer_id)
+                load=await self._login_game(uid,key,expected_viewer_id)
                 self._check_open()
                 # Retained only for this Owner lifetime, after fresh identity
                 # confirmation. No token cache, file, or password reuse exists.
@@ -200,6 +201,7 @@ class LabyrinthClient:
                 self.logged_in=True
                 self._session_generation=object()
                 self._phase='protocol'
+                return load
             except ProtocolFailure:
                 self.close();raise
             except asyncio.CancelledError:

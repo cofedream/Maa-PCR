@@ -26,6 +26,56 @@ def test_startup_launcher_preserves_r38_entry_with_local_runtime():
     assert 'exit /b %errorlevel%\r\n' in content
 
 
+@pytest.fixture
+def complete_player_stub(tmp_path, monkeypatch):
+    player = tmp_path / 'player'
+    player.mkdir()
+    metadata = {'python': {'version': '3.13.16'}, 'dotnet': {'version': '10.0.1'}}
+    monkeypatch.setattr(builder, 'ROOT', tmp_path / 'source')
+    with pytest.raises(ValueError, match='release_payload_missing: ') as missing:
+        builder.require_payload(player, metadata)
+    for name in str(missing.value).removeprefix('release_payload_missing: ').split(', '):
+        path = player / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b'synthetic payload; never executed')
+    return player, metadata
+
+
+@pytest.mark.parametrize('name', ['read-guide-snapshot.py', 'prepare-clan-guide.py'])
+def test_guide_launcher_is_copied_and_required(complete_player_stub, name):
+    player, metadata = complete_player_stub
+    assert name in builder.PAYLOAD_SCRIPTS
+    assert (player / 'scripts' / name).is_file()
+    builder.require_payload(player, metadata)
+
+
+@pytest.mark.parametrize('name', ['read-guide-snapshot.py', 'prepare-clan-guide.py'])
+def test_player_payload_rejects_missing_guide_launcher(complete_player_stub, name):
+    player, metadata = complete_player_stub
+    (player / 'scripts' / name).unlink()
+    with pytest.raises(ValueError) as missing:
+        builder.require_payload(player, metadata)
+    assert str(missing.value) == 'release_payload_missing: scripts/' + name
+
+
+def test_runtime_copy_excludes_only_the_local_guide_handoff(tmp_path, monkeypatch):
+    source = tmp_path / 'source'
+    docs = source / 'docs'
+    (docs / 'archive').mkdir(parents=True)
+    private = docs / 'GUIDE_CHECK.md'
+    private.write_bytes(b'local work handoff; preserve the original')
+    original = private.read_bytes()
+    (docs / 'public.md').write_bytes(b'public guide')
+    (docs / 'archive/GUIDE_CHECK.md').write_bytes(b'ordinary nested document')
+    monkeypatch.setattr(builder, 'ROOT', source)
+    target = tmp_path / 'player/docs'
+    copied = builder.copy_tree(docs, target)
+    assert set(copied) == {'public.md', 'archive/GUIDE_CHECK.md'}
+    assert not (target / 'GUIDE_CHECK.md').exists()
+    assert (target / 'public.md').read_bytes() == b'public guide'
+    assert private.read_bytes() == original
+
+
 @pytest.mark.parametrize('name', ['../outside', '/outside', 'A\\B', 'CON.txt', '.runtime/secret'])
 def test_dependency_zip_rejects_unsafe_paths(tmp_path, name):
     archive = tmp_path / 'bad.zip'
@@ -161,6 +211,7 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
     (58, 59, 'v0.1.13', 'v0.1.14'),
     (59, 60, 'v0.1.14', 'v0.1.15'),
     (60, 61, 'v0.1.15', 'v0.1.16'),
+    (61, 64, 'v0.1.16', 'v0.1.17'),
 ])
 def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revision, target_revision, base_version, target_version):
     base, target, _, _, _ = case
@@ -189,7 +240,7 @@ def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revisio
 
 
 @pytest.mark.parametrize('provide_wrong_baseline', [False, True])
-@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52), (55, 'v0.1.10', 53), (56, 'v0.1.11', 55), (57, 'v0.1.12', 56), (58, 'v0.1.13', 57), (59, 'v0.1.14', 58), (60, 'v0.1.15', 59), (61, 'v0.1.16', 60)])
+@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52), (55, 'v0.1.10', 53), (56, 'v0.1.11', 55), (57, 'v0.1.12', 56), (58, 'v0.1.13', 57), (59, 'v0.1.14', 58), (60, 'v0.1.15', 59), (61, 'v0.1.16', 60), (64, 'v0.1.17', 61)])
 def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, version, base_revision, provide_wrong_baseline):
     base, target, _, _, _ = case
     metadata = builder.maintenance._read_json(target / builder.maintenance.MANIFEST)
@@ -256,15 +307,15 @@ def test_frozen_manifest_delta_rejects_changed_trusted_baseline(case):
     assert not output.exists()
 
 
-def test_build_defaults_to_current_r61_identity_without_running_build(tmp_path, monkeypatch):
+def test_build_defaults_to_current_r64_identity_without_running_build(tmp_path, monkeypatch):
     captured = []
     monkeypatch.setattr(builder, 'build', lambda args: captured.append(args) or {'status': 'not_executed'})
     assert builder.main(['--output', str(tmp_path / 'unused-output')]) == 0
-    assert captured[0].revision == 61 and captured[0].version == 'v0.1.16'
+    assert captured[0].revision == 64 and captured[0].version == 'v0.1.17'
     assert not (tmp_path / 'unused-output').exists()
 
 
-@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8'), (53, 'v0.1.9'), (55, 'v0.1.10'), (56, 'v0.1.11'), (57, 'v0.1.12'), (58, 'v0.1.13'), (59, 'v0.1.14'), (60, 'v0.1.15')])
+@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8'), (53, 'v0.1.9'), (55, 'v0.1.10'), (56, 'v0.1.11'), (57, 'v0.1.12'), (58, 'v0.1.13'), (59, 'v0.1.14'), (60, 'v0.1.15'), (61, 'v0.1.16')])
 def test_public_manifest_is_exact_pinned_release_baseline(revision, version):
     path = ROOT / f'delivery/baselines/r{revision}-package-manifest.json'
     assert builder.digest(path) == getattr(builder, f'R{revision}_MANIFEST_SHA256')

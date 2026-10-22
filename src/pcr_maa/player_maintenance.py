@@ -459,11 +459,24 @@ def apply_update(player, archive, *, process_probe=None, candidate_replacement=N
             'rollback_conflicts': conflicts, 'private_state_written': False})
         raise RuntimeError('update_rollback_incomplete' if conflicts else 'update_failed_rolled_back') from error
     marker.unlink()
-    # Delete only known verified staging payloads; keep program backups/receipt.
-    for name in (*stage_rows, MANIFEST):
+    # Cleanup cannot undo a verified update; preserve changed or busy staging.
+    directories = {staged}
+    for name, row in {**stage_rows, MANIFEST: {
+            'size': len(new_bytes), 'sha256': result['manifest_sha256']}}.items():
         path = staged / name
-        if path.exists():
-            path.unlink()
+        directories.update(parent for parent in path.parents
+            if parent == staged or parent.is_relative_to(staged))
+        try:
+            path = _path(staged, name, optional=True)
+            if path.exists() and path.stat().st_size == row['size'] and _sha(path) == row['sha256']:
+                path.unlink()
+        except (OSError, ValueError):
+            pass
+    for directory in sorted(directories, key=lambda path: len(path.parts), reverse=True):
+        try:
+            _root(directory).rmdir()
+        except (OSError, ValueError):
+            pass
     return result
 
 

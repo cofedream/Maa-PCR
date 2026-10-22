@@ -672,6 +672,18 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     private void Toggle()
     {
         if (PcrFormalPreflight.SettingsOnly) return; // no Start in settings diagnostic
+        if (!IsRunning && IsAgentProfile)
+        {
+            try { PcrClanDailyExecution.RequireStartAllowed(PcrSettings.ClanExecutionMode); }
+            catch (Exception ex)
+            {
+                var feedbackRun = BeginPcrRunFeedback();
+                var message = "PCR Agent 拒绝启动：" + ex.Message;
+                ShowPcrStartError(feedbackRun, message);
+                Processor.AddLog(message, (Avalonia.Media.IBrush?)null);
+                return;
+            }
+        }
         PcrFormalPreflight.Trace(IsRunning ? "toggle_stop" : "toggle_start");
         if (IsRunning)
             StopTask();
@@ -781,6 +793,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
 
     public void StopTask(Action? action = null)
     {
+        if (PcrGuideSyncOwner.IsActive) { PcrGuideSyncOwner.Stop(); return; }
         if (IsLabyrinthProfile && PcrLabyrinthOwner.IsActive) { PcrLabyrinthOwner.Stop(this); return; }
         if (_pcrConnectSession is { } connection)
         {
@@ -1474,10 +1487,58 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public PcrPlayerSettings PcrSettings => _pcrSettings ??= new PcrPlayerSettings(this);
     public bool IsPcrMode => PcrAlphaPolicy.Enabled;
     public bool IsLabyrinthProfile => Processor.InstanceId == "pcr-labyrinth-v1";
-    public bool IsDailyProfile => IsPcrMode && !IsLabyrinthProfile;
+    public bool IsAgentProfile => IsPcrMode && Processor.InstanceId == PcrClanGuide.ProfileId;
+    public bool IsDailyProfile => IsPcrMode && !IsLabyrinthProfile && !IsAgentProfile;
+    internal Func<string?>? PcrClanGuideConfirmation { get; set; }
+    internal string PcrClanGuideConfirmationForStart() => PcrClanGuideConfirmation?.Invoke() is { Length: 64 } value
+        ? value : throw new InvalidOperationException("会战当前模式的作业尚未确认保存；单队模拟与正式三目标确认不能混用。请核对后保存。");
     private PcrLabyrinthSettings? _labyrinthSettings;
     public PcrLabyrinthSettings LabyrinthSettings => _labyrinthSettings ??= new(this);
     internal void HideLabyrinthCredentials() => _labyrinthSettings?.HideCredentials();
+
+    private long _pcrFeedbackRun;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PcrHasRunSummary))]
+    private string _pcrRunSummary = "";
+    public bool PcrHasRunSummary => !string.IsNullOrEmpty(PcrRunSummary);
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PcrHasStartError), nameof(PcrRunStatus))]
+    private string _pcrStartError = "";
+    public bool PcrHasStartError => !string.IsNullOrEmpty(PcrStartError);
+
+    internal long BeginPcrRunFeedback()
+    {
+        var run = Interlocked.Increment(ref _pcrFeedbackRun);
+        PcrRunSummary = "";
+        PcrStartError = "";
+        return run;
+    }
+
+    internal void ShowPcrStartError(long run, string message)
+    {
+        if (run == Interlocked.Read(ref _pcrFeedbackRun) && Volatile.Read(ref _isDisposed) == 0)
+            PcrStartError = message;
+    }
+
+    internal void ReceivePcrRunOutput(long run, string line)
+    {
+        const string prefix = "info: PCR Alpha ";
+        if (run != Interlocked.Read(ref _pcrFeedbackRun) || Volatile.Read(ref _isDisposed) != 0
+            || !line.StartsWith(prefix, StringComparison.Ordinal)) return;
+        string? summary;
+        try
+        {
+            var result = JObject.Parse(line[prefix.Length..]);
+            summary = result["summary"]?.Type == JTokenType.String ? (string?)result["summary"] : null;
+        }
+        catch (JsonException) { return; }
+        if (string.IsNullOrWhiteSpace(summary)) return;
+        // A previous child's queued UI update must not replace a newer run's result.
+        Dispatcher.UIThread.Post(() => {
+            if (run == Interlocked.Read(ref _pcrFeedbackRun) && Volatile.Read(ref _isDisposed) == 0)
+                PcrRunSummary = summary;
+        });
+    }
 
     // Selection in the editor is independent of the checked execution subsequence.
     [ObservableProperty]
@@ -1497,6 +1558,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public string PcrModuleTitle => PcrModuleName(PcrSelectedModuleId);
     public static string PcrModuleName(string id) => id switch {
         "schedule_onekey" => "日程", "event" => "活动", "abyss" => "深渊前哨", "deep" => "深域",
+        "guide_trial" => "所选攻略试打一局 · SET＋AUTO · 战败即停，累计最多三次",
         "rewards" => "每日任务 / 礼物", "very_hard" => "高难", "hard" => "困难 / 外传", "normal" => "普通",
         _ => "选择一个模块" };
     public string PcrModuleDescription => PcrSelectedModuleId switch {
@@ -1513,7 +1575,8 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     {
         get
         {
-            if (IsLabyrinthProfile) return "本次目标：" + string.Join("，", LabyrinthSettings.Goals.Where(g=>g.Enabled).Select(g=>$"{g.Name} {g.Clears} 次"));
+            if (IsLabyrinthProfile) return "本次目标：" + string.Join("，", LabyrinthSettings.Goals.Where(g=>g.Enabled).Select(g=>$"{g.Name}：{(g.TargetMode == g.TargetModes[1] ? "尝试" : "通关")} {g.Clears} 次"));
+            if (IsAgentProfile) { try { return PcrSettings.ClanExecutionMode == PcrClanDailyExecution.FormalDaily ? "本次：正式三目标预设 · 待开放校准，禁止执行" : "本次：所选公会战作业 · 单次模拟"; } catch { return "会战执行模式无法读取，请重新打开核对"; } }
             var options = TaskItemViewModels.FirstOrDefault(item => item.InterfaceItem?.Entry == "PCRAlphaEntry")?.InterfaceItem?.Option;
             var modules = options?.FirstOrDefault(item => item.Name == "AlphaModules")?.SelectedCases;
             var final = options?.FirstOrDefault(item => item.Name == "AlphaRewardsFinal")?.Index == 1;
@@ -1527,6 +1590,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     {
         get
         {
+            if (PcrHasStartError) return PcrStartError;
             if (IsLabyrinthProfile) return LabyrinthSettings.Progress;
             var task = TaskItemViewModels.FirstOrDefault(item => item.InterfaceItem?.Entry == "PCRAlphaEntry");
             if (task?.RunState == TaskRunState.Running) return "正在执行所选模块";
@@ -1536,7 +1600,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                 TaskRunState.Failed => "最近执行未完成 · 请展开运行日志",
                 TaskRunState.Stopped => "最近执行已停止 · 可查看运行日志",
                 TaskRunState.Skipped => "最近执行已跳过 · 请查看运行日志",
-                _ => "准备就绪 · 勾选模块后开始" };
+                _ => IsAgentProfile ? PcrSelectionSummary : "准备就绪 · 勾选模块后开始" };
         }
     }
 

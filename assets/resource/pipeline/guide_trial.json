@@ -1,0 +1,702 @@
+{
+  "GTDeepTitle": {
+    "recognition": "OCR",
+    "expected": "^深域关卡$",
+    "roi": [
+      80,
+      8,
+      180,
+      65
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTFireLabel": {
+    "recognition": "OCR",
+    "expected": "^红焰深域$",
+    "roi": [
+      100,
+      350,
+      130,
+      55
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTWaterLabel": {
+    "recognition": "OCR",
+    "expected": "^苍波深域$",
+    "roi": [
+      345,
+      525,
+      130,
+      50
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTDeepHome": {
+    "recognition": "And",
+    "all_of": [
+      "GTDeepTitle",
+      "GTFireLabel",
+      "GTWaterLabel"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTDeepBack": {
+    "recognition": "And",
+    "all_of": [
+      "GTDeepTitle",
+      "GTFireLabel",
+      "GTWaterLabel"
+    ],
+    "action": "Click",
+    "target": [
+      16,
+      13,
+      50,
+      48
+    ],
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000
+  },
+  "GTOpenFire": {
+    "recognition": "And",
+    "all_of": [
+      "GTFireLabel",
+      "GTDeepTitle",
+      "GTWaterLabel"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "post_delay": 1200
+  },
+  "GTFireMapLabel": {
+    "recognition": "OCR",
+    "expected": "^红焰深域$",
+    "roi": [
+      118,
+      70,
+      145,
+      40
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage73Label": {
+    "recognition": "OCR",
+    "expected": "^7\\s*[-－—]\\s*3$",
+    "roi": [
+      580,
+      342,
+      118,
+      45
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTFireMap": {
+    "recognition": "And",
+    "all_of": [
+      "GTDeepTitle",
+      "GTFireMapLabel",
+      "GTMapChallengeCount"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTFireMapBack": {
+    "recognition": "And",
+    "all_of": [
+      "GTDeepTitle",
+      "GTFireMapLabel",
+      "GTMapChallengeCount"
+    ],
+    "action": "Click",
+    "target": [
+      16,
+      13,
+      50,
+      48
+    ],
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000
+  },
+  "GTOpenStage": {
+    "recognition": "And",
+    "all_of": [
+      "GTStage73Label",
+      "GTDeepTitle",
+      "GTFireMapLabel"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "post_delay": 1000
+  },
+  "GTDetailTitle": {
+    "recognition": "OCR",
+    "expected": "^红焰深域\\s*7\\s*[-－—]\\s*3$",
+    "roi": [
+      75,
+      42,
+      245,
+      50
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTChallengeLabel": {
+    "recognition": "OCR",
+    "expected": "^挑战$",
+    "roi": [
+      1020,
+      580,
+      200,
+      60
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTCancelLabel": {
+    "recognition": "OCR",
+    "expected": "^取消$",
+    "roi": [
+      800,
+      580,
+      180,
+      60
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStageDetail": {
+    "recognition": "And",
+    "all_of": [
+      "GTDetailTitle",
+      "GTChallengeLabel",
+      "GTCancelLabel"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTDetailCancel": {
+    "recognition": "And",
+    "all_of": [
+      "GTCancelLabel",
+      "GTDetailTitle",
+      "GTChallengeLabel"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000
+  },
+  "GTChallenge": {
+    "recognition": "And",
+    "all_of": [
+      "GTChallengeLabel",
+      "GTDetailTitle",
+      "GTCancelLabel"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "post_delay": 1000
+  },
+  "GTFormation": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamBattleStartLabel"
+    ],
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTFormationCancel": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamBattleStartLabel"
+    ],
+    "action": "Click",
+    "target": [
+      875,
+      580,
+      146,
+      45
+    ],
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000
+  },
+  "GTReadTeam": {
+    "recognition": "Custom",
+    "custom_recognition": "GuideTrialCharacters",
+    "custom_recognition_param": {
+      "mode": "read"
+    },
+    "action": "DoNothing",
+    "next": [],
+    "timeout": 5000
+  },
+  "GTBattleStart": {
+    "recognition": "Custom",
+    "custom_recognition": "GuideTrialCharacters",
+    "custom_recognition_param": {
+      "mode": "start"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTEditTeam": {
+    "recognition": "Custom",
+    "custom_recognition": "GuideTrialCharacters",
+    "custom_recognition_param": {
+      "mode": "unqualified"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "post_delay": 500
+  },
+  "GTFireFilter": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamBattleStartLabel"
+    ],
+    "action": "Click",
+    "target": [
+      178,
+      108,
+      30,
+      20
+    ],
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "post_delay": 500
+  },
+  "GTWaterFilter": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamBattleStartLabel"
+    ],
+    "action": "Click",
+    "target": [
+      278,
+      108,
+      30,
+      20
+    ],
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "post_delay": 500
+  },
+  "GTScrollTop": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamBattleStartLabel"
+    ],
+    "action": "Swipe",
+    "begin": [
+      1100,
+      178,
+      4,
+      4
+    ],
+    "end": [
+      1100,
+      465,
+      4,
+      4
+    ],
+    "duration": 300,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "post_delay": 350
+  },
+  "GTScrollDown": {
+    "recognition": "And",
+    "all_of": [
+      "LabyTeamTitle",
+      "LabyTeamMembersLabel",
+      "LabyTeamBattleStartLabel"
+    ],
+    "action": "Swipe",
+    "begin": [
+      1100,
+      465,
+      4,
+      4
+    ],
+    "end": [
+      1100,
+      330,
+      1,
+      1
+    ],
+    "duration": 500,
+    "max_hit": 1,
+    "next": [],
+    "timeout": 5000,
+    "post_delay": 350
+  },
+  "GTStar1_5": {
+    "recognition": "TemplateMatch",
+    "template": [
+      "guide-trial/star5.png",
+      "guide-trial/star5-aoi.png"
+    ],
+    "roi": [
+      65,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar1_6": {
+    "recognition": "TemplateMatch",
+    "template": ["guide-trial/star6.png", "guide-trial/star6-bright.png"],
+    "roi": [
+      65,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar2_5": {
+    "recognition": "TemplateMatch",
+    "template": [
+      "guide-trial/star5.png",
+      "guide-trial/star5-aoi.png"
+    ],
+    "roi": [
+      211,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar2_6": {
+    "recognition": "TemplateMatch",
+    "template": ["guide-trial/star6.png", "guide-trial/star6-bright.png"],
+    "roi": [
+      211,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar3_5": {
+    "recognition": "TemplateMatch",
+    "template": [
+      "guide-trial/star5.png",
+      "guide-trial/star5-aoi.png"
+    ],
+    "roi": [
+      357,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar3_6": {
+    "recognition": "TemplateMatch",
+    "template": ["guide-trial/star6.png", "guide-trial/star6-bright.png"],
+    "roi": [
+      357,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar4_5": {
+    "recognition": "TemplateMatch",
+    "template": [
+      "guide-trial/star5.png",
+      "guide-trial/star5-aoi.png"
+    ],
+    "roi": [
+      503,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar4_6": {
+    "recognition": "TemplateMatch",
+    "template": ["guide-trial/star6.png", "guide-trial/star6-bright.png"],
+    "roi": [
+      503,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar5_5": {
+    "recognition": "TemplateMatch",
+    "template": [
+      "guide-trial/star5.png",
+      "guide-trial/star5-aoi.png"
+    ],
+    "roi": [
+      649,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTStar5_6": {
+    "recognition": "TemplateMatch",
+    "template": ["guide-trial/star6.png", "guide-trial/star6-bright.png"],
+    "roi": [
+      649,
+      631,
+      40,
+      36
+    ],
+    "threshold": 0.9,
+    "action": "DoNothing",
+    "next": [],
+    "pre_delay": 0,
+    "post_delay": 0
+  },
+  "GTMapChallengeCount": {
+    "recognition": "OCR",
+    "expected": "^剩余挑战次数$",
+    "roi": [
+      638,
+      567,
+      178,
+      43
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage75Label": {
+    "recognition": "OCR",
+    "expected": "^7\\s*[-－—]\\s*5$",
+    "roi": [560,390,530,50],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage75Next": {
+    "recognition": "OCR",
+    "expected": "^NEXT$",
+    "roi": [560,190,530,50],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage83Label": {
+    "recognition": "OCR", "expected": "^8\\s*[-－—]\\s*3$", "roi": [265,330,980,210],
+    "threshold": 0.85, "action": "DoNothing", "next": []
+  },
+  "GTStage83Next": {
+    "recognition": "OCR", "expected": "^NEXT$", "roi": [265,130,980,210],
+    "threshold": 0.85, "action": "DoNothing", "next": []
+  },
+  "GTStage84Label": {
+    "recognition": "OCR", "expected": "^8\\s*[-－—]\\s*4$", "roi": [265,330,980,210],
+    "threshold": 0.85, "action": "DoNothing", "next": []
+  },
+  "GTStage84Next": {
+    "recognition": "OCR", "expected": "^NEXT$", "roi": [265,130,980,210],
+    "threshold": 0.85, "action": "DoNothing", "next": []
+  },
+  "GTStage82Label": {
+    "recognition": "OCR",
+    "expected": "^8\\s*[-－—]\\s*2$",
+    "roi": [570,410,145,48],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage82Next": {
+    "recognition": "OCR",
+    "expected": "^NEXT$",
+    "roi": [570,207,145,52],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage85Label": {
+    "recognition": "OCR", "expected": "^8\\s*[-－—]\\s*5$",
+    "roi": [265,330,980,210], "threshold": 0.85, "action": "DoNothing", "next": []
+  },
+  "GTStage85Next": {
+    "recognition": "OCR", "expected": "^NEXT$",
+    "roi": [265,130,980,210], "threshold": 0.85, "action": "DoNothing", "next": []
+  },
+  "GTStage74Label": {
+    "recognition": "OCR",
+    "expected": "^7\\s*[-－—]\\s*4$",
+    "roi": [
+      570,
+      465,
+      285,
+      45
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage74Next": {
+    "recognition": "OCR",
+    "expected": "^NEXT$",
+    "roi": [
+      575,
+      264,
+      270,
+      50
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage86Label": {
+    "recognition": "OCR",
+    "expected": "^8\\s*[-－—]\\s*6$",
+    "roi": [
+      265,
+      330,
+      980,
+      210
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage86Next": {
+    "recognition": "TemplateMatch",
+    "template": [
+      "guide-trial/next-visible-tail.png",
+      "guide-trial/next-arrow-recenter-a.png",
+      "guide-trial/next-arrow-recenter-b.png"
+    ],
+    "roi": [
+      265,
+      130,
+      980,
+      210
+    ],
+    "threshold": 0.95,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage88Label": {
+    "recognition": "OCR",
+    "expected": "^8\\s*[-－—]\\s*8$",
+    "roi": [
+      265,
+      330,
+      980,
+      210
+    ],
+    "threshold": 0.85,
+    "action": "DoNothing",
+    "next": []
+  },
+  "GTStage88Next": {
+    "recognition": "TemplateMatch",
+    "template": [
+      "guide-trial/next-visible-tail.png",
+      "guide-trial/next-arrow-recenter-a.png",
+      "guide-trial/next-arrow-recenter-b.png"
+    ],
+    "roi": [
+      265,
+      130,
+      980,
+      210
+    ],
+    "threshold": 0.95,
+    "action": "DoNothing",
+    "next": []
+  }
+}

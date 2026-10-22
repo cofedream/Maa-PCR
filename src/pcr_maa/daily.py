@@ -95,8 +95,22 @@ def validate_config(value):
     controller_v4 = value['version'] == 4
     portable = value['version'] in (2, 3, 4)
     if controller_v4:
-        require(set(value) - {'collect_gift_stamina'} == {'version', 'start', 'presets', 'count_context', 'connection', 'controller'},
-                'v4 顶层字段无效；仅可额外设置 collect_gift_stamina')
+        require(set(value) - {'collect_gift_stamina', 'guide_trial', 'clan_battle_simulation', 'clan_battle_daily'} == {'version', 'start', 'presets', 'count_context', 'connection', 'controller'},
+                'v4 顶层字段无效')
+        require(len(set(value) & {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily'}) <= 1,
+                '试打、公会战模拟与正式三刀不能混用')
+        if 'guide_trial' in value:
+            from .guide_trial import validate_plan
+            validate_plan(value['guide_trial'])
+            require(type(value['controller']) is dict and value['controller'].get('app_package') == 'com.bilibili.priconne', '本关试打仅支持国服 B 站')
+        if 'clan_battle_simulation' in value:
+            from .clan_battle import validate_plan
+            validate_plan(value['clan_battle_simulation'])
+            require(type(value['controller']) is dict and value['controller'].get('app_package') == 'com.bilibili.priconne', '公会战模拟仅支持国服 B 站')
+        if 'clan_battle_daily' in value:
+            from .clan_battle_batch import validate_daily_request
+            validate_daily_request(value['clan_battle_daily'])
+            require(type(value['controller']) is dict and value['controller'].get('app_package') == 'com.bilibili.priconne', '正式三刀仅支持国服 B 站')
         require(type(value.get('collect_gift_stamina', False)) is bool,
                 'collect_gift_stamina 必须为布尔值')
     else:
