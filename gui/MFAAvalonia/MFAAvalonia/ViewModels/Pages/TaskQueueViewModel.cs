@@ -1558,7 +1558,6 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public string PcrModuleTitle => PcrModuleName(PcrSelectedModuleId);
     public static string PcrModuleName(string id) => id switch {
         "schedule_onekey" => "日程", "event" => "活动", "abyss" => "深渊前哨", "deep" => "深域",
-        "guide_trial" => "所选攻略试打一局 · SET＋AUTO · 战败即停，累计最多三次",
         "rewards" => "每日任务 / 礼物", "very_hard" => "高难", "hard" => "困难 / 外传", "normal" => "普通",
         _ => "选择一个模块" };
     public string PcrModuleDescription => PcrSelectedModuleId switch {

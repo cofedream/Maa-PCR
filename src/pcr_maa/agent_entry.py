@@ -230,10 +230,7 @@ class AlphaEntry(CustomAction):
             try:
                 with self.registry.scope(context, deadline=native.RUN_DEADLINE.get(),
                                          owner_source=grant.observation_source) as facade:
-                    if selection['selected_modules'] == ['guide_trial']:
-                        from .guide_trial import run_owned
-                        report = run_owned(facade, config, directory)
-                    elif selection['selected_modules'] == ['clan_battle_simulation']:
+                    if selection['selected_modules'] == ['clan_battle_simulation']:
                         from .clan_battle import run_owned
                         report = run_owned(facade, config, directory)
                     elif selection['selected_modules'] == ['clan_battle_daily']:

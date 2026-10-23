@@ -195,24 +195,23 @@ def test_invalid_plan_rejected(key,value):
     with pytest.raises(ValueError):validate_plan(p)
 
 
-def test_trial_selection_cannot_include_daily_or_final_rewards():
+def test_trial_selection_is_removed_from_formal_combinations():
     from pcr_maa.gui_contract import make_combination
-    assert make_combination(['guide_trial'])['selected_modules']==['guide_trial']
-    for modules,final in ((['guide_trial','rewards'],False),(['guide_trial'],True)):
-        with pytest.raises(ValueError,match='must_run_alone'):
+    for modules,final in ((['guide_trial'],False),(['guide_trial','rewards'],False),(['guide_trial'],True)):
+        with pytest.raises(ValueError,match='guide_trial_removed'):
             make_combination(modules,rewards_final=final)
 
 
-def test_pi_trial_flag_uses_same_agent_entry():
+def test_pi_trial_flag_is_rejected_by_agent_entry():
     import json
     from types import SimpleNamespace
     from pcr_maa.agent_entry import parse_selection
     def node(name):
         return dict(enabled=False,action=dict(type='DoNothing',param={}),next=[],on_error=[],
                     attach=dict(selected=name=='PCRAlphaSelectGuideTrial'))
-    result=parse_selection(json.dumps(dict(selection_mode='pi_nodes_v1',selected_modules=['guide_trial'])),
-                           context=SimpleNamespace(get_node_data=node))
-    assert result==dict(version=1,selected_modules=['guide_trial'],rewards_final=False)
+    with pytest.raises(ValueError,match='guide_trial_removed'):
+        parse_selection(json.dumps(dict(selection_mode='pi_nodes_v1',selected_modules=['guide_trial'])),
+                        context=SimpleNamespace(get_node_data=node))
 
 
 def wrong_team_history(journal):

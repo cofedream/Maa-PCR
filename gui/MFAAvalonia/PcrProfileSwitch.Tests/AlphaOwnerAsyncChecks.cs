@@ -273,23 +273,30 @@ internal static class AlphaOwnerAsyncChecks
             item.InterfaceItem!.Option![0].SelectedCases = ["guide_trial"];
             device.SetValue(vm, selected);
             var plans = JArray.Parse(File.ReadAllText(Path.Combine(args[1],"guide-opening","managed-plan-cases.json")));
-            var forwarded = 0;
+            var rejectedTrials = 0;
             foreach (var plan in plans)
             {
                 config["guide_trial"] = plan.DeepClone(); File.WriteAllText(path,config.ToString());
                 var reached = false;
-                PcrAlphaOwner.Confirm = prompt => {
-                    Require(JToken.DeepEquals(prompt["configuration"]?["guide_trial"],plan),"guide_owner_preserves_version_team_and_sets");
-                    Require(prompt["combination"]?["selected_modules"]?.ToString(Newtonsoft.Json.Formatting.None)=="[\"guide_trial\"]","guide_owner_keeps_single_module");
-                    reached = true; return Task.FromResult<PcrStartConsent?>(null);
-                };
+                PcrAlphaOwner.Confirm = _ => { reached = true; return Task.FromResult<PcrStartConsent?>(null); };
                 request=PcrAlphaOwner.RequestStartAsync(vm);
                 Until(()=>request.IsCompleted,"guide_owner_preflight"); request.GetAwaiter().GetResult();
-                Require(reached && vm.Idle && current.GetValue(null)==null && pending.GetValue(null)==null,"guide_owner_validates_then_cancels_without_authority: "+Logs(processor));
+                Require(!reached && vm.Idle && current.GetValue(null)==null && pending.GetValue(null)==null
+                    && vm.PcrStartError.Contains("单关试打已从正式版本移除"),"removed_trial_rejected_before_confirmation: "+Logs(processor));
                 Require((PcrAlphaOwner.ControllerCreations,PcrAlphaOwner.AgentCreations,PcrAlphaOwner.Grants)==initial && allocations==0,"guide_owner_never_allocates_device");
-                forwarded++;
+                rejectedTrials++;
             }
-            attempts.Add(new JObject{["scenario"]="guide_saved_plans_through_original_start_owner",["plans"]=forwarded,["controller_allocations"]=0,["cancelled_before_grant"]=true});
+            try
+            {
+                var settings = (PcrPlayerSettings)RuntimeHelpers.GetUninitializedObject(typeof(PcrPlayerSettings));
+                settings.ExportForStart(args[0], new JObject { ["selected_modules"] = new JArray("guide_trial") });
+                throw new Exception("removed_trial_export_was_allowed");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Require(ex.Message.Contains("单关试打已从正式版本移除"), "removed_trial_cannot_export_start_plan");
+            }
+            attempts.Add(new JObject{["scenario"]="removed_guide_trial_rejected_by_original_start_owner",["plans"]=rejectedTrials,["controller_allocations"]=0,["rejected_before_confirmation"]=true});
             Set(processor, typeof(MaaProcessor), "<InstanceId>k__BackingField", PcrClanGuide.ProfileId);
             config.Remove("guide_trial");
             var clanPlans = JArray.Parse(File.ReadAllText(Path.Combine(args[1], "clan-guide", "managed-plan-cases.json")));

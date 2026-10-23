@@ -209,18 +209,6 @@
               }
             }
           }
-        },
-        {
-          "name": "guide_trial",
-          "label": "所选攻略单关试打",
-          "description": "单独勾选并关闭末尾补领。使用已保存的五人攻略检查；开战画面先核对 AUTO，再核对五人 SET，已符合则不点击，倍速不变。累计最多三次，胜利或结果未知即停止。",
-          "pipeline_override": {
-            "PCRAlphaSelectGuideTrial": {
-              "attach": {
-                "selected": true
-              }
-            }
-          }
         }
       ]
     },

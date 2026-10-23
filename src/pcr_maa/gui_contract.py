@@ -11,6 +11,8 @@ def make_combination(selected_modules, *, rewards_final=False):
     """Return independent version-1 choices preserving the player-selected order."""
     if selected_modules is None:
         raise ValueError('explicit_selected_modules_required')
+    if isinstance(selected_modules, (list, tuple)) and 'guide_trial' in selected_modules:
+        raise ValueError('guide_trial_removed')
     plan = supported_daily.build_plan(selected_modules=selected_modules, rewards_final=rewards_final)
     return dict(version=1, selected_modules=[n for n in plan if n != 'rewards_final'],
                 rewards_final=rewards_final)
@@ -41,6 +43,7 @@ def result_text(report):
             'owner_reply_timeout_no_retry': '等待执行程序回复超时。',
             'owner_channel_closed_or_invalid': '与执行程序的连接中断或回复无效。',
             'alpha_result_publication_failed': '本次结果记录未能正常发布。',
+            'guide_trial_removed': '单关试打已从正式版本移除，请取消旧任务并重新选择模块。',
         }.get(error, '执行程序报告异常。')
         reason = '原因：' + error
         if report.get('source_error'):

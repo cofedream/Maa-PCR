@@ -74,7 +74,7 @@ public sealed class PcrGuideReviewView : UserControl
         DetachedFromVisualTree += (_, _) => syncCancel?.Cancel();
         Styles.Add(new StyleInclude(new Uri("avares://MFAAvalonia.Core/")) { Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml") });
         var guide = new StackPanel { Spacing = 8 };
-        guide.Children.Add(Note("选一份作业，对上五人，设置 SET 后一次保存。AUTO 保持开启；练度、EX 和强化差异只提示。随后从原“开始任务”试打一局，战败即停并通知。"));
+        guide.Children.Add(Note("选一份作业，对上五人，设置 SET 后一次保存。AUTO 保持开启；练度、EX 和强化差异只提示。"));
         var importTools = new StackPanel { Spacing = 8 };
         Avalonia.Automation.AutomationProperties.SetName(savedTeams, "本机攻略库队伍");
         guide.Children.Add(savedTeams);

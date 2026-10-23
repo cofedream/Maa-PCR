@@ -239,6 +239,8 @@ public partial class PcrPlayerSettings : ObservableObject
     public string ExportForStart(string repository) => ExportForStart(repository, null);
     public string ExportForStart(string repository, JObject? selection)
     {
+        if (selection?["selected_modules"]?.Values<string>().Contains("guide_trial") == true)
+            throw new InvalidOperationException("单关试打已从正式版本移除，请取消旧任务并重新选择模块。");
         if (vm.IsAgentProfile) PcrClanDailyExecution.RequireStartAllowed(ClanExecutionMode);
         if (selection != null) PcrClanDailyExecution.RequireSelectionAllowed(selection);
         if (!vm.CanEditPcrTarget) throw new InvalidOperationException("请先停止当前任务");
@@ -250,12 +252,6 @@ public partial class PcrPlayerSettings : ObservableObject
         if (selection != null) PcrAlphaOwner.RequireProfileSelection(vm.Processor, selection);
         if (selection != null) _ = ConsentForStart(selection);
         var config = Config(modules);
-        if (modules?.Contains("guide_trial") == true)
-        {
-            if (GamePackage != "com.bilibili.priconne") throw new InvalidOperationException("本关试打仅支持国服 B 站。");
-            var guide = new PcrGuideStore(Path.Combine(AppPaths.ConfigDirectory, "guide-review.json")).Load();
-            config["guide_trial"] = PcrGuideTrial.CreatePlan(guide.Input, repository);
-        }
         if (modules?.Contains("clan_battle_simulation") == true)
         {
             if (GamePackage != "com.bilibili.priconne") throw new InvalidOperationException("会战模拟首版仅支持国服 B 站。");

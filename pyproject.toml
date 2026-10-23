@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pcr-agent-maa"
-version = "0.1.18"
+version = "0.1.19"
 description = "PCR CN automation with bounded Maa navigation and labyrinth support"
 requires-python = ">=3.13,<3.14"
 dependencies = [

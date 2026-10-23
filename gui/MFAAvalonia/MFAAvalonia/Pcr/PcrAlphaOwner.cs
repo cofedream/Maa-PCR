@@ -120,8 +120,8 @@ public static partial class PcrAlphaOwner
             selected = new JArray(ids);
         }
         if (selected.Count == 0 && !final) throw new InvalidOperationException("请先选择本次模块或末尾补领");
-        if (selected.Values<string>().Contains("guide_trial") && (selected.Count != 1 || final))
-            throw new InvalidOperationException("单关试打须单独勾选，并关闭末尾补领。");
+        if (selected.Values<string>().Contains("guide_trial"))
+            throw new InvalidOperationException("单关试打已从正式版本移除，请取消旧任务并重新选择模块。");
         if (selected.Values<string>().Any(id => id is "clan_battle_simulation" or "clan_battle_daily") && (selected.Count != 1 || final))
             throw new InvalidOperationException("会战模拟或正式三刀须单独运行，并关闭末尾补领。");
         return new JObject { ["version"] = 1, ["selected_modules"] = selected, ["rewards_final"] = final };
