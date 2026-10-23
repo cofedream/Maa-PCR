@@ -1,15 +1,132 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 66,
   "expected_version": "v0.1.19",
+  "verified_at_utc": "2026-10-23T02:53:04.800430+00:00",
   "base_release_manifest_sha256": "64cee56fb55858feac9daa73997ccf2eac66d6a1ad251065f040a3a146c0d698",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
+  "accepted_owned_payload_sha256": "b29ffe750b1aa9a9c51d0050d5525ed2680029985d1d86c8d8ebf9b7f86db24d",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 39888605292,
+    "run_attempt": 1,
+    "artifact_id": 12475155991,
+    "source_commit": "256fe41aed98f4c769c61e15202d9c5949826976",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.19-win-x64.zip",
+      "size": 310560750,
+      "sha256": "e379fbaa113964ee0e52b87587875c3d03a2f98140230add17876306a611860c"
+    }
+  },
+  "accepted_staging_manifest_sha256": "bbc77d3387514e5247ba56ba2b045820fc49d425f76b2346f53c705bb5c2d4c6",
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 4845,
+    "skipped": 393,
+    "failed": 0,
+    "errors": 0
+  },
+  "bundled_runtime_tests_passed": 3,
+  "retired_entry_regressions": 8,
+  "gui_core_sha256": "cd9a7a03fb3cc87536eb18756b4c72afeaf246d06bf66cf11c0007c0f04818fe",
+  "packaged_gui_assertions": {
+    "default": {
+      "clan guide": 68,
+      "guide review": 84,
+      "guide data": 126,
+      "guide draft": 45,
+      "capture performance": 26,
+      "channel config": 99,
+      "log export/retention": 166,
+      "alpha owner": 45,
+      "Agent profile": 22,
+      "Agent shutdown": 56,
+      "module drag behavior": 116,
+      "alpha async": 368,
+      "live view": 44,
+      "preview connection": 118,
+      "run feedback": 15,
+      "profile switch": 275
+    },
+    "clan-daily-only": {
+      "clan daily plan": 53
+    },
+    "clan-workflow-only": {
+      "clan workflow": 56
+    },
+    "clan-formal-only": {
+      "clan workflow": 56,
+      "clan formal configuration": 61
+    },
+    "clan-postsave-only": {
+      "clan workflow": 56,
+      "clan post-save ACL": 13
+    },
+    "profile-registration-only": {
+      "profile registration": 48
+    }
+  },
+  "source_alignment": {
+    "schema_version": 1,
+    "passed": true,
+    "verified_at": "2026-10-23T02:53:04.781644+00:00",
+    "revision": 66,
+    "source_inventory_sha256": "2c0afd8698ea99ca5aa23c556a98e65eee0c25d99a903383227019f243a04624",
+    "source_payload_count": 2537,
+    "source_payload_bytes": 134387851,
+    "staged_player_manifest_sha256": "bbc77d3387514e5247ba56ba2b045820fc49d425f76b2346f53c705bb5c2d4c6",
+    "owned_program_source_alignment_count": 1388,
+    "gui_build_input_source_alignment_count": 911,
+    "sealed_runtime_manifest_snapshot_present_and_matching": true,
+    "source_privacy_and_extra_file_checks_passed": true,
+    "no_archive_or_publication_performed": true,
+    "scope": "owned source bytes, exact public inventory and optional sealed runtime manifest",
+    "deterministic_dependency_rebuild_claimed": false,
+    "formal_legal_opinion": false
+  },
+  "isolated_update_routes": [
+    {
+      "base_revision": 65,
+      "archive_kind": "delta",
+      "preserved_synthetic_files": 10
+    },
+    {
+      "base_revision": 65,
+      "archive_kind": "full",
+      "preserved_synthetic_files": 10
+    }
+  ],
+  "local_installation_updated": false,
+  "device_connected": false,
+  "game_task_started": false,
+  "evidence_sha256": {
+    "SOURCE_COMMIT.json": "f969c3a26637e67de423bc067641d0b7542660e0bb1497e6464008cd766c37b3",
+    "SOURCE_REVIEW.json": "8cc5b03052a34d3a0236eedc39feb7b53e22ea7b9a2cf029d9910d5123caeef6",
+    "CI_BINDING.json": "455e5297b93a6a3eb7e5066dd788ebb4238c6e4d49ea50a4c04aa40990ad3cbf",
+    "metadata/run.json": "41f7c191ee17bb4c4f7b10c2f2293de2bc61cf5d5b1c63fe8df9c29af04d16ec",
+    "metadata/artifact.json": "f76a313872acc0e1343f9d7ca7a95696132a615941bd5196929e16da70f74d1d",
+    "metadata/jobs.json": "38b5260747de9a46cad26243708fc13c8cd5c022773eb0b7396eb1303f75826e",
+    "BASELINE_VERIFIED.json": "e05c7d8588177e75dd2959e66d73caff5c31405722123cc545ee8c9f0a819f67",
+    "package-checks/PACKAGE_VERIFIED.json": "acf787feb93cbf64302577c1eabda720dcc9b1edaae5b0cf983b4329ad1c2772",
+    "GUI_VERIFIED.json": "6fe174247f55ea2e93adeb194f9e0de7ba589ded6b637cf8fcd788ec37f73a83",
+    "local-gui/checks/RESULT.json": "8641d5763561952a20d14079a0f4eeeb03d5ebbe0bfbd011d7aa0ae1ae1b2555",
+    "ci-artifact/public-tests.xml": "df86cd174de28cdd0c1e16563ccb216632e6e9d779bf4f76d6b3611025de8f22",
+    "ci-artifact/bundled-runtime.xml": "a50a8726c81cebd94b28e5991d0eaf57701721a7ca83624bfbf9caecc4e5d88d",
+    "targeted.xml": "9cfd43c31b15eecec3b6ad3bbacfea639c8220848dd0dc041f1c12dfc01fe5ef",
+    "metadata-green.xml": "f23c42d369a35c0d306ecccdaf4f5c51ef354e245577f475019ee5b7b140f2ec",
+    "red.xml": "790f913b9564fd88665a87b6e94472c382df901d7a93e7c81fec476339812619",
+    "release.xml": "1bf10d1bf8b0c82a8e5f1019e7d8390f1cfe256231f8c72ff94d0a7f05906b4b",
+    "package-native/result.json": "53705450c4ebe878872ac5fd6a0c687b21a0d2ad73d25c74c5f8e39e875d2ac1",
+    "package-native-ready/result.json": "90dedf69c015c46d6e09fbac2aba9cf307f14010e02f588fb216122aab5f2024"
+  },
   "limits": [
-    "R66 requires its exact successful CI payload, retired-entry checks and isolated upgrades.",
-    "No real installation, account, device or game acceptance."
+    "Offline fixtures, exact CI package and isolated synthetic updates only; no real installation, account, device or game acceptance.",
+    "Eight original-source red regressions and initial two stale workflow assertions are retained; neither is counted as passing.",
+    "An initial package-check invocation stopped before upgrades because CI_BINDING.json was not yet written; only the completed serial invocation is accepted.",
+    "Shared guide recognition remains for clan dependencies and historical evidence; formal single-guide trial selection, plan export and dispatch are removed.",
+    "Existing clan calibration/formal/compensation execution limits and missing live-game coverage remain unchanged."
   ]
 }
