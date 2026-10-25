@@ -191,15 +191,18 @@ class Optimizer:
         if battle:team=[p for p in team if p.position is not None]
         if not team or not set(required)<={p.id for p in team}:return ()
         size=min(5,len(team));bound=self.cfg('exhaustiveRosterLimit')
+        gate=self.cfg('relaxedMinimumReliableVanguard' if c.relaxed else 'minimumReliableVanguard')
+        # A front-line gate can only choose between alternatives. A forced roster
+        # (the three-role opening, or a pool where nobody reaches the gate) has
+        # nothing to choose, and the no-anchor penalty already lowers its score;
+        # filtering it here would turn a legal opening into a terminal dead end.
+        gated=battle and len(team)>size and any(p.vanguard(c)>=gate for p in team)
         if len(team)>bound:
             ordered=sorted(team,key=lambda p:self.priority(p,c),reverse=True)
             forced=[]
-            if battle:
-                gate=self.cfg('relaxedMinimumReliableVanguard' if c.relaxed else 'minimumReliableVanguard')
-                eligible=[p for p in team if p.position is not None and p.vanguard(c)>=gate]
-                if not eligible:return ()
-                front=min(eligible,key=lambda p:(p.position,p.id))
-                compatible=sorted((p for p in ordered if p!=front and p.position is not None and (p.vanguard(c)>=gate or p.position>front.position)),
+            if gated:
+                front=min((p for p in team if p.vanguard(c)>=gate),key=lambda p:(p.position,p.id))
+                compatible=sorted((p for p in ordered if p!=front and (p.vanguard(c)>=gate or p.position>front.position)),
                     key=lambda p:formation_risk((front,p),c))[:size-1]
                 if len(compatible)!=size-1:return ()
                 forced=[front]+compatible
@@ -209,7 +212,7 @@ class Optimizer:
         ranked=[]
         for ordinal,combo in enumerate(combinations(team,size)):
             keys=tuple(p.id for p in combo)
-            if tuple(sorted(keys)) in excluded or not set(required)<=set(keys) or battle and not self.eligible(combo,c):continue
+            if tuple(sorted(keys)) in excluded or not set(required)<=set(keys) or gated and not self.eligible(combo,c):continue
             if cohesive and self.damage_type(combo)=='MIXED':continue
             evaluation=self.score(keys,c)
             item=(-formation_risk(combo,c),evaluation.system_score if system_only else evaluation.score,-ordinal,evaluation)
