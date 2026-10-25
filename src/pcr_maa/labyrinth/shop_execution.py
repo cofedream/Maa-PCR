@@ -56,6 +56,11 @@ def _refresh_price(words):
     except BatchStopped:return None
     return price if price>0 else None
 
+def refresh_quote(observation):
+    words=observation.get('words',{}).get('Refresh',())
+    if type(words) not in (list,tuple) or len(words)!=1 or type(words[0]) is not dict:return None
+    return _refresh_price(words)
+
 def shop_pipeline():
     nodes={f'LabyShopRead_{key}':dict(recognition='OCR',expected=pattern,roi=roi,threshold=.8,
         action='DoNothing',next=[],pre_delay=0,post_delay=0) for key,(pattern,roi) in _READS.items()}
@@ -217,11 +222,12 @@ class ShopRecognition(CustomRecognition):
         refresh=words.get('Refresh',[])
         try:balance=_integer(_text(words['Balance'])) if len(words.get('Balance',[]))==1 else None
         except BatchStopped:balance=None
+        # The price grows per refresh (live frame: 300 then 600), never a fixed coin amount.
         refresh_price=_refresh_price(refresh)
         refresh_allowed=refresh_price is not None and balance is not None and balance>=refresh_price
         refresh_known=refresh_price is not None and balance is not None or balance==0
         payload=dict(state=state,words=words,buttons=buttons,same_frame=True,source='maa',
-            refresh_allowed=bool(refresh_allowed),refresh_known=refresh_known)
+            refresh_allowed=bool(refresh_allowed),refresh_price=refresh_price,refresh_known=refresh_known)
         if state=='shop':
             try:
                 balance,items=parse_shop_inventory(words,buttons)
@@ -367,8 +373,9 @@ class MaaShop:
 
     def _refresh(self,batch,enter_id,block_id,current,cycle):
         words=current.get('words',{}).get('Refresh',())
-        price=_refresh_price(words)
-        if price is None or not current.get('refresh_allowed') or type(current.get('balance')) is not int or current['balance']<price:
+        price=refresh_quote(current)
+        if (len(words)!=1 or price is None or not current.get('refresh_allowed')
+                or type(current.get('balance')) is not int or current['balance']<price):
             raise BatchStopped('shop_refresh_quote_unknown')
         fields=dict(enter_id=enter_id,block_id=block_id,cycle=cycle,price=price,currency='run_coins')
         def proposal(oid):
@@ -376,8 +383,8 @@ class MaaShop:
             return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('shop_refresh_proposal',fields,proposal)
         dialog,receipt=self._wait_state(batch,'refresh_confirmation')
-        body,quoted_price=confirmation_terms(dialog)
-        if quoted_price!=price or not ('更新' in body or '刷新' in body):raise BatchStopped('shop_refresh_quote_unknown')
+        body,actual=confirmation_terms(dialog)
+        if actual!=price or not ('更新' in body or '刷新' in body):raise BatchStopped('shop_refresh_quote_unknown')
         batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,native=receipt,input_native=clicked['input_native']),**fields)
         def confirm(oid):
             sent=self._input('refresh_confirmation',dialog['words']['Confirm'][0]['box'],price=price)
@@ -431,7 +438,7 @@ class MaaShop:
             batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,page=scene.kind,native=scene.native,input_native=clicked['input_native']),**fields)
         raise BatchStopped('shop_imprint_result_unknown')
 
-    def run(self,batch,enter_id,block_id,*,owned=(),stacks=None,context=None,buy_relics=True,refresh_shop=False,area=None,locked_focus=None,priority=(),characters=None):
+    def run(self,batch,enter_id,block_id,*,owned=(),stacks=None,context=None,buy_relics=True,refresh_shop=False,area=None,locked_focus=None,priority=(),characters=None,final_shop=False):
         if self.blocked:raise BatchStopped('shop_blocked')
         self.observer.stopped=batch.stopped;self.scene.stopped=batch.stopped;self.scene.observer.stopped=batch.stopped;observed_stacks=None if stacks is None else dict(stacks);purchased=[];calibrated_marks=set();roles=list(owned);refreshed=False;cycle=0;relic_cycle=0
         from .roles import strategy_value
@@ -450,14 +457,20 @@ class MaaShop:
             for _ in range(100):
                 batch.checkpoint();current,receipt=self._capture()
                 if current['state']!='shop':raise BatchStopped('shop_initial_page_unknown')
-                if not buy_relics or area==4 and not refresh_permitted:break
+                if not buy_relics or (area==4 and not (final_shop or refresh_permitted)):break
                 if not ready(current):current,receipt=self._wait_state(batch,'shop',accept=ready)
                 items=[dict(i,relic=Relic(**i['relic'])) if i['kind']=='relic' else dict(i) for i in current['items']]
                 observed_stacks=calibrated_stacks(observed_stacks,items)
                 calibrated_marks.update(i['relic'].mark for i in items if i['kind']=='relic')
-                if exhausted(current) and refresh_permitted and current.get('refresh_allowed'):
+                purchasable=any(i.get('purchasable') is True for i in items)
+                refresh_price=refresh_quote(current)
+                refresh_ok=bool(refresh_permitted and current.get('refresh_allowed')
+                    and (refresh_price is None or type(current.get('balance')) is int and current['balance']>=refresh_price))
+                # Last shop of the run must not carry run coins out: keep
+                # refreshing even when the leftover stock has nothing purchasable.
+                if (exhausted(current) or (final_shop and not purchasable)) and refresh_ok:
                     self._refresh(batch,enter_id,block_id,current,cycle);cycle+=1;relic_cycle=0;refreshed=True;continue
-                selected=None if observed_stacks is None else shop_relic(observed_stacks,items,balance=current['balance'],buy=buy_relics,area=area,allow_area4=refresh_permitted,locked_focus=locked_focus,priority=priority,**policy)
+                selected=None if observed_stacks is None else shop_relic(observed_stacks,items,balance=current['balance'],buy=buy_relics,area=area,final_shop=final_shop,allow_area4=refresh_permitted,locked_focus=locked_focus,priority=priority,**policy)
                 if selected is None and any(i['kind']=='relic' and i['purchasable'] for i in items):
                     raise BatchStopped('shop_relic_state_unknown')
                 if selected is None:

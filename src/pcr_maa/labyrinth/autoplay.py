@@ -58,6 +58,15 @@ def _poll_pause(tasker,batch,node,reason):
     batch.checkpoint()
 
 
+def final_shop_in_route(route,node):
+    """True when this route has no later shop node: the run's last chance to spend coins."""
+    nodes=getattr(route,'nodes',())
+    block_id=getattr(node,'block_id',None)
+    index=next((i for i,n in enumerate(nodes) if getattr(n,'block_id',None)==block_id),None)
+    if index is None:return False
+    return not any(getattr(n,'block_type',None)==7 for n in nodes[index+1:])
+
+
 def _owned_boss_summary_scene(scene,node):
     """Type one fresh UNKNOWN Boss result without broadening scene classification."""
     block_type=node.get('block_type') if type(node) is dict else getattr(node,'block_type',None)
@@ -885,7 +894,8 @@ class MaaRunActions:
         result=self.shop_adapter.run(self.batch,
             route.enter_id,node.block_id,owned=tuple(self.owned),stacks=self.stacks,context=self._context(),
             buy_relics=self.batch.settings.buy_relics,refresh_shop=self.batch.settings.refresh_shop,area=node.area,
-            locked_focus=self.relic_focus,priority=self.batch.settings.strategy.relic_mark_priority,characters=self.characters)
+            locked_focus=self.relic_focus,priority=self.batch.settings.strategy.relic_mark_priority,characters=self.characters,
+            final_shop=final_shop_in_route(route,node))
         self.stacks.update(result.get('stacks',{}));self.relic_focus=result.get('focus',self.relic_focus)
         for mark in result.get('calibrated_marks',()):
             self.stack_sources[mark]='choice';self.stack_conflicts.discard(mark)
