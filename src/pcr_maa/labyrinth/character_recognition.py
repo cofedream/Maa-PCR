@@ -814,6 +814,35 @@ def scrollbar(frame,page,*,include_geometry=False):
 
 
 
+FORMATION_SLOTS=8*2
+
+def formation_complete(observation):
+
+    """One formation screen already contains the whole battle/boss list.
+
+    A 1280x720 formation grid shows 8 columns by 2 rows (16 cards). A view that
+    starts on the grid's top row and recognizes fewer cards cannot hide another
+    identity above or below, so no swipe could reveal new content.
+    """
+
+    if observation.get('page') not in ('battle','boss') or observation.get('members_only'):return False
+
+    cards=observation.get('cards') or ()
+
+    if not 0<len(cards)<FORMATION_SLOTS:return False
+
+    boxes=[card.get('box') for card in cards]
+
+    if any(type(box) is not list or len(box)!=4 for box in boxes):return False
+
+    top=min(box[1] for box in boxes)
+
+    return abs(top-(VIEWPORTS[observation['page']][1]+9))<=6
+
+
+
+
+
 def _blue(frame,box,*,gold=False):
 
     x,y,w,h=box;rgb=frame[y:y+h:3,x:x+w:3,::-1].astype(int)
