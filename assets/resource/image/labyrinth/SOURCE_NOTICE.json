@@ -657,16 +657,7 @@
       "source_sha256": "1635c4b3cd35408890c0c7ca07d66c95fcafd2a34a4d5310520e5b68d840e502",
       "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_active.png",
       "local_sha256": "33b6945964b293adc218a66c3fd5e1c3d4b2d2575f125aa14cd4aff19921ff2e",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
-      "key": "node.normal_battle.active.bottom",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_normal_battle_active_bottom.png",
-      "source_sha256": "83685eb465a55426a12e7518a80a6671466d07d8d5a52a14040de22a390b540d",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_active_bottom.png",
-      "local_sha256": "33b6945964b293adc218a66c3fd5e1c3d4b2d2575f125aa14cd4aff19921ff2e",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
+      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept; bottom-row alias derived at 78% height by the loader from this single crop",
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
@@ -675,16 +666,7 @@
       "source_sha256": "6fae06f9e23a731a383124e8a56ba06988ea5cf3e445388761ee09133a08545a",
       "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_inactive.png",
       "local_sha256": "7c974f77feed6f11a09d0bf7ac59c82dbd8b3f680c43b3ceba3bf9aee3c18827",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
-      "key": "node.normal_battle.inactive.bottom",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_normal_battle_inactive_bottom.png",
-      "source_sha256": "f6323d08d6b8be597bbdf2b71132a11a977985e4a25bb2248012c5eaad6f4755",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_normal_battle_inactive_bottom.png",
-      "local_sha256": "7c974f77feed6f11a09d0bf7ac59c82dbd8b3f680c43b3ceba3bf9aee3c18827",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
+      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept; bottom-row alias derived at 78% height by the loader from this single crop",
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
@@ -733,15 +715,6 @@
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
-      "key": "node.clear",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_clear.png",
-      "source_sha256": "22c06807f180a21b8d4af541c98ec3d5e62ad570a89743bda4be2880b2d087eb",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_clear.png",
-      "local_sha256": "d9c2029034c084b06eebf6da13fb3c59a95f4627cbe083280a1b879b5fe09fbc",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
       "key": "node.relic.active",
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_relic_active.png",
       "source_sha256": "dd4fa951b84b0381d3cf5db5dc39e27dd6e44200a1f47eb746bd4c8b21b30e41",
@@ -760,30 +733,12 @@
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
-      "key": "node.relic.map",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_relic_map.png",
-      "source_sha256": "dd4fa951b84b0381d3cf5db5dc39e27dd6e44200a1f47eb746bd4c8b21b30e41",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_relic_map.png",
-      "local_sha256": "6832d648f9666afe2e64716bd89f45035f5583ac79685c70f985d9e2c6ee6c73",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
       "key": "node.event.active",
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_event_active.png",
       "source_sha256": "f1565e6864618d53ac6c0d45509d394731022f87053d9b46a26cae41c519ab27",
       "local": "assets\\resource\\image\\labyrinth\\node\\node_event_active.png",
       "local_sha256": "be65fc4ff61b8cf94a23550752e0742440dc4e6f66dbdc7369dc8b5e34786828",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
-      "key": "node.event.active.bottom",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_event_active_bottom.png",
-      "source_sha256": "0824af12ce7ad1c2cba33948ebc0a37d089f2e2afe5adf3ee38e1c310acb8861",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_event_active_bottom.png",
-      "local_sha256": "be65fc4ff61b8cf94a23550752e0742440dc4e6f66dbdc7369dc8b5e34786828",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
+      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept; bottom-row alias derived at 78% height by the loader from this single crop",
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
@@ -792,16 +747,7 @@
       "source_sha256": "2b1c2f8da6b775b09dace7b58910607790b601578114379e2a54a0260b592209",
       "local": "assets\\resource\\image\\labyrinth\\node\\node_event_inactive.png",
       "local_sha256": "de6f46a25c9d8921008322c2f433763e3f6cf11b087b383fd5c66719a7ee39db",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
-      "key": "node.event.inactive.bottom",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_event_inactive_bottom.png",
-      "source_sha256": "6eb1b6726c738b487681db419f51e853b126131f71f5eee940e99a7c58ad10f5",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_event_inactive_bottom.png",
-      "local_sha256": "de6f46a25c9d8921008322c2f433763e3f6cf11b087b383fd5c66719a7ee39db",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
+      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept; bottom-row alias derived at 78% height by the loader from this single crop",
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
@@ -809,15 +755,6 @@
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_link_active.png",
       "source_sha256": "e7a26e10c8f7e377a9efd0b0159f009387341ae93cd48bff717bd2d3b11e5453",
       "local": "assets\\resource\\image\\labyrinth\\node\\node_link_active.png",
-      "local_sha256": "dbfe53e31ff3d6ce4e9dbc5e516ceee91b6acf37ea2b043e2a270a773ce6d236",
-      "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
-      "key": "node.link.active.map",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_link_map.png",
-      "source_sha256": "f8e145f8494ca044e3f0105d4f1178c420735410c71996e2f4fd774d6f36535e",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_link_map.png",
       "local_sha256": "dbfe53e31ff3d6ce4e9dbc5e516ceee91b6acf37ea2b043e2a270a773ce6d236",
       "transform": "tight crop from an actual live 1280x720 game frame; upstream art reference kept",
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"

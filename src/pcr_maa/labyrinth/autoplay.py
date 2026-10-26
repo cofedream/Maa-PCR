@@ -5,11 +5,13 @@ pages. A route-end or RESULT page never proves a clear. Inputs are journalled
 once at native ACK; dedicated destination observations confirm page progress.
 Source: wbero/limingjie-assistant (CC BY-NC-SA 4.0); see source manifest.
 """
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 import json
 import math
+import os
 import time
 import cv2
 import numpy as np
@@ -30,6 +32,19 @@ _TYPES = {'normal_battle':2,'ex_battle':3,'link':4,'event':5,'relic':6,'shop':7,
 # captured frames, so require the body floor for inactive non-EX templates.
 # EX keeps its calibrated purple fallback and boss is active by definition.
 _INACTIVE_NODE_SCORE = .75
+# Upstream ships the normal-battle and event bodies under a second `_bottom`
+# name, matched through only their top 78% so a platform clipped by the viewport
+# bottom still matches. The two local crops were byte-identical tight crops, so
+# the loader derives the truncated alias from the one shipped crop instead of
+# duplicating the resource; a shipped `_bottom` file is still honoured.
+_BOTTOM_ALIAS_TYPES = (2, 5)
+_BOTTOM_ALIAS_HEIGHT = .78
+# One full-frame scan is dominated by the independent masked-NCC passes for every
+# template; they are pure reads of the same frame features, so run them
+# concurrently and keep template order when merging. Measured ~2x wall-clock at
+# four workers on a 6-core/12-thread host with bit-identical scores; more workers
+# only saturated memory bandwidth.
+_SCAN_WORKERS = min(4, os.cpu_count() or 1)
 _ARRIVALS = {2:{'normal_challenge','team'},3:{'ex_challenge','team'},
     4:{'link_reward'},5:{'event','event_animation','rest'},
     6:{'relic_reward'},7:{'shop'},8:{'boss_challenge','team'}}
@@ -274,23 +289,36 @@ def bind_route_target(route,current,columns):
 
 class NodePixels:
     """Cached upstream templates; independent frame classifier with local glow."""
+    @staticmethod
+    def _bottom(image):
+        return image[:round(image.shape[0]*_BOTTOM_ALIAS_HEIGHT)]
+
     def __init__(self, directory=None):
         root=directory or Path(__file__).resolve().parents[3]/'assets/resource/image/labyrinth/node'
         self.templates=[]
-        for path in sorted(Path(root).glob('node_*.png')):
+        paths=sorted(Path(root).glob('node_*.png'))
+        shipped={path.name for path in paths}
+        for path in paths:
             kind=next((v for k,v in _TYPES.items() if path.name.startswith('node_'+k)),None)
             if kind is None: continue
             image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),cv2.IMREAD_UNCHANGED)
             if image is None: raise BatchStopped('node_resource_invalid')
             # Public pack has already been rescaled from 1080p to Maa 720p.
-            body=image[:round(image.shape[0]*.78)] if '_bottom' in path.name else image
-            rgb=body[:,:,:3]
-            mask=body[:,:,3]>=128 if body.shape[2]==4 else np.ones(rgb.shape[:2],bool)
-            # Upstream ignores artificial alpha-boundary edges, and compares
-            # both luminance and |central dx|+|central dy| with masked NCC.
-            interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
-            light,gradient=self._features(rgb)
-            self.templates.append((path.name,kind,rgb,mask,interior,light,gradient))
+            if '_bottom' in path.name:
+                bodies=[(path.name,self._bottom(image))]
+            else:
+                bodies=[(path.name,image)]
+                if kind in _BOTTOM_ALIAS_TYPES:
+                    alias=path.stem+'_bottom.png'
+                    if alias not in shipped: bodies.append((alias,self._bottom(image)))
+            for name,body in bodies:
+                rgb=body[:,:,:3]
+                mask=body[:,:,3]>=128 if body.shape[2]==4 else np.ones(rgb.shape[:2],bool)
+                # Upstream ignores artificial alpha-boundary edges, and compares
+                # both luminance and |central dx|+|central dy| with masked NCC.
+                interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
+                light,gradient=self._features(rgb)
+                self.templates.append((name,kind,rgb,mask,interior,light,gradient))
         # Boss (8) has no mandatory node-body template: the retired
         # node_boss_yellow/dragon card crops never matched live 720p frames, and
         # the final Boss is located only by the optional tight platform anchor
@@ -406,6 +434,16 @@ class NodePixels:
         return light,gradient
 
     @staticmethod
+    def _frame_scores(lights,gradients,template):
+        """One template's full-frame masked NCC map; pure per-frame computation."""
+        _,_,_,_,interior,light,gradient=template
+        scores=np.maximum(
+            cv2.matchTemplate(lights,light,cv2.TM_CCOEFF_NORMED,mask=interior),
+            cv2.matchTemplate(gradients,gradient,cv2.TM_CCOEFF_NORMED,mask=interior))
+        scores[~np.isfinite(scores)]=-1
+        return scores
+
+    @staticmethod
     def _semantic(crop):
         # The upstream independent active-icon color decision tree. These
         # ratios describe actual pixels, never the expected route node type.
@@ -455,20 +493,16 @@ class NodePixels:
     def collect(self,image):
         if type(image) is not np.ndarray or image.shape!=(720,1280,3): raise BatchStopped('map_frame_unknown')
         lights,gradients=self._features(image)
+        # Pinned anchors permit full on-screen crops, including transparent
+        # top margins, edge destination columns and lower EX platforms.
+        visible=[t for t in self.templates if t[6].shape[0]<=550 and t[6].shape[1]<=1100]
+        with ThreadPoolExecutor(max_workers=_SCAN_WORKERS,thread_name_prefix='labyrinth-node-scan') as pool:
+            score_maps=list(pool.map(lambda template:self._frame_scores(lights,gradients,template),visible))
         proposals=[]
-        for name,kind,template,mask,interior,light,gradient in self.templates:
+        for (name,kind,template,mask,interior,light,gradient),scores in zip(visible,score_maps):
             # Boss platforms use final_boss's nameplate; their scenery also matches portals.
             if name=='node_boss_platform.png':continue
             h,w=gradient.shape
-            if h>550 or w>1100: continue
-            # Pinned anchors permit full on-screen crops, including transparent
-            # top margins, edge destination columns and lower EX platforms.
-            grad_scores=cv2.matchTemplate(gradients[0:720,0:1280],gradient,
-                cv2.TM_CCOEFF_NORMED,mask=interior)
-            light_scores=cv2.matchTemplate(lights[0:720,0:1280],light,
-                cv2.TM_CCOEFF_NORMED,mask=interior)
-            scores=np.maximum(grad_scores,light_scores)
-            scores[~np.isfinite(scores)]=-1
             for _ in range(24):
                 _,score,_,location=cv2.minMaxLoc(scores)
                 # Upstream EX has one shared template and its purple fallback.

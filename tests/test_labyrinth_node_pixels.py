@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pcr_maa import native
+from pcr_maa.labyrinth import autoplay
 from pcr_maa.labyrinth.autoplay import NodePixels, MaaNodeNavigator, bind_route_target
 from pcr_maa.labyrinth.routes import Node, Route
 from pcr_maa.labyrinth.scene import MaaSceneRuntime
@@ -17,7 +18,34 @@ from test_labyrinth_character_port import offline
 
 
 DATA = Path(__file__).with_name('data')
+NODE = DATA.parents[1] / 'assets/resource/image/labyrinth/node'
 MANIFEST = json.loads((DATA / 'labyrinth-map-ex-20261022.json').read_text(encoding='utf-8'))
+BOTTOM_ALIASES = ('node_event_active', 'node_event_inactive',
+                  'node_normal_battle_active', 'node_normal_battle_inactive')
+
+
+def test_bottom_row_aliases_are_derived_from_the_single_shipped_crop(pixels):
+    # The upstream bottom-row crops are byte-identical to their full crops; the
+    # loader derives the 78% body alias instead of shipping a duplicate file.
+    names = [template[0] for template in pixels.templates]
+    assert len(names) == len(set(names))
+    templates = {name: (kind, rgb) for name, kind, rgb, *_ in pixels.templates}
+    for base in BOTTOM_ALIASES:
+        assert not (NODE / (base + '_bottom.png')).exists()
+        kind, full = templates[base + '.png']
+        alias_kind, alias = templates[base + '_bottom.png']
+        assert alias_kind == kind
+        assert alias.shape == (round(full.shape[0] * .78), full.shape[1], 3)
+        assert np.array_equal(alias, full[:alias.shape[0]])
+
+
+def test_parallel_template_scan_returns_identical_nodes(pixels, monkeypatch):
+    image = original_frame('labyrinth-map-ex-20261022-target.png')
+    monkeypatch.setattr(autoplay, '_SCAN_WORKERS', 1)
+    serial = pixels.collect(image)
+    monkeypatch.setattr(autoplay, '_SCAN_WORKERS', 4)
+    parallel = pixels.collect(image)
+    assert parallel == serial
 
 
 @pytest.fixture(scope='module')
