@@ -9,11 +9,25 @@ from functools import lru_cache
 from itertools import combinations
 from math import prod,isfinite
 from pathlib import Path
+from collections import OrderedDict
+from collections.abc import Mapping
 import json
 import heapq
 import re
 
 DATA=Path(__file__).resolve().parents[3]/'assets/labyrinth'
+
+# A role reward at a large run roster evaluates about 2.3e5 distinct five-member
+# teams, while the combinatorics call the memo about 3.5 times per team. The old
+# 32768-entry bound missed nearly all of that reuse (one decision made about
+# 0.8M calls with only ~1k hits); 2^18 entries keep one full decision resident
+# and still bound memory for every later decision in the same process.
+SCORE_CACHE_SIZE=1<<18
+
+# Catalog copies are immutable inside one owned run. Keeping the configured
+# copy (and therefore its score memo) across rewards, events and team planning
+# avoids rebuilding the 373-profile deep copy on every call.
+CONFIGURED_OPTIMIZER_CACHE_SIZE=4
 def clamp(x,lo=0,hi=100): return max(lo,min(hi,x))
 def z(v): return 0 if v is None else v
 
@@ -74,7 +88,7 @@ class Profile:
         evasion=z(p.get('physicalEvasion')) if enemy=='PHYSICAL' else z(p.get('magicEvasion')) if enemy=='MAGIC' else min(z(p.get('physicalEvasion')),z(p.get('magicEvasion'))) if enemy=='MIXED' else 0
         return clamp(conventional+max(z(p.get('untargetable'))*.2,z(p.get('invulnerability'))*.2,evasion*.35,z(p.get('revive'))*.12))
 
-@dataclass(frozen=True)
+@dataclass(frozen=True,slots=True)
 class Evaluation:
     members: tuple[str,...]
     score: float
@@ -100,7 +114,7 @@ class Optimizer:
     def damage_type(team):
         kinds={p.data.get('damageType') for p in team if not p.universal()} & {'PHYSICAL','MAGIC'}
         return 'MIXED' if len(kinds)==2 else next(iter(kinds),'NONE')
-    @lru_cache(maxsize=32768)
+    @lru_cache(maxsize=SCORE_CACHE_SIZE)
     def score(self,ids,c):
         if not ids or len(ids)>5 or len(set(ids))!=len(ids): raise ValueError('invalid_team')
         team=[self.profiles[x] for x in ids];cfg=self.cfg;t=min(c.targets,3)
@@ -314,7 +328,54 @@ def strategy_value(strategy,key,default=None):
     return strategy.get(key,default) if isinstance(strategy,dict) else getattr(strategy,key,default)
 
 
+_STRATEGY_FIELDS=('scoring_overrides','personal_scores','player_weight','duplicate_role_penalty',
+    'mixed_damage_penalty','effective_character_system_bonus','attribute_pairing_bonus_enabled')
+
+def _plain(value):
+    """Canonical JSON-able form; mapping proxies and tuples are normalized."""
+    if isinstance(value,Mapping):return {str(key):_plain(item) for key,item in value.items()}
+    if isinstance(value,(list,tuple)):return [_plain(item) for item in value]
+    if value is None or isinstance(value,(str,int,float,bool)):return value
+    return repr(value)
+
+def _strategy_fingerprint(strategy):
+    if strategy is None:return 'none'
+    payload=getattr(strategy,'payload',None)
+    if callable(payload):value=payload()
+    elif isinstance(strategy,Mapping):value=dict(strategy)
+    else:value={key:getattr(strategy,key,None) for key in _STRATEGY_FIELDS}
+    return json.dumps(_plain(value),sort_keys=True,ensure_ascii=False,separators=(',',':'))
+
+def _database_fingerprint():
+    from .database import DATABASE_SNAPSHOT
+    snapshot=DATABASE_SNAPSHOT.get()
+    if snapshot is None or not snapshot.facts:return ('','')
+    # The verifier binds the sha256 to the exact facts; the pair is immutable.
+    return (snapshot.version,snapshot.sha256)
+
+_CONFIGURED_OPTIMIZERS=OrderedDict()
+
 def configured_optimizer(strategy=None):
+    """Configured catalog copy shared by every consumer in this owned run.
+
+    Catalog facts, the strategy and the frozen run database do not change inside
+    one owned run, so rebuilding the profile copy per reward only discarded the
+    team-score memo. The copy (and its lru memo) is retained instead; team
+    planning, events and both reward kinds now reuse the same scored teams.
+    Invalid configuration still raises on first use and is never cached.
+    """
+    key=(_strategy_fingerprint(strategy),_database_fingerprint())
+    optimizer=_CONFIGURED_OPTIMIZERS.get(key)
+    if optimizer is not None:
+        _CONFIGURED_OPTIMIZERS.move_to_end(key)
+        return optimizer
+    optimizer=_build_configured_optimizer(strategy)
+    _CONFIGURED_OPTIMIZERS[key]=optimizer
+    while len(_CONFIGURED_OPTIMIZERS)>CONFIGURED_OPTIMIZER_CACHE_SIZE:
+        _CONFIGURED_OPTIMIZERS.popitem(last=False)
+    return optimizer
+
+def _build_configured_optimizer(strategy=None):
     """Copy configuration/personal votes without changing shared catalog facts."""
     import copy
     from .database import DATABASE_SNAPSHOT
