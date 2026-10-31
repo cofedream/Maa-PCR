@@ -387,10 +387,11 @@ class MaaShop:
                 if not joined or pending:raise BatchStopped('shop_imprint_result_unknown')
                 return joined
             if scene.kind=='free_role_reward':
-                if not selected['choice_imprint'] or pending:raise BatchStopped('shop_imprint_result_unknown')
+                if not selected['choice_imprint']:raise BatchStopped('shop_imprint_result_unknown')
                 reward=MaaRoleReward(self.tasker,self.stamp,timings=self.timings,characters=characters)
-                result=reward.choose_free(batch,enter_id,identifier,tuple(owned),defer_joined=True)
-                pending=list(result['roles_pending']);scene=result['following_scene'];continue
+                reward_id=identifier if not pending and not joined else f'{identifier}:free:{step}'
+                result=reward.choose_free(batch,enter_id,reward_id,tuple(owned)+tuple(joined)+tuple(pending),defer_joined=True)
+                pending.extend(result['roles_pending']);scene=result['following_scene'];continue
             fields=dict(enter_id=enter_id,item_id=identifier,phase=scene.kind,step=step)
             if scene.kind=='joined':
                 actual,receipt=characters.read(batch,'joined',stable=False)

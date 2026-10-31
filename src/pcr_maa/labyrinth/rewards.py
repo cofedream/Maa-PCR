@@ -197,7 +197,17 @@ class MaaRoleReward:
         clicked=batch.transaction('event_free_role_invite',fields,invite)
         if defer_joined:
             from .scene import MaaSceneRuntime
-            after=MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings).wait_for(batch,{'joined','event_animation'},source='free_role_reward',timeout=12,reason='role_reward_readback_unknown',acquisition_fields=dict(source='maa',enter_id=enter_id,reward_id=reward_id))
+            before=tuple(c.get('character_id') if c.get('trusted') else None for c in current['cards'])
+            def advanced(value):
+                if value.kind!='free_role_reward':return True
+                actual=chars.probe(batch,'opening')
+                # Another choice imprint resets the picker before the batch JOINED page.
+                return (actual is not None and actual.get('stable') is True
+                    and actual.get('count')==0 and not actual.get('selected')
+                    and type(actual.get('required_count')) is int and 1<=actual['required_count']<=3
+                    and any(role is not None and card.get('trusted') is True and card.get('character_id')!=role
+                        for role,card in zip(before,actual['cards'])))
+            after=MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings).wait_for(batch,{'free_role_reward','joined','event_animation'},source='free_role_reward',accept=advanced,timeout=12,reason='role_reward_readback_unknown',acquisition_fields=dict(source='maa',enter_id=enter_id,reward_id=reward_id))
             return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,roles_pending=selected,inventory_added=False,selection_pending=True,following_scene=after,native=after.native,input_native=clicked['input_native']),**fields)
         batch.checkpoint();joined,receipt=chars.read(batch,'joined',stable=False)
         if sorted(joined.get('roles_joined',()))!=selected:raise BatchStopped('role_reward_readback_unknown')
