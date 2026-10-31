@@ -557,7 +557,7 @@
           "sha256": "e7da2292dc287a47f8884ed646060e2d01ad7ae61a17ceadb338d73c4ac8db10"
         }
       ],
-      "local_sha256": "3dde4cc21d6f1f79ebc8d696b04329d6d9a8a1661562631a9342234ab9d3e4ed",
+      "local_sha256": "20a3dcd59b2903bd7e3bb12cea2fc78cc3f00b89ac07a3eb4073e583f24e7fb5",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -7598,7 +7598,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/rewards.py",
-      "local_sha256": "3dde4cc21d6f1f79ebc8d696b04329d6d9a8a1661562631a9342234ab9d3e4ed",
+      "local_sha256": "20a3dcd59b2903bd7e3bb12cea2fc78cc3f00b89ac07a3eb4073e583f24e7fb5",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

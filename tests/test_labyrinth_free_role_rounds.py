@@ -22,11 +22,17 @@ class ChoiceImprints:
         batch.checkpoint()
         if page == 'joined':
             return dict(roles_joined=self.joined), receipt()
-        offered = ['1071', '1088', '1089']
-        if self.invited and self.following not in ('same_cards', 'untrusted_change'):
+        offered = ['1088', '1089', '1071'] if self.following == 'tail' else ['1071', '1088', '1089']
+        if self.invited and self.following not in ('same_cards', 'untrusted_change', 'reordered'):
             offered = [role for role in offered if role not in self.invited]
+        if self.invited and self.following == 'reordered':
+            offered = list(reversed(offered))
         result = dict(page='opening', stable=self.following != 'unstable', count=len(self.selected),
                     required_count=4 if self.following == 'invalid_count' and self.invited else 1,
+                    filter='FIRE' if self.invited and self.following == 'changed_filter' else 'ALL',
+                    scrollbar=dict(visible=True, can_scroll=True,
+                        position=(.5 if self.following == 'scrolled' else .015 if self.following == 'rebounded' else 0.0)
+                            if self.invited else 0.0),
                     selected=self.selected[:], cards=[dict(character_id=role, trusted=True,
                     selected=role in self.selected, box=[80 + 140 * i, 180, 130, 130])
                     for i, role in enumerate(offered)])
@@ -86,9 +92,10 @@ def setup_rounds(monkeypatch, following='next', joined=('1071', '1088')):
     return actions, characters
 
 
+@pytest.mark.parametrize('following', ['next', 'rebounded', 'tail'])
 @pytest.mark.parametrize('joined', [('1071', '1088'), ('1088',), ('wrong',)])
-def test_two_one_person_imprints_do_not_finish_at_the_first_invitation(monkeypatch, joined):
-    actions, characters = setup_rounds(monkeypatch, joined=joined)
+def test_two_one_person_imprints_do_not_finish_at_the_first_invitation(monkeypatch, joined, following):
+    actions, characters = setup_rounds(monkeypatch, following, joined)
     route, node = NS(enter_id=2765), NS(block_id=30303)
     first = actions.choose_reward('free_role_reward', route, node, '30303:free:1')
     assert first['following_scene'].kind == 'free_role_reward'
@@ -113,7 +120,8 @@ def test_two_one_person_imprints_do_not_finish_at_the_first_invitation(monkeypat
 
 
 @pytest.mark.parametrize('following', ['same_cards', 'still_selected', 'unreadable',
-                                      'untrusted_change', 'unstable', 'invalid_count'])
+                                      'untrusted_change', 'unstable', 'invalid_count',
+                                      'reordered', 'scrolled', 'changed_filter'])
 def test_unadvanced_or_unreadable_invitation_never_selects_again(monkeypatch, following):
     actions, characters = setup_rounds(monkeypatch, following)
     with pytest.raises(BatchStopped, match='^role_reward_readback_unknown$'):
@@ -129,6 +137,49 @@ def test_stop_after_invitation_does_not_dispatch_the_second_choice(monkeypatch):
         actions.choose_reward('free_role_reward', NS(enter_id=2765), NS(), 'free:1')
     assert [suffix for suffix, _ in characters.calls] == ['ToggleOnce', 'InviteOnce']
     assert not actions.owned
+
+
+def test_same_reward_identity_is_not_invited_again_after_a_fresh_picker(monkeypatch):
+    actions, characters = setup_rounds(monkeypatch)
+    route = NS(enter_id=2765)
+    first = actions.choose_reward('free_role_reward', route, NS(), 'free:1')
+    assert first['following_scene'].kind == 'free_role_reward'
+    with pytest.raises(BatchStopped, match='^role_reward_already_attempted$'):
+        actions.choose_reward('free_role_reward', route, NS(), 'free:1')
+    assert [suffix for suffix, _ in characters.calls] == ['ToggleOnce', 'InviteOnce']
+    assert actions.role_pending == ['1071'] and not actions.owned
+
+
+def test_unknown_invitation_is_not_retried_under_another_reward_identity(monkeypatch):
+    actions, characters = setup_rounds(monkeypatch)
+    send = characters.run
+    def uncertain(suffix, params, **options):
+        result = send(suffix, params, **options)
+        if suffix == 'InviteOnce':
+            raise RuntimeError('native input outcome unknown')
+        return result
+    characters.run = uncertain
+    route = NS(enter_id=2765)
+    with pytest.raises(RuntimeError, match='native input outcome unknown'):
+        actions.choose_reward('free_role_reward', route, NS(), 'free:1')
+    with pytest.raises(BatchStopped, match='^blocked_in_flight$'):
+        actions.choose_reward('free_role_reward', route, NS(), 'free:2')
+    assert [suffix for suffix, _ in characters.calls] == ['ToggleOnce', 'InviteOnce']
+    assert actions.batch.journal.events()[-1]['state'] == 'in_flight'
+
+
+def test_stop_during_the_successor_probe_does_not_start_another_invitation(monkeypatch):
+    actions, characters = setup_rounds(monkeypatch)
+    probe = characters.probe
+    def interrupted(batch, page):
+        actual = probe(batch, page)
+        batch.stopped = lambda: True
+        return actual
+    characters.probe = interrupted
+    with pytest.raises(BatchStopped, match='^stopped$'):
+        actions.choose_reward('free_role_reward', NS(enter_id=2765), NS(), 'free:1')
+    assert [suffix for suffix, _ in characters.calls] == ['ToggleOnce', 'InviteOnce']
+    assert not actions.owned and not actions.role_pending
 
 
 def test_shop_choice_imprints_accumulate_pending_roles_until_actual_joined(monkeypatch):
