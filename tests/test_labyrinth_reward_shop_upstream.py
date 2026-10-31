@@ -121,22 +121,28 @@ def test_multi_choice_selection_is_pending_until_actual_joined(monkeypatch,remai
 
 def test_refresh_quote_and_result_are_separate_new_intents_unknown_never_repeats():
  batch,stamp=harness();shop=shops.MaaShop.__new__(shops.MaaShop);shop.stamp=stamp
- before=dict(balance=900,refresh_allowed=True,words={'Refresh':[word('用300更新')]})
- states=iter([(dict(state='refresh_confirmation',words={'DialogBody':[word('要消耗阿尔法金币×300更新商店')],'Confirm':[word('确认')]}),{}),(dict(state='shop',balance=600,items=[]),{})])
- calls=[];shop._wait_state=lambda *a:next(states);shop._input=lambda state,*a,**k:calls.append(state) or dict(native_ok=True)
+ before=dict(balance=900,refresh_allowed=True,refresh_enabled=True,refresh_price=300,stock_state='exhausted',items=[],words={'Refresh':[word('用300更新')]})
+ dialog=dict(state='refresh_confirmation',words={'DialogBody':[word('要消耗阿尔法金币×300更新商店')],'Confirm':[word('确认')]})
+ calls=[];shop._probe_state=lambda *a:(dialog,{});shop._wait_state=lambda *a:(dict(state='shop',balance=600,items=[]),{})
+ shop._input=lambda state,*a,**k:calls.append(state) or dict(native_ok=True)
  result=shop._refresh(batch,1,30601,before,0)
  assert result['refresh_verified'] and calls==['refresh','refresh_confirmation']
  assert [e['operation'] for e in batch.journal.events() if e['state']=='settled']==['shop_refresh_proposal','shop_refresh_purchase']
+ # A click whose confirmation never appears is classified locally as refused:
+ # one input only, no purchase intent, no exception and no re-click.
  batch,stamp=harness();shop.stamp=stamp;calls.clear()
- shop._wait_state=lambda *a:(_ for _ in ()).throw(BatchStopped('shop_readback_unknown'))
- with pytest.raises(BatchStopped):shop._refresh(batch,1,30601,before,0)
- assert calls==['refresh'] and batch.journal.events()[-1]['state']=='settled'
+ unchanged=dict(state='shop',balance=900,refresh_price=300,stock_state='exhausted',items=[],words={'Refresh':[word('用300更新')]})
+ shop._probe_state=lambda *a:(None,None);shop._capture=lambda:(unchanged,{})
+ result=shop._refresh(batch,1,30601,before,0)
+ assert result['refresh_refused'] is True and 'refresh_verified' not in result
+ assert calls==['refresh']
+ assert [e['operation'] for e in batch.journal.events() if e['state']=='settled']==['shop_refresh_proposal']
 
 def test_unknown_currency_or_wrong_refresh_price_never_confirms():
  batch,stamp=harness();shop=shops.MaaShop.__new__(shops.MaaShop);shop.stamp=stamp;calls=[]
  shop._input=lambda state,*a,**k:calls.append(state) or {}
  for body in ('消耗宝石×300更新商店','要消耗阿尔法金币×301更新商店'):
-  shop._wait_state=lambda *a:(dict(state='refresh_confirmation',words={'DialogBody':[word(body)],'Confirm':[word('确认')]}),{})
+  shop._probe_state=lambda *a:(dict(state='refresh_confirmation',words={'DialogBody':[word(body)],'Confirm':[word('确认')]}),{})
   with pytest.raises(BatchStopped):shop._refresh(batch,1,30601,dict(balance=900,refresh_allowed=True,words={'Refresh':[word('用300更新')]}),0)
  assert calls==['refresh','refresh']
 
