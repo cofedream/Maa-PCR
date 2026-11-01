@@ -1,3 +1,13 @@
+## 2026-11-01 登录后“活动结束预告”弹窗导致开局停止（离线验证）
+
+实机失败记录 `run 7ee98d5d7adf4ff0ae4787ad0f495b41`（账本在 `.runtime/labyrinth-work/`）：20:05:26 关闭“通知”公告后，客户端在主页停留约 0.8 秒再弹出“活动结束预告”，盖住底部“冒险”。`LabyClientHomeToAdventure` 的 3 秒识别窗口内只读到 `师 0.17`，原生证据为 `recognition_failed=true`、`action_started=false`，账本把 `client_open_adventure` 结为 `input_execution=not_sent`，批次以 `native_input_not_sent` 停止。没有误点、没有发出点击；GUI 日志里“操作 client_open_adventure 已发出，等待确认”只是 intent 已落盘，随后被上述未发出证据覆盖。
+
+原因是启动流程只认识“通知”面板：`notice_pipeline()` 的四个锚点不包含该弹窗，`LabyGameSessionAfterTitleObserved` 不报告这一页，主页大面板白名单 `HomeModalTitle` 也没有该标题，所以它既不能被关闭，也不能作为已知遮挡被拒绝。
+
+现在按真实 1280x720 原帧（标题文字 556,43,166,28；前往活动 732,624,108,28；关闭 465,623,57,30）新增 `home_announcement_pipeline()`：标题 `^活动结束预告$`、`^前往活动$`、`^关闭$` 三个 OCR 锚点同时命中才算该页；关闭动作的 box 取“关闭”文字自身，永远不点“前往活动”。`LabyGameSessionAfterTitleObserved` 增加该页上报，`_after_title` 仍要求连续两帧一致。启动时先关闭“通知”再关闭该弹窗，每个关闭各记一条独立 intent（`client_notice_close` / `client_announcement_close`，后者同时加入 `_OPERATIONS` 与 `restart._CLIENT_NAVIGATION`），每次关闭后重新做两帧稳定读回，最多关闭两次；期间出现未采样页面仍以 `game_session_readback_unknown` 停止。若弹窗在“冒险”点击窗口内才出现，只有原生证据明确 `input_execution=not_sent` 时才允许一次只读观察、关闭已采样弹窗并重试同一次点击；已发出或结果未知的操作不重试。共享主页守卫的 `HomeModalTitle` 白名单加入该标题，弹窗在场时不放行主页。
+
+验证：`tests/test_labyrinth_home_announcement.py`（8 项）覆盖节点/ROI/锚点顺序、操作名与重开集合、关闭与重试的账本顺序、两次上限，以及私有失败原帧回放（启动等待两帧稳定返回 `announcement`、关闭点击落在“关闭”按钮、主页观察与点击均拒绝、无其它输入）。受影响既有用例 311 项通过、48 项按私有夹具跳过；全量 5264 项通过、556 项跳过、54 个子测试通过，无失败。仅离线验证，未实机复跑本局；只按采样到的这一个标题处理，不推广到其它弹窗。
+
 ## 2026-10-17 黎明界实时日志面板（仅展示）
 
 GUI 黎明界工作区在“开始任务”栏下方新增“实时日志”卡片，默认折叠（只显示标题行，点“实时日志”开关展开面板；收起时日志仍照常写入日志文件）、最多保留 500 行、只显示黎明界运行行；日常档案沿用原有“运行日志”折叠卡，不受影响。每行是一个 `SelectableTextBlock`，可拖动选中并 Ctrl+C 复制单行；手动上滚后自动跟随会停用，点“滚到底部”可回到最新一行并重新开启跟随。内容来自 Owner 新增的 `kind=log` stdout 行：开局／撤退决策、操作发出、操作确认（含页面与白名单标量）、停止原因（含文件:行）、批次结果，加上既有 `progress` 阶段变化；记录从点击开始一直到结束，所以本地校验、组件、资源、连接、登录和交接阶段的失败同样可见。

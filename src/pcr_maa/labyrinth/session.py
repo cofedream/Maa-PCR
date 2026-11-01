@@ -101,6 +101,30 @@ def notice_pipeline():
     }
 
 
+def home_announcement_pipeline():
+    """One sampled HOME popup: the activity-ending notice.
+
+    ROIs come from an actual 1280x720 client frame (title word 556,43,166,28;
+    前往活动 732,624,108,28; 关闭 465,623,57,30). Only this explicit title is
+    closed, never an arbitrary dialog: the close needs all three anchors. The
+    关闭 label keeps detector boxes so its actual word box is the click target,
+    which stays inside that button and never reaches 前往活动.
+    """
+    def label(text,roi,*,only_rec=True):
+        return dict(recognition='OCR',expected=text,roi=roi,threshold=.8,only_rec=only_rec,
+                    action='DoNothing',next=[],timeout=1000,pre_delay=0,post_delay=0)
+    return {
+        'LabyClientAnnouncementTitle':label('^活动结束预告$',[531,33,216,48]),
+        'LabyClientAnnouncementActivityLabel':label('^前往活动$',[700,600,175,70]),
+        'LabyClientAnnouncementCloseLabel':label('^关闭$',[440,608,107,51],only_rec=False),
+        'LabyClientAnnouncementCloseOnce':dict(recognition='And',all_of=[
+            'LabyClientAnnouncementCloseLabel','LabyClientAnnouncementTitle',
+            'LabyClientAnnouncementActivityLabel'],
+            action='Click',target=True,max_hit=1,next=[],timeout=3000,rate_limit=250,
+            pre_delay=0,post_delay=0),
+    }
+
+
 def resume_home_pipeline():
     return {
         'LabyClientActiveRunBadge':dict(recognition='OCR',expected='^挑战中$',roi=[720,341,155,48],

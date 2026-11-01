@@ -8,6 +8,7 @@ from ..preset_execution import Journal
 
 _CLIENT_NAVIGATION = frozenset({
     'client_download_retry', 'client_return_title', 'client_title_start', 'client_notice_close',
+    'client_announcement_close',
     'client_open_adventure', 'client_open_labyrinth', 'client_open_main_menu', 'client_open_profile',
     'client_profile_back', 'client_menu_to_adventure', 'client_profile_return_title',
     'client_channel_prompt',

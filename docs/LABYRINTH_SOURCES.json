@@ -781,7 +781,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "46ec29d77fc5130b703aafdb88ae1a28ce3eb581790a629463e47a6f85dc6550",
+      "local_sha256": "b33b0acb64dd02eddd29e8f1a6161dc50853892b3b751ada6d1a0000b45f74cf",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -797,7 +797,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "74e3c630c818962b08a16b383a8fdfb674206744d09ea94ea3092bc1c177232b",
+      "local_sha256": "475f52abec24bea1a9ebcd642232a513cf5913c34f296fc86d3da5fcbbdc219a",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -7452,7 +7452,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/game_session.py",
-      "local_sha256": "74e3c630c818962b08a16b383a8fdfb674206744d09ea94ea3092bc1c177232b",
+      "local_sha256": "475f52abec24bea1a9ebcd642232a513cf5913c34f296fc86d3da5fcbbdc219a",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7590,7 +7590,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/session.py",
-      "local_sha256": "46ec29d77fc5130b703aafdb88ae1a28ce3eb581790a629463e47a6f85dc6550",
+      "local_sha256": "b33b0acb64dd02eddd29e8f1a6161dc50853892b3b751ada6d1a0000b45f74cf",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7712,7 +7712,7 @@
       "local": "assets/resource/pipeline/presets.json",
       "kind": "local-home-recognition-file",
       "production_runtime": true,
-      "local_sha256": "a3dcd9f8424cef6770dfd79531495a04b67f88c0f9f4f9c8f101c15650ee075b"
+      "local_sha256": "2a0296bf30c495e69f4f2933f80f4d5423c1fe1f01974c0b1d95ad9d1839f6c7"
     },
     {
       "local": "src/pcr_maa/labyrinth/database.py",
@@ -7728,7 +7728,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/restart.py",
-      "local_sha256": "1e8ac091ec53ae60ae3ffebb92b07bd4cdf727498c1c94d3527a3761ef2e145d",
+      "local_sha256": "6a245304638e4e9a69d5b185d74afedd2d68f32d14543a9d3e2fac275ed49508",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7895,7 +7895,7 @@
   "live_two_run_cycle_verified": false,
   "documentation": {
     "current": "docs/LABYRINTH_INTEGRATION.md",
-    "current_sha256": "e065bd3d43f6ce95f88e36a97c315fbbc52bbda2608d0f3f5d4e1534408c9b5f",
+    "current_sha256": "904e4ed84ff516036f8f6e45b175bf606ed7ea4bd29f48403ed63c3ee9ffc862",
     "history": "docs/LABYRINTH_INTEGRATION_HISTORY.md",
     "history_sha256": "6b0cce9d25a4b0ce1600bd40699df01bd2efa411bb7cd4594d9998d57c5abfc4",
     "history_preserved_as_original_bytes": true,

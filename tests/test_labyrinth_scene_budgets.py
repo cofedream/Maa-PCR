@@ -240,7 +240,8 @@ def test_startup_download_retry_never_outlives_business_deadline(slow, monkeypat
     inputs = []
     adapter._input = lambda *args: inputs.append('retry') or {}
     names = ['LabyDateChangedObserved', 'LabyDisconnect6002Observed',
-        'LabyClientNoticeObserved', 'LabyClientAfterTitleHomeObserved', 'LabyClientDownloadErrorObserved']
+        'LabyClientNoticeObserved', 'LabyClientAnnouncementObserved',
+        'LabyClientAfterTitleHomeObserved', 'LabyClientDownloadErrorObserved']
     captures = []
 
     def capture(*args):
