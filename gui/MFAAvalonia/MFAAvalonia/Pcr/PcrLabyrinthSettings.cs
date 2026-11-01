@@ -109,6 +109,14 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string refreshFromArea = "5";
     [ObservableProperty] private string normalWinRate = "95";
     [ObservableProperty] private string extremeWinRate = "70";
+    public string[] EventChainPolicies { get; } = { "自动（按价值模型）", "优先继续", "优先停止" };
+    [ObservableProperty] private string eventChainPolicy = "自动（按价值模型）";
+    public ObservableCollection<PcrLabyrinthEventSetting> EventChoiceItems { get; } = new();
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasEventChoicesStatus))]
+    private string eventChoicesStatus = "";
+    public bool HasEventChoicesStatus => EventChoicesStatus.Length>0;
+    private JObject savedEventChoiceOverrides = new();
     private JObject personalScores = new();
     [ObservableProperty, NotifyPropertyChangedFor(nameof(AccountSummary))] private string expectedPlayerId = "";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(AccountSummary))] private string username = "";
@@ -137,6 +145,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             new PcrLabyrinthGoal(1,"美食殿堂",this), new PcrLabyrinthGoal(2,"破晓之星",this), new PcrLabyrinthGoal(3,"咲恋救济院",this),
             new PcrLabyrinthGoal(4,"王宫骑士团",this),new PcrLabyrinthGoal(5,"拉比林斯",this) });
         Goals[0].Enabled=true;
+        LoadEventChoices();
         try {
             accountLibrary=new PcrLabyrinthAccounts(vm.Processor.InstanceConfiguration);
             foreach (var account in accountLibrary.Accounts) Accounts.Add(account);
@@ -148,6 +157,26 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         }
         foreach (var g in Goals) g.PropertyChanged+=(_,_)=>SaveCore(automatic:true);
         ready=true;
+    }
+    private void LoadEventChoices() {
+        try {
+            var catalog=PcrLabyrinthEventCatalog.Load();
+            foreach (var info in catalog.Events.Where(info => info.Configurable)) EventChoiceItems.Add(new PcrLabyrinthEventSetting(info,this));
+            EventChoicesStatus="";
+        } catch (Exception ex) {
+            EventChoicesStatus="事件目录加载失败，事件选项保持已保存值："+ex.Message;
+        }
+    }
+    private void ApplySavedEventChoices() {
+        foreach (var item in EventChoiceItems) {
+            var token=savedEventChoiceOverrides[item.EventId];
+            item.LoadSelection(token?.Type==JTokenType.Integer ? (int?)token : null);
+        }
+    }
+    internal void EventChoiceEdited() {
+        if (!ready) return;
+        vm.NotifyPcrSelectionChanged();
+        SaveCore(automatic:true);
     }
     private void ApplyAccount(PcrLabyrinthAccount account) {
         var wasReady=ready; ready=false; switchingAccount=true;
@@ -192,6 +221,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             RefreshFromArea=strategy["refresh_from_area"]?.ToString() ?? "5";
             NormalWinRate=strategy["normal_win_rate"]?.ToString() ?? "95";
             ExtremeWinRate=strategy["extreme_win_rate"]?.ToString() ?? "70";
+            EventChainPolicy=(string?)strategy["event_chain_policy"] switch { "continue"=>EventChainPolicies[1],"stop"=>EventChainPolicies[2],_=>EventChainPolicies[0] };
+            savedEventChoiceOverrides=strategy["event_choice_overrides"] is JObject overrides ? (JObject)overrides.DeepClone() : new JObject();
             if (strategy["opening_rosters"] is JObject rosters) foreach (var goal in Goals) if (rosters[goal.GuildId.ToString(CultureInfo.InvariantCulture)] is JArray slots) goal.LoadOpeningRoster(slots);
             BossMode=(string?)strategy["boss_mode"]=="single" ? BossModes[1] : BossModes[0];
             DeploymentWeights=strategy["deployment_weights"] is JArray weights ? string.Join(",",weights.Select(x=>x.ToString(Formatting.None))) : "1,0.35,0.2";
@@ -210,6 +241,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             ResponseIntervalMs=(int?)strategy["response_interval_ms"] ?? 300;
             AutoDatabaseUpdate=(bool?)strategy["auto_database_update"] ?? true;
         }
+        ApplySavedEventChoices();
 
         RouteMode=(string?)d["route"]?["mode"]=="template" ? RouteModes[1] : RouteModes[0];
         ThirdChoice=(string?)d["route"]?["third_choice"] switch { "event"=>ThirdChoices[1],"either"=>ThirdChoices[2],_=>ThirdChoices[0] };
@@ -373,8 +405,17 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             throw new InvalidOperationException("遗物印记优先级请填写不重复的加速、会心、守备、强化、弱体，用逗号分隔。");
         return new JArray(marks);
     }
+    private JObject EventChoiceOverridesSnapshot() {
+        var result=(JObject)savedEventChoiceOverrides.DeepClone();
+        foreach (var item in EventChoiceItems) {
+            if (item.SelectedChoiceId is int choiceId) result[item.EventId]=choiceId;
+            else result.Remove(item.EventId);
+        }
+        return result;
+    }
     private JObject StrategySnapshot() {
         if (!SpecialEquipmentModes.Contains(SpecialEquipmentMode)) throw new InvalidOperationException("特别装备模式无效。");
+        if (!EventChainPolicies.Contains(EventChainPolicy)) throw new InvalidOperationException("连续事件策略无效。");
         var equipmentBattles=new JArray();
         if (SpecialEquipmentNormal) equipmentBattles.Add("NORMAL");
         if (SpecialEquipmentEx) equipmentBattles.Add("EX");
@@ -415,6 +456,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             ["refresh_from_area"]=Number(RefreshFromArea,1,5,"商店刷新起始区域"),
             ["normal_win_rate"]=Number(NormalWinRate,0,100,"普通战胜率"),
             ["extreme_win_rate"]=Number(ExtremeWinRate,0,100,"EX战胜率"),
+            ["event_chain_policy"]=EventChainPolicy==EventChainPolicies[1] ? "continue" : EventChainPolicy==EventChainPolicies[2] ? "stop" : "auto",
+            ["event_choice_overrides"]=EventChoiceOverridesSnapshot(),
             ["opening_rosters"]=OpeningRostersSnapshot(),
             ["deployment_weights"]=new JArray(deployment),["scoring_overrides"]=scores,
             ["personal_scores"]=personalScores.DeepClone() };

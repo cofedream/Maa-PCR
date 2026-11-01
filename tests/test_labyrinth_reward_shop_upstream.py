@@ -230,7 +230,7 @@ def test_effective_empty_list_needs_real_game_notice(page,notice,monkeypatch):
 def test_event_run_reads_configured_win_rates_without_touching_unknown_retry(monkeypatch):
  from pcr_maa.labyrinth import event_execution as events
  from pcr_maa.labyrinth.events import Choice
- batch,stamp=harness(NS(normal_win_rate=42,extreme_win_rate=13));adapter=events.MaaEvent.__new__(events.MaaEvent)
+ batch,stamp=harness(NS(normal_win_rate=42,extreme_win_rate=13,event_chain_policy='continue',event_choice_overrides={'1105':11052}));adapter=events.MaaEvent.__new__(events.MaaEvent)
  adapter.stamp=stamp;adapter.blocked=False;adapter.attempted=set();adapter.observer=NS();adapter.timings=NS(measure=lambda _:nullcontext())
  current=dict(event_id=1105,trusted=True,choices=[dict(choice_id=11051,slot=0,box=[1,1,20,20],enabled_confidence=1)])
  adapter.capture=lambda:(current,{})
@@ -243,7 +243,7 @@ def test_event_run_reads_configured_win_rates_without_touching_unknown_retry(mon
  monkeypatch.setattr(events,'configured_optimizer',lambda _:object());monkeypatch.setattr(events,'Planner',Planner)
  monkeypatch.setattr(events.native,'run',lambda *a,**k:dict(native_ok=True,nodes=[dict(name='LabyEventSelectOnce',completed=True,action=dict(success=True))]))
  result=adapter.run(batch,1,20303,stacks={})
- assert rates[0]['normal_win_rate']==42 and rates[0]['extreme_win_rate']==13 and rates[0]['baseline_target']==4 and result['page']=='map'
+ assert rates[0]['normal_win_rate']==42 and rates[0]['extreme_win_rate']==13 and rates[0]['chain_policy']=='continue' and rates[0]['event_choice_overrides']=={'1105':11052} and rates[0]['baseline_target']==4 and result['page']=='map'
  assert len(batch.journal.events())==2
 
 @pytest.mark.parametrize('policy',[dict(baseline_target=7),dict(area=4,baseline_last_area=3),dict(debuff_pivot_minimum=6,debuff_pivot_tolerance=4),dict(priority=('弱体',)),dict(locked_focus='弱体')])

@@ -305,6 +305,7 @@
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrFormalPreflight.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthCaptchaMessage.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthCharacters.cs",
+    "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthEvents.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthRoster.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",

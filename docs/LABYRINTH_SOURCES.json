@@ -91,7 +91,7 @@
           "sha256": "011a9260ff65b477dc203573954c780863c11ac23466cb1707f10810af7ed6b4"
         }
       ],
-      "local_sha256": "91de7999a4b20ab1f5dc84ef28b1cf8bfd4e9cce00952d0f8cc6607dfa07f21a",
+      "local_sha256": "590e89930c8e9f33e06f23bf634894f3b42fb9f36c2c2b82c7dd171c88a47eec",
       "production_runtime": true
     },
     {
@@ -314,7 +314,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "6e8bc6b083a52d694f0d282996f984195cfa3dfe985610a3d008309be4c8bddd",
+      "local_sha256": "c57fa58d1c71da2477bd6b57170c6bc0dc8d11a70ce2cadb8b26f6dffec11bd3",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -818,7 +818,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "4bf6187f9660ad7658150fa7883dd60eb764d2ff95beb5bdbb685dea716a7383",
+      "local_sha256": "b2541beba842e6045a99f253d550644e9f96bf37d61aace759caabcc088cf457",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -854,7 +854,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-10-26T12:58:37.168162+00:00",
+  "updated_at": "2026-11-01T13:23:55.720917+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -7410,7 +7410,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/config.py",
-      "local_sha256": "037e103f2fcf452f306c2292f16d591fed2e7dcff8b917f2dea61e8bc7e0bb47",
+      "local_sha256": "b2541beba842e6045a99f253d550644e9f96bf37d61aace759caabcc088cf457",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7428,7 +7428,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/event_execution.py",
-      "local_sha256": "6e8bc6b083a52d694f0d282996f984195cfa3dfe985610a3d008309be4c8bddd",
+      "local_sha256": "c57fa58d1c71da2477bd6b57170c6bc0dc8d11a70ce2cadb8b26f6dffec11bd3",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7440,7 +7440,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/events.py",
-      "local_sha256": "91de7999a4b20ab1f5dc84ef28b1cf8bfd4e9cce00952d0f8cc6607dfa07f21a",
+      "local_sha256": "590e89930c8e9f33e06f23bf634894f3b42fb9f36c2c2b82c7dd171c88a47eec",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7775,6 +7775,12 @@
       "production_runtime": true
     },
     {
+      "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthEvents.cs",
+      "local_sha256": "1a58fee5db08c0c46391cfb5540c94a9d2668181c54071736fd40ba6bb224056",
+      "kind": "frozen-labyrinth-source-file",
+      "production_runtime": true
+    },
+    {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
       "local_sha256": "817eb194daab106fb6a7ace69e0e20bbca9252f25e6b27de1c1e1a7813258519",
       "kind": "frozen-labyrinth-source-file",
@@ -7800,13 +7806,13 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",
-      "local_sha256": "9d0da2fc96222e3618937ede3071c35c1e0bf34f356b8def78badfad93017b28",
+      "local_sha256": "26afdaeefeedfd85854e8e1d27584e1cad13f86b6e2f9ab9079ebeb3c194ccfe",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml.cs",
-      "local_sha256": "f566ba29686bbe7d80d650ebe5643f6f3aef49ab7e62ce729ab0eaf28f752517",
+      "local_sha256": "527ebb98421af923ba54217e8a09ddb7c1aabe0cc5b8c8bda306731db158c924",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7818,7 +7824,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml",
-      "local_sha256": "c4d3f7b7bd4f227315d9663e1634104477a2895a2f14b5d7ba144bf471ebd61f",
+      "local_sha256": "03e6be23b9fe24248e46e9c4696a0cb5c0cc6f6cd264b0a68cd54f0601342441",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

@@ -13,6 +13,14 @@ BATTLES={11051:(True,200),11052:(False,300),11091:(True,300),11092:(False,450),
          11131:(True,400),11132:(False,600),11171:(True,500),11172:(False,750)}
 CONTINUATIONS={2314:(23141,),3314:(33141,),2315:(23152,23151),3315:(33152,33151),
                2316:(23162,23161),3316:(33162,33161)}
+# Two-option chain tails: Continue enters the next chained event and Stop takes
+# the immediate reward. Single-option chain events have no decision and are not
+# listed here; the configured policy only reorders these listed branches.
+CHAIN_DECISIONS={2315:{'continue':(23151,),'stop':(23152,)},
+                 3315:{'continue':(33151,),'stop':(33152,)},
+                 2316:{'continue':(23161,),'stop':(23162,)},
+                 3316:{'continue':(33161,),'stop':(33162,)}}
+CHAIN_POLICIES=('auto','continue','stop')
 
 @dataclass(frozen=True)
 class Choice:
@@ -34,12 +42,16 @@ class Decision:
     reason: str
 
 class Planner:
-    def __init__(self,optimizer,*,normal_win_rate=95,extreme_win_rate=70,area=None,locked_focus=None,baseline_last_area=3,baseline_target=4,debuff_pivot_minimum=12,debuff_pivot_tolerance=2,priority=()):
+    def __init__(self,optimizer,*,normal_win_rate=95,extreme_win_rate=70,chain_policy='auto',event_choice_overrides=None,area=None,locked_focus=None,baseline_last_area=3,baseline_target=4,debuff_pivot_minimum=12,debuff_pivot_tolerance=2,priority=()):
         if any(type(v) is not int or not 0<=v<=100 for v in (normal_win_rate,extreme_win_rate)):
             raise ValueError('invalid_event_win_rate')
+        if type(chain_policy) is not str or chain_policy not in CHAIN_POLICIES:raise ValueError('invalid_event_chain_policy')
+        try:overrides={int(key):int(value) for key,value in dict(event_choice_overrides or {}).items()}
+        except (TypeError,ValueError):raise ValueError('invalid_event_choice_overrides')
         self.optimizer=optimizer;self.normal=normal_win_rate/100;self.extreme=extreme_win_rate/100
         self.cache=OrderedDict();self.area=area;self.locked_focus=locked_focus;self.baseline_last_area=baseline_last_area;self.baseline_target=baseline_target
         self.priority=tuple(priority);self.focus_policy=dict(debuff_pivot_minimum=debuff_pivot_minimum,debuff_pivot_tolerance=debuff_pivot_tolerance)
+        self.chain_policy=chain_policy;self.event_choice_overrides=overrides
 
     def relic_utility(self,mark,rarity,stacks):
         stacks={m:stacks.get(m,0) for m in MARKS}
@@ -140,6 +152,18 @@ class Planner:
         self.cache.move_to_end(key);values=self.cache[key]
         choices=[c for c in choices if c.choice_id not in rejected]
         if not choices:return None
+        preferred=None
+        override=self.event_choice_overrides.get(event_id)
+        if override is not None and any(c.choice_id==override and c.enabled_confidence>=.35 for c in choices):
+            preferred={override}
+        elif self.chain_policy!='auto' and event_id in CHAIN_DECISIONS:
+            chain=set(CHAIN_DECISIONS[event_id][self.chain_policy])
+            if any(c.choice_id in chain for c in choices):preferred=chain
+        if preferred is not None:
+            values=dict(values)
+            floor=max((values.get(c.choice_id,0) for c in choices),default=0)+1
+            for c in choices:
+                if c.choice_id in preferred:values[c.choice_id]=floor
         ranked=sorted(choices,key=lambda c:(-values[c.choice_id],c.slot))
         choice=next((c for c in ranked if c.enabled_confidence>=.35),ranked[0])
         missing=any(x not in self.optimizer.profiles for x in owned)
