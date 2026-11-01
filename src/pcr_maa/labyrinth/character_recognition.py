@@ -250,7 +250,11 @@ def load_character_pack():
 
 class IconMatcher:
 
-    """Exact upstream coarse/fine correlation, per-character rivals and roster override."""
+    """Upstream coarse/fine correlation with per-character rivals.
+
+    A caller-supplied roster is the run's joined characters and therefore the
+    whole card pool of the team pages: the fine stage stays inside it.
+    """
 
     def __init__(self,*,confidence=CONFIDENCE,margin=RIVAL_MARGIN):
 
@@ -378,9 +382,17 @@ class IconMatcher:
 
         if roster_set:
 
+            # The team pages only show the run's joined characters, so the fine
+            # stage must stay inside that set. A catalog near-neighbour outside
+            # the run previously took the top slot whenever its coarse lead was
+            # >=.08 and pushed the true card's rival margin under RIVAL_MARGIN
+            # (2026-11-01 21:46:22, borrowed 1215 vs off-roster 1387 at .0445).
+            # An empty intersection keeps the catalog order: an unknown or
+            # foreign roster degrades to the old behaviour instead of inventing
+            # an identity.
             inside=np.array([i for i in order if self.entries[i]['character_id'] in roster_set],dtype=int)
 
-            if len(inside) and (coarse[order[0]]-coarse[inside[0]])<.08:order=inside
+            if len(inside):order=inside
 
         if len(order):
 

@@ -476,7 +476,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "8043a2394428cc4b2b4030f52299002114b574912cf10161707bb372e3145cdc",
+      "local_sha256": "e77477e9747edddae13017f4ce19d2daffe491983a927c8cf290e639a532d042",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -854,7 +854,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-11-01T13:23:55.720917+00:00",
+  "updated_at": "2026-11-01T15:21:20.728932+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -7404,7 +7404,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/character_recognition.py",
-      "local_sha256": "8043a2394428cc4b2b4030f52299002114b574912cf10161707bb372e3145cdc",
+      "local_sha256": "e77477e9747edddae13017f4ce19d2daffe491983a927c8cf290e639a532d042",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7900,9 +7900,9 @@
     "history_sha256": "6b0cce9d25a4b0ce1600bd40699df01bd2efa411bb7cd4594d9998d57c5abfc4",
     "history_preserved_as_original_bytes": true,
     "coverage": "docs/LABYRINTH_UPSTREAM_COVERAGE.md",
-    "coverage_sha256": "ef0b0030d649f5c343e8b8ffbd4f592a3d98e6f6feb1863b5fe3d8dc6a210434",
+    "coverage_sha256": "b3d8496678aebf2412a16f64cf238c157e1812ffffa276c31e16b78ded1a02c5",
     "parity": "docs/LABYRINTH_UPSTREAM_PARITY.md",
-    "parity_sha256": "78a83b030f506be8e3323c0a33df0563d076b0c5e7439b66a8e3d09fcf3faaaf"
+    "parity_sha256": "45f51b9674cd15caabf89cb9e19eb76f2b84bde5f180327bee347530b9d48a63"
   },
   "baseline": {
     "feature_development_revision": 24,
