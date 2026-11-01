@@ -120,21 +120,21 @@ def test_original_leftover_adventure_event_enters_and_reads_existing_event():
     assert not controller.swipes
 
 
-def test_synthetic_expired_event_skips_and_context_continues(tmp_path):
+def test_synthetic_missing_entry_does_not_prove_event_closed(tmp_path):
     image = adventure()
     # Explicit synthetic event-entry removal; original gameplay evidence stays unchanged.
     image[470:615,470:620] = 0
-    tasker, controller = setup([[home()],[image],[home()]])
+    tasker, controller = setup([[home()],[image],[home()]], {'EventEnterGate': {'timeout': 500}})
     journal=Journal(tmp_path/'ledger')
     def action(facade):
         result=execute_event(NativeEvent(facade,start='home'),journal,
             game_day=current_game_day(),context='gui-current-state',execute=True)
-        assert _status('event',result)=='skipped_event_unavailable',result
-        assert result['home_verified'] and not result['consumption_sent'] and journal.events()==[]
-        assert native.run(facade,'AfterExpiry')['native_ok']
+        assert _status('event',result)=='stopped',result
+        assert not result['consumption_sent'] and journal.events()==[]
+        assert not result.get('reading', {}).get('closed_verified')
         native.save_receipt(result,'expiry-synthetic-event')
     borrowed(tasker,action)
-    assert controller.clicks==[[718,681],[105,700]] and not controller.swipes
+    assert controller.clicks==[[718,681]] and not controller.swipes
 
 
 @pytest.mark.parametrize('fault',['blank','dim','title','home_control'])

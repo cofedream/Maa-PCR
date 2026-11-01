@@ -224,8 +224,7 @@ class ClosedAdventurePage(CustomRecognition):
                            and w['box'][1] + w['box'][3] <= bottom for w in words)
 
             if (not all(anchored(*anchor) for anchor in self.ANCHORS)
-                    or any(w.get('score', 0) >= .9 and
-                           re.search('活动|复刻|首领|困难', w.get('text', '')) for w in words)):
+                    or any(re.search('活动|复刻|首领|困难|联动|讨伐', w.get('text', '')) for w in words)):
                 return None
             return self.AnalyzeResult([45, 675, 120, 42],
                                       dict(layout='ordinary_adventure', anchors=len(self.ANCHORS),

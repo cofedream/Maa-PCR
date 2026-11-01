@@ -1,108 +1,11 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "revision": 68,
-  "expected_version": "v0.1.21",
-  "verified_at_utc": "2026-10-29T14:57:25.694836+00:00",
-  "base_release_manifest_sha256": "61c70d299c5ef0242a716543474e9f227b91a6e2d19fddd1e6c77f32f6de3b1c",
-  "accepted_owned_payload_sha256": "363270b97b93c9bb65035cdad8dc76c6b9b603c8703d15b6cdbeaced92353456",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 40882633893,
-    "run_attempt": 1,
-    "artifact_id": 12903700723,
-    "source_commit": "afe37571e7487603749dc789fb0ae1c27261005b",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.21-win-x64.zip",
-      "size": 354995305,
-      "sha256": "b38f3ce67296b663f5178aab4e11bd454ba0a29c1a29d6ee38ec250ac33f7165"
-    }
-  },
-  "accepted_staging_manifest_sha256": "649ac781fe6477571c5ec8e2ebc471ff352f3f4d15d962e3f352a73d32e66410",
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "public_tests": {
-    "passed": 6798,
-    "skipped": 395,
-    "failed": 0,
-    "errors": 0
-  },
-  "required_regressions": {
-    "test_player_log": 16,
-    "test_clan_battle_batch": 143,
-    "test_clan_opening_anchor_owner": 14,
-    "test_clan_opening_capture_owner": 47,
-    "test_clan_opening_observation_reuse": 28,
-    "test_clan_battle_calibration": 99,
-    "test_runtime_workflows": 13,
-    "test_release_build": 129
-  },
-  "required_skipped": 0,
-  "bundled_runtime_tests_passed": 3,
-  "gui_core_sha256": "ee3d86a9e590015b52006c20f5b8f4b8eba47e34f63c4fd5c82a2e4f05c239e6",
-  "local_exact_payload_gui_cases": 13,
-  "source_alignment": {
-    "schema_version": 1,
-    "passed": true,
-    "verified_at": "2026-10-29T14:57:25.648241+00:00",
-    "revision": 68,
-    "source_inventory_sha256": "9289867d0688f01de811be1969fa0581855fa11a7fa87190407b8ca6d3c27efd",
-    "source_payload_count": 2744,
-    "source_payload_bytes": 185343287,
-    "staged_player_manifest_sha256": "649ac781fe6477571c5ec8e2ebc471ff352f3f4d15d962e3f352a73d32e66410",
-    "owned_program_source_alignment_count": 1512,
-    "gui_build_input_source_alignment_count": 935,
-    "sealed_runtime_manifest_snapshot_present_and_matching": true,
-    "source_privacy_and_extra_file_checks_passed": true,
-    "no_archive_or_publication_performed": true,
-    "scope": "owned source bytes, exact public inventory and optional sealed runtime manifest",
-    "deterministic_dependency_rebuild_claimed": false,
-    "formal_legal_opinion": false
-  },
-  "isolated_update_routes": [
-    {
-      "base_revision": 67,
-      "archive_kind": "delta",
-      "preserved_synthetic_files": 13
-    },
-    {
-      "base_revision": 67,
-      "archive_kind": "full",
-      "preserved_synthetic_files": 13
-    }
-  ],
-  "local_installation_updated": false,
-  "device_connected": false,
-  "game_task_started": false,
-  "evidence_sha256": {
-    "SOURCE_COMMIT.json": "e766151086f3c695311af848b59e6b8a30b352360d4e472c4724ba279b6187e6",
-    "CI_BINDING.json": "cc2bd2fd57f3838643917092c0ee6087a673c07cf1fede692c5bc40ab9b63767",
-    "metadata/run.json": "4e292dedf961622340e091a9ac311e05637c7c0d613432359db5eb2c1b5276bf",
-    "metadata/artifact.json": "6fe994c992ba4f69e963b7fe8457758f3a3adffceb43ee23323112fc442c9d47",
-    "metadata/jobs.json": "53e132c5ffff7182d29ecec34cf17da7473038447194fb351c86da952b0ddcde",
-    "metadata/windows.log": "f2eef28ab3448eb3c2c608ecde89676e6bd24f1f2172c318073908dcb15ed730",
-    "HELPER_SOURCES.json": "65c94dc75d7f4ba89826b466b794530867ccd40dc9d78c1c79edacbbf4d62339",
-    "baseline-r67/VERIFIED.json": "3416b54375a6c106ef3249f3d9f5106399d384e39e15885c06cb0ca647ecb32a",
-    "baseline-r67/EXTRACTED_VERIFIED.json": "b022438256416a981f7b880b63e1ff868376b6f939e913b4010f96b781858e2a",
-    "package-checks-observed/PACKAGE_VERIFIED.json": "9d93864eb201df2aed8762a6227555e36d7c5fd775cd1ad74ce547ae5bf8d6d4",
-    "PROCESS_INSPECTION_OBSERVATIONS.jsonl": "82a6200e7092ad50141cbec977fde15fcc9686f5c1596f15e7263695b7ef20fb",
-    "package-native/result.json": "ea38c0015294c9b642fb14ec98e369c04f3f684c64dc5e21a1e965cd7bee08ed",
-    "packaged-gui/RESULT.json": "c8d0ec4676055685c6564a8dcdf34f0ff0b618e72ee63c1db107f1d899cb3f2c",
-    "gui-native/result.json": "17ee87abbfbade7de48c0e14c6c84d07595c11a09df24dfbed3feff493e8286c",
-    "WINDOW_QA.json": "54bb7b20afcd684978903747f6353c22cb5f23b7a7995ac11a9d02cf6fda8958",
-    "ci-artifact/public-tests.xml": "0818baa6cd2457cbb5bf74fc1cece64cc59aa280359c376abbdc63085d63b608",
-    "ci-artifact/bundled-runtime.xml": "92f1c6240ffdd59714065ffec9289b21d8a130bc27a03edf7a891a8f23ea6292",
-    "ci-artifact/startup-actions.log": "eaffe3669f11d40adc3581510ff0dd05bcf0f41c728e3c98d78c8ba73f12bc41",
-    "ci-artifact/startup-actions-dotnet.log": "ffbfeb45a2f083e7a573c0e9f927bf35c0a00bc21265235ca4999a8687c64e8d",
-    "cleanup/COMPLETE.json": "c71fccb110897521fc2347488cf3ffb27f476869f99f77a6f674e600f6af2130"
-  },
-  "acceptance_recorder_sha256": "47a9e74505345212e40c4e6e8ed55871113a4198284df0fdd0ffc4293e47520e",
-  "limits": [
-    "Isolated copies and synthetic private state; no new real device, account or game acceptance.",
-    "Same-Owner uninterrupted three-attack acceptance remains unverified; the recorded daily three battles used a normal stop and restart before the third.",
-    "Private replay deselections and conditional skips are separate from passing public tests.",
-    "The old Python 3.11 failures and initial stale-fixture failures are retained; release checks use locked Python 3.13.16 dependencies."
-  ]
+  "status": "pending",
+  "revision": 69,
+  "expected_version": "v0.1.22",
+  "base_release_manifest_sha256": "20079bc05a78e59cee4c6dacf03f926c35a93de9233c7ddd25c116f02ca5ff5f",
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false
 }

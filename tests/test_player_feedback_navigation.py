@@ -65,7 +65,9 @@ def test_original_event_login_popup_closes_once_then_full_entry_is_verified(entr
     if entry == 'EventFromHome':
         stages = [[frame(SCHEDULE / 'schedule-onekey-home-before.png')], [adventure()]] + stages
     tasker, controller = setup(stages, overrides={entry: {'timeout': 800}})
-    receipt = native.run(tasker, entry)
+    from pcr_maa.activity_navigation import absent_entry
+    with absent_entry(tasker, 'event'):
+        receipt = native.run(tasker, entry)
     save('feedback-event-login', receipt, controller)
     assert receipt['native_ok'] and 'EventListReady' in names(receipt), receipt
     assert names(receipt).count('EventLoginRewardClose') == 1

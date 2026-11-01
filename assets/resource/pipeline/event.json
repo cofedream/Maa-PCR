@@ -228,10 +228,10 @@
   "EventRevivalLabel": {
     "recognition": "OCR",
     "roi": [
-      520,
-      563,
-      64,
-      44
+      350,
+      557,
+      260,
+      55
     ],
     "expected": "^复刻$",
     "threshold": 0.9,
@@ -240,9 +240,9 @@
   "EventStoryActivityLabel": {
     "recognition": "OCR",
     "roi": [
-      480,
+      350,
       557,
-      130,
+      260,
       55
     ],
     "expected": "^剧情活动$",
@@ -250,11 +250,8 @@
     "next": []
   },
   "EventEntryLabel": {
-    "recognition": "Or",
-    "any_of": [
-      "EventRevivalLabel",
-      "EventStoryActivityLabel"
-    ],
+    "recognition": "Custom",
+    "custom_recognition": "ActivityEventEntry",
     "next": []
   },
   "EventAdventure": {
