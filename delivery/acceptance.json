@@ -1,11 +1,109 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 69,
   "expected_version": "v0.1.22",
+  "verified_at_utc": "2026-11-01T05:23:46.407556+00:00",
   "base_release_manifest_sha256": "20079bc05a78e59cee4c6dacf03f926c35a93de9233c7ddd25c116f02ca5ff5f",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false
+  "accepted_owned_payload_sha256": "458bdba7c264b898935ee9b7038c94d749bd1e2929f7fd05063c544c347e040f",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 41273371121,
+    "run_attempt": 1,
+    "artifact_id": 13071422072,
+    "source_commit": "a6d02905196ae11688495798752e0d83643ccc88",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.22-win-x64.zip",
+      "size": 354996561,
+      "sha256": "3017caf78bdaeece019c0f602e0d456178f3053b6e37bd3c00cf8bfa1f0106fa"
+    }
+  },
+  "accepted_staging_manifest_sha256": "f949e6a9ae3b01022e78ad4bbbaa5aa8e675b7dbda7d2c1d62f88b3ad6f4af70",
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 6860,
+    "skipped": 395,
+    "failed": 0,
+    "errors": 0
+  },
+  "required_regressions": {
+    "test_event_entry_layout": 33,
+    "test_labyrinth_free_role_rounds": 23,
+    "test_runtime_workflows": 13,
+    "test_release_build": 135,
+    "test_player_log": 16,
+    "test_clan_battle_batch": 143,
+    "test_clan_opening_anchor_owner": 14,
+    "test_clan_opening_capture_owner": 47,
+    "test_clan_opening_observation_reuse": 28,
+    "test_clan_battle_calibration": 99
+  },
+  "required_skipped": 0,
+  "bundled_runtime_tests_passed": 3,
+  "gui_core_sha256": "6be8eede9c939e644d6da99073bbf596b2d9978783bed0e8433f60e0b5f86d04",
+  "local_exact_payload_gui_cases": 13,
+  "source_alignment": {
+    "schema_version": 1,
+    "passed": true,
+    "verified_at": "2026-11-01T05:23:46.316238+00:00",
+    "revision": 69,
+    "source_inventory_sha256": "a7b36bddc6fe95e8fb4ae745c39c3638b3db0e6f850232f9a120f1e1e15b69d3",
+    "source_payload_count": 2746,
+    "source_payload_bytes": 185364870,
+    "staged_player_manifest_sha256": "f949e6a9ae3b01022e78ad4bbbaa5aa8e675b7dbda7d2c1d62f88b3ad6f4af70",
+    "owned_program_source_alignment_count": 1512,
+    "gui_build_input_source_alignment_count": 935,
+    "sealed_runtime_manifest_snapshot_present_and_matching": true,
+    "source_privacy_and_extra_file_checks_passed": true,
+    "no_archive_or_publication_performed": true,
+    "scope": "owned source bytes, exact public inventory and optional sealed runtime manifest",
+    "deterministic_dependency_rebuild_claimed": false,
+    "formal_legal_opinion": false
+  },
+  "isolated_update_routes": [
+    {
+      "base_revision": 68,
+      "archive_kind": "delta",
+      "preserved_synthetic_files": 13
+    },
+    {
+      "base_revision": 68,
+      "archive_kind": "full",
+      "preserved_synthetic_files": 13
+    }
+  ],
+  "local_installation_updated": false,
+  "device_connected": false,
+  "game_task_started": false,
+  "evidence_sha256": {
+    "SOURCE_COMMIT.json": "a6fdaf59dd652f4fd49541a86f2480e48284d2f83182e3e96baa332430baa793",
+    "CI_BINDING.json": "eb13ee082b40ce1945fab399dce09eb1b6f40b3aaaa05e21e0a22c174ed975f2",
+    "metadata/run.json": "ae067e86394307d1347a834dd45b330c7ea84fca347b6b5fbdbcae2ae1916aea",
+    "metadata/artifact.json": "bad77f3f090dc32525a24f00364c36f2b49a2268e39b737c91ed084c3ed08609",
+    "metadata/jobs.json": "eaad553ebc779a80479c8d69bc6e9227b2a4ba2809604ff64611e99d65d1d423",
+    "metadata/windows.log": "6ae6b05414c81257a92bb08de453a280a7208dfbe32745ae53ac608e3dffb0b9",
+    "package-checks-observed/PACKAGE_VERIFIED.json": "39e9eeee9a345be2199b1b69622da19bccfd8538c6133dcbca352037b757ffa4",
+    "PROCESS_INSPECTION_OBSERVATIONS.jsonl": "13998c62bd8585b6197e436c0f48ae3c8171312bb79d2a140a5d012993146c53",
+    "package-native/result.json": "fce5e9d5b142b173035890012de630ff121d1cb160464dba2e9af5e1c7939f66",
+    "packaged-gui-complete/RESULT.json": "8852f368a366c8fae79639e28edcb9a7453f2eaf57fce868d427cca24b0a9be0",
+    "gui-native-complete/result.json": "c5fda0bab29bb0c73933eb66fa47af9b0c84594ed49f6bfa2a8faa6a918d6c0c",
+    "gui-native/result.json": "04919438947052e0901a752d880d29b5350dac237ec7f43c33cf1f49cbe98fab",
+    "packaged-gui/checks/credentials/child.log": "a41499809708bfe0e924793fde4f93fb360ef272aa9c9d4c6178623f402d2f5f",
+    "ci-artifact/public-tests.xml": "da25e9830f9f447fafdf790791eaab7eb956ed19c7e4d2ad31338c40a2f748fb",
+    "ci-artifact/bundled-runtime.xml": "a1d744cb6f3330ef59ec46194e2003b73bfea22e21bf5814ccc0d368ddf6d508",
+    "ci-artifact/startup-actions.log": "11800c495f633ef2034052edeb9671bc80ff9a358f74e19bad19dc6e7cb48dac",
+    "ci-artifact/startup-actions-dotnet.log": "d70f5b478ad6b035bf50d4c19e0206cc4096f82c4ff7d7daa5130c947d366247",
+    "REVIEW.md": "301a29c8cab34445df65e91aa0a47e355fb9c9b789e2eda188110d6deb3810dd"
+  },
+  "acceptance_recorder_sha256": "8741aaa05182092f6284d3b9f892119f03863acb51dc6996cad2347ea4b0c495",
+  "limits": [
+    "Publication acceptance used isolated copies and synthetic state; no new game inputs.",
+    "Event fix has prior installed recognition and user-reported live testing; Issue #6 real continuous invitations remain unverified.",
+    "No new desktop window smoke: GUI code is unchanged; exact CI Core was exercised by 13 offline GUI fixtures.",
+    "Private replay deselections and conditional skips are separate from passing public tests.",
+    "Initial sandboxed GUI credential probe failed at Windows DPAPI; its failure is retained. Final GUI checks use the normal current-user context and synthetic credentials."
+  ]
 }
