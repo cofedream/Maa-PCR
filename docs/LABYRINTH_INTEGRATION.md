@@ -1,3 +1,13 @@
+## 2026-11-02 人工验证码窗口内嵌到主界面
+
+登录触发官方极验时，Python Owner 仍在 127.0.0.1 起一次性页面并用 stdout 发 `kind=captcha`；GUI 不再直接打开系统浏览器，而是在主窗口内容区显示 `PcrCaptchaOverlay` 遮罩层，用 WebView2 原生子窗口把同一页面放进卡片中间。Python 协议、页面 CSP／Host／Origin 校验、`captcha` 消息格式、600 秒人工等待和 810 秒读数预算均未改；只在“显示位置”和取消路径上新增 GUI 侧能力。
+
+生命周期：收到 captcha 消息时显示遮罩并导航；之后任意业务消息、批次结果、停止或异常都会隐藏并关闭原生子窗口；用户点“取消本次验证”时，GUI 对同一本地页的 `<nonce>/cancel` 发 `Origin` 和 `Content-Type: application/json` 精确匹配的 POST，Python 以 `captcha_cancelled` 结束等待，不再需要等 300 秒超时；页面内原有的“取消本次登录”按钮保持可用。“在浏览器中打开”保留为手动回退。WebView2 原生窗口是矩形且总在 Avalonia 内容之上，所以遮罩、卡片边框、标题和底部操作都由 Avalonia 绘制在矩形外侧，原生窗口只填中间占位区，并按主窗口缩放和 DPI 重新同步 `Bounds`。
+
+回退与安全：非 Windows、缺少 WebView2 Evergreen 运行时或窗口创建失败时，记录不含页面 URL 的警告并回退原默认浏览器路径；页面 URL 不进入日志、错误文本或诊断导出。验证页只允许该次 URL 作为顶层导航，禁用 DevTools、右键菜单和新窗口，浏览器 profile 使用进程级临时目录，创建时清理已退出进程遗留的目录。新增固定依赖 `Microsoft.Web.WebView2 1.0.4314.35`，原始许可和 NOTICE 在 `docs/licenses/nuget/Microsoft.Web.WebView2/`；Evergreen 运行时由系统安装，不随包分发。
+
+验证：`PcrProfileSwitch.Tests` 新增 `CaptchaOverlayChecks`（默认隐藏、宿主占位存在、取消／浏览器按钮可访问名、未挂载遮罩时返回浏览器回退）；`scripts/verify.py gui` 通过。真实 MAA 主窗口内已用同一 `captcha.py` 本地页确认渲染、缩放后跟随、按钮触发的 `/cancel` 回传到 Python 得到 `captcha_cancelled`；真实账号触发官方滑块、非 100% DPI 与多显示器移动仍需实机复验。
+
 ## 2026-11-01 登录后“活动结束预告”弹窗导致开局停止（离线验证）
 
 实机失败记录 `run 7ee98d5d7adf4ff0ae4787ad0f495b41`（账本在 `.runtime/labyrinth-work/`）：20:05:26 关闭“通知”公告后，客户端在主页停留约 0.8 秒再弹出“活动结束预告”，盖住底部“冒险”。`LabyClientHomeToAdventure` 的 3 秒识别窗口内只读到 `师 0.17`，原生证据为 `recognition_failed=true`、`action_started=false`，账本把 `client_open_adventure` 结为 `input_execution=not_sent`，批次以 `native_input_not_sent` 停止。没有误点、没有发出点击；GUI 日志里“操作 client_open_adventure 已发出，等待确认”只是 intent 已落盘，随后被上述未发出证据覆盖。

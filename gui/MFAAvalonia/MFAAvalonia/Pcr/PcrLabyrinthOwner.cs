@@ -87,6 +87,9 @@ internal static class PcrLabyrinthOwner
         "channel_credentials_required"=>"请填写所选渠道的 UID 和 access_key。",
         "channel_client_close_required"=>"所选渠道需要先关闭游戏客户端，关闭状态尚未确认，本次已停止。",
         "login_failed"=>"协议登录未通过校验，本次未开始游戏任务。请检查网络或导出黎明界诊断记录。",
+        "manual_verification_required"=>"登录需要人工验证码；本次已停止，没有自动重试。",
+        "captcha_cancelled" or "captcha_timeout"=>"人工验证码已取消或超时，本次已停止。",
+        "captcha_failed" or "captcha_rejected" or "captcha_network_failed"=>"人工验证码未通过或加载失败，本次已停止。",
         "game_session_readback_unknown"=>"游戏客户端页面未通过校验，本次已停止。请检查游戏是否仍在加载或有弹窗，并导出黎明界诊断记录。",
         "sdk_login_timeout" or "protocol_login_timeout"=>"协议账号登录网络超时，本次已停止；不会自动重试。请检查网络后重新点击开始。",
         "complete"=>"已完成本次目标。",
@@ -201,6 +204,9 @@ internal static class PcrLabyrinthOwner
                         DuplicatePropertyNameHandling=DuplicatePropertyNameHandling.Error });
                 } catch { throw new InvalidOperationException("黎明界组件返回了无效消息，本次任务已停止。"); }
                 var kind=(string?)value["kind"];
+                // Any business message after the captcha means the human wait has
+                // resolved (proof, cancel or timeout); the layer must not linger.
+                if (kind!="captcha") PcrCaptchaHost.Hide();
                 if (kind=="player_log") { vm.ReceivePlayerLog(feedbackRun,value); continue; }
                 if (kind=="control") {
                     var state=(string?)value["state"];
@@ -233,13 +239,19 @@ internal static class PcrLabyrinthOwner
                         cancel.Token.ThrowIfCancellationRequested();
                         if (!ReferenceEquals(current,run) || !vm.IsRunning || run.Child==null || run.Child.Exited)
                             throw new InvalidOperationException("人工验证码等待已结束，本次任务已停止。");
-                        captcha!.OpenPage(UrlUtilities.OpenUrl);
-                        // Retain the 300-second human wait plus the bounded remaining login requests.
-                        startup.CancelAfter(TimeSpan.FromSeconds(600));
-                        vm.LabyrinthSettings.Progress="请在浏览器中手动完成验证码；正在等待验证结果…";
-                        lastLogged=vm.LabyrinthSettings.Progress;
-                        Trace(vm,lastLogged);
                     }
+                    // Show the same loopback page inside the main window; only when the
+                    // embedded window is unavailable fall back to the default browser.
+                    var inApp=await PcrCaptchaHost.OpenAsync(captcha!.Url);
+                    cancel.Token.ThrowIfCancellationRequested();
+                    if (!inApp) captcha.OpenPage(UrlUtilities.OpenUrl);
+                    // Retain the 300-second human wait plus the bounded remaining login requests.
+                    startup.CancelAfter(TimeSpan.FromSeconds(600));
+                    vm.LabyrinthSettings.Progress=inApp
+                        ? "请在软件内的人工验证窗口完成验证码；正在等待验证结果…"
+                        : "请在浏览器中手动完成验证码；正在等待验证结果…";
+                    lastLogged=vm.LabyrinthSettings.Progress;
+                    Trace(vm,lastLogged);
                     continue;
                 }
                 if (kind=="progress") {
@@ -309,6 +321,7 @@ internal static class PcrLabyrinthOwner
             vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
             Trace(vm,vm.LabyrinthSettings.Status);
         } finally {
+            PcrCaptchaHost.Hide();
             vm.PcrCleanupPending=true;
             Trace(vm,"任务已结束，正在释放执行资源…");
             request.Remove("credentials");

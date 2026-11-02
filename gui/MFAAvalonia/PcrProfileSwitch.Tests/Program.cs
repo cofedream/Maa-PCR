@@ -26,6 +26,7 @@ if (args.Length != 3 && !(args.Length == 4 && args[3] is "--guide-only" or "--gu
 AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
 Application.Current!.Styles.Add(new Avalonia.Themes.Fluent.FluentTheme());
 Application.Current!.Styles.Add(new SukiUI.SukiTheme());
+CaptchaOverlayChecks.Run();
 if (args.Length == 4 && args[3] == "--clan-package-fixture") { ClanWorkflowChecks.SeedPackage(args[0], args[1]); return 0; }
 if (args.Length == 4 && args[3] == "--clan-formal-only") { ClanFormalChecks.Run(args[0], args[1]); return 0; }
 if (args.Length == 4 && args[3] == "--clan-formal-start-only") { ClanFormalChecks.Run(args[0], args[1], checkSaveFailures: false); return 0; }
