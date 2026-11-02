@@ -592,7 +592,7 @@
           "sha256": "16d25ebafa401dfaf0f3a879684dcc32c032e89b03ab837615a5f12c240ac11c"
         }
       ],
-      "local_sha256": "0e1e1173f0fe07f2a9b5b60f7e107f140a0f379506066ed6ffc8a627e5ed0f78",
+      "local_sha256": "c7da91a64d8ac226bd257aee2711052d726c7cde187e0cb7157b9f2d84b2eaff",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -7554,7 +7554,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/relics.py",
-      "local_sha256": "0e1e1173f0fe07f2a9b5b60f7e107f140a0f379506066ed6ffc8a627e5ed0f78",
+      "local_sha256": "c7da91a64d8ac226bd257aee2711052d726c7cde187e0cb7157b9f2d84b2eaff",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

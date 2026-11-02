@@ -1,3 +1,13 @@
+## 2026-11-02 遗物名称分隔点识别不一致导致选择停止（离线复现）
+
+实机失败记录 `run f161b1717150451ab5fc31f02c4f505f`（业务账本 `59a631199d944da7870e4fb9ac06bf84`，`enter_id=13439`，第三次尝试）：三选一遗物页选择 slot 0 时，`LabyRelicSelectOnce` 的 `And` 在 `LabyRelicGuardName00` 未命中，点击未开始，账本把 `relic_reward_select` 结为 `input_execution=not_sent`，批次以 `native_input_not_sent` 停止（进程位置 `relics.py:583`、`relics.py:546`、`native.py:336`）。GUI 的“操作 relic_reward_select 已发出”只是 intent 已落盘，没有发出输入。
+
+原因：观测帧把名称行读成 `白光辉铠` + 低分 `D`(0.24) + `断壁`，显示分隔点被读成独立低分 token 后丢弃，账本记 `relic_name=白光辉铠断壁`；点击帧同一行读成单个 `白光辉铠·断壁`(0.9665)。`selection_override` 用 `_pattern(offer.name)` 生成精确锚定正则 `^\s*白\s*光\s*辉\s*铠\s*断\s*壁\s*$`，`\s*` 不能消费 `·`，所以正确卡片被拒绝。属性行 `【守备+3】（当前：14）`、按钮、Bright 和图标捕获在同一帧均可命中。
+
+修复：`relics._pattern` 把名称内的显示分隔点 `·・‧•` 视为可选而非身份（`NAME_SEPARATORS`）：生成时跳过名称中的分隔点，并在相邻字符之间允许 `\s*[·・‧•]*\s*`；其它字符仍逐字精确，不做替字或模糊放行。正则使用字面字符，因为 Maa 原生引擎不是 Python，不展开 `\uXXXX`。`_normalized`、阈值、ROI、`Detected/Line` 结构与 `only_rec`、图标基准回退、未知结果不重发均未改；`LabyRelicGuardAttribute00`、`LabyRelicBright`、`LabyRelicSelectedIconCapture` 维持原判定。
+
+验证：同次失败原帧 `f7cb533f64fb4fcfb3e38b1425e2dc00-frame.png` 离线回放，修复前 `LabyRelicSelectOnce` 为 `recognition_failed=true`、零点击，修复后同一帧 `action_started=true`，1 次点击落在 slot 0 按钮 ROI 内。新增 `tests/test_labyrinth_relic_name_separator.py`：5 项公开用例（两种观测拼写的守卫都接受、替字仍拒绝、分隔点字面类、其余标点规则不变）与 1 项私有原帧回放；公开用例在旧代码上 4 项失败。未实机复跑本局。同批只读审计还列出角色奖励、角色到达/详情、开局赠送和商店报价确认等处同样要求观测帧与点击帧逐字一致，本轮未改，需另取实机证据后处理。
+
 ## 2026-11-02 人工验证码窗口内嵌到主界面
 
 登录触发官方极验时，Python Owner 仍在 127.0.0.1 起一次性页面并用 stdout 发 `kind=captcha`；GUI 不再直接打开系统浏览器，而是在主窗口内容区显示 `PcrCaptchaOverlay` 遮罩层，用 WebView2 原生子窗口把同一页面放进卡片中间。Python 协议、页面 CSP／Host／Origin 校验、`captcha` 消息格式、600 秒人工等待和 810 秒读数预算均未改；只在“显示位置”和取消路径上新增 GUI 侧能力。

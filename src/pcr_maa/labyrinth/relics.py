@@ -25,6 +25,10 @@ ATTRIBUTE_ROIS = tuple((x, 432, 238, 38) for x in (125, 494, 864))
 BUTTON_ROIS = tuple((x + 50, 574, 193, 83) for x in (125, 494, 864))
 BRIGHT_ROIS = tuple((x, 583, 100, 14) for x in (225, 595, 964))
 THRESHOLD = .85
+# Display-only separators inside a name. OCR can split one into its own
+# low-confidence token, so an observed name may lose it while the same card
+# reads back with it in the click frame. It never carries identity.
+NAME_SEPARATORS = '·・‧•'
 
 
 def _ocr(expected, roi):
@@ -349,11 +353,19 @@ def choose_offer(offers, observed_stacks=None, *, locked_focus=None, area=None, 
 def _pattern(text):
     # Full/half-width punctuation is the same semantic OCR identity; numbers,
     # names and marks stay exact. No broad "any relic" guard is enabled.
+    # A display separator is optional: one frame's OCR may keep the dot (or
+    # read it inside the line) while another splits it into its own
+    # low-confidence token, so the observed name can lose it. Literal
+    # characters only: Maa's native engine is not Python and does not expand
+    # `\uXXXX` escapes.
     characters = []
     for c in _normalized(text):
+        if c in NAME_SEPARATORS:
+            continue
         characters.append({'(':'[（(]', ')':'[）)]', ':':'[:：]', '+':'[+＋]',
             '!':'[!！]', '.':'[.。]'}.get(c, re.escape(c)))
-    return r'^\s*' + r'\s*'.join(characters) + r'\s*$'
+    gap = r'\s*[' + NAME_SEPARATORS + r']*\s*'
+    return r'^\s*' + gap.join(characters) + r'\s*$'
 
 
 def selection_override(offers, slot):
