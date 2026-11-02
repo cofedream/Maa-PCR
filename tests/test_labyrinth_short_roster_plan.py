@@ -5,11 +5,17 @@ possible composition.  The front-line gate can only choose between alternatives;
 applying it to that forced roster produced ``team_strategy_unknown`` and ended the
 whole batch (2026-10-23 22:10 live run).  The no-anchor penalty already lowers the
 score, so a forced roster is ranked and fought instead of being rejected.
+
+A stronger pool can hit the same dead end: it contains a gate-reaching front role,
+yet every five-member combination still fails because a fragile or unmodelled role
+takes the front slot.  That pool also fights its best available team; an invested
+middle/back line can clear the fight (2026-11-02 live run, six-role pool whose only
+gate-valid team needed an unidentifiable card).
 """
 from types import SimpleNamespace
 import pytest
 from pcr_maa.labyrinth import character_recognition as cr
-from pcr_maa.labyrinth.roles import Context,load_optimizer
+from pcr_maa.labyrinth.roles import Context,Optimizer,Profile,load_optimizer
 from pcr_maa.labyrinth.team_execution import MaaTeam
 
 OPENING=('1103','1335','1308')      # 增幅者 / 攻击者 / 减益者: no reliable front
@@ -88,3 +94,52 @@ def test_forced_short_roster_prepares_the_team_instead_of_stopping(monkeypatch):
     assert result['team']==sorted(OPENING)
     assert team.prepared[(113,30203)]==sorted(OPENING) and team.pages[(113,30203)]=='battle'
     assert {role for role,_ in chars.inputs}==set(OPENING)
+
+
+def synthetic_profile(uid,position,*,tank=False):
+    return Profile(dict(characterId=uid,displayName=uid,roleClass='掩护者' if tank else '攻击者',
+        attribute='FIRE',damageType='PHYSICAL',position=position,userScore=60,modelStatus='database-v2',
+        physicalTeamUplift=0,magicTeamUplift=0,physicalDamage1Target=60,magicDamage1Target=0,
+        physicalDamagePotential=60,magicDamagePotential=0,dataConfidence=dict(support='present'),
+        support=dict(universalSurvival=40 if tank else 0),
+        functions=dict(reliableVanguard=90 if tank else 0,selfSustain=80 if tank else 0,healing=0,
+            singleTargetDamage=60,physicalDefenseDown=40,magicDefenseDown=40)))
+
+
+# Every five-member combination here keeps a fragile role in the front slot, so
+# the gate rejects all of them even though one tank reaches the threshold.
+DEAD_END_ROLES=[synthetic_profile('glass',100),synthetic_profile('frail',200),
+    synthetic_profile('tank',300,tank=True),synthetic_profile('dps0',400),
+    synthetic_profile('dps1',500),synthetic_profile('dps2',600)]
+
+
+def dead_end_optimizer(roles=DEAD_END_ROLES):
+    return Optimizer({p.id:p for p in roles},dict(load_optimizer().config))
+
+
+def test_gate_dead_end_still_ranks_the_best_available_team():
+    optimizer=dead_end_optimizer()
+    plan=optimizer.best(tuple(p.id for p in DEAD_END_ROLES),Context(defense=0),battle=True)
+    assert plan is not None and len(plan.members)==5
+    assert optimizer.ranked(tuple(p.id for p in DEAD_END_ROLES),Context(defense=0),battle=True)
+
+
+def test_gate_dead_end_still_prefers_a_gate_valid_alternative():
+    roles=[*DEAD_END_ROLES,synthetic_profile('anchor',700,tank=True)]
+    plan=dead_end_optimizer(roles).best(tuple(p.id for p in roles),Context(defense=0),battle=True)
+    assert plan is not None and 'anchor' in plan.members
+
+
+def test_gate_dead_end_prepares_and_fights_instead_of_stopping(monkeypatch):
+    roster=tuple(p.id for p in DEAD_END_ROLES);chars=Characters(roster)
+    class Navigation:
+        def __init__(self,characters,stamp,*,roster):
+            assert characters is chars and tuple(roster)==chars.roster
+        def seek(self,batch,enter,page,observation,targets,**kw):
+            return chars.view(),[dict(character_id=role,trusted=True) for role in targets]
+    monkeypatch.setattr(cr,'CharacterNavigation',Navigation)
+    team=MaaTeam(SimpleNamespace(),lambda **v:v,roster,optimizer=dead_end_optimizer(),characters=chars)
+    result=team.prepare(Batch(),113,30203,Context(defense=0))
+    assert len(result['team'])==5 and set(result['team'])<=set(roster)
+    assert team.prepared[(113,30203)]==sorted(result['team']) and team.pages[(113,30203)]=='battle'
+    assert len(chars.inputs)==5

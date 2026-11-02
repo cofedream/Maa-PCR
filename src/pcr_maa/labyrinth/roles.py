@@ -223,17 +223,28 @@ class Optimizer:
             forced.extend(self.profiles[x] for x in required)
             team=list(dict.fromkeys(forced+ordered))[:bound]
         excluded={tuple(sorted(group)) for group in excluded}
-        ranked=[]
-        for ordinal,combo in enumerate(combinations(team,size)):
-            keys=tuple(p.id for p in combo)
-            if tuple(sorted(keys)) in excluded or not set(required)<=set(keys) or gated and not self.eligible(combo,c):continue
-            if cohesive and self.damage_type(combo)=='MIXED':continue
-            evaluation=self.score(keys,c)
-            item=(-formation_risk(combo,c),evaluation.system_score if system_only else evaluation.score,-ordinal,evaluation)
-            if len(ranked)<limit: heapq.heappush(ranked,item)
-            elif item[:3]>ranked[0][:3]: heapq.heapreplace(ranked,item)
-        ranked.sort(key=lambda v:v[:3],reverse=True)
-        return tuple(v[3] for v in ranked)
+        def rank(apply_gate):
+            ranked=[]
+            for ordinal,combo in enumerate(combinations(team,size)):
+                keys=tuple(p.id for p in combo)
+                if tuple(sorted(keys)) in excluded or not set(required)<=set(keys) or apply_gate and not self.eligible(combo,c):continue
+                if cohesive and self.damage_type(combo)=='MIXED':continue
+                evaluation=self.score(keys,c)
+                item=(-formation_risk(combo,c),evaluation.system_score if system_only else evaluation.score,-ordinal,evaluation)
+                if len(ranked)<limit: heapq.heappush(ranked,item)
+                elif item[:3]>ranked[0][:3]: heapq.heapreplace(ranked,item)
+            ranked.sort(key=lambda v:v[:3],reverse=True)
+            return tuple(v[3] for v in ranked)
+        found=rank(gated)
+        # The gate may only prefer a safer formation when one actually exists. A
+        # pool can hold a gate-reaching front role while every five-member
+        # combination still fails the gate (an unmodelled front role or several
+        # fragile low-position roles). An invested middle/back line can clear that
+        # fight, and the no-anchor penalty already scores it lower, so it fights
+        # the best available team instead of ending the batch (2026-11-02 live
+        # run, six-role pool).
+        if not found and gated:found=rank(False)
+        return found
     def best(self,ids,c,*,required=(),battle=False,system_only=False,excluded=()):
         ids=tuple(dict.fromkeys(ids))
         if not ids or any(uid not in self.profiles for uid in ids):return None

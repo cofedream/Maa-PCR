@@ -65,7 +65,7 @@
           "sha256": "b2a35d7ddc4795d7c4976d611933daef99a1a7f84e24dc81fc8830262be400dd"
         }
       ],
-      "local_sha256": "8377af8d0fee286c2cf0c1f0ceff211fd900c76cc6e86a8493f1e85ff9d5a6a7",
+      "local_sha256": "2f59cedde3bb977eb00ec88dd5ef21fa11937423ecc4ac4ae6313ec6b7eeb875",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -854,7 +854,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-11-01T15:21:20.728932+00:00",
+  "updated_at": "2026-11-02T13:18:28.033068+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -7566,7 +7566,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/roles.py",
-      "local_sha256": "8377af8d0fee286c2cf0c1f0ceff211fd900c76cc6e86a8493f1e85ff9d5a6a7",
+      "local_sha256": "2f59cedde3bb977eb00ec88dd5ef21fa11937423ecc4ac4ae6313ec6b7eeb875",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
