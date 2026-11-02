@@ -1,11 +1,110 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 70,
   "expected_version": "v0.1.23",
+  "verified_at_utc": "2026-11-02T06:43:05.847438+00:00",
   "base_release_manifest_sha256": "1aae6c870c950a8af08e31b5587e8f503d6445d837a481d3b304ac3749c054af",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false
+  "accepted_owned_payload_sha256": "3951a43940c90a688873e9ccaff450f5e11f3bd69ba9b456598763cc058c2e9e",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 41397167064,
+    "run_attempt": 1,
+    "artifact_id": 13120074445,
+    "source_commit": "e0d7b06ec04f7901e13a97f0541598b9c7ef11f7",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.23-win-x64.zip",
+      "size": 354998538,
+      "sha256": "fca7c5b11349bc9f289b9a1644bf45afa2095d939b45f629eb2861b4d6cea1d7"
+    }
+  },
+  "accepted_staging_manifest_sha256": "406bee505c26b417069af79e941cde806babb8683bc3fd813fb5ecb352d80823",
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 6883,
+    "skipped": 395,
+    "failed": 0,
+    "errors": 0
+  },
+  "required_regressions": {
+    "test_event_entry_layout": 34,
+    "test_event_navigation_retry": 5,
+    "test_abyss_reconcile": 64,
+    "test_labyrinth_free_role_rounds": 23,
+    "test_runtime_workflows": 13,
+    "test_release_build": 140,
+    "test_player_log": 16,
+    "test_clan_battle_batch": 143,
+    "test_clan_opening_anchor_owner": 14,
+    "test_clan_opening_capture_owner": 47,
+    "test_clan_opening_observation_reuse": 28,
+    "test_clan_battle_calibration": 99,
+    "test_synthetic_deep_legacy_missing_attachments_respect_game_day": 2
+  },
+  "required_skipped": 0,
+  "bundled_runtime_tests_passed": 3,
+  "gui_core_sha256": "376e92b4e875723eadbe9191880dfcfd3bce54540b8dd1ad8e940496ce4caed7",
+  "local_exact_payload_gui_cases": 13,
+  "source_alignment": {
+    "schema_version": 1,
+    "passed": true,
+    "verified_at": "2026-11-02T06:43:05.795475+00:00",
+    "revision": 70,
+    "source_inventory_sha256": "4ff3acfb5971632516a0b615cc142fc0e585bccfe9288196ca4cf0fbb1de0ee7",
+    "source_payload_count": 2747,
+    "source_payload_bytes": 185386745,
+    "staged_player_manifest_sha256": "406bee505c26b417069af79e941cde806babb8683bc3fd813fb5ecb352d80823",
+    "owned_program_source_alignment_count": 1512,
+    "gui_build_input_source_alignment_count": 935,
+    "sealed_runtime_manifest_snapshot_present_and_matching": true,
+    "source_privacy_and_extra_file_checks_passed": true,
+    "no_archive_or_publication_performed": true,
+    "scope": "owned source bytes, exact public inventory and optional sealed runtime manifest",
+    "deterministic_dependency_rebuild_claimed": false,
+    "formal_legal_opinion": false
+  },
+  "isolated_update_routes": [
+    {
+      "base_revision": 69,
+      "archive_kind": "delta",
+      "preserved_synthetic_files": 13
+    },
+    {
+      "base_revision": 69,
+      "archive_kind": "full",
+      "preserved_synthetic_files": 13
+    }
+  ],
+  "local_installation_updated": false,
+  "device_connected": false,
+  "game_task_started": false,
+  "evidence_sha256": {
+    "SOURCE_COMMIT.json": "1afaf9dcbc15899e6942d99a8e2eaa9aaf8c1a244fbec83eec29d49b7866949a",
+    "CI_BINDING.json": "655871ab281fc6d036815441c820307874714ee6e2f4e1bcb304a0b0a716105d",
+    "metadata/run.json": "5b9ef7ec95dde223c3add6eb46c0809578b6661f68cbc3f4718b4935e30652c8",
+    "metadata/artifact.json": "d91ad80dee7d068cd3861eb8914a6a7b690850e65ff953df4cb86c1855c4dacf",
+    "metadata/jobs.json": "741bd3654f73358e869f3fb62655782ce77bfaceeed1321ac9896728d1dcdfec",
+    "metadata/windows.log": "c7e7befdca2a00878df3772318e166cb5424e09a87299121d4c3cfc3afa64121",
+    "package-checks-observed/PACKAGE_VERIFIED.json": "b1bf4f6fd87f1fcf5ad9f32e13ce2d73bcb140ba0dd52c774b06b9484def0856",
+    "PROCESS_INSPECTION_OBSERVATIONS.jsonl": "ab6abac3e2740287517d34ad011091f5906ff77591e3c3d4fb50ff3eb203fc0e",
+    "package-native/result.json": "d317d3d8119458a54dd4c63ab1f3b4556313b52cf4727ad3c7c75ce06a979a51",
+    "packaged-gui-complete/RESULT.json": "ae32b16ee026156d8728e6c57d0b0577ad11422d7dcfe318577a26831b116585",
+    "gui-native-complete/result.json": "6d53dde6a188df56a74c15c2ad0cb7f5ac5b74cd1bc911532223626d78ba595f",
+    "ci-artifact/public-tests.xml": "bf282e9bc4488ef27d23964443ca7c522419e2a74242fd1a6860dda0eaf6bba3",
+    "ci-artifact/bundled-runtime.xml": "9e39ba56637d4bf9116493d562f634bed76d472742400f8a9815520c00c4bd4d",
+    "ci-artifact/startup-actions.log": "7eca5195724f473539cd189d81942ef74775a2a24c6ab5fad2e5898fc46dacb5",
+    "ci-artifact/startup-actions-dotnet.log": "629e99fc60808edf3a0ddddaf5fe1a5019cdbba400034b022565d8ede21735fa",
+    "REVIEW.md": "7773432e49e8bf24967b494a852d6bb433168c768ee9a12cb8cb244554384060"
+  },
+  "acceptance_recorder_sha256": "858354ec1b994e5b807ede0e88eeb08d47e1eacf319f3efb3040b3945c65370d",
+  "limits": [
+    "Publication acceptance used isolated copies and synthetic state; no new game inputs.",
+    "Installed evidence and navigation fixes have player-run confirmation; stamina shortage still stops hard presets as quote_unknown before consumption and final rewards are not run.",
+    "No new desktop window smoke: GUI code is unchanged; exact CI Core was exercised by 13 offline GUI fixtures.",
+    "Private replay deselections and conditional skips are separate from passing public tests.",
+    "GUI checks use the normal current-user context and synthetic credentials."
+  ]
 }
