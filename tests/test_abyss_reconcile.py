@@ -123,6 +123,53 @@ def test_rotated_native_log_uses_durable_copy_in_new_day(case, monkeypatch):
     assert case['journal'].path.read_bytes().startswith(case['prefix'])
 
 
+def test_all_reconciliation_evidence_survives_diagnostic_cleanup(case, monkeypatch):
+    reconcile(case)
+    for row in case['proof']['files'].values():
+        Path(row['path']).unlink()
+    before = case['journal'].path.read_bytes()
+    result, port = run(case, monkeypatch, day=OLD)
+    assert result['outcome'] == 'blocked_post_counts_unverified'
+    assert port.calls == ['read'] and not result['consumption_sent']
+    assert 'historical_evidence_unavailable' not in result
+    assert case['journal'].path.read_bytes() == before
+
+
+@pytest.mark.parametrize('day,expected,calls', [
+    (OLD, 'blocked_or_failed', []),
+    (NEW, 'skipped_goal_met', ['read', 'home'])])
+def test_missing_legacy_attachments_only_block_the_original_day(case, monkeypatch, day, expected, calls):
+    reconcile(case)
+    for row in case['proof']['files'].values():
+        Path(row['path']).unlink()
+    for path in (case['journal'].directory / 'result-evidence').iterdir():
+        path.unlink()
+    before = case['journal'].path.read_bytes()
+    result, port = run(case, monkeypatch, day=day, zero=True)
+    assert result['outcome'] == expected and port.calls == calls
+    assert not result['consumption_sent'] and case['journal'].path.read_bytes() == before
+    if day == NEW:
+        assert result['historical_evidence_unavailable'][0]['game_day'] == OLD
+    else:
+        assert 'historical_evidence_unavailable' not in result
+
+
+def test_missing_archive_does_not_hide_a_changed_available_file(case, monkeypatch):
+    reconcile(case)
+    for name in ('step', 'native_log'):
+        row = case['proof']['files'][name]
+        Path(row['path']).unlink()
+    for path in (case['journal'].directory / 'result-evidence').iterdir():
+        path.unlink()
+    path = Path(case['proof']['files']['result_frame']['path'])
+    path.write_bytes(b'changed')
+    before = case['journal'].path.read_bytes()
+    result, port = run(case, monkeypatch)
+    assert result['outcome'] == 'blocked_or_failed' and not port.calls
+    assert 'evidence_changed:result_frame' in result['error']
+    assert case['journal'].path.read_bytes() == before
+
+
 @pytest.mark.parametrize('zero,expected,calls', [
     (False, 'blocked_post_counts_unverified', ['read']),
     (True, 'skipped_goal_met', ['read', 'home'])])
@@ -144,7 +191,7 @@ def test_unavailable_durable_log_stops_before_navigation(case, monkeypatch, faul
     if fault == 'missing': pinned.unlink()
     else: pinned.write_bytes(pinned.read_bytes() + b'changed')
     before = case['journal'].path.read_bytes()
-    result, port = run(case, monkeypatch)
+    result, port = run(case, monkeypatch, day=OLD)
     assert result['outcome'] == 'blocked_or_failed' and port.calls == []
     assert case['journal'].path.read_bytes() == before
 
@@ -173,7 +220,7 @@ def test_another_journal_cannot_borrow_log_copy(case, monkeypatch, tmp_path):
     other.directory.mkdir()
     before = case['journal'].path.read_bytes()
     other.path.write_bytes(before)
-    result, port = run(dict(case, journal=other), monkeypatch)
+    result, port = run(dict(case, journal=other), monkeypatch, day=OLD)
     assert result['outcome'] == 'blocked_or_failed' and port.calls == []
     assert other.path.read_bytes() == before
 
@@ -186,7 +233,8 @@ def test_redirected_log_copy_directory_cannot_escape_journal(case, monkeypatch, 
     directory = case['journal'].directory / 'result-evidence'
     outside = tmp_path / 'elsewhere'
     outside.mkdir()
-    (directory / (row['sha256'] + '.log')).rename(outside / (row['sha256'] + '.log'))
+    for path in directory.iterdir():
+        path.rename(outside / path.name)
     directory.rmdir()
     directory_alias_in_tmp(directory, outside, tmp_path)
     before = case['journal'].path.read_bytes()
@@ -251,7 +299,7 @@ def test_invalid_historical_log_replacement_blocks_before_navigation(case, monke
     if fault == 'original_changed': original.write_bytes(b'changed')
     if fault == 'old_copy_changed': (path.parent / (row['sha256'] + '.log')).write_bytes(b'changed')
     before = case['journal'].path.read_bytes()
-    result, port = run(case, monkeypatch)
+    result, port = run(case, monkeypatch, day=OLD if fault == 'missing_manifest' else NEW)
     assert result['outcome'] == 'blocked_or_failed' and port.calls == []
     assert case['journal'].path.read_bytes() == before
 
@@ -316,6 +364,67 @@ def test_truly_unknown_still_blocks_even_in_later_day(case, monkeypatch):
     result, port = run(case, monkeypatch)
     assert result['outcome'] == 'blocked_in_flight' and port.calls == []
     assert case['journal'].path.read_bytes() == case['prefix']
+
+
+@pytest.mark.parametrize('valid_reading', [True, False])
+def test_new_period_missing_archive_requires_fresh_reading_and_never_replays(case, monkeypatch, valid_reading):
+    reconcile(case)
+    Path(case['proof']['files']['failed_shop_frame']['path']).unlink()
+    for path in (case['journal'].directory / 'result-evidence').iterdir():
+        path.unlink()
+    before = case['journal'].path.read_bytes()
+    day = '2026-11-02'
+    monkeypatch.setattr(abyss, 'current_game_day', lambda *args: day)
+    value = reading()
+    value['abyss_identity']['period'] = '举办时间:11/0212:00~11/0704:59'
+    value['list_complete'] = valid_reading
+    port = Port()
+    port.q['abyss_identity'] = deepcopy(value['abyss_identity'])
+    def read():
+        port.calls.append('read')
+        return deepcopy(value)
+    port.read = read
+    result = abyss.execute_abyss(port, case['journal'], game_day=day,
+        context='gui-current-state', execute=True, device=case['device'])
+    assert result['outcome'] == ('unknown_settlement' if valid_reading else 'reading_unknown')
+    assert port.calls == (['read', 'quote', 'confirm', 'submit'] if valid_reading else ['read'])
+    assert case['journal'].path.read_bytes().startswith(before)
+    if valid_reading:
+        new_intent = case['journal'].events()[-1]
+        assert new_intent['intent_id'] != case['intent']['intent_id']
+        assert new_intent['game_day'] == day and new_intent['abyss_identity'] == value['abyss_identity']
+        again, next_port = run(case, monkeypatch, day=day)
+        assert again['outcome'] == 'blocked_in_flight' and not next_port.calls
+    else:
+        assert not result['consumption_sent'] and case['journal'].path.read_bytes() == before
+
+
+def test_missing_archive_cannot_use_a_future_caller_day(case, monkeypatch):
+    reconcile(case)
+    Path(case['proof']['files']['failed_shop_frame']['path']).unlink()
+    for path in (case['journal'].directory / 'result-evidence').iterdir():
+        path.unlink()
+    monkeypatch.setattr(abyss, 'current_game_day', lambda *args: OLD)
+    before = case['journal'].path.read_bytes()
+    port = Port()
+    result = abyss.execute_abyss(port, case['journal'], game_day=NEW,
+        context='gui-current-state', execute=True, device=case['device'])
+    assert result['error'] == 'current_game_day_required' and not port.calls
+    assert not result['consumption_sent'] and case['journal'].path.read_bytes() == before
+
+
+@pytest.mark.parametrize('name', ['step', 'result_frame', 'failed_shop_frame'])
+def test_changed_durable_attachment_is_not_a_missing_archive(case, monkeypatch, name):
+    reconcile(case)
+    row = case['proof']['files'][name]
+    Path(row['path']).unlink()
+    path = case['journal'].directory / 'result-evidence' / (row['sha256'] + '.bin')
+    path.write_bytes(b'changed')
+    before = case['journal'].path.read_bytes()
+    result, port = run(case, monkeypatch)
+    assert result['outcome'] == 'blocked_or_failed' and not port.calls
+    assert result['error'] == 'abyss_reconcile:evidence_changed:' + name
+    assert case['journal'].path.read_bytes() == before
 
 
 def test_same_day_cannot_reconsume_after_known_result(case, monkeypatch):

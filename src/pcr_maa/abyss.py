@@ -169,15 +169,22 @@ def execute_abyss(port, journal, *, game_day, context=None, execute=False, devic
                 raise ValueError('abyss_journal_namespace_or_device_changed')
             # Maintenance may prove the original consumer and result close
             # while explicitly retaining unknown post-counters/navigation.
-            from .abyss_reconcile import DISPOSITION, verify_disposition
+            from .abyss_reconcile import DISPOSITION, EvidenceUnavailable, verify_disposition
             for index, event in enumerate(events):
                 if event.get('disposition') == DISPOSITION:
                     from hashlib import sha256
                     prefix = b''.join(journal.path.read_bytes().splitlines(keepends=True)[:index])
                     if sha256(prefix).hexdigest() != event.get('previous_root_sha256'):
                         raise ValueError('abyss_reconciled_history_changed')
-                    verify_disposition(events[index - 1], event, device=device,
-                                       journal_directory=journal.directory)
+                    try:
+                        verify_disposition(events[index - 1], event, device=device,
+                                           journal_directory=journal.directory)
+                    except EvidenceUnavailable as exc:
+                        # Old settled attachments do not authorize today's fresh transaction.
+                        if date.fromisoformat(event['game_day']) >= date.fromisoformat(game_day):
+                            raise
+                        report.setdefault('historical_evidence_unavailable', []).append(
+                            dict(game_day=event['game_day'], error=str(exc)))
             started = time.monotonic()
             last_wall = datetime.now(timezone.utc)
             if current_game_day(last_wall) != game_day:

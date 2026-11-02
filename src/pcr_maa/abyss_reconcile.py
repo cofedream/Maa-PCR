@@ -18,6 +18,10 @@ from .abyss import SCOPE, assess_home, check_quote, check_ticket
 DISPOSITION = 'verified_result_close_navigation_incomplete'
 
 
+class EvidenceUnavailable(ValueError):
+    """An archived attachment is absent, rather than changed or invalid."""
+
+
 def require(ok, reason):
     if not ok:
         raise ValueError('abyss_reconcile:' + reason)
@@ -115,22 +119,24 @@ def verify_native_actions(log_bytes, intent_at, expected, offset):
                 'native_action_binding_changed')
 
 
-def pinned_native_log_path(journal_directory, digest):
+def pinned_evidence_path(journal_directory, digest, suffix):
     require(isinstance(digest, str) and re.fullmatch('[0-9a-f]{64}', digest),
             'evidence_sha256_invalid')
-    path = Path(journal_directory).resolve() / 'result-evidence' / (digest + '.log')
+    path = Path(journal_directory).resolve() / 'result-evidence' / (digest + suffix)
     require(not path.parent.is_symlink() and not path.is_symlink() and path.resolve() == path,
             'evidence_cache_path_invalid')
     return path
 
 
 def read_stored_native_log(row, journal_directory, terminal):
-    path = pinned_native_log_path(journal_directory, row['sha256'])
+    path = pinned_evidence_path(journal_directory, row['sha256'], '.log')
     try:
         path.stat()
     except FileNotFoundError:
         require(isinstance(terminal, dict), 'evidence_recovery_terminal_missing')
         manifest_path = path.with_suffix('.recovery.json')
+        require(not manifest_path.is_symlink(), 'evidence_recovery_file_invalid')
+        manifest_path.stat()
         require(manifest_path.is_file() and not manifest_path.is_symlink() and
                 manifest_path.resolve() == manifest_path, 'evidence_recovery_file_invalid')
         manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
@@ -145,7 +151,8 @@ def read_stored_native_log(row, journal_directory, terminal):
                 type(manifest['replacement_bytes']) is int and manifest['replacement_bytes'] > 0,
                 'evidence_recovery_binding_changed')
         digest = manifest['replacement_native_log_sha256']
-        replacement = pinned_native_log_path(journal_directory, digest)
+        replacement = pinned_evidence_path(journal_directory, digest, '.log')
+        require(replacement.is_file(), 'evidence_recovery_file_invalid')
         blob = read_evidence_files({'native_log': dict(path=str(replacement), sha256=digest)})['native_log']
         require(len(blob) == manifest['replacement_bytes'], 'evidence_recovery_bytes_changed')
         return blob
@@ -154,6 +161,7 @@ def read_stored_native_log(row, journal_directory, terminal):
 
 def read_evidence_files(files, *, journal_directory=None, terminal=None):
     blobs = {}
+    missing = []
     for name, row in files.items():
         path, digest = Path(row['path']), row['sha256']
         require(isinstance(digest, str) and re.fullmatch('[0-9a-f]{64}', digest),
@@ -162,29 +170,40 @@ def read_evidence_files(files, *, journal_directory=None, terminal=None):
         try:
             path.stat()
         except FileNotFoundError:
-            if name == 'native_log' and journal_directory is not None:
-                blobs[name] = read_stored_native_log(row, journal_directory, terminal)
+            if journal_directory is None:
+                missing.append(name)
+                continue
+            try:
+                if name == 'native_log':
+                    blobs[name] = read_stored_native_log(row, journal_directory, terminal)
+                    continue
+                path = pinned_evidence_path(journal_directory, digest, '.bin')
+                path.stat()
+            except (FileNotFoundError, EvidenceUnavailable):
+                missing.append(name)
                 continue
         require(path.is_file() and not path.is_symlink(), 'evidence_file_invalid')
         blobs[name] = path.read_bytes()
         require(sha256(blobs[name]).hexdigest() == digest, 'evidence_changed:' + name)
+    if missing:
+        raise EvidenceUnavailable('abyss_reconcile:evidence_file_missing:' + ','.join(missing))
     return blobs
 
 
-def pin_native_log(proof, journal_directory):
-    """Preserve the verified original before its rotating debug log disappears."""
-    row = proof['files']['native_log']
-    blob = read_evidence_files({'native_log': row})['native_log']
-    path = pinned_native_log_path(journal_directory, row['sha256'])
-    path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        with path.open('xb') as handle:
-            handle.write(blob)
-            handle.flush()
-            os.fsync(handle.fileno())
-    except FileExistsError:
-        require(path.is_file() and not path.is_symlink() and
-                sha256(path.read_bytes()).hexdigest() == row['sha256'], 'evidence_cache_changed')
+def pin_evidence(proof, journal_directory):
+    """Keep every required attachment outside the disposable debug directory."""
+    blobs = read_evidence_files(proof['files'])
+    for name, row in proof['files'].items():
+        path = pinned_evidence_path(journal_directory, row['sha256'], '.log' if name == 'native_log' else '.bin')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with path.open('xb') as handle:
+                handle.write(blobs[name])
+                handle.flush()
+                os.fsync(handle.fileno())
+        except FileExistsError:
+            require(path.is_file() and not path.is_symlink() and
+                    sha256(path.read_bytes()).hexdigest() == row['sha256'], 'evidence_cache_changed')
 
 
 def read_evidence(original, proof, *, journal_directory=None, terminal=None):
@@ -205,6 +224,9 @@ def read_evidence(original, proof, *, journal_directory=None, terminal=None):
 
 
 def verify_disposition(original, end, *, device, journal_directory=None):
+    require(original.get('state') == 'in_flight' and original.get('scope') == SCOPE and
+            original.get('operation') == 'abyss_outpost' and
+            re.fullmatch('[0-9a-f]{32}', original.get('intent_id', '')), 'original_intent_invalid')
     require(end.get('state') == 'settled' and end.get('disposition') == DISPOSITION and
             original.get('device') == device and
             all(end.get(k) == original.get(k) for k in
@@ -234,7 +256,7 @@ def reconcile_closed_result(journal, proof, *, expected_sha256, apply=False):
                    previous_root_sha256=expected_sha256, at=time.time())
         verify_disposition(original, end, device=original['device'])
         if apply:
-            pin_native_log(proof, journal.directory)
+            pin_evidence(proof, journal.directory)
             journal.append(end)
             require(journal.path.read_bytes().startswith(prefix), 'original_prefix_changed')
         return dict(outcome=DISPOSITION, applied=apply, original_intent_id=original['intent_id'],

@@ -4,7 +4,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import time
-from .abyss_reconcile import require, action_node, verify_native_actions, read_evidence_files, pin_native_log
+from .abyss_reconcile import require, action_node, verify_native_actions, read_evidence_files, pin_evidence
 from .preset_execution import assess, check_quote
 from .preset_reconcile import guards, strict_number
 
@@ -73,6 +73,8 @@ def read_evidence(original, proof, *, journal_directory=None, terminal=None):
 
 
 def verify_disposition(original, end, *, journal_directory=None):
+    require(original.get('state') == 'in_flight' and original.get('slot') == 4 and
+            original.get('context') == 'gui-current-state', 'deep_original_invalid')
     require(end.get('state') == 'settled' and end.get('disposition') == DISPOSITION and
             all(end.get(k) == original.get(k) for k in ('game_day', 'slot', 'context')) and
             end.get('identities') == original['quote']['identities'], 'deep_terminal_binding_changed')
@@ -96,7 +98,7 @@ def reconcile_closed_result(journal, proof, *, expected_sha256, apply=False):
             original_replay_permitted=False, previous_root_sha256=expected_sha256, evidence=deepcopy(proof), at=time.time())
         verify_disposition(original, end)
         if apply:
-            pin_native_log(proof, journal.directory)
+            pin_evidence(proof, journal.directory)
             journal.append(end); require(journal.path.read_bytes().startswith(prefix), 'deep_original_prefix_changed')
         return dict(outcome=DISPOSITION, applied=apply, consumption_verified=True, settlement_verified=False,
             post_counts_verified=False, home_verified=False, original_replay_permitted=False)

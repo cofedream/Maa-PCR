@@ -115,7 +115,7 @@ def test_deep_native_log_damage_blocks_without_navigation(isolated_deep_log, mon
         if fault == 'copy_changed': pinned.write_bytes(pinned.read_bytes() + b'changed')
         else: pinned.unlink()
     before = case['journal'].path.read_bytes()
-    result, port = run(case, monkeypatch)
+    result, port = run(case, monkeypatch, day='2026-10-02' if fault == 'copy_missing' else '2026-10-04')
     assert result['outcome'] == 'blocked_or_failed' and not port.calls
     assert case['journal'].path.read_bytes() == before
 
@@ -204,3 +204,35 @@ def test_deep_recovery_continues_hard_module(deep_case,monkeypatch,tmp_path):
     result=chain.execute_supported(None,cfg,execute=True,game_day='2026-10-04',context='user-reported-unreset',
         directory=tmp_path/('run-'+'2'*32),selected_modules=['deep','hard'],rewards_final=False)
     assert calls==['deep','hard'] and result['supported_chain_complete']
+
+
+@pytest.mark.parametrize('day,expected,calls', [
+    ('2026-10-02', 'blocked_or_failed', []),
+    ('2026-11-02', 'skipped_goal_met', ['read', 'home'])])
+def test_synthetic_deep_legacy_missing_attachments_respect_game_day(tmp_path, monkeypatch, day, expected, calls):
+    from pcr_maa.preset_result_reconcile import DISPOSITION
+    from test_preset_execution import reading
+    value = reading(0, 10)
+    value.update(requested_slot=4, selected_slot=4, observation=dict(page='presets', selected_slot=4))
+    value['rows'][0].update(category='深域关卡', difficulty=None)
+    original = dict(state='in_flight', slot=4, context='gui-current-state', game_day='2026-10-02',
+        quote=dict(identities=[['synthetic-history']]))
+    journal = Journal(tmp_path / 'ledger')
+    with journal.locked():
+        journal.append(original)
+        terminal = dict(original, state='settled', disposition=DISPOSITION,
+            identities=original['quote']['identities'], consumption_verified=True,
+            settlement_verified=False, post_counts_verified=False, home_verified=False,
+            original_replay_permitted=False, previous_root_sha256=sha256(journal.path.read_bytes()).hexdigest(),
+            evidence=dict(offline_result_and_shop_verified=True, device_operations=0,
+                files={name: dict(path=str(tmp_path / name), sha256='0' * 64)
+                    for name in ('step', 'result_frame', 'shop_frame', 'native_log')}))
+        journal.append(terminal)
+    before = journal.path.read_bytes()
+    case = dict(journal=journal, step=dict(result=dict(reading=value, quote={},
+        preset=dict(slot=4, kind='deep', target_per_stage=10, label='深域'))))
+    result, port = run(case, monkeypatch, day=day, zero=True)
+    assert result['outcome'] == expected and port.calls == calls
+    assert not result['consumption_sent'] and journal.path.read_bytes() == before
+    if day == '2026-11-02':
+        assert result['historical_evidence_unavailable'][0]['game_day'] == '2026-10-02'

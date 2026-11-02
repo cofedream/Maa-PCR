@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from .game_day import current_game_day
 from contextlib import contextmanager
 from pathlib import Path
@@ -366,13 +366,20 @@ def execute_one(port, preset, context, journal, *, execute=False, preview=False,
                 report['outcome'] = 'blocked_in_flight'
                 return report
             from .preset_result_reconcile import DISPOSITION, verify_disposition
+            from .abyss_reconcile import EvidenceUnavailable
             from hashlib import sha256
             for index, event in enumerate(events):
                 if event.get('disposition') == DISPOSITION:
                     prefix = b''.join(journal.path.read_bytes().splitlines(keepends=True)[:index])
                     if sha256(prefix).hexdigest() != event.get('previous_root_sha256'):
                         raise ValueError('preset_reconciled_history_changed')
-                    verify_disposition(events[index - 1], event, journal_directory=journal.directory)
+                    try:
+                        verify_disposition(events[index - 1], event, journal_directory=journal.directory)
+                    except EvidenceUnavailable as exc:
+                        if date.fromisoformat(event['game_day']) >= date.fromisoformat(game_day):
+                            raise
+                        report.setdefault('historical_evidence_unavailable', []).append(
+                            dict(game_day=event['game_day'], error=str(exc)))
             started = time.monotonic()
             last_wall = datetime.now(timezone.utc)
             if current_game_day(last_wall) != game_day:
