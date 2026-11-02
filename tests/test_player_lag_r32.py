@@ -23,7 +23,9 @@ class Delayed(SavedImages):
 def test_event_waits_through_original_lag_then_enters_once():
  broken=feedback('2026.10.05-10.42.02.728_EventPageGate.png');home,map_,list_=stages()
  ctrl=Delayed([[broken]*12+[home],[map_],[list_]])
- t=native.bind(native.load_resource(),ctrl);r=native.run(t,'EventPageGate')
+ t=native.bind(native.load_resource(),ctrl)
+ from pcr_maa.activity_navigation import absent_entry
+ with absent_entry(t,'event'):r=native.run(t,'EventPageGate')
  assert r['native_ok'],r
  assert len(ctrl.clicks)==2 and not ctrl.swipes
  port=NativeEvent(t,start='event');assert port._bind_story_identity(r)
@@ -80,6 +82,7 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  }
  # R50/R51 add guarded result-only branches; all existing guard fields stay frozen.
  additions={
+  'event.json':{'StoryEventNavigationInitial','StoryEventNavigationRetry','StoryEventRetryOpenQuests'},
   'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish','AbyssLevelUpDismiss'},
   'alpha_entry.json':{'PCRAlphaSelectGuideTrial','PCRAlphaSelectClanBattleSimulation','PCRAlphaSelectClanBattleDaily'},
   'preset_execution.json':{'ExecSweepSkipButton','ExecSweepAnimationRound','ExecSweepAnimationExp',
@@ -91,7 +94,8 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
                          'OneKeyInput_mana_skip_finish','OneKeyInput_exp_skip_finish','OneKeySkipResultReady'},
   'schedule_quick.json':{'OneKeyQuickManaSkipFinish','OneKeyQuickExpSkipFinish','OneKeyQuickLevelUpDismiss'},
  }
- branches={'abyss.json':{name:'AbyssLevelUpDismiss' for name in (
+ branches={'event.json':{'StoryEventMapGate':'StoryEventRetryOpenQuests'},
+           'abyss.json':{name:'AbyssLevelUpDismiss' for name in (
               'AbyssResultClose','AbyssLimitedShopCancel','AbyssRecoverResultStart')},
            'preset_execution.json':{'ExecResultStart':'ExecSweepSkipFinish',
               **{name:'ExecLevelUpDismiss' for name in (
@@ -127,7 +131,8 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
                                attach=dict(selected=False),next=[],on_error=[]),name
     assert pipeline[name]['enabled'] is False and pipeline[name]['attach']['selected'] is False,name
    if pipeline[name].get('action')=='Click':
-    assert pipeline[name].get('max_hit')==(3 if name=='OneKeyQuickLevelUpDismiss' else 1),name
+    assert pipeline[name].get('max_hit')==({'OneKeyQuickLevelUpDismiss':3,
+                                         'StoryEventRetryOpenQuests':2}.get(name,1)),name
    if name.endswith('LevelUpDismiss'):
     assert pipeline[name]['recognition']=='And'
     assert pipeline[name]['all_of']==['ExecLevelUpButton','ExecLevelUpTitle','ExecLevelUpBody']

@@ -31,7 +31,7 @@ RECOGNITIONS = frozenset({
     'OneKeySnapshot', 'OneKeyPage', 'HousePage', 'SchedulePage', 'ScheduleDecision',
     'PresetPage', 'CountFitNumber', 'ConfirmationPage', 'ConfirmationCommitGuard',
     'CurrentResultEvidence', 'CurrentClanPrompt', 'EventPage', 'ClosedAdventurePage',
-    'ActivityEntryAbsent', 'ActivityHomePage', 'ActivityEventEntry',
+    'ActivityEntryAbsent', 'ActivityHomePage', 'ActivityEventEntry', 'StoryEventNavigation',
     'AbyssHomePage', 'AbyssOpenPage', 'AbyssQuotePage', 'AbyssConfirmedQuote',
     'AbyssResultPage',
     'AbyssTicketPage',

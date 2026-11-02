@@ -95,9 +95,10 @@ def absent_entry(tasker, module):
     with ExitStack() as readers:
         readers.enter_context(_reader(tasker, 'ActivityEntryAbsent', ActivityEntryAbsent(module)))
         if module == 'event':
-            from .event_native import ClosedAdventurePage
+            from .event_native import ClosedAdventurePage, StoryEventNavigation
             readers.enter_context(_reader(tasker, 'ClosedAdventurePage', ClosedAdventurePage()))
             readers.enter_context(_reader(tasker, 'ActivityEventEntry', ActivityEventEntry()))
+            readers.enter_context(_reader(tasker, 'StoryEventNavigation', StoryEventNavigation()))
         yield
 
 

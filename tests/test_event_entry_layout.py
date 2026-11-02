@@ -79,12 +79,13 @@ def test_dynamic_entry_fault_is_a_miss_with_traceback(failure, capsys):
     assert 'dynamic_entry_fault' in capsys.readouterr().err
 
 
-def test_partial_callback_registration_releases_already_registered_owners():
+@pytest.mark.parametrize('rejected', ['ActivityEventEntry', 'StoryEventNavigation'])
+def test_partial_callback_registration_releases_already_registered_owners(rejected):
     class Resource:
         def __init__(self):
             self.callbacks = {}
         def register_custom_recognition(self, name, callback):
-            if name == 'ActivityEventEntry':
+            if name == rejected:
                 return False
             self.callbacks[name] = callback
             return True

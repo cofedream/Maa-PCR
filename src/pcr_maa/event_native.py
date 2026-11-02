@@ -1,6 +1,7 @@
 """Event-specific Maa identity and row reader, sharing confirmation/settlement."""
 import json
 import re
+import time
 import traceback
 from contextlib import contextmanager
 from maa.custom_recognition import CustomRecognition
@@ -9,6 +10,68 @@ from .preset_scan import Collector, checked_glyph
 from .preset_confirmation import ConfirmationPage
 from .preset_execution_native import NativePreset, completed
 from .event import valid_event_identity, is_story_h_title
+
+
+def _story_identity(recognition):
+    words = []
+    def find(value):
+        if isinstance(value, dict):
+            if value.get('name') == 'StoryEventNavigationInitial':
+                # Custom results repeat the same evidence under all and filtered.
+                matches = (value.get('detail') or {}).get('filtered', [])
+                if len(matches) != 1:
+                    raise RuntimeError('Ambiguous story event navigation evidence')
+                find(matches[0].get('detail'))
+                return
+            if value.get('name') == 'StoryEventPeriod':
+                words.extend((value.get('detail') or {}).get('filtered', []))
+            for child in value.values():
+                find(child)
+        elif isinstance(value, list):
+            for child in value:
+                find(child)
+    find(recognition)
+    if len(words) != 1 or not .9 <= words[0].get('score', 0) <= 1:
+        raise RuntimeError('Story event period is not verified')
+    period = re.sub(r'\s+', '', words[0]['text']).replace('～', '~')
+    period = re.sub(r'^举办时间[:：]', '举办时间：', period)
+    identity = dict(layout='story_event_h', period=period)
+    if not valid_event_identity(identity):
+        raise RuntimeError('Story event period is invalid')
+    return identity
+
+
+class StoryEventNavigation(CustomRecognition):
+    def __init__(self):
+        super().__init__()
+        self.identity = None
+        self.attempts = 0
+        self.last_attempt = 0
+        self.changed = False
+
+    def analyze(self, context, argv):
+        try:
+            kind = json.loads(argv.custom_recognition_param)
+            if self.changed or kind not in ('initial', 'retry'):
+                return None
+            if kind == 'initial' and self.attempts or kind == 'retry' and not self.attempts:
+                return None
+            if self.attempts >= 3 or self.attempts and time.monotonic() - self.last_attempt < 2:
+                return None
+            guard = context.run_recognition('StoryEventHomeGuard', argv.image)
+            if not guard or not guard.hit:
+                return None
+            identity = _story_identity(guard.raw_detail)
+            if self.identity is not None and identity != self.identity:
+                self.changed = True
+                return None
+            self.identity = identity
+            self.attempts += 1
+            self.last_attempt = time.monotonic()
+            return self.AnalyzeResult(guard.box, guard.raw_detail)
+        except Exception:
+            traceback.print_exc()
+            return None
 
 
 class EventPage(CustomRecognition):
@@ -335,26 +398,9 @@ class NativeEvent(NativePreset):
                  if n['name'] == 'StoryEventOpenQuests' and n['completed']]
         if not nodes:
             return False
-        words = []
-        def find(value):
-            if isinstance(value, dict):
-                if value.get('name') == 'StoryEventPeriod':
-                    words.extend((value.get('detail') or {}).get('filtered', []))
-                for child in value.values():
-                    find(child)
-            elif isinstance(value, list):
-                for child in value:
-                    find(child)
         if len(nodes) != 1:
             raise RuntimeError('Ambiguous story event home evidence')
-        find(nodes[0].get('recognition'))
-        if len(words) != 1 or words[0].get('score', 0) < .9:
-            raise RuntimeError('Story event period is not verified')
-        period = re.sub(r'\s+', '', words[0]['text']).replace('～', '~')
-        period = re.sub(r'^举办时间[:：]', '举办时间：', period)
-        identity = dict(layout='story_event_h', period=period)
-        if not valid_event_identity(identity):
-            raise RuntimeError('Story event period is invalid')
+        identity = _story_identity(nodes[0].get('recognition'))
         if self.event_identity is not None and self.event_identity != identity:
             self._event_identity_lost = True
             raise RuntimeError('Story event period changed; root must stop')
@@ -389,7 +435,7 @@ class NativeEvent(NativePreset):
                 navigation = native.run(self.tasker, 'EventFromHome' if self.start == 'home' else 'EventFromEvent',
                     reset_hits=('EventAdventure', 'EventEnter', 'EventLoginRewardClose',
                                 'EventOpenQuests', 'EventOpenList', 'EventSwitchHard',
-                                'StoryEventOpenQuests', 'StoryEventOpenList'))
+                                'StoryEventOpenQuests', 'StoryEventRetryOpenQuests', 'StoryEventOpenList'))
             self.navigation = navigation
             if completed(navigation, 'EventUnavailable'):
                 self.closed_adventure_verified = True

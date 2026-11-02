@@ -1167,7 +1167,7 @@
     "recognition": "And",
     "all_of": [
       "StoryEventQuestsLabel",
-      "StoryEventHomeGuard"
+      "StoryEventNavigationInitial"
     ],
     "action": "Click",
     "target": true,
@@ -1183,7 +1183,8 @@
   },
   "StoryEventMapGate": {
     "next": [
-      "StoryEventOpenList"
+      "StoryEventOpenList",
+      "StoryEventRetryOpenQuests"
     ],
     "timeout": 30000,
     "rate_limit": 250,
@@ -1192,6 +1193,32 @@
     ],
     "pre_delay": 0,
     "post_delay": 0
+  },
+  "StoryEventNavigationInitial": {
+    "recognition": "Custom",
+    "custom_recognition": "StoryEventNavigation",
+    "custom_recognition_param": "initial",
+    "next": []
+  },
+  "StoryEventNavigationRetry": {
+    "recognition": "Custom",
+    "custom_recognition": "StoryEventNavigation",
+    "custom_recognition_param": "retry",
+    "next": []
+  },
+  "StoryEventRetryOpenQuests": {
+    "recognition": "And",
+    "all_of": [
+      "StoryEventQuestsLabel",
+      "StoryEventNavigationRetry"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 2,
+    "post_delay": 600,
+    "next": ["StoryEventMapGate"],
+    "timeout": 30000,
+    "on_error": ["UnknownStop"]
   },
   "StoryEventOpenList": {
     "recognition": "And",
