@@ -48,6 +48,14 @@ def _integer(text):
     if not 0<=value<=2**63-1:raise BatchStopped('shop_amount_unknown')
     return value
 
+def _refresh_price(words):
+    if len(words)!=1:return None
+    match=re.fullmatch(r'用([0-9][0-9,]*)(?:更新|刷新)(?:商店)?',_normalized(words[0]['text']))
+    if match is None:return None
+    try:price=_integer(match[1])
+    except BatchStopped:return None
+    return price if price>0 else None
+
 def shop_pipeline():
     nodes={f'LabyShopRead_{key}':dict(recognition='OCR',expected=pattern,roi=roi,threshold=.8,
         action='DoNothing',next=[],pre_delay=0,post_delay=0) for key,(pattern,roi) in _READS.items()}
@@ -209,8 +217,9 @@ class ShopRecognition(CustomRecognition):
         refresh=words.get('Refresh',[])
         try:balance=_integer(_text(words['Balance'])) if len(words.get('Balance',[]))==1 else None
         except BatchStopped:balance=None
-        refresh_allowed=len(refresh)==1 and balance is not None and balance>=300
-        refresh_known=balance is not None and balance<300 or len(refresh)==1
+        refresh_price=_refresh_price(refresh)
+        refresh_allowed=refresh_price is not None and balance is not None and balance>=refresh_price
+        refresh_known=refresh_price is not None and balance is not None or balance==0
         payload=dict(state=state,words=words,buttons=buttons,same_frame=True,source='maa',
             refresh_allowed=bool(refresh_allowed),refresh_known=refresh_known)
         if state=='shop':
@@ -358,23 +367,24 @@ class MaaShop:
 
     def _refresh(self,batch,enter_id,block_id,current,cycle):
         words=current.get('words',{}).get('Refresh',())
-        if len(words)!=1 or not current.get('refresh_allowed') or re.sub(r'[^0-9]','',words[0]['text'])!='300':
+        price=_refresh_price(words)
+        if price is None or not current.get('refresh_allowed') or type(current.get('balance')) is not int or current['balance']<price:
             raise BatchStopped('shop_refresh_quote_unknown')
-        fields=dict(enter_id=enter_id,block_id=block_id,cycle=cycle,price=300,currency='run_coins')
+        fields=dict(enter_id=enter_id,block_id=block_id,cycle=cycle,price=price,currency='run_coins')
         def proposal(oid):
             sent=self._input('refresh',words[0]['box'])
             return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('shop_refresh_proposal',fields,proposal)
         dialog,receipt=self._wait_state(batch,'refresh_confirmation')
-        body,price=confirmation_terms(dialog)
-        if price!=300 or not ('更新' in body or '刷新' in body):raise BatchStopped('shop_refresh_quote_unknown')
+        body,quoted_price=confirmation_terms(dialog)
+        if quoted_price!=price or not ('更新' in body or '刷新' in body):raise BatchStopped('shop_refresh_quote_unknown')
         batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,native=receipt,input_native=clicked['input_native']),**fields)
         def confirm(oid):
-            sent=self._input('refresh_confirmation',dialog['words']['Confirm'][0]['box'],price=300)
+            sent=self._input('refresh_confirmation',dialog['words']['Confirm'][0]['box'],price=price)
             return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('shop_refresh_purchase',fields,confirm)
         result,receipt=self._wait_state(batch,'shop')
-        if result['balance']!=current['balance']-300:raise BatchStopped('shop_refresh_result_unknown')
+        if result['balance']!=current['balance']-price:raise BatchStopped('shop_refresh_result_unknown')
         return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,refresh_verified=True,native=receipt,input_native=clicked['input_native']),**fields)
 
     def _imprint_following(self,batch,enter_id,identifier,owned,characters,selected):

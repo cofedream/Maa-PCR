@@ -334,10 +334,11 @@ def test_link_result_complete_item_is_bound_to_full_row(box):
     with pytest.raises(BatchStopped):links.link_obtained(value,'火',quantity=3)
 
 
-def test_link_result_two_nonoverlapping_horizontal_words_still_bind_full_quantity():
+@pytest.mark.parametrize('quantity_x',[645,629])
+def test_link_result_split_horizontal_words_still_bind_full_quantity(quantity_x):
     value=obtained_receipt();words=obtained_row(value,'Item')['filtered']
     words[0].update(text='火属性的随机印记',box=[455,179,180,25])
-    words.append(dict(text='×3',box=[645,179,40,25],score=.95))
+    words.append(dict(text='×3',box=[quantity_x,179,40,25],score=.95))
     assert links.link_obtained(value,'火',quantity=3)['quantity']==3
     words[1]['text']='×13'
     with pytest.raises(BatchStopped):links.link_obtained(value,'火',quantity=3)

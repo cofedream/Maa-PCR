@@ -381,6 +381,8 @@ class NodePixels:
         lights,gradients=self._features(image)
         proposals=[]
         for name,kind,template,mask,interior,light,gradient in self.templates:
+            # Boss platforms use final_boss's nameplate; their scenery also matches portals.
+            if name=='node_boss_platform.png':continue
             h,w=gradient.shape
             if h>550 or w>1100: continue
             # Pinned anchors permit full on-screen crops, including transparent
@@ -1029,7 +1031,6 @@ class AutoplayRunner:
                     raise BatchStopped('map_scroll_boundary')
             self.scrolls['viewport',current.block_id]=dict(direction=direction,columns=view.get('columns',{}))
             count=self.scrolls.get(current.block_id,0)
-            if count>=4:raise BatchStopped('route_target_not_visible')
             self.scrolls[current.block_id]=count+1
             fields=dict(source='maa',enter_id=route.enter_id,block_id=current.block_id,viewport=count+1)
             def scroll(oid):

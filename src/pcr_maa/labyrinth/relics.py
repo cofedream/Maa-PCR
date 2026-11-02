@@ -91,7 +91,7 @@ def relic_pipeline():
     nodes = {
         'LabyRelicTitle': _ocr('^获得道具的机会[！!]$', TITLE_ROI),
         'LabyRelicSubtitle': _ocr('^请选择要获得的迷宫遗物[。.]?$', SUBTITLE_ROI),
-        'LabyRelicRemaining': _ocr(r'^还剩\s*1\s*次$', REMAINING_ROI),
+        'LabyRelicRemaining': _ocr(r'^还剩\s*[1-9][0-9]{0,18}\s*次$', REMAINING_ROI),
         'LabyRelicGuardRequired': _ocr('^__qualified_relic_offer_required__$', TITLE_ROI),
     }
     names = ['LabyRelicTitle', 'LabyRelicSubtitle', 'LabyRelicRemaining']
@@ -154,6 +154,7 @@ class RelicOffer:
     name_words: tuple[Word, ...]
     attribute_words: tuple[Word, ...]
     button_words: tuple[Word, ...]
+    remaining: int = 1
 
 
 def _normalized(text):
@@ -188,7 +189,9 @@ def _words(detail, roi, *, maximum=1):
     if len({w.text for w in words}) != len(words):
         raise BatchStopped('relic_offers_ambiguous')
     for a, b in zip(words, words[1:]):
-        if a.box[0] + a.box[2] > b.box[0] or abs(a.box[1] - b.box[1]) > 12:
+        # Outlined OCR fragments can share padding, not most of either word box.
+        padding = min(12, min(a.box[2], b.box[2]) / 5)
+        if a.box[0] + a.box[2] - b.box[0] > padding or abs(a.box[1] - b.box[1]) > 12:
             raise BatchStopped('relic_offers_ambiguous')
     return tuple(words)
 
@@ -207,14 +210,14 @@ def _attribute(words, *, require_current=True):
     return mark, int(marks[0][1]), int(current[0]) if len(current)==1 else None
 
 
-def _offer(slot, name_words, attribute_words, button_words):
+def _offer(slot, name_words, attribute_words, button_words, remaining=1):
     name = _normalized(''.join(w.text for w in name_words))
     if not name or len(name) > 48 or any(ord(c) < 32 for c in name):
         raise BatchStopped('relic_name_unknown')
     if _normalized(''.join(w.text for w in button_words)) != '选择':
         raise BatchStopped('relic_button_unknown')
     mark, bonus, current = _attribute(attribute_words)
-    return RelicOffer(slot, name, mark, bonus, current, name_words, attribute_words, button_words)
+    return RelicOffer(slot, name, mark, bonus, current, name_words, attribute_words, button_words, remaining)
 
 
 def _validate_offers(offers):
@@ -222,7 +225,8 @@ def _validate_offers(offers):
         raise BatchStopped('relic_offers_unknown')
     parsed = []
     for slot, offer in enumerate(offers):
-        if type(offer) is not RelicOffer or type(offer.slot) is not int or offer.slot != slot:
+        if (type(offer) is not RelicOffer or type(offer.slot) is not int or offer.slot != slot
+                or type(offer.remaining) is not int or not 1<=offer.remaining<=2**63-1):
             raise BatchStopped('relic_offers_unknown')
         groups = []
         for words, roi, maximum in ((offer.name_words, NAME_ROIS[slot], 2),
@@ -235,9 +239,11 @@ def _validate_offers(offers):
                 for w in words]), roi, maximum=maximum))
         if (type(offer.name) is not str or type(offer.mark) is not str
                 or type(offer.bonus) is not int or type(offer.current) is not int
-                or _offer(slot, *groups) != offer):
+                or _offer(slot, *groups, remaining=offer.remaining) != offer):
             raise BatchStopped('relic_offers_unknown')
         parsed.append(offer)
+    if len({o.remaining for o in parsed}) != 1:
+        raise BatchStopped('relic_remaining_unknown')
     if len({o.name for o in parsed}) != 3:
         raise BatchStopped('relic_offers_ambiguous')
     observed = {}
@@ -265,11 +271,15 @@ def relic_offers(receipt):
         raise BatchStopped('relic_offers_unknown')
     rows = {r['name']:r.get('detail') for r in raw}
     for label, roi, text in (('Title', TITLE_ROI, '获得道具的机会!'),
-            ('Subtitle', SUBTITLE_ROI, '请选择要获得的迷宫遗物.'),
-            ('Remaining', REMAINING_ROI, '还剩1次')):
+            ('Subtitle', SUBTITLE_ROI, '请选择要获得的迷宫遗物.')):
         words = _words(rows['LabyRelic'+label], roi)
         if _normalized(words[0].text).rstrip('.') != text.rstrip('.'):
             raise BatchStopped('relic_page_unknown')
+    words = _words(rows['LabyRelicRemaining'], REMAINING_ROI)
+    remaining = re.fullmatch(r'还剩([1-9][0-9]{0,18})次', _normalized(words[0].text))
+    if remaining is None or int(remaining[1])>2**63-1:
+        raise BatchStopped('relic_remaining_unknown')
+    remaining = int(remaining[1])
     offers = []
     for slot in range(3):
         bright = rows[f'LabyRelicBright{slot}']
@@ -295,7 +305,7 @@ def relic_offers(receipt):
         offers.append(_offer(slot,
             _words(name, NAME_ROIS[slot], maximum=2),
             _words(rows[f'LabyRelicAttribute{slot}'], ATTRIBUTE_ROIS[slot], maximum=2),
-            _words(rows[f'LabyRelicButton{slot}'], BUTTON_ROIS[slot])))
+            _words(rows[f'LabyRelicButton{slot}'], BUTTON_ROIS[slot]), remaining=remaining))
     return _validate_offers(offers)[0]
 
 
@@ -351,7 +361,7 @@ def selection_override(offers, slot):
     offers, _ = _validate_offers(offers)
     if type(slot) is not int or slot not in (0, 1, 2):
         raise BatchStopped('relic_guard_invalid')
-    overrides = {};guards = []
+    overrides = {'LabyRelicRemaining': _ocr(_pattern(f'还剩{offers[slot].remaining}次'), REMAINING_ROI)};guards = []
     for offer in (offers[slot],):
         marks='|'.join(re.escape(mark) for mark in sorted({offer.mark}|{raw for raw,mark in ALIASES.items() if mark==offer.mark}))
         attribute=(r'^[^0-9]*(?:'+marks+r')\s*[+＋]\s*'+str(offer.bonus)

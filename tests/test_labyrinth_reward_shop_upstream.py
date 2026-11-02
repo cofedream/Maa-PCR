@@ -376,6 +376,57 @@ def test_relic_name_or_receipt_follows_detection_first_short_circuit(path):
    assert all(nodes[prefix+suffix]['threshold']==.85 and nodes[prefix+suffix]['roi']==list(relics.NAME_ROIS[1]) for suffix in ('Detected','Line'))
 
 
+def test_relic_split_name_with_overlapping_ocr_padding_preserves_full_identity():
+ from pcr_maa.labyrinth import relics
+ value=relic_name_receipt('detected')
+ row=next(row for row in value['nodes'][0]['recognition'] if row['name']=='LabyRelicName2')
+ words=[dict(text='幽玄煌装',box=[920,385,108,28],score=.959949),
+        dict(text='·绝魔',box=[1018,385,86,28],score=.914861)]
+ row['detail']['filtered'][0]['detail'][0]['detail']['filtered']=words[::-1]
+ offers=relics.relic_offers(value)
+ assert offers[2].name=='幽玄煌装·绝魔'
+ assert [word.box for word in offers[2].name_words]==[tuple(word['box']) for word in words]
+ guard=relics.selection_override(offers,2)
+ import re
+ expected=guard['LabyRelicGuardName20Detected']['expected']
+ assert re.fullmatch(expected,'幽玄煌装·绝魔')
+ assert not re.fullmatch(expected,'幽玄煌装')
+ assert not re.fullmatch(expected,'幽玄煌装·绝物')
+
+
+@pytest.mark.parametrize('change',[
+ dict(box=[1000,385,86,28]), dict(box=[920,385,108,28]),
+ dict(box=[1018,385,10,28]), dict(box=[1018,398,86,20]),
+ dict(text='幽玄煌装'), dict(score=.84), dict(box=[1140,385,86,28]),
+])
+def test_split_word_padding_does_not_accept_ambiguous_or_untrusted_ocr(change):
+ from pcr_maa.labyrinth import relics
+ words=[dict(text='幽玄煌装',box=[920,385,108,28],score=.96),
+        dict(text='·绝魔',box=[1018,385,86,28],score=.92)]
+ words[1].update(change)
+ with pytest.raises(BatchStopped):
+  relics._words(dict(filtered=words),relics.NAME_ROIS[2],maximum=2)
+
+
+def test_obtained_relic_and_item_body_allow_padding_but_keep_exact_quantity():
+ from pcr_maa.labyrinth import relics
+ words=[dict(text='幽玄煌装·绝魔',box=[455,179,220,28],score=.96),
+        dict(text='×1',box=[669,179,40,28],score=.96)]
+ rows=[]
+ for label,text,roi in (
+  ('Title','获得道具',relics.RESULT_TITLE_ROI),
+  ('Message','获得了以下道具。',relics.RESULT_MESSAGE_ROI),
+  ('Item','',relics.RESULT_ITEM_ROI),('Close','关闭',relics.RESULT_CLOSE_ROI)):
+  rows.append(dict(name='LabyRelicObtained'+label,detail=dict(filtered=words if label=='Item' else
+   [dict(text=text,box=list(roi),score=.99)])))
+ value=dict(native_ok=True,nodes=[dict(name='LabyRelicObtainedObserved',completed=True,recognition=rows)])
+ assert relics.relic_obtained(value,'幽玄煌装·绝魔')['verified']
+ assert relics._item_body_words(dict(filtered=words))=='幽玄煌装·绝魔×1'
+ words[1]['text']='×11'
+ with pytest.raises(BatchStopped,match='relic_result_mismatch'):
+  relics.relic_obtained(value,'幽玄煌装·绝魔')
+
+
 @pytest.mark.parametrize('hit',[True,False])
 def test_relic_name_read_uses_current_isolated_native_or_without_icon_state(hit):
  from pcr_maa.labyrinth import relics
