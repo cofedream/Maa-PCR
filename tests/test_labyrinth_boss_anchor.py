@@ -50,13 +50,14 @@ def test_tight_anchor_locates_boss_platform_and_keeps_preview_click():
     assert (x + w // 2, y + int(h * .32)) == (1002, 398)
 
 
-def test_platform_is_also_collected_as_block_type_8():
+def test_locked_platform_is_located_by_the_anchor_not_collected_as_a_node():
+    # Boss platforms use final_boss's nameplate; their scenery also matches
+    # portals, so the platform crop must never become a block-type-8 map node.
     rgb, mask = read('node_boss_platform.png')
     frame = blank()
     paste(frame, rgb, mask, 900, 360)
     rows = [node for column in NodePixels().collect(frame) for node in column]
-    assert len(rows) == 1
-    assert rows[0]['block_type'] == 8 and rows[0]['template'] == 'node_boss_platform.png'
+    assert rows == []
 
 
 def test_active_anchor_locates_unlocked_boss_platform():
@@ -74,14 +75,12 @@ def test_active_anchor_locates_unlocked_boss_platform():
     assert row['score'] >= .99 and row['color_score'] >= .95
 
 
-def test_active_platform_is_collected_as_block_type_8():
+def test_active_platform_is_located_by_the_anchor_not_collected_as_a_node():
     rgb, mask = read('node_boss_platform_active.png')
     frame = blank()
     paste(frame, rgb, mask, 900, 360)
     rows = [node for column in NodePixels().collect(frame) for node in column]
-    assert len(rows) == 1
-    assert rows[0]['block_type'] == 8
-    assert rows[0]['template'] == 'node_boss_platform_active.png'
+    assert rows == []
 
 
 def test_two_platforms_are_rejected_as_ambiguous():

@@ -122,7 +122,7 @@ def test_plain_dark_or_purple_background_cannot_become_active_ex(pixels, color):
 
 @pytest.mark.parametrize('name, kind', [('node_normal_battle_active.png', 2),
     ('node_link_active.png', 4), ('node_event_active.png', 5), ('node_relic_active.png', 6),
-    ('node_shop_active.png', 7), ('node_boss_platform_active.png', 8)])
+    ('node_shop_active.png', 7)])
 def test_other_active_node_types_remain_independently_identified(pixels, name, kind):
     path = DATA.parents[1] / 'assets/resource/image/labyrinth/node' / name
     sprite = cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_UNCHANGED)

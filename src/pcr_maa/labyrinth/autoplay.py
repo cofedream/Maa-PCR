@@ -500,8 +500,9 @@ class NodePixels:
             score_maps=list(pool.map(lambda template:self._frame_scores(lights,gradients,template),visible))
         proposals=[]
         for (name,kind,template,mask,interior,light,gradient),scores in zip(visible,score_maps):
-            # Boss platforms use final_boss's nameplate; their scenery also matches portals.
-            if name=='node_boss_platform.png':continue
+            # Boss platforms use final_boss's nameplate; their scenery also
+            # matches portals, so no boss-platform crop is a map-node template.
+            if name.startswith('node_boss_platform'):continue
             h,w=gradient.shape
             for _ in range(24):
                 _,score,_,location=cv2.minMaxLoc(scores)

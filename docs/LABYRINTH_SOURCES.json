@@ -7368,7 +7368,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/autoplay.py",
-      "local_sha256": "2b9f6e68765d9e85f3a6aabab010933b8d680506868e7ecc8774120bfc6929f4",
+      "local_sha256": "90cc874e1c6808c28c8850d6fe2fa16c5e6de015fce0e9e768d38e7d5b711c8d",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
