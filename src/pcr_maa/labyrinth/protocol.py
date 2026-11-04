@@ -2,7 +2,7 @@
 
 Reuses the existing read-only authentication/wire primitives without changing
 its request classes or allowlist. No general URL/body entry point is exposed.
-Credentials, SID and SDK tokens are never written to disk or error messages.
+Passwords and SID remain in memory; optional SDK tokens use current-user DPAPI.
 """
 import asyncio
 import base64
@@ -31,7 +31,7 @@ class Endpoint(Enum):
     RETIRE='labyrinth/retire'
 
 class LabyrinthClient:
-    def __init__(self,username,password,*,content_version='',app_version=None,http=None,manual_captcha=None,captcha_http=None,timings=None,server='cn-bilibili',before_game_login=None):
+    def __init__(self,username,password,*,content_version='',app_version=None,http=None,manual_captcha=None,captcha_http=None,timings=None,server='cn-bilibili',before_game_login=None,cache_root=None):
         try:self.server=get_server(server)
         except ValueError:raise ProtocolFailure('unknown_game_server') from None
         if self.server.channel:
@@ -41,6 +41,7 @@ class LabyrinthClient:
                 raise ProtocolFailure('channel_credentials_invalid')
             username,password=username.strip(),password.strip()
         self.before_game_login=before_game_login
+        self.cache_root=cache_root
         # Package belongs to this checkout/player. Never search arbitrary PATHs.
         vendor=Path(__file__).resolve().parents[3]/'vendor/autopcr_sync'
         if str(vendor) not in sys.path: sys.path.insert(0,str(vendor))
@@ -164,44 +165,59 @@ class LabyrinthClient:
             return load
         finally:proof=None
 
+    async def _password_login(self,username,password):
+        from autopcr_sync.core.readonly import login1
+        from autopcr_sync.sdk.bsgamesdk import login2
+        response={}
+        proof=None
+        try:
+            response=await self._timed_auth('sdk_login',asyncio.wait_for(login1(username,password),SDK_LOGIN_TIMEOUT_SECONDS))
+            self._check_open()
+            if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
+            if response.get('code')==200000:
+                response.clear()
+                proof=await self._verify_captcha('sdk')
+                self._check_open()
+                response=await self._timed_auth('sdk_login',asyncio.wait_for(login2(username,password,proof.challenge,proof.gt_user_id,proof.validate),SDK_LOGIN_TIMEOUT_SECONDS))
+                self._check_open()
+                if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
+                if response.get('code')==200000:raise ProtocolFailure('captcha_rejected')
+            uid=response.get('uid');key=response.get('access_key')
+            if (type(response.get('code')) is not int or response['code']!=0
+                    or type(uid) not in (str,int) or type(uid) is int and not self._positive_id(uid)
+                    or not 0<len(str(uid))<=512 or type(key) is not str or not 0<len(key)<=4096):
+                raise ProtocolFailure('sdk_login_failed')
+            return str(uid),key
+        finally:
+            if type(response) is dict:response.clear()
+            proof=None
+            username=password=''
+
     async def login(self,expected_viewer_id):
         if not self._positive_id(expected_viewer_id):
             if self._phase=='new' and not self.lock.locked():self.close()
             raise ProtocolFailure('account_identity_required')
-        from autopcr_sync.core.readonly import SyncFailure
+        from autopcr_sync.core.readonly import SyncFailure,SdkSessionRejected
         from autopcr_sync.model.sdkrequests import SourceIniIndexRequest, SourceIniGetMaintenanceStatusRequest
-        response={}
-        proof=None
+        cache=None
+        cached=None
+        username=password=''
         async with self._operation('new'):
             self._session_generation=None
             self._phase='authenticating'
             self.auth.viewer_id=0
             try:
+                username,password=self.auth.username,self.auth.password
                 if self.server.channel:
-                    uid,key=self.auth.username,self.auth.password
+                    uid,key=username,password
                 else:
-                    from autopcr_sync.core.readonly import login1
-                    from autopcr_sync.sdk.bsgamesdk import login2
-                    response=await self._timed_auth('sdk_login',asyncio.wait_for(login1(self.auth.username,self.auth.password),SDK_LOGIN_TIMEOUT_SECONDS))
-                    self._check_open()
-                    if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
-                    if response.get('code')==200000:
-                        response.clear()
-                        proof=await self._verify_captcha('sdk')
-                        self._check_open()
-                        response=await self._timed_auth('sdk_login',asyncio.wait_for(login2(self.auth.username,self.auth.password,proof.challenge,proof.gt_user_id,proof.validate),SDK_LOGIN_TIMEOUT_SECONDS))
-                        self._check_open()
-                        proof=None
-                        if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
-                        if response.get('code')==200000:raise ProtocolFailure('captcha_rejected')
-                    uid=response.get('uid');key=response.get('access_key')
-                    if (type(response.get('code')) is not int or response['code']!=0
-                            or type(uid) not in (str,int) or type(uid) is int and not self._positive_id(uid)
-                            or not 0<len(str(uid))<=512 or type(key) is not str or not 0<len(key)<=4096):
-                        raise ProtocolFailure('sdk_login_failed')
-                    uid=str(uid)
-                # Password is not needed for protocol/game handoffs. Do not
-                # retain it while doing game startup or future protocol phases.
+                    if self.cache_root is not None:
+                        from ..sdk_session_store import SdkSessionStore
+                        cache=SdkSessionStore(self.cache_root,self.server.server_id,expected_viewer_id,username,password)
+                        cached=cache.read()
+                    uid,key=cached or await self._password_login(username,password)
+                # Retain local credentials only until a cached SDK login is accepted.
+                if cached is None:username=password=''
                 self.auth.username=self.auth.password=''
                 servers=await self._auth_request(SourceIniIndexRequest(),expected_viewer_id)
                 if not servers.server:raise ProtocolFailure('server_rejected')
@@ -223,10 +239,21 @@ class LabyrinthClient:
                 self.auth.content_version=version
                 self.auth.headers['MANIFEST-VER']=version
                 self.auth.headers['RES-VER']=resource_version
-                load=await self._login_game(uid,key,expected_viewer_id)
+                try:
+                    load=await self._login_game(uid,key,expected_viewer_id)
+                except SdkSessionRejected:
+                    if cached is None:raise
+                    self._check_open()
+                    cache.clear()
+                    self.auth.headers.pop('SID',None)
+                    self.auth.headers.pop('REQUEST-ID',None)
+                    self.auth.viewer_id=0
+                    uid,key=await self._password_login(username,password)
+                    username=password=''
+                    load=await self._login_game(uid,key,expected_viewer_id)
                 self._check_open()
-                # Retained only for this Owner lifetime, after fresh identity
-                # confirmation. No token cache, file, or password reuse exists.
+                if cache is not None:cache.save(uid,key)
+                # SID and request state are never restored from the SDK token cache.
                 self._sdk_uid,self._sdk_access_key=uid,key
                 self._expected_viewer_id=expected_viewer_id
                 self.logged_in=True
@@ -243,8 +270,8 @@ class LabyrinthClient:
                 self.close();raise ProtocolFailure('login_failed') from None
             finally:
                 self.auth.username=self.auth.password=''
-                if type(response) is dict:response.clear()
-                proof=None
+                username=password=''
+                cached=None
                 uid=key=None
 
     async def suspend_for_game(self):

@@ -284,6 +284,22 @@ def test_stop_cancels_single_login_without_retry():
     assert client.calls == 1 and client.closed
 
 
+def test_default_account_sync_uses_installation_token_cache(monkeypatch, tmp_path):
+    from pcr_maa import guide_snapshot
+    from pcr_maa.labyrinth import protocol
+    seen = []
+    class Client:
+        def __init__(self, *args, **kwargs):
+            seen.append(kwargs['cache_root'])
+            self.auth = NS(content_version='202610141431')
+        async def login(self, account): return load()
+        def close(self): pass
+    monkeypatch.setattr(guide_snapshot, '__file__', str(tmp_path/'src/pcr_maa/guide_snapshot.py'))
+    monkeypatch.setattr(protocol, 'LabyrinthClient', Client)
+    asyncio.run(collect('synthetic','synthetic',123,'202610141431',[100101]))
+    assert seen == [tmp_path]
+
+
 @pytest.mark.parametrize('ids', [[], [True], [1, 1], [1, 2, 3, 4, 5, 6]])
 def test_invalid_selection_never_constructs_login(ids):
     def factory(*args, **kwargs): pytest.fail('login must not be constructed')

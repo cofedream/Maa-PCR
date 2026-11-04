@@ -37,10 +37,10 @@ def auth_stub(monkeypatch, client, *, risk=False, viewer=123):
 
 
 @pytest.mark.parametrize('server',[s for s in SERVERS if s!='cn-bilibili'])
-def test_channel_login_uses_uid_key_channel_gateway_and_preserves_identity(monkeypatch,server):
+def test_channel_login_uses_uid_key_channel_gateway_and_preserves_identity(monkeypatch,server,tmp_path):
     closed=[]
     def close(selected,account):closed.append((selected,account));return True
-    client=LabyrinthClient(' 987654 ',' synthetic-key ',server=server,before_game_login=close)
+    client=LabyrinthClient(' 987654 ',' synthetic-key ',server=server,before_game_login=close,cache_root=tmp_path)
     calls=auth_stub(monkeypatch,client)
     try:
         asyncio.run(client.login(123))
@@ -54,6 +54,7 @@ def test_channel_login_uses_uid_key_channel_gateway_and_preserves_identity(monke
         body=calls[2][3]
         assert (body['uid'],body['access_key'],body['platform'],body['channel_id'])==('987654','synthetic-key','2','1')
         assert closed==([(server,123)] if get_server(server).closes_client_before_login else [])
+        assert not (tmp_path/'data/auth').exists()
     finally:client.close()
 
 

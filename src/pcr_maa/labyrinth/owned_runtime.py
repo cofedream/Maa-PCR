@@ -474,7 +474,7 @@ class OwnedRuntime:
                 app_version=read_installed_version(self.controller,stopped=self.stop,server=server)
                 self._checkpoint()
                 self.client=LabyrinthClient(self.request.username,self.request.password,
-                    app_version=app_version,server=server,timings=timings,manual_captcha=HumanCaptcha(
+                    cache_root=self.root,app_version=app_version,server=server,timings=timings,manual_captcha=HumanCaptcha(
                         lambda url,stage:self.emit(captcha_message(url,stage))))
                 self.request.clear()
                 self._checkpoint()

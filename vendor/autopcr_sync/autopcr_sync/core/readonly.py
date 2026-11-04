@@ -34,6 +34,10 @@ class SyncFailure(RuntimeError):
     """Only this fixed code is safe to display; never display upstream errors."""
 
 
+class SdkSessionRejected(SyncFailure):
+    """An explicit game SDK login rejection, excluding transport/maintenance failures."""
+
+
 class ReadOnlyClient:
     def __init__(self, username, password, *, content_version):
         self.username, self.password = username, password
@@ -111,6 +115,11 @@ class ReadOnlyClient:
             self.headers["APP-VER"] = match.group(1)
             raise SyncFailure("app_version_changed")
         if parsed.data.server_error or header.result_code not in (0, 1):
+            if type(request) is ToolSdkLoginRequest:
+                error = parsed.data.server_error
+                if error and '维护' in (error.message or ''):
+                    raise SyncFailure("server_maintenance")
+                raise SdkSessionRejected("sdk_session_rejected")
             raise SyncFailure("game_request_failed")
         if header.sid:
             self.headers["SID"] = hashlib.md5((header.sid + "c!SID!n").encode("utf-8")).hexdigest()

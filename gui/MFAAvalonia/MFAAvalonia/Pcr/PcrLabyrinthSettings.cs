@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -263,6 +264,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         var replacement=new PcrLabyrinthAccount(selectedAccount.Id,name,Server,data,encrypted);
         var candidate=Accounts.Select(account=>account==selectedAccount ? replacement : account).ToArray();
         accountLibrary.Save(candidate,replacement.Id);
+        if (selectedAccount.Server!=Server || selectedAccount.Credentials!=encrypted) ClearSdkSession(selectedAccount);
         selectedAccount.Name=name; selectedAccount.Server=Server;
         selectedAccount.Settings=(JObject)data.DeepClone(); selectedAccount.Credentials=encrypted;
     }
@@ -284,6 +286,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (remaining.Count==0) remaining.Add(new PcrLabyrinthAccount(Guid.NewGuid().ToString("N"),"账号 1","cn-bilibili",new JObject(),""));
         try {
             accountLibrary.Save(remaining,remaining[0].Id);
+            ClearSdkSession(removed);
             Accounts.Remove(removed); if (Accounts.Count==0) Accounts.Add(remaining[0]);
             selectedAccount=remaining[0]; OnPropertyChanged(nameof(SelectedAccount)); ApplyAccount(selectedAccount);
             vm.NotifyPcrSelectionChanged();
@@ -336,6 +339,18 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     }
     [RelayCommand] public void ToggleCredentials() => ShowCredentials=!ShowCredentials;
     public void HideCredentials() => ShowCredentials=false;
+    private void ClearSdkSession(PcrLabyrinthAccount account) {
+        if (string.IsNullOrEmpty(account.Credentials)) return;
+        try {
+            var bytes=ProtectedData.Unprotect(Convert.FromBase64String(account.Credentials),null,DataProtectionScope.CurrentUser);
+            try {
+                var data=JObject.Parse(Encoding.UTF8.GetString(bytes));
+                if (!long.TryParse((string?)data["expected_player_id"],NumberStyles.None,CultureInfo.InvariantCulture,out var id) || id<=0) return;
+                var name=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(account.Server+"\0"+id.ToString(CultureInfo.InvariantCulture)))).ToLowerInvariant()+".bin";
+                File.Delete(Path.Combine(PcrRuntimePaths.ResolveDataRepository(AppContext.BaseDirectory),"data","auth",name));
+            } finally { CryptographicOperations.ZeroMemory(bytes); }
+        } catch { CredentialsStatus="账号已保存；旧登录缓存清理失败。修改后的凭据不会复用旧令牌。"; }
+    }
     private void LoadCredentials(string encrypted) {
         if (string.IsNullOrEmpty(encrypted)) { CredentialsStatus="请填写所选账号的玩家 ID 和登录凭据；保存时会加密。"; return; }
         try {

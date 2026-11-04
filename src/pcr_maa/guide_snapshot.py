@@ -383,7 +383,8 @@ async def collect(username, password, account_id, content_version, unit_ids=None
         raise SnapshotFailure('stopped')
     if client_factory is None:
         from .labyrinth.protocol import LabyrinthClient
-        client_factory = LabyrinthClient
+        def client_factory(*args, **kwargs):
+            return LabyrinthClient(*args, cache_root=Path(__file__).resolve().parents[2], **kwargs)
     from .labyrinth.captcha import HumanCaptcha
     client = client_factory(username, password, app_version=app_version,
         manual_captcha=HumanCaptcha(on_captcha) if on_captcha is not None else None)

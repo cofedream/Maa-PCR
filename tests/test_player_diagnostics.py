@@ -47,6 +47,9 @@ def exported(case, **kwargs):
 
 
 def test_latest_summary_includes_version_selection_run_and_safe_errors(diagnostic_case):
+    cache = diagnostic_case[0] / 'data/auth/synthetic.bin'
+    cache.parent.mkdir(parents=True)
+    cache.write_bytes(b'SDK-TOKEN-SECRET')
     result, document, text = exported(diagnostic_case)
     assert result['status'] == 'diagnostics_exported'
     assert document['player_version'] == 'r8-pilot-candidate'
@@ -59,6 +62,9 @@ def test_latest_summary_includes_version_selection_run_and_safe_errors(diagnosti
     for secret in ('SECRET', 'private.png', 'PRIVATE-SUMMARY', 'ledger', 'serial', 'controller_uuid'):
         assert secret not in text
     assert diagnostic_case[4].read_bytes() == b'unknown intent preserved'
+    assert cache.read_bytes() == b'SDK-TOKEN-SECRET'
+    with pytest.raises(ValueError, match='private_payload_path'):
+        maintenance._name('data/auth/synthetic.bin')
 
 
 def test_explicit_run_ignores_other_latest_entry(diagnostic_case):

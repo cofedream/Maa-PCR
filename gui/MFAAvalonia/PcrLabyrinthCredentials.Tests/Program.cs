@@ -100,6 +100,19 @@ try
     loaded.HideCredentials();
     Require(!loaded.ShowCredentials && loaded.CredentialMask == '*' && loaded.Username == username && loaded.Password == password,
         "start_switch_hide_keeps_credentials");
+    var cacheRoot=PcrRuntimePaths.ResolveDataRepository(AppContext.BaseDirectory);
+    var tokenSettings=new PcrLabyrinthSettings(Owner(new InstanceConfiguration("sdk-cache-only")));
+    tokenSettings.ExpectedPlayerId=player; tokenSettings.Username=username; tokenSettings.Password=password;
+    var cacheName=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("cn-bilibili\0"+player))).ToLowerInvariant()+".bin";
+    var cacheFile=Path.Combine(cacheRoot,"data","auth",cacheName);
+    Require(!File.Exists(cacheFile),"synthetic_sdk_cache_does_not_preexist");
+    Directory.CreateDirectory(Path.GetDirectoryName(cacheFile)!);
+    File.WriteAllBytes(cacheFile,protectedProbe);
+    tokenSettings.Password=password+"-changed";
+    Require(!File.Exists(cacheFile),"credential_change_removes_old_sdk_session");
+    File.WriteAllBytes(cacheFile,protectedProbe);
+    tokenSettings.DeleteAccount(); tokenSettings.DeleteAccount();
+    Require(!File.Exists(cacheFile),"account_deletion_removes_sdk_session");
     settings.Difficulty = "invalid-draft";
     settings.Username = "fixture-CRED-after-invalid-draft";
     Require(Reload().Username == settings.Username, "credential_save_independent_of_invalid_task_draft");

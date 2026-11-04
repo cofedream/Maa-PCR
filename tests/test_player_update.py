@@ -45,6 +45,7 @@ def update_case(tmp_path):
         'pcr-repository.txt': b'.', 'runtime/python/python.exe': b'not executable',
         'assets/resource/pipeline/old.json': b'old program can retire'}
     private = {'config/instances/player.json': b'private settings',
+        'data/auth/synthetic.bin': b'encrypted synthetic sdk session',
         '.runtime/schedule-onekey-work/ledger/unknown.json': b'{"state":"in_flight"}',
         '.runtime/evidence/original.png': b'private evidence',
         'logs/old.log': b'private log', 'pcr-alpha-v1/journal/intent.json': b'unknown'}

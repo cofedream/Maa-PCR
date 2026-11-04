@@ -57,6 +57,7 @@ def _name(name):
         and not re.fullmatch(r'(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?', part)
         for part in parts), 'invalid_payload_path')
     _require(parts[0].casefold() not in PRIVATE_ROOTS
+        and [part.casefold() for part in parts[:2]] != ['data', 'auth']
         and not any(part.casefold() in PRIVATE_PARTS for part in parts)
         and name.casefold() != MANIFEST and parts[-1].casefold() != PATCH,
              'private_payload_path')

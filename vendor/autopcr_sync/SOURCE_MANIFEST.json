@@ -98,13 +98,13 @@
       "source": "autopcr/core/apiclient.py,sessionmgr.py,sdkclient.py",
       "destination": "autopcr_sync/core/readonly.py",
       "modified": true,
-      "changes": "Reimplemented fixed protocol subset; exact allowlist, bounded network, no cache/logger/relogin/consumer methods.",
+      "changes": "Fixed protocol subset with exact allowlist and bounded network; classifies explicit SDK rejection separately from maintenance and transport failures. No cache/logger/relogin/consumer methods in this transport.",
       "source_sha256": {
         "autopcr/core/apiclient.py": "44ad1d14607fc96b36d03c2dab6ba5c685edb0f38b681fd2a11eb4a6f547fbdb",
         "autopcr/core/sessionmgr.py": "69fa0f563598c03cd215727e705b77fc5c11364ba51531fc5de28970c8a0a521",
         "autopcr/core/sdkclient.py": "ce898d66c42dc63a94ab526c8122fdad13563903bc1307530ee3c5dbf24bf61b"
       },
-      "adopted_sha256": "22f4a85763e15e9cb0f10edd4d2e9debf9d60aae3b5ae0ac635c6ee6737b33f4"
+      "adopted_sha256": "fee9faeeb2e2ea88938a504b63228b81256eb427b34f68efef0466541e1012bc"
     },
     {
       "source": "autopcr/util/aiorequests.py",
