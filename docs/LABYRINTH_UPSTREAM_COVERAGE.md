@@ -433,3 +433,15 @@ collision116-affected.xml的12模块180通过、collision116-final.xml的6通过
 ### 121商店确认修正及EX后继实机命中
 
 121持续冻结1061输入，真实快照刷新false/Boss multi。三笔遗物2850/2100/1350购买完成关闭→shop_leave 8fe8987ec1e94b6eab01992f069b21b3→shop_leave_confirm 24afcdb7b34b41159884e6c968d3af6b（实际shop_exit_confirmation、native_ok与input_action_verified均true）→地图preview 06cf800b1c524db983360deb65b9dea0→Boss30701 challenge a8034cef6452439498a00f6d4b1c5789。120共享所需物理锚点修正已实机通过；本局未买随机/选择印记，119加入后继仍待实机。EX30501（实际ex_challenge）六次有效列表滚动→ALL→组队→开战→两页实际battle_victory→角色加入关闭→遗物关闭→地图通过。五批連結专属关闭的后续通用关闭均是新joined页，未重复关闭旧item页。Boss目前仍在推进，最终结算及最后同批两局未验，不升级整条链完成。证据E/isolation-after109/LIVE121_PARTIAL_HITS.json。
+
+
+### 122编组 roster 硬收窄（本地修正，回放通过、实机待验）
+
+固定上游 `LabyrinthCharacterIconMatcher` 的 coarse/fine 相关与对手分差；上游 roster override 只在名单内 coarse 第一与全库第一相差小于 0.08 时收窄。本地改为：调用方提供本局已加入角色时，fine 阶段只在该名单内比较；名单与图鉴交集为空时回退全库原顺序。生产代码只改 `character_recognition.py` 的 `IconMatcher.match`，`refine` 的平移裁剪共用同一参数。
+
+| 范围 | 入口与后继 | 回放证据 | 实机与剩余缺口 |
+| --- | --- | --- | --- |
+| 编组/Boss 网格卡与底部成员 | CharacterRecognizer.recognize→IconMatcher.match→refine | 2026-11-01 21:46 原帧复算：目标 1215 由不可信（1387 0.5376/1215 0.4931/0.0445）变为可信（1215 0.4931/1120 0.4105/0.0826），其余五卡身份不变；公开合成回归覆盖任意 coarse 差距、名单外回退、无名册全库 | 新修正实机待验；该局原 `native_input_not_sent` 账、现场和旧局保持，不追补 |
+| seek/filter/scroll 读回、成员读回、有效效果扫描 | CharacterNavigation.move→read/wait_for；scan_effective 仍只收名单内身份 | 同帧多帧读回、有效列表既有回归复用 | EX/Boss 实机需另行命中；空列表/Boss 缺口不变 |
+
+依据：2026-11-01 21:46 实跑 EX 编组停在 `team_execution.py:187→character_recognition.py:1859→native.py:336`；同一局名单人数与编组页卡数在 3/3、7/7、14/14、15/15 四个时点一致。来源、差异与残余风险见 `docs/LABYRINTH_ROSTER_MATCHING.md`；其余功能文件保持，无新增真实游戏输入。

@@ -134,3 +134,61 @@ def test_roster_scan_keeps_later_trusted_cards_during_slow_scroll(monkeypatch):
     monkeypatch.setattr(cr, 'CharacterNavigation', Navigation)
     result = MaaRoster(None, lambda **fields: fields, characters=Characters()).scan(Batch(), 1, page='battle')
     assert result['roles'] == ['1001', '1002'] and result['complete_roster_verified']
+
+
+def formation(cards, *, page='battle', filter='ALL', signature='same', members_only=False):
+    value = dict(page=page, filter=filter, stable=True, count=0, boss_tab=None,
+        selected=[], members=[], signature=signature,
+        unknown_visual_fingerprint=signature, cards=cards)
+    if members_only:
+        value['members_only'] = True
+    return value
+
+
+def row(roles, *, top):
+    return [dict(slot_id='available_row_1_' + str(index), character_id=role,
+                 trusted=True, selected=False, box=[82 + 141 * (index - 1), top, 130, 130])
+            for index, role in enumerate(roles, 1)]
+
+
+def test_formation_complete_requires_a_short_top_row_list():
+    assert cr.formation_complete(formation(row(('1001', '1002', '1003'), top=162)))
+    assert cr.formation_complete(formation(row(('1001',), top=249), page='boss'))
+    # A scrolled view and a full 8x2 grid can still hide cards above or below.
+    assert not cr.formation_complete(formation(row(('1001',), top=231)))
+    assert not cr.formation_complete(formation(row(('1001',) * 16, top=162)))
+    # Only the battle/boss grid and a complete full read are eligible.
+    assert not cr.formation_complete(formation(row(('1001',), top=162), page='roster'))
+    assert not cr.formation_complete(formation(row(('1001',), top=162), members_only=True))
+
+
+def test_short_effective_list_skips_the_formation_sweep(monkeypatch):
+    filtered = formation(row(('1001', '1002', '1003'), top=162),
+                         filter='EFFECTIVE_EFFECT', signature='filtered')
+    restored = formation(row(('1001', '1002'), top=162), filter='ALL', signature='restored')
+    calls, events = [], []
+    class Navigation(cr.CharacterNavigation):
+        def edge(self, *args, **options):
+            raise AssertionError('formation sweep must be skipped')
+        def move(self, batch, enter, page, current, *, filter=None, direction=None, **options):
+            calls.append(filter or direction)
+            if filter == 'EFFECTIVE_EFFECT':
+                return filtered
+            if filter == 'ALL':
+                return restored
+            raise AssertionError(direction)
+    class Batch:
+        def observation(self, value, **options):
+            events.append(value)
+            return value
+    class Characters:
+        def read(self, *args, **options):
+            return formation([], filter='ALL', signature='initial'), {}
+    monkeypatch.setattr(cr, 'CharacterNavigation', Navigation)
+    ids = scan_effective(Characters(), Batch(), lambda **fields: fields, 1, 20101,
+                         page='battle', roster=('1001', '1002'))
+    assert calls == ['EFFECTIVE_EFFECT', 'ALL']
+    assert ids == ('1001', '1002')
+    assert events[-1]['effective_scan_verified'] is True
+    assert events[-1]['effective_scan_skipped_unsafe'] is True
+    assert events[-1]['filter_restored'] is True

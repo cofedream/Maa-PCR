@@ -212,6 +212,57 @@ def _probe_scope(kinds):
     kinds={kinds} if isinstance(kinds,str) else set(kinds)
     return sorted((kinds & set(_RULES)) | {'battle','team','map','move_confirmation','home'})
 
+# MaaFramework samples the Click point inside the action target with a truncated
+# normal (Actuator::rand_point: rect centre, sigma = width/3 and height/3, samples
+# outside the rect rejected). A template cropped together with page background
+# therefore keeps a dead margin: a sample landing there taps beside the control, the
+# page never changes, and a settlement readback can only time out. Inset the target
+# to the template's drawn area so every sample still lands on the control.
+_CLICK_INSET={}
+_CLICK_INSET_PAD=3
+_CLICK_INSET_LIMIT=.25
+
+def _background_border(image):
+    """Background rows/cols at each template edge, or None when the art is unusable."""
+    if image is None or image.ndim!=3 or image.shape[2]<3:return None
+    height,width=image.shape[:2]
+    if height<2 or width<2:return None
+    background=image[:,:,:3].astype('int16').min(axis=2)>245
+    if image.shape[2]==4:background=background|(image[:,:,3]<8)
+    rows=background.all(axis=1);columns=background.all(axis=0)
+    top=0
+    while top<height and rows[top]:top+=1
+    bottom=0
+    while bottom<height-top and rows[height-1-bottom]:bottom+=1
+    left=0
+    while left<width and columns[left]:left+=1
+    right=0
+    while right<width-left and columns[width-1-right]:right+=1
+    return width,height,top,bottom,left,right
+
+def _click_target_offset(template):
+    """target_offset that keeps the sampled Click point on the control art."""
+    if template in _CLICK_INSET:return _CLICK_INSET[template]
+    offset=None
+    try:
+        import cv2,numpy as np
+        raw=(ASSETS.parent/template).read_bytes()
+        border=_background_border(cv2.imdecode(np.frombuffer(raw,np.uint8),cv2.IMREAD_UNCHANGED))
+    except Exception:border=None
+    if border is not None:
+        width,height,top,bottom,left,right=border
+        # A template that is all background draws no control at all.
+        art_width=width-left-right;art_height=height-top-bottom
+        if art_width>=3 and art_height>=3:
+            # A mostly background template must not collapse the control to one point.
+            limit_x=int(width*_CLICK_INSET_LIMIT);limit_y=int(height*_CLICK_INSET_LIMIT)
+            left=min(left+_CLICK_INSET_PAD,limit_x);right=min(right+_CLICK_INSET_PAD,limit_x)
+            top=min(top+_CLICK_INSET_PAD,limit_y);bottom=min(bottom+_CLICK_INSET_PAD,limit_y)
+            if width-left-right>=3 and height-top-bottom>=3:
+                offset=[left,top,-(left+right),-(top+bottom)]
+    _CLICK_INSET[template]=offset
+    return offset
+
 def _revive_layout(image,anchors):
     # Pinned upstream two-button layout: lit report, blue title/next, no pale End.
     if (not any(anchors.get(key,{}).get('score',0)>=.8 for key in ('DEFEAT','BATTLE_DEFEAT_TITLE'))
@@ -379,7 +430,7 @@ def perform_scene_action(tasker,scene,action,*,stopped=None,timings=None,target=
         raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='battle_failure_layout_unknown'))
     control=scene.payload.get('controls',{}).get(_ACTIONS[action][1])
     if type(control) is not dict or not _box(control.get('box')) or not _score(control.get('score')):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='scene_action_control_unknown'))
-    box=control['box'];key=control['anchor'];nodes={};guard_kind=scene.kind
+    box=control['box'];key=control['anchor'];nodes={};guard_kind=scene.kind;click_offset=None
     # A Boss result can remain globally UNKNOWN while its dedicated/legacy
     # next-button template is reliable. Autoplay creates this transient typed
     # scene only after an owned Boss start; keep the fresh action guard on the
@@ -408,10 +459,15 @@ def perform_scene_action(tasker,scene,action,*,stopped=None,timings=None,target=
         nodes['LabySceneActionControl']=dict(recognition='Or',
             any_of=[f'LabySceneTemplate_{key}_{i}' for i in range(len(spec['rois']))],
             action='DoNothing',next=[])
+        click_offset=_click_target_offset(spec['template'])
     nodes['LabySceneActionGuard']=dict(recognition='Custom',custom_recognition=NAME,custom_recognition_param=dict(kind=guard_kind,control_logical=_ACTIONS[action][1],control_anchor=key,**({'battle_failure_layout':'two_button'} if action=='advance_revived_battle' else {}),**({'probe_kinds':scene.payload['probe_kinds']} if scene.payload.get('probe_kinds') is not None else {}),**({'node_type':scene.payload['node_type']} if action=='confirm_move' and scene.payload.get('node_type') is not None else {})),roi=[0,0,1280,720],action='DoNothing',next=[])
-    nodes['LabySceneActionOnce']=dict(recognition='And',all_of=['LabySceneActionControl','LabySceneActionGuard'],action='Click',target=([640,360,1,1] if action=='advance_character_animation' else [640,360,1,1] if action=='advance_final_animation'
-            and scene.kind!='clear_reward_animation' else [640,645,1,1] if action=='advance_final_animation' else True),
+    target=([640,360,1,1] if action=='advance_character_animation' else [640,360,1,1] if action=='advance_final_animation'
+            and scene.kind!='clear_reward_animation' else [640,645,1,1] if action=='advance_final_animation' else True)
+    nodes['LabySceneActionOnce']=dict(recognition='And',all_of=['LabySceneActionControl','LabySceneActionGuard'],action='Click',target=target,
         max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)
+    # Only the template control supplies its own random target; a page text
+    # control and a pinned animation target already sit inside the control.
+    if target is True and click_offset is not None:nodes['LabySceneActionOnce']['target_offset']=click_offset
     if not tasker.resource.override_pipeline(nodes):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='scene_action_install_failed'))
     timings=timings or Timings()
     with timings.measure('page_wait'):receipt=native.run(tasker,'LabySceneActionOnce',reset_hits=('LabySceneActionOnce',))

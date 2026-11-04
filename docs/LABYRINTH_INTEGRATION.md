@@ -1,3 +1,33 @@
+## 2026-11-02 遗物名称分隔点识别不一致导致选择停止（离线复现）
+
+实机失败记录 `run f161b1717150451ab5fc31f02c4f505f`（业务账本 `59a631199d944da7870e4fb9ac06bf84`，`enter_id=13439`，第三次尝试）：三选一遗物页选择 slot 0 时，`LabyRelicSelectOnce` 的 `And` 在 `LabyRelicGuardName00` 未命中，点击未开始，账本把 `relic_reward_select` 结为 `input_execution=not_sent`，批次以 `native_input_not_sent` 停止（进程位置 `relics.py:583`、`relics.py:546`、`native.py:336`）。GUI 的“操作 relic_reward_select 已发出”只是 intent 已落盘，没有发出输入。
+
+原因：观测帧把名称行读成 `白光辉铠` + 低分 `D`(0.24) + `断壁`，显示分隔点被读成独立低分 token 后丢弃，账本记 `relic_name=白光辉铠断壁`；点击帧同一行读成单个 `白光辉铠·断壁`(0.9665)。`selection_override` 用 `_pattern(offer.name)` 生成精确锚定正则 `^\s*白\s*光\s*辉\s*铠\s*断\s*壁\s*$`，`\s*` 不能消费 `·`，所以正确卡片被拒绝。属性行 `【守备+3】（当前：14）`、按钮、Bright 和图标捕获在同一帧均可命中。
+
+修复：`relics._pattern` 把名称内的显示分隔点 `·・‧•` 视为可选而非身份（`NAME_SEPARATORS`）：生成时跳过名称中的分隔点，并在相邻字符之间允许 `\s*[·・‧•]*\s*`；其它字符仍逐字精确，不做替字或模糊放行。正则使用字面字符，因为 Maa 原生引擎不是 Python，不展开 `\uXXXX`。`_normalized`、阈值、ROI、`Detected/Line` 结构与 `only_rec`、图标基准回退、未知结果不重发均未改；`LabyRelicGuardAttribute00`、`LabyRelicBright`、`LabyRelicSelectedIconCapture` 维持原判定。
+
+验证：同次失败原帧 `f7cb533f64fb4fcfb3e38b1425e2dc00-frame.png` 离线回放，修复前 `LabyRelicSelectOnce` 为 `recognition_failed=true`、零点击，修复后同一帧 `action_started=true`，1 次点击落在 slot 0 按钮 ROI 内。新增 `tests/test_labyrinth_relic_name_separator.py`：5 项公开用例（两种观测拼写的守卫都接受、替字仍拒绝、分隔点字面类、其余标点规则不变）与 1 项私有原帧回放；公开用例在旧代码上 4 项失败。未实机复跑本局。同批只读审计还列出角色奖励、角色到达/详情、开局赠送和商店报价确认等处同样要求观测帧与点击帧逐字一致，本轮未改，需另取实机证据后处理。
+
+## 2026-11-02 人工验证码窗口内嵌到主界面
+
+登录触发官方极验时，Python Owner 仍在 127.0.0.1 起一次性页面并用 stdout 发 `kind=captcha`；GUI 不再直接打开系统浏览器，而是在主窗口内容区显示 `PcrCaptchaOverlay` 遮罩层，用 WebView2 原生子窗口把同一页面放进卡片中间。Python 协议、页面 CSP／Host／Origin 校验、`captcha` 消息格式、600 秒人工等待和 810 秒读数预算均未改；只在“显示位置”和取消路径上新增 GUI 侧能力。
+
+生命周期：收到 captcha 消息时显示遮罩并导航；之后任意业务消息、批次结果、停止或异常都会隐藏并关闭原生子窗口；用户点“取消本次验证”时，GUI 对同一本地页的 `<nonce>/cancel` 发 `Origin` 和 `Content-Type: application/json` 精确匹配的 POST，Python 以 `captcha_cancelled` 结束等待，不再需要等 300 秒超时；页面内原有的“取消本次登录”按钮保持可用。“在浏览器中打开”保留为手动回退。WebView2 原生窗口是矩形且总在 Avalonia 内容之上，所以遮罩、卡片边框、标题和底部操作都由 Avalonia 绘制在矩形外侧，原生窗口只填中间占位区，并按主窗口缩放和 DPI 重新同步 `Bounds`。
+
+回退与安全：非 Windows、缺少 WebView2 Evergreen 运行时或窗口创建失败时，记录不含页面 URL 的警告并回退原默认浏览器路径；页面 URL 不进入日志、错误文本或诊断导出。验证页只允许该次 URL 作为顶层导航，禁用 DevTools、右键菜单和新窗口，浏览器 profile 使用进程级临时目录，创建时清理已退出进程遗留的目录。新增固定依赖 `Microsoft.Web.WebView2 1.0.4314.35`，原始许可和 NOTICE 在 `docs/licenses/nuget/Microsoft.Web.WebView2/`；Evergreen 运行时由系统安装，不随包分发。
+
+验证：`PcrProfileSwitch.Tests` 新增 `CaptchaOverlayChecks`（默认隐藏、宿主占位存在、取消／浏览器按钮可访问名、未挂载遮罩时返回浏览器回退）；`scripts/verify.py gui` 通过。真实 MAA 主窗口内已用同一 `captcha.py` 本地页确认渲染、缩放后跟随、按钮触发的 `/cancel` 回传到 Python 得到 `captcha_cancelled`；真实账号触发官方滑块、非 100% DPI 与多显示器移动仍需实机复验。
+
+## 2026-11-01 登录后“活动结束预告”弹窗导致开局停止（离线验证）
+
+实机失败记录 `run 7ee98d5d7adf4ff0ae4787ad0f495b41`（账本在 `.runtime/labyrinth-work/`）：20:05:26 关闭“通知”公告后，客户端在主页停留约 0.8 秒再弹出“活动结束预告”，盖住底部“冒险”。`LabyClientHomeToAdventure` 的 3 秒识别窗口内只读到 `师 0.17`，原生证据为 `recognition_failed=true`、`action_started=false`，账本把 `client_open_adventure` 结为 `input_execution=not_sent`，批次以 `native_input_not_sent` 停止。没有误点、没有发出点击；GUI 日志里“操作 client_open_adventure 已发出，等待确认”只是 intent 已落盘，随后被上述未发出证据覆盖。
+
+原因是启动流程只认识“通知”面板：`notice_pipeline()` 的四个锚点不包含该弹窗，`LabyGameSessionAfterTitleObserved` 不报告这一页，主页大面板白名单 `HomeModalTitle` 也没有该标题，所以它既不能被关闭，也不能作为已知遮挡被拒绝。
+
+现在按真实 1280x720 原帧（标题文字 556,43,166,28；前往活动 732,624,108,28；关闭 465,623,57,30）新增 `home_announcement_pipeline()`：标题 `^活动结束预告$`、`^前往活动$`、`^关闭$` 三个 OCR 锚点同时命中才算该页；关闭动作的 box 取“关闭”文字自身，永远不点“前往活动”。`LabyGameSessionAfterTitleObserved` 增加该页上报，`_after_title` 仍要求连续两帧一致。启动时先关闭“通知”再关闭该弹窗，每个关闭各记一条独立 intent（`client_notice_close` / `client_announcement_close`，后者同时加入 `_OPERATIONS` 与 `restart._CLIENT_NAVIGATION`），每次关闭后重新做两帧稳定读回，最多关闭两次；期间出现未采样页面仍以 `game_session_readback_unknown` 停止。若弹窗在“冒险”点击窗口内才出现，只有原生证据明确 `input_execution=not_sent` 时才允许一次只读观察、关闭已采样弹窗并重试同一次点击；已发出或结果未知的操作不重试。共享主页守卫的 `HomeModalTitle` 白名单加入该标题，弹窗在场时不放行主页。
+
+验证：`tests/test_labyrinth_home_announcement.py`（8 项）覆盖节点/ROI/锚点顺序、操作名与重开集合、关闭与重试的账本顺序、两次上限，以及私有失败原帧回放（启动等待两帧稳定返回 `announcement`、关闭点击落在“关闭”按钮、主页观察与点击均拒绝、无其它输入）。受影响既有用例 311 项通过、48 项按私有夹具跳过；全量 5264 项通过、556 项跳过、54 个子测试通过，无失败。仅离线验证，未实机复跑本局；只按采样到的这一个标题处理，不推广到其它弹窗。
+
 ## 2026-10-17 黎明界实时日志面板（仅展示）
 
 GUI 黎明界工作区在“开始任务”栏下方新增“实时日志”卡片，默认折叠（只显示标题行，点“实时日志”开关展开面板；收起时日志仍照常写入日志文件）、最多保留 500 行、只显示黎明界运行行；日常档案沿用原有“运行日志”折叠卡，不受影响。每行是一个 `SelectableTextBlock`，可拖动选中并 Ctrl+C 复制单行；手动上滚后自动跟随会停用，点“滚到底部”可回到最新一行并重新开启跟随。内容来自 Owner 新增的 `kind=log` stdout 行：开局／撤退决策、操作发出、操作确认（含页面与白名单标量）、停止原因（含文件:行）、批次结果，加上既有 `progress` 阶段变化；记录从点击开始一直到结束，所以本地校验、组件、资源、连接、登录和交接阶段的失败同样可见。

@@ -13,12 +13,14 @@ using Avalonia.Threading;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Pcr;
 using MFAAvalonia.ViewModels.Pages;
+using Newtonsoft.Json.Linq;
 
 internal static class SettingsUxChecks
 {
     internal static void Run(string sourceRoot, string fixtureRoot,
         Func<InstanceConfiguration, TaskQueueViewModel> owner, Action<bool, string> require)
     {
+        PcrLabyrinthEventCatalog.UseRepositoryRoot(sourceRoot);
         var markup = XDocument.Load(Path.Combine(sourceRoot, "gui", "MFAAvalonia", "MFAAvalonia", "Pcr", "PcrLabyrinthView.axaml"));
         var nodes = markup.Descendants().ToArray();
         XElement Named(string name) => nodes.Single(node => (string?)node.Attribute("Name") == name);
@@ -29,6 +31,15 @@ internal static class SettingsUxChecks
         require(nodes.Count(node => node.Name.LocalName == "PcrCountInput") == 4
             && nodes.Where(node => node.Name.LocalName == "PcrCountInput")
                 .All(node => (string?)node.Attribute("ClipValueToMinMax") == "False"), "settings_numeric_inputs_preserve_invalid_drafts");
+        require((string?)Named("EventSettings").Attribute("Header") == "事件策略"
+            && (string?)Named("RelicSettings").Attribute("Header") == "遗物与商店策略", "settings_event_strategy_is_independent_section");
+        require(new[] { "NormalWinRateInput", "ExtremeWinRateInput" }.All(name => Named(name).Ancestors().Contains(Named("EventSettings")))
+            && !new[] { "NormalWinRateInput", "ExtremeWinRateInput" }.Any(name => Named(name).Ancestors().Contains(Named("RelicSettings"))),
+            "settings_win_rates_live_in_event_section");
+        require(Named("EventChainPolicySelector").Ancestors().Contains(Named("EventSettings")),
+            "settings_event_chain_policy_is_in_event_section");
+        require(Named("EventChoicesInput").Ancestors().Contains(Named("EventSettings")),
+            "settings_event_choice_list_is_in_event_section");
 
         const string id = "pcr-settings-ux";
         var config = new InstanceConfiguration(id);
@@ -61,6 +72,28 @@ internal static class SettingsUxChecks
         settings.SaveCommand.Execute(null);
         require(settings.SaveButtonText == "重新保存" && !settings.AccountSummary.Contains("未保存")
             && owner(new InstanceConfiguration(id)).LabyrinthSettings.Username == "fixture-ui-save-retry", "settings_credential_retry_clears_failure_and_reopens");
+        require(settings.EventChainPolicy == settings.EventChainPolicies[0], "settings_event_chain_policy_defaults_auto");
+        settings.EventChainPolicy = settings.EventChainPolicies[1];
+        require(settings.Snapshot()["strategy"]?["event_chain_policy"]?.ToString() == "continue"
+            && owner(new InstanceConfiguration(id)).LabyrinthSettings.EventChainPolicy == settings.EventChainPolicies[1],
+            "settings_event_chain_policy_persists_continue");
+        var singleOptionEvents = new[] { "1314", "1315", "1316", "2314", "3314" };
+        require(settings.EventChoiceItems.Count == 17
+            && settings.EventChoiceItems.All(item => item.Choices.Length >= 3)
+            && !settings.EventChoiceItems.Any(item => singleOptionEvents.Contains(item.EventId)),
+            "settings_event_choice_catalogue_lists_only_multi_option_events");
+        var battleEvent = settings.EventChoiceItems.Single(item => item.EventId == "1105");
+        require(battleEvent.Choices.Length == 3 && battleEvent.Selected == battleEvent.Choices[0],
+            "settings_event_choice_defaults_auto");
+        battleEvent.Selected = battleEvent.Choices[2];
+        require((settings.Snapshot()["strategy"]?["event_choice_overrides"] as JObject)?["1105"]?.Value<int>() == 11052,
+            "settings_event_choice_override_persists");
+        require(owner(new InstanceConfiguration(id)).LabyrinthSettings
+                .EventChoiceItems.Single(item => item.EventId == "1105").Selected == battleEvent.Choices[2],
+            "settings_event_choice_override_reopens");
+        battleEvent.Selected = battleEvent.Choices[0];
+        require(((settings.Snapshot()["strategy"]?["event_choice_overrides"]) as JObject)?.ContainsKey("1105") == false,
+            "settings_event_choice_override_can_be_cleared");
 
         PcrLabyrinthCharacterCatalog.UseRepositoryRoot(sourceRoot);
         var view = new PcrLabyrinthView { DataContext = vm, Background = Brushes.White };
@@ -96,6 +129,14 @@ internal static class SettingsUxChecks
             require(view.FindControl<Expander>("RerollSettings")!.IsExpanded
                 && File.ReadAllBytes(path).SequenceEqual(saved), "settings_error_navigation_does_not_revalidate_or_save");
             view.FindControl<Expander>("RerollSettings")!.IsExpanded = false;
+            view.RevealValidationField("本次未能开始：普通战胜率请输入 0–100 的整数。");
+            Dispatcher.UIThread.RunJobs();
+            require(view.FindControl<Expander>("EventSettings")!.IsExpanded, "settings_win_rate_error_reveals_event_section");
+            view.FindControl<Expander>("EventSettings")!.IsExpanded = false;
+            view.RevealValidationField("本次未能开始：连续事件策略无效。");
+            Dispatcher.UIThread.RunJobs();
+            require(view.FindControl<Expander>("EventSettings")!.IsExpanded, "settings_chain_policy_error_reveals_event_section");
+            view.FindControl<Expander>("EventSettings")!.IsExpanded = false;
             view.FindControl<ScrollViewer>("SettingsScroll")!.Offset = default;
             Dispatcher.UIThread.RunJobs();
             view.UpdateLayout();

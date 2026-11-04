@@ -121,22 +121,28 @@ def test_multi_choice_selection_is_pending_until_actual_joined(monkeypatch,remai
 
 def test_refresh_quote_and_result_are_separate_new_intents_unknown_never_repeats():
  batch,stamp=harness();shop=shops.MaaShop.__new__(shops.MaaShop);shop.stamp=stamp
- before=dict(balance=900,refresh_allowed=True,words={'Refresh':[word('用300更新')]})
- states=iter([(dict(state='refresh_confirmation',words={'DialogBody':[word('要消耗阿尔法金币×300更新商店')],'Confirm':[word('确认')]}),{}),(dict(state='shop',balance=600,items=[]),{})])
- calls=[];shop._wait_state=lambda *a:next(states);shop._input=lambda state,*a,**k:calls.append(state) or dict(native_ok=True)
+ before=dict(balance=900,refresh_allowed=True,refresh_enabled=True,refresh_price=300,stock_state='exhausted',items=[],words={'Refresh':[word('用300更新')]})
+ dialog=dict(state='refresh_confirmation',words={'DialogBody':[word('要消耗阿尔法金币×300更新商店')],'Confirm':[word('确认')]})
+ calls=[];shop._probe_state=lambda *a:(dialog,{});shop._wait_state=lambda *a:(dict(state='shop',balance=600,items=[]),{})
+ shop._input=lambda state,*a,**k:calls.append(state) or dict(native_ok=True)
  result=shop._refresh(batch,1,30601,before,0)
  assert result['refresh_verified'] and calls==['refresh','refresh_confirmation']
  assert [e['operation'] for e in batch.journal.events() if e['state']=='settled']==['shop_refresh_proposal','shop_refresh_purchase']
+ # A click whose confirmation never appears is classified locally as refused:
+ # one input only, no purchase intent, no exception and no re-click.
  batch,stamp=harness();shop.stamp=stamp;calls.clear()
- shop._wait_state=lambda *a:(_ for _ in ()).throw(BatchStopped('shop_readback_unknown'))
- with pytest.raises(BatchStopped):shop._refresh(batch,1,30601,before,0)
- assert calls==['refresh'] and batch.journal.events()[-1]['state']=='settled'
+ unchanged=dict(state='shop',balance=900,refresh_price=300,stock_state='exhausted',items=[],words={'Refresh':[word('用300更新')]})
+ shop._probe_state=lambda *a:(None,None);shop._capture=lambda:(unchanged,{})
+ result=shop._refresh(batch,1,30601,before,0)
+ assert result['refresh_refused'] is True and 'refresh_verified' not in result
+ assert calls==['refresh']
+ assert [e['operation'] for e in batch.journal.events() if e['state']=='settled']==['shop_refresh_proposal']
 
 def test_unknown_currency_or_wrong_refresh_price_never_confirms():
  batch,stamp=harness();shop=shops.MaaShop.__new__(shops.MaaShop);shop.stamp=stamp;calls=[]
  shop._input=lambda state,*a,**k:calls.append(state) or {}
  for body in ('消耗宝石×300更新商店','要消耗阿尔法金币×301更新商店'):
-  shop._wait_state=lambda *a:(dict(state='refresh_confirmation',words={'DialogBody':[word(body)],'Confirm':[word('确认')]}),{})
+  shop._probe_state=lambda *a:(dict(state='refresh_confirmation',words={'DialogBody':[word(body)],'Confirm':[word('确认')]}),{})
   with pytest.raises(BatchStopped):shop._refresh(batch,1,30601,dict(balance=900,refresh_allowed=True,words={'Refresh':[word('用300更新')]}),0)
  assert calls==['refresh','refresh']
 
@@ -224,7 +230,7 @@ def test_effective_empty_list_needs_real_game_notice(page,notice,monkeypatch):
 def test_event_run_reads_configured_win_rates_without_touching_unknown_retry(monkeypatch):
  from pcr_maa.labyrinth import event_execution as events
  from pcr_maa.labyrinth.events import Choice
- batch,stamp=harness(NS(normal_win_rate=42,extreme_win_rate=13));adapter=events.MaaEvent.__new__(events.MaaEvent)
+ batch,stamp=harness(NS(normal_win_rate=42,extreme_win_rate=13,event_chain_policy='continue',event_choice_overrides={'1105':11052}));adapter=events.MaaEvent.__new__(events.MaaEvent)
  adapter.stamp=stamp;adapter.blocked=False;adapter.attempted=set();adapter.observer=NS();adapter.timings=NS(measure=lambda _:nullcontext())
  current=dict(event_id=1105,trusted=True,choices=[dict(choice_id=11051,slot=0,box=[1,1,20,20],enabled_confidence=1)])
  adapter.capture=lambda:(current,{})
@@ -237,7 +243,7 @@ def test_event_run_reads_configured_win_rates_without_touching_unknown_retry(mon
  monkeypatch.setattr(events,'configured_optimizer',lambda _:object());monkeypatch.setattr(events,'Planner',Planner)
  monkeypatch.setattr(events.native,'run',lambda *a,**k:dict(native_ok=True,nodes=[dict(name='LabyEventSelectOnce',completed=True,action=dict(success=True))]))
  result=adapter.run(batch,1,20303,stacks={})
- assert rates[0]['normal_win_rate']==42 and rates[0]['extreme_win_rate']==13 and rates[0]['baseline_target']==4 and result['page']=='map'
+ assert rates[0]['normal_win_rate']==42 and rates[0]['extreme_win_rate']==13 and rates[0]['chain_policy']=='continue' and rates[0]['event_choice_overrides']=={'1105':11052} and rates[0]['baseline_target']==4 and result['page']=='map'
  assert len(batch.journal.events())==2
 
 @pytest.mark.parametrize('policy',[dict(baseline_target=7),dict(area=4,baseline_last_area=3),dict(debuff_pivot_minimum=6,debuff_pivot_tolerance=4),dict(priority=('弱体',)),dict(locked_focus='弱体')])

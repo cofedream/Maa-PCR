@@ -5,11 +5,13 @@ pages. A route-end or RESULT page never proves a clear. Inputs are journalled
 once at native ACK; dedicated destination observations confirm page progress.
 Source: wbero/limingjie-assistant (CC BY-NC-SA 4.0); see source manifest.
 """
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 import json
 import math
+import os
 import time
 import cv2
 import numpy as np
@@ -24,6 +26,25 @@ _TARGET = 'LabyAutoplayTarget'
 _CLICK = 'LabyAutoplayPreviewOnce'
 _NAME = 'LabyrinthAutoplayTarget'
 _TYPES = {'normal_battle':2,'ex_battle':3,'link':4,'event':5,'relic':6,'shop':7,'boss':8}
+# Measured inactive node-body floor. Live area-5 scenery cleared the inactive
+# color band (.84) at only .60-.63 masked NCC and was accepted as nodes; the
+# pinned node-body templates matched real inactive nodes at >=.917 across all
+# captured frames, so require the body floor for inactive non-EX templates.
+# EX keeps its calibrated purple fallback and boss is active by definition.
+_INACTIVE_NODE_SCORE = .75
+# Upstream ships the normal-battle and event bodies under a second `_bottom`
+# name, matched through only their top 78% so a platform clipped by the viewport
+# bottom still matches. The two local crops were byte-identical tight crops, so
+# the loader derives the truncated alias from the one shipped crop instead of
+# duplicating the resource; a shipped `_bottom` file is still honoured.
+_BOTTOM_ALIAS_TYPES = (2, 5)
+_BOTTOM_ALIAS_HEIGHT = .78
+# One full-frame scan is dominated by the independent masked-NCC passes for every
+# template; they are pure reads of the same frame features, so run them
+# concurrently and keep template order when merging. Measured ~2x wall-clock at
+# four workers on a 6-core/12-thread host with bit-identical scores; more workers
+# only saturated memory bandwidth.
+_SCAN_WORKERS = min(4, os.cpu_count() or 1)
 _ARRIVALS = {2:{'normal_challenge','team'},3:{'ex_challenge','team'},
     4:{'link_reward'},5:{'event','event_animation','rest'},
     6:{'relic_reward'},7:{'shop'},8:{'boss_challenge','team'}}
@@ -50,6 +71,15 @@ def _poll_pause(tasker,batch,node,reason):
         raise BatchStopped(reason)
     with batch.timings.measure('page_wait'):_native_ok(native.run(tasker,node))
     batch.checkpoint()
+
+
+def final_shop_in_route(route,node):
+    """True when this route has no later shop node: the run's last chance to spend coins."""
+    nodes=getattr(route,'nodes',())
+    block_id=getattr(node,'block_id',None)
+    index=next((i for i,n in enumerate(nodes) if getattr(n,'block_id',None)==block_id),None)
+    if index is None:return False
+    return not any(getattr(n,'block_type',None)==7 for n in nodes[index+1:])
 
 
 def _owned_boss_summary_scene(scene,node):
@@ -259,50 +289,119 @@ def bind_route_target(route,current,columns):
 
 class NodePixels:
     """Cached upstream templates; independent frame classifier with local glow."""
+    @staticmethod
+    def _bottom(image):
+        return image[:round(image.shape[0]*_BOTTOM_ALIAS_HEIGHT)]
+
     def __init__(self, directory=None):
         root=directory or Path(__file__).resolve().parents[3]/'assets/resource/image/labyrinth/node'
         self.templates=[]
-        for path in sorted(Path(root).glob('node_*.png')):
+        paths=sorted(Path(root).glob('node_*.png'))
+        shipped={path.name for path in paths}
+        for path in paths:
             kind=next((v for k,v in _TYPES.items() if path.name.startswith('node_'+k)),None)
             if kind is None: continue
             image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),cv2.IMREAD_UNCHANGED)
             if image is None: raise BatchStopped('node_resource_invalid')
             # Public pack has already been rescaled from 1080p to Maa 720p.
-            body=image[:round(image.shape[0]*.78)] if '_bottom' in path.name else image
-            rgb=body[:,:,:3]
-            if path.name=='node_boss_platform.png':
-                h,w=rgb.shape[:2]
-                self.boss_label=cv2.resize(rgb[h*197//350:h*197//350+h*46//350,
-                    w*225//500:w*225//500+w*122//500],(81,31),interpolation=cv2.INTER_AREA)
-            mask=body[:,:,3]>=128 if body.shape[2]==4 else np.ones(rgb.shape[:2],bool)
-            # Upstream ignores artificial alpha-boundary edges, and compares
-            # both luminance and |central dx|+|central dy| with masked NCC.
-            interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
+            if '_bottom' in path.name:
+                bodies=[(path.name,self._bottom(image))]
+            else:
+                bodies=[(path.name,image)]
+                if kind in _BOTTOM_ALIAS_TYPES:
+                    alias=path.stem+'_bottom.png'
+                    if alias not in shipped: bodies.append((alias,self._bottom(image)))
+            for name,body in bodies:
+                rgb=body[:,:,:3]
+                mask=body[:,:,3]>=128 if body.shape[2]==4 else np.ones(rgb.shape[:2],bool)
+                # Upstream ignores artificial alpha-boundary edges, and compares
+                # both luminance and |central dx|+|central dy| with masked NCC.
+                interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
+                light,gradient=self._features(rgb)
+                self.templates.append((name,kind,rgb,mask,interior,light,gradient))
+        # Boss (8) has no mandatory node-body template: the retired
+        # node_boss_yellow/dragon card crops never matched live 720p frames, and
+        # the final Boss is located only by the optional tight platform anchor
+        # below. A missing anchor must merely disable final_boss, so only the
+        # seven real node types are required; 8 is accepted when present.
+        if not {2,3,4,5,6,7}<={t[1] for t in self.templates}: raise BatchStopped('node_resources_incomplete')
+        # Optional tight boss-platform anchors. node_boss_platform.png is the
+        # locked/grey-blue platform crop with the per-run reward icons removed,
+        # so it stays valid when the reward content changes;
+        # node_boss_platform_active.png is the same tight crop in the unlocked
+        # (magenta-glowing) state; node_boss_platform_reward.png is the
+        # icon-bearing variant, retained only as an extra evidence score.
+        self.boss_anchor=self.boss_anchor_active=self.boss_check=None
+        for name,attribute in (('node_boss_platform.png','boss_anchor'),
+                               ('node_boss_platform_active.png','boss_anchor_active'),
+                               ('node_boss_platform_reward.png','boss_check')):
+            path=Path(root)/name
+            if not path.is_file():continue
+            image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),cv2.IMREAD_UNCHANGED)
+            if image is None or image.ndim!=3 or image.shape[2]!=4:raise BatchStopped('node_resource_invalid')
+            rgb=image[:,:,:3];mask=image[:,:,3]>=128
             light,gradient=self._features(rgb)
-            self.templates.append((path.name,kind,rgb,mask,interior,light,gradient))
-        if {t[1] for t in self.templates}!={2,3,4,5,6,7,8}: raise BatchStopped('node_resources_incomplete')
+            interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
+            setattr(self,attribute,(rgb,mask,light,gradient,interior))
 
     def final_boss(self,image):
-        """Pinned FinalBossPlatformLocator: static nameplate, not moving Boss art."""
-        h,w=self.boss_label.shape[:2]
+        """Final Boss locator over every optional locked/unlocked platform anchor.
+
+        Empty when no anchor is loaded or the frame shows no single platform.
+        Anchors that describe the same physical platform (e.g. a transition
+        frame that matches both the locked and the unlocked crop) collapse to
+        one match; two distinct platforms stay ambiguous and return empty.
+        """
+        anchors=[(self.boss_anchor,'node_boss_platform.png',.80,True),
+                 (self.boss_anchor_active,'node_boss_platform_active.png',.70,False)]
+        matches=[]
+        for anchor,template,minimum_color,purple_fallback in anchors:
+            if anchor is not None:
+                matches.extend(self._final_boss_anchor(image,anchor,template,
+                    minimum_color,purple_fallback))
+        unique=[]
+        for match in sorted(matches,key=lambda m:m['score'],reverse=True):
+            x,y,w,h=match['box'];cx,cy=x+w/2,y+h/2
+            if any(abs(cx-(u['box'][0]+u['box'][2]/2))<max(16,min(w,u['box'][2])*.30) and
+                    abs(cy-(u['box'][1]+u['box'][3]/2))<max(16,min(h,u['box'][3])*.30) for u in unique):
+                continue
+            unique.append(match)
+        # One unambiguous platform only; the box is the node body, so the shared
+        # preview click (center x, 32% height) lands on the nameplate area.
+        return [[unique[0]]] if len(unique)==1 else []
+
+    def _final_boss_anchor(self,image,anchor,template,minimum_color,purple_fallback):
+        """Locate one static boss platform state with its tight, icon-free anchor.
+
+        The anchors keep the 首领 nameplate and the platform base but drop the
+        per-run reward icons, so they survive reward changes. The locked crop
+        keeps its original colour gate plus the purple side-band fallback; the
+        unlocked crop is brighter and animated (measured .75-.79 stride colour
+        on live frames) but the masked NCC gate stays .80, and the locked frame
+        only reaches .70, so its colour gate is relaxed to .70. The icon-bearing
+        reward variant is only recorded as independent evidence, never required.
+        """
+        rgb,mask,light,gradient,interior=anchor
+        h,w=light.shape
         lights,gradients=self._features(image)
-        refs=self._features(self.boss_label)
-        # Upstream bounded platform band and independent minimum channel score.
-        left,right=round(1280*.18),round(1280*.96)
-        top,bottom=round(720*.46),round(720*.69)
-        mask=np.zeros((h,w),np.uint8);mask[1:-1,1:-1]=1
+        left,right=round(1280*.10),round(1280*.98)
+        top,bottom=round(720*.40),round(720*.76)
         channels=[cv2.matchTemplate(frame[top:bottom,left:right],ref,
-            cv2.TM_CCOEFF_NORMED,mask=mask) for frame,ref in zip((lights,gradients),refs)]
+            cv2.TM_CCOEFF_NORMED,mask=interior) for frame,ref in ((lights,light),(gradients,gradient))]
         scores=np.maximum(*channels)
         scores[(np.minimum(*channels)<.35)|~np.isfinite(scores)]=-1
-        matches=[]
+        candidates=[]
         for _ in range(8):
             _,score,_,(px,py)=cv2.minMaxLoc(scores)
-            if score<.72:break
-            x,y=px+left,py+top
+            if score<.80:break
+            candidates.append((float(score),px+left,py+top))
+            dx,dy=math.ceil(w*.65),h
+            scores[max(0,py-dy+1):py+dy,max(0,px-dx+1):px+dx]=-1
+        matches=[]
+        for score,x,y in candidates:
             actual=image[y:y+h,x:x+w]
             color=1-float(np.mean(np.abs(actual[1:-1:2,1:-1:2].astype(np.float32)-
-                self.boss_label[1:-1:2,1:-1:2].astype(np.float32))))/255
+                rgb[1:-1:2,1:-1:2].astype(np.float32))))/255
             cx=x+w/2
             def band(x1,x2,y1,y2):
                 a,b=math.floor(cx+w*x1+.5),math.floor(cx+w*x2+.5)
@@ -311,15 +410,20 @@ class NodePixels:
                 blue,green,red=cv2.split(image[c:d+1:3,a:b+1:3].astype(np.int16))
                 return float(np.mean((red>=130)&(blue>=140)&(red-green>=30)&(blue-green>=35)))
             purple=min(band(-1.35,-.95,-.7,2.6),band(.95,1.35,-.7,2.6),band(-.8,.8,2,3))
-            if color>=.80 or score>=.80 and purple>=.20:
-                matches.append(dict(box=[x,y+math.floor(h*.18+.5),w,h],block_type=8,
-                    active=True,score=float(score),color_score=color,purple_glow=purple,
-                    template='node_boss_platform.png',activation_basis='upstream_boss_nameplate',
-                    score_method='pinned FinalBossPlatformLocator masked gradient/luminance NCC'))
-            dx,dy=math.ceil(w*.65),h
-            scores[max(0,py-dy+1):py+dy,max(0,px-dx+1):px+dx]=-1
-        # Upstream click rect needs one unambiguous fresh nameplate.
-        return [matches] if len(matches)==1 else []
+            check_score=None
+            if self.boss_check is not None:
+                _,_,check_light,check_gradient,check_interior=self.boss_check
+                if check_light.shape==(h,w):
+                    check_score=max(float(cv2.matchTemplate(lights[y:y+h,x:x+w],check_light,
+                        cv2.TM_CCOEFF_NORMED,mask=check_interior)[0,0]),
+                        float(cv2.matchTemplate(gradients[y:y+h,x:x+w],check_gradient,
+                        cv2.TM_CCOEFF_NORMED,mask=check_interior)[0,0]))
+            if color>=minimum_color or purple_fallback and score>=.80 and purple>=.20:
+                matches.append(dict(box=[x,y,w,h],block_type=8,active=True,score=score,
+                    color_score=color,purple_glow=purple,platform2_check_score=check_score,
+                    template=template,activation_basis='tight_boss_platform_anchor',
+                    score_method='anchored masked gradient/luminance NCC'))
+        return matches
 
     @staticmethod
     def _features(image):
@@ -328,6 +432,16 @@ class NodePixels:
         gradient=np.zeros(light.shape,np.float32)
         gradient[1:-1,1:-1]=np.abs(light[1:-1,2:]-light[1:-1,:-2])+np.abs(light[2:,1:-1]-light[:-2,1:-1])
         return light,gradient
+
+    @staticmethod
+    def _frame_scores(lights,gradients,template):
+        """One template's full-frame masked NCC map; pure per-frame computation."""
+        _,_,_,_,interior,light,gradient=template
+        scores=np.maximum(
+            cv2.matchTemplate(lights,light,cv2.TM_CCOEFF_NORMED,mask=interior),
+            cv2.matchTemplate(gradients,gradient,cv2.TM_CCOEFF_NORMED,mask=interior))
+        scores[~np.isfinite(scores)]=-1
+        return scores
 
     @staticmethod
     def _semantic(crop):
@@ -379,20 +493,17 @@ class NodePixels:
     def collect(self,image):
         if type(image) is not np.ndarray or image.shape!=(720,1280,3): raise BatchStopped('map_frame_unknown')
         lights,gradients=self._features(image)
+        # Pinned anchors permit full on-screen crops, including transparent
+        # top margins, edge destination columns and lower EX platforms.
+        visible=[t for t in self.templates if t[6].shape[0]<=550 and t[6].shape[1]<=1100]
+        with ThreadPoolExecutor(max_workers=_SCAN_WORKERS,thread_name_prefix='labyrinth-node-scan') as pool:
+            score_maps=list(pool.map(lambda template:self._frame_scores(lights,gradients,template),visible))
         proposals=[]
-        for name,kind,template,mask,interior,light,gradient in self.templates:
-            # Boss platforms use final_boss's nameplate; their scenery also matches portals.
-            if name=='node_boss_platform.png':continue
+        for (name,kind,template,mask,interior,light,gradient),scores in zip(visible,score_maps):
+            # Boss platforms use final_boss's nameplate; their scenery also
+            # matches portals, so no boss-platform crop is a map-node template.
+            if name.startswith('node_boss_platform'):continue
             h,w=gradient.shape
-            if h>550 or w>1100: continue
-            # Pinned anchors permit full on-screen crops, including transparent
-            # top margins, edge destination columns and lower EX platforms.
-            grad_scores=cv2.matchTemplate(gradients[0:720,0:1280],gradient,
-                cv2.TM_CCOEFF_NORMED,mask=interior)
-            light_scores=cv2.matchTemplate(lights[0:720,0:1280],light,
-                cv2.TM_CCOEFF_NORMED,mask=interior)
-            scores=np.maximum(grad_scores,light_scores)
-            scores[~np.isfinite(scores)]=-1
             for _ in range(24):
                 _,score,_,location=cv2.minMaxLoc(scores)
                 # Upstream EX has one shared template and its purple fallback.
@@ -442,7 +553,8 @@ class NodePixels:
                     corrected=self._type_support(image,lights,gradients,[x,y,w,h],semantic)
                 # Pinned classifyNode 528-530: an active LINK needs its own
                 # independent LINK type; scenery with unknown type is not LINK.
-                accepted=((score>=.40 or ex_fallback) and color>=threshold
+                floor=.40 if active or kind in (3,8) else _INACTIVE_NODE_SCORE
+                accepted=((score>=floor or ex_fallback) and color>=threshold
                         and (semantic in (None,kind) or corrected is not None)
                         and (not active or kind!=4 or semantic is not None))
                 if accepted:
@@ -817,7 +929,8 @@ class MaaRunActions:
         result=self.shop_adapter.run(self.batch,
             route.enter_id,node.block_id,owned=tuple(self.owned),stacks=self.stacks,context=self._context(),
             buy_relics=self.batch.settings.buy_relics,refresh_shop=self.batch.settings.refresh_shop,area=node.area,
-            locked_focus=self.relic_focus,priority=self.batch.settings.strategy.relic_mark_priority,characters=self.characters)
+            locked_focus=self.relic_focus,priority=self.batch.settings.strategy.relic_mark_priority,characters=self.characters,
+            final_shop=final_shop_in_route(route,node))
         self.stacks.update(result.get('stacks',{}));self.relic_focus=result.get('focus',self.relic_focus)
         for mark in result.get('calibrated_marks',()):
             self.stack_sources[mark]='choice';self.stack_conflicts.discard(mark)

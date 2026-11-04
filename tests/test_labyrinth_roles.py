@@ -105,3 +105,54 @@ def test_event_margin_reads_each_static_function_once_per_snapshot(monkeypatch):
     monkeypatch.setattr(Profile,'f',counted)
     Planner(optimizer).margins(tuple(p.id for p in roles[:12]),Context(defense=4))
     assert calls and max(calls.values())==1
+
+
+def test_configured_optimizer_is_reused_inside_one_owned_run():
+    first=configured_optimizer(dict(personal_scores={'1075':99},player_weight=70))
+    second=configured_optimizer(dict(player_weight=70,personal_scores={'1075':99}))
+    other=configured_optimizer(dict(personal_scores={'1075':98},player_weight=70))
+    assert second is first
+    assert other is not first
+    assert first.profiles['1075'].rating==99 and other.profiles['1075'].rating==98
+    assert load_optimizer().profiles['1075'].rating not in (99,98)
+
+
+def test_configured_optimizer_separates_frozen_run_database_snapshots():
+    from types import MappingProxyType
+    from pcr_maa.labyrinth.database import DATABASE_SNAPSHOT,DatabaseSnapshot
+    strategy=dict(personal_scores={})
+    catalog=load_optimizer()
+    plain=configured_optimizer(strategy)
+    original=catalog.profiles['1075'].position
+    snapshot=DatabaseSnapshot('202610141448','c'*64,
+        MappingProxyType({'1075':MappingProxyType(dict(position=321))}))
+    token=DATABASE_SNAPSHOT.set(snapshot)
+    try:
+        overlaid=configured_optimizer(strategy)
+        assert overlaid is not plain
+        assert overlaid.profiles['1075'].position==321
+        assert configured_optimizer(strategy) is overlaid
+        assert catalog.profiles['1075'].position==original
+    finally:DATABASE_SNAPSHOT.reset(token)
+    assert configured_optimizer(strategy) is plain
+
+
+def test_team_score_memo_survives_configured_optimizer_reuse():
+    strategy=dict(personal_scores={'1075':97})
+    optimizer=configured_optimizer(strategy)
+    assert configured_optimizer(strategy) is optimizer
+    ids=tuple(list(optimizer.profiles)[:5]);context=Context(defense=11)
+    first=optimizer.score(ids,context)
+    hits=Optimizer.score.cache_info().hits
+    second=optimizer.score(ids,context)
+    assert second is first
+    assert Optimizer.score.cache_info().hits>hits
+
+
+def test_team_score_memo_is_sized_for_one_full_reward_decision():
+    from pcr_maa.labyrinth.roles import SCORE_CACHE_SIZE
+    assert Optimizer.score.cache_parameters()['maxsize']==SCORE_CACHE_SIZE
+    # One 32-role reward decision evaluates about 2.3e5 distinct teams; a
+    # smaller memo missed nearly every repeated enumeration and dominated the
+    # reward's wall time.
+    assert SCORE_CACHE_SIZE>=1<<18

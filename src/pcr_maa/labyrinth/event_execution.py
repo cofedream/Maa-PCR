@@ -39,7 +39,9 @@ class MaaEvent:
         strategy=getattr(batch.settings,'strategy',None)
         optimizer=configured_optimizer(strategy)
         policy={key:strategy_value(strategy,key,default) for key,default in (('baseline_last_area',3),('baseline_target',4),('debuff_pivot_minimum',12),('debuff_pivot_tolerance',2))}
-        planner=Planner(optimizer,normal_win_rate=strategy_value(strategy,'normal_win_rate',95),extreme_win_rate=strategy_value(strategy,'extreme_win_rate',70),area=area,locked_focus=locked_focus,priority=strategy_value(strategy,'relic_mark_priority',()),**policy)
+        planner=Planner(optimizer,normal_win_rate=strategy_value(strategy,'normal_win_rate',95),extreme_win_rate=strategy_value(strategy,'extreme_win_rate',70),
+            chain_policy=strategy_value(strategy,'event_chain_policy','auto'),event_choice_overrides=strategy_value(strategy,'event_choice_overrides',{}),
+            area=area,locked_focus=locked_focus,priority=strategy_value(strategy,'relic_mark_priority',()),**policy)
         self.attempted.add((enter_id,block_id))
         # Fixed upstream retires a committed choice after six seconds on the
         # same recognized event. Each replacement has its own transaction;

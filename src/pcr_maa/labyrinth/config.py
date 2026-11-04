@@ -35,7 +35,12 @@ class Strategy:
     refresh_from_area: int = 5
     normal_win_rate: int = 95
     extreme_win_rate: int = 70
+    event_chain_policy: str = 'auto'
+    event_choice_overrides: object = field(default_factory=lambda:MappingProxyType({}))
     opening_rosters: object = field(default_factory=lambda:MappingProxyType({}))
+    # Full per-guild character-id list (GUI catalog) used to scope opening reads;
+    # optional so configurations saved before this field keep their old behavior.
+    guild_units: object = field(default_factory=lambda:MappingProxyType({}))
     special_equipment_mode: str = 'off'
     special_equipment_battles: tuple[str,...] = ('NORMAL','EX','BOSS')
     response_interval_ms: int = 300
@@ -47,7 +52,9 @@ class Strategy:
             scoring_overrides=dict(self.scoring_overrides),personal_scores=dict(self.personal_scores),
             relic_mark_priority=list(self.relic_mark_priority),
             special_equipment_battles=list(self.special_equipment_battles),
-            opening_rosters={key:[list(slot) for slot in slots] for key,slots in self.opening_rosters.items()})
+            event_choice_overrides={str(key):int(value) for key,value in self.event_choice_overrides.items()},
+            opening_rosters={key:[list(slot) for slot in slots] for key,slots in self.opening_rosters.items()},
+            guild_units={key:list(units) for key,units in self.guild_units.items()})
         return values
 
     @classmethod
@@ -98,6 +105,16 @@ class Strategy:
             item=value.get(key,getattr(defaults,key))
             if type(item) is not bool:raise ValueError('invalid_'+key)
             extra[key]=item
+        chain=value.get('event_chain_policy','auto')
+        if type(chain) is not str or chain not in ('auto','continue','stop'):raise ValueError('invalid_event_chain_policy')
+        extra['event_chain_policy']=chain
+        overrides=value.get('event_choice_overrides',{})
+        if type(overrides) is not dict or len(overrides)>100:raise ValueError('invalid_event_choice_overrides')
+        for event_id,choice_id in overrides.items():
+            if (type(event_id) is not str or re.fullmatch('[0-9]{4}',event_id) is None
+                    or type(choice_id) is not int or not 10000<=choice_id<=99999):
+                raise ValueError('invalid_event_choice_overrides')
+        extra['event_choice_overrides']=MappingProxyType(dict(overrides))
         priority=value.get('relic_mark_priority',[])
         if type(priority) is not list or any(type(mark) is not str for mark in priority):raise ValueError('invalid_relic_mark_priority')
         priority=tuple(ALIASES.get(mark,mark) for mark in priority)
@@ -111,8 +128,17 @@ class Strategy:
             roles=[role for slot in slots for role in slot]
             if len(roles)!=len(set(roles)):raise ValueError('invalid_opening_rosters')
             frozen[guild]=tuple(tuple(slot) for slot in slots)
+        units=value.get('guild_units',{})
+        if type(units) is not dict or set(units)-set('12345'):raise ValueError('invalid_guild_units')
+        frozen_units={}
+        for guild,ids in units.items():
+            if type(ids) is not list or not ids or len(ids)>40:raise ValueError('invalid_guild_units')
+            if any(type(role) is not str or re.fullmatch(r'[0-9]{4,6}',role) is None for role in ids):raise ValueError('invalid_guild_units')
+            if len(ids)!=len(set(ids)):raise ValueError('invalid_guild_units')
+            frozen_units[guild]=tuple(ids)
         return cls(mode,tuple(float(x) for x in weights),MappingProxyType(dict(scores)),MappingProxyType(dict(personal)),
-            **extra,relic_mark_priority=priority,opening_rosters=MappingProxyType(frozen))
+            **extra,relic_mark_priority=priority,opening_rosters=MappingProxyType(frozen),
+            guild_units=MappingProxyType(frozen_units))
 
 @dataclass(frozen=True)
 class Settings:

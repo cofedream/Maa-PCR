@@ -12,7 +12,8 @@ import math,re,time
 from .. import native
 from .batch import BatchStopped
 from .interruptions import date_changed_pipeline
-from .session import (title_pipeline,title_player_id,notice_pipeline,resume_home_pipeline)
+from .session import (title_pipeline,title_player_id,notice_pipeline,home_announcement_pipeline,
+    resume_home_pipeline)
 from .profile import PROFILE_NODE,profile_pipeline,profile_player_id,observe_profile
 from .snapshots import OpeningSnapshot
 from .timing import Timings
@@ -22,9 +23,14 @@ from pathlib import Path
 import json
 
 _OPERATIONS=('client_channel_prompt','client_download_retry','client_return_title','client_title_start','client_notice_close',
-             'client_open_adventure','client_open_labyrinth',
+             'client_announcement_close','client_open_adventure','client_open_labyrinth',
              'client_open_main_menu','client_open_profile','client_profile_back',
              'client_menu_to_adventure','client_profile_return_title')
+# Only these sampled startup popups may be closed. Nothing generic is confirmed.
+_STARTUP_POPUP_CLOSE={
+    'notice':('client_notice_close','LabyClientNoticeCloseOnce'),
+    'announcement':('client_announcement_close','LabyClientAnnouncementCloseOnce'),
+}
 _PAGES={
     'disconnect':'LabyDisconnect6002Observed',
     'title':'LabyClientTitleObserved',
@@ -66,6 +72,10 @@ def game_session_pipeline(expected_player_id,*,server='cn-bilibili'):
     nodes.update(notice_pipeline())
     nodes['LabyClientNoticeObserved']=dict(recognition='And',
         all_of=['LabyClientNoticeTitle','LabyClientNoticeUpdates','LabyClientNoticeCalendar','LabyClientNoticeCloseLabel'],
+        action='DoNothing',next=[],timeout=3000,pre_delay=0,post_delay=0)
+    nodes.update(home_announcement_pipeline())
+    nodes['LabyClientAnnouncementObserved']=dict(recognition='And',
+        all_of=['LabyClientAnnouncementTitle','LabyClientAnnouncementActivityLabel','LabyClientAnnouncementCloseLabel'],
         action='DoNothing',next=[],timeout=3000,pre_delay=0,post_delay=0)
     def label(pattern,roi):
         return dict(recognition='OCR',expected=pattern,roi=roi,threshold=.8,
@@ -126,10 +136,13 @@ def game_session_pipeline(expected_player_id,*,server='cn-bilibili'):
     nodes['LabyClientDownloadRetryOnce']=dict(recognition='And',all_of=download,
         action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)
     # Upstream permits HOME without announcement and allows cold-start loading.
-    # This endpoint wait is read-only; only the full announcement guard can close it.
+    # This endpoint wait is read-only; only the full announcement guard can close
+    # it. Both sampled startup popups are reported so the caller closes each one
+    # in its own durable intent before HOME is accepted.
     nodes['LabyGameSessionAfterTitleObserved']=dict(recognition='Or',
         any_of=['LabyDateChangedObserved','LabyDisconnect6002Observed',
-                'LabyClientNoticeObserved','LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved'],
+                'LabyClientNoticeObserved','LabyClientAnnouncementObserved',
+                'LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved'],
         action='DoNothing',next=[],timeout=75000,rate_limit=250,pre_delay=0,post_delay=0)
     if selected.channel:
         nodes['LabyGameSessionAfterTitleObserved']['any_of'].append('LabyClientTitleObserved')
@@ -236,11 +249,12 @@ class MaaGameSession:
         return receipt
 
     def _after_title(self,batch):
-        """Two fresh identical Notice/HOME frames; startup budget is shared."""
+        """Two fresh identical popup/Notice/HOME frames; startup budget is shared."""
         self._checkpoint(batch);entry='LabyGameSessionAfterTitleObserved'
         wait='LabyGameSessionTitleStabilityWait'
         names=['LabyDateChangedObserved','LabyDisconnect6002Observed',
-               'LabyClientNoticeObserved','LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved']
+               'LabyClientNoticeObserved','LabyClientAnnouncementObserved',
+               'LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved']
         if self.server.channel:names.append('LabyClientTitleObserved')
         started=native.active_now();owner_deadline=native.RUN_DEADLINE.get()
         startup_seconds=120 if self.server.transient_rotation else 75
@@ -298,13 +312,14 @@ class MaaGameSession:
                     previous_page=previous_native=wait_native=None
                     continue
                 if native.active_now()>=expires:raise BatchStopped('game_session_readback_unknown')
-                page='notice' if hit=='LabyClientNoticeObserved' else 'client_home'
+                page=('notice' if hit=='LabyClientNoticeObserved' else
+                      'announcement' if hit=='LabyClientAnnouncementObserved' else 'client_home')
                 if page==previous_page:
                     receipt['title_stability']=dict(consecutive_frames=2,minimum_interval_ms=500,
                         page=page,previous_native=previous_native,wait_native=wait_native)
                     return page,receipt
                 # A different actual page replaces the prior candidate; it can
-                # never inherit HOME's stability or permanently skip Notice.
+                # never inherit HOME's stability or permanently skip a popup.
                 previous_page,previous_native=page,receipt
                 if expires-native.active_now()<.5:raise BatchStopped('game_session_readback_unknown')
                 with self.timings.measure('page_wait'):wait_native=native.run(self.tasker,wait)
@@ -459,12 +474,17 @@ class MaaGameSession:
             raise
 
     def _from_title(self,batch,snapshot,initial,*,actual=None,account_native=None):
-        # Click ACK and its fresh page follow-up have different postconditions.
-        # A startup wait cannot turn a confirmed Click into an unknown input.
+        """Click ACK and its fresh page follow-up have different postconditions.
+
+        A startup wait cannot turn a confirmed Click into an unknown input. Only
+        the two sampled startup popups (通知, 活动结束预告) are closed, each in its
+        own durable intent, and HOME is re-verified before the next click. If a
+        popup covers HOME inside a click window, positive not-sent native evidence
+        allows one bounded re-observation and retry of the same navigation intent.
+        """
         plan=(
             ('client_return_title','LabyDisconnectReturnTitleOnce','title'),
-            ('client_title_start','LabyClientTitleStartOnce','notice_or_client_home'),
-            ('client_notice_close','LabyClientNoticeCloseOnce','client_home'),
+            ('client_title_start','LabyClientTitleStartOnce','startup_home'),
             ('client_open_adventure','LabyClientHomeToAdventure','adventure'),
             ('client_open_labyrinth','LabyClientOpenLabyrinthOnce','labyrinth_home'),
         )
@@ -475,10 +495,12 @@ class MaaGameSession:
                     session_page='title',title_player_id=actual,account_source='client_title_ocr',
                     native=account_native,account_native=account_native))
             plan=plan[1:]
-        notice_required=True
+        result=None
         for operation,node,page in plan:
-            if operation=='client_notice_close' and not notice_required:continue
             self._checkpoint(batch)
+            if page=='startup_home':
+                result,actual,account_native=self._startup_home(batch,snapshot,actual,account_native)
+                continue
             fields=self._fields(snapshot,navigation_target=page,input_node=node)
             def send(oid,node=node,fields=fields):
                 sent=self._input(batch,node)
@@ -486,15 +508,21 @@ class MaaGameSession:
                     account_source='client_title_ocr',account_native=account_native)
                 return self.stamp(operation_id=oid,**fields,**account,
                     input_action_verified=True,client_page_verified=False,native=sent,input_native=sent)
-            clicked=batch.transaction(operation,fields,send)
+            try:
+                clicked=batch.transaction(operation,fields,send)
+            except BatchStopped as error:
+                # Native proof says this click was never dispatched, so a fresh
+                # observation may close only a sampled popup and retry once.
+                if operation!='client_open_adventure' or error.args!=('native_input_not_sent',):raise
+                self._drain_startup_popups(batch,snapshot,actual,account_native)
+                self._checkpoint(batch)
+                clicked=batch.transaction(operation,fields,send)
             self._checkpoint(batch)
-            if page=='notice_or_client_home':
-                observed_page,observed=self._after_title(batch)
-                notice_required=observed_page=='notice'
+            if page=='title':
+                observed_page='title';observed=self._wait(batch,page)
+                actual,observed=self._title(batch,batch.binding.account_id);account_native=observed
             else:
                 observed_page=page;observed=self._wait(batch,page)
-            if page=='title':
-                actual,observed=self._title(batch,batch.binding.account_id);account_native=observed
             if actual is None:raise BatchStopped('game_account_unknown')
             self._checkpoint(batch)
             result=batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,
@@ -502,6 +530,85 @@ class MaaGameSession:
                 account_native=account_native,input_action_verified=True,client_page_verified=True,
                 native=observed,input_native=clicked['input_native']),**fields,client_page_verified=True)
         return ClientSessionFacts('labyrinth_home',actual,result['native'],account_native=account_native)
+
+    def _startup_page_stamp(self,clicked,fields,actual,account_native,page,observed):
+        return self.stamp(operation_id=clicked['operation_id'],**fields,session_page=page,
+            title_player_id=actual,account_source='client_title_ocr',account_native=account_native,
+            input_action_verified=True,client_page_verified=True,native=observed,
+            input_native=clicked['input_native'])
+
+    def _close_startup_popup(self,batch,snapshot,operation,node,*,actual,account_native):
+        """One sampled popup close: durable intent, then two fresh next frames."""
+        fields=self._fields(snapshot,navigation_target='client_home',input_node=node)
+        def send(oid):
+            sent=self._input(batch,node)
+            return self.stamp(operation_id=oid,**fields,title_player_id=actual,
+                account_source='client_title_ocr',account_native=account_native,
+                input_action_verified=True,client_page_verified=False,native=sent,input_native=sent)
+        clicked=batch.transaction(operation,fields,send)
+        self._checkpoint(batch)
+        page,observed=self._after_title(batch)
+        self._checkpoint(batch)
+        result=batch.observation(self._startup_page_stamp(clicked,fields,actual,account_native,page,observed),
+            **fields,client_page_verified=True)
+        return page,observed,result
+
+    def _startup_home(self,batch,snapshot,actual,account_native):
+        """Start click, then close sampled popups until HOME is twice stable.
+
+        The 通知 panel and the 活动结束预告 popup can arrive after each other and
+        after HOME's first frames; each close is a separate durable intent and the
+        loop is capped so an unknown overlay stops instead of looping.
+        """
+        if actual is None:raise BatchStopped('game_account_unknown')
+        owner=native.RUN_DEADLINE.get();started=native.active_now()
+        token=native.RUN_DEADLINE.set(min(owner,started+120))
+        try:
+            fields=self._fields(snapshot,navigation_target='notice_or_client_home',
+                input_node='LabyClientTitleStartOnce')
+            def send(oid):
+                sent=self._input(batch,'LabyClientTitleStartOnce')
+                return self.stamp(operation_id=oid,**fields,title_player_id=actual,
+                    account_source='client_title_ocr',account_native=account_native,
+                    input_action_verified=True,client_page_verified=False,native=sent,input_native=sent)
+            clicked=batch.transaction('client_title_start',fields,send)
+            self._checkpoint(batch)
+            page,observed=self._after_title(batch)
+            self._checkpoint(batch)
+            result=batch.observation(self._startup_page_stamp(clicked,fields,actual,account_native,page,observed),
+                **fields,client_page_verified=True)
+            closings=0
+            while page!='client_home':
+                close=_STARTUP_POPUP_CLOSE.get(page)
+                if close is None or closings>=2:raise BatchStopped('game_session_readback_unknown')
+                closings+=1
+                page,observed,result=self._close_startup_popup(batch,snapshot,close[0],close[1],
+                    actual=actual,account_native=account_native)
+            return result,actual,account_native
+        finally:native.RUN_DEADLINE.reset(token)
+
+    def _drain_startup_popups(self,batch,snapshot,actual,account_native):
+        """Read-only recovery after positive not-sent evidence.
+
+        The previous intent is already settled as unsent, so closing a sampled
+        popup cannot replay it. Nothing is closed unless its full sampled anchors
+        are read; an unknown page stops the batch.
+        """
+        if actual is None:raise BatchStopped('game_account_unknown')
+        owner=native.RUN_DEADLINE.get();started=native.active_now()
+        token=native.RUN_DEADLINE.set(min(owner,started+60))
+        try:
+            self._checkpoint(batch)
+            page,observed=self._after_title(batch)
+            self._checkpoint(batch)
+            closings=0
+            while page!='client_home':
+                close=_STARTUP_POPUP_CLOSE.get(page)
+                if close is None or closings>=2:raise BatchStopped('game_session_readback_unknown')
+                closings+=1
+                page,observed,_=self._close_startup_popup(batch,snapshot,close[0],close[1],
+                    actual=actual,account_native=account_native)
+        finally:native.RUN_DEADLINE.reset(token)
 
     def _navigate(self,batch,snapshot,operation,node,page,*,actual=None,account_native=None):
         fields=self._fields(snapshot,session_page=page)

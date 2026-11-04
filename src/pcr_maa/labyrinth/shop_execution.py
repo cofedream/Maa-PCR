@@ -24,6 +24,49 @@ X=(56,441,825)
 # Fixed upstream shop card/dialog icon geometry, mapped from 1920x1080.
 SHOP_ICON_ROIS=((67,210,103,103),(453,210,103,103),(836,210,103,103))
 SHOP_DIALOG_ICON_ROI=(356,279,130,130)
+# Upstream 1920x1080 reference (500,930,350,85) mapped for the 1280x720 capture.
+# A locked/finished refresh keeps its "用N更新" text and frame but dims: live
+# frames measure ~163 inner luma while actionable and ~100 once the per-shop
+# refresh cap is reached, so OCR text/price alone cannot prove the control is
+# clickable. Only the inner blue body is sampled to avoid the bright border.
+REFRESH_BUTTON_RECT=(333,620,233,56)
+DISABLED_BUTTON_LUMA=110.0
+ENABLED_BUTTON_LUMA=145.0
+MIN_ENABLED_BUTTON_EVIDENCE=.50
+# The confirmation dialog shows within a couple of reads on live machines; a
+# disabled refresh never shows it at all, so a bounded probe must classify the
+# click as refused instead of spending the generic 30s readback budget.
+REFRESH_CONFIRM_BUDGET=12.
+REFRESH_LATE_BUDGET=8.
+
+def refresh_enabled_evidence(image):
+    """Upstream-parity inner-luma evidence for the refresh control, or None.
+
+    None means the frame does not cover the fixed 1280x720 geometry; synthetic
+    and offscreen images then keep the legacy OCR-only evidence path.
+    """
+    try:height,width=image.shape[:2]
+    except AttributeError:return None
+    x,y,w,h=REFRESH_BUTTON_RECT
+    if width<x+w or height<y+h:return None
+    left=x+round(w*.15);right=x+round(w*.85);top=y+round(h*.20);bottom=y+round(h*.80)
+    pixels=image[top:bottom:3,left:right:3,:3]
+    if pixels.size==0:return None
+    # Maa frames are BGR; Rec.709 luma, matching the upstream Android evidence.
+    luma=float(np.mean(pixels[:,:,0]*.0722+pixels[:,:,1]*.7152+pixels[:,:,2]*.2126))
+    return max(0.,min(1.,(luma-DISABLED_BUTTON_LUMA)/(ENABLED_BUTTON_LUMA-DISABLED_BUTTON_LUMA)))
+
+def _same_shop_row(left,right):
+    def row(value):
+        items=value.get('items') or ()
+        return tuple(sorted((item.get('slot'),item.get('kind'),item.get('name'),item.get('price'),
+            item.get('purchasable'),item.get('verified')) for item in items if isinstance(item,dict)))
+    return row(left)==row(right) and left.get('stock_state')==right.get('stock_state')
+
+def _same_shop(left,right,price):
+    return (left.get('balance')==right.get('balance') and refresh_quote(right)==price
+        and _same_shop_row(left,right))
+
 _READS={
  'Currency':(r'^持有阿尔法金币$',[570,625,235,48]),
  'Balance':(r'^[0-9][0-9,， ]*$',[830,625,115,48]),
@@ -55,6 +98,12 @@ def _refresh_price(words):
     try:price=_integer(match[1])
     except BatchStopped:return None
     return price if price>0 else None
+
+def refresh_quote(observation):
+    """Visible refresh price for this frame; None when the label carries no number."""
+    words=observation.get('words',{}).get('Refresh',())
+    if type(words) not in (list,tuple) or len(words)!=1 or type(words[0]) is not dict:return None
+    return _refresh_price(words)
 
 def shop_pipeline():
     nodes={f'LabyShopRead_{key}':dict(recognition='OCR',expected=pattern,roi=roi,threshold=.8,
@@ -215,13 +264,23 @@ class ShopRecognition(CustomRecognition):
             luma=float(np.mean(pixels[:,:,0]*.114+pixels[:,:,1]*.587+pixels[:,:,2]*.299))
             buttons[slot]=dict(box=words[f'Buy{slot}'][0]['box'],enabled=luma>=145,luma=luma)
         refresh=words.get('Refresh',[])
+        # The price grows per refresh (live frames: 300 then 600), never a fixed coin amount.
+        refresh_price=refresh_quote(dict(words=words))
         try:balance=_integer(_text(words['Balance'])) if len(words.get('Balance',[]))==1 else None
         except BatchStopped:balance=None
-        refresh_price=_refresh_price(refresh)
-        refresh_allowed=refresh_price is not None and balance is not None and balance>=refresh_price
-        refresh_known=refresh_price is not None and balance is not None or balance==0
+        # The button keeps its label/price when it is no longer actionable, so the
+        # inner-luma evidence is required in addition to OCR and balance. A frame
+        # that does not cover the fixed geometry keeps the legacy OCR-only result.
+        evidence=refresh_enabled_evidence(argv.image) if state=='shop' else None
+        refresh_enabled=None if evidence is None else evidence>=MIN_ENABLED_BUTTON_EVIDENCE
+        refresh_allowed=(refresh_price is not None and balance is not None
+            and balance>=refresh_price and refresh_enabled is not False)
+        refresh_known=(refresh_price is not None and balance is not None or balance==0
+            or refresh_enabled is False)
         payload=dict(state=state,words=words,buttons=buttons,same_frame=True,source='maa',
-            refresh_allowed=bool(refresh_allowed),refresh_known=refresh_known)
+            refresh_allowed=bool(refresh_allowed),refresh_price=refresh_price,refresh_known=bool(refresh_known),
+            refresh_enabled=refresh_enabled,
+            refresh_enabled_evidence=None if evidence is None else round(evidence,4))
         if state=='shop':
             try:
                 balance,items=parse_shop_inventory(words,buttons)
@@ -307,6 +366,47 @@ class MaaShop:
             batch.checkpoint();raise BatchStopped('shop_readback_unknown') from error
         finally:native.RUN_DEADLINE.reset(token)
 
+    def _probe_state(self,batch,expected,*,budget=REFRESH_CONFIRM_BUDGET):
+        """Bounded inspection that returns None instead of a fatal readback error.
+
+        Used only for the optional refresh transition: "the expected dialog never
+        appeared" is a business result the caller classifies, not an unknown page.
+        """
+        from .autoplay import _poll_pause
+        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+budget)
+        token=native.RUN_DEADLINE.set(deadline)
+        try:
+            while True:
+                batch.checkpoint()
+                if native.active_now()>=deadline:return None,None
+                try:current,receipt=self._capture()
+                except BatchStopped as error:
+                    if error.args!=('shop_readback_unknown',):raise
+                else:
+                    batch.checkpoint()
+                    if native.active_now()<deadline and current.get('state')==expected:return current,receipt
+                _poll_pause(self.tasker,batch,'LabyShopPollSpacing','shop_readback_unknown')
+        except RuntimeError as error:
+            if error.args not in (('Native task exceeded 90 seconds or inspection deadline',),
+                    ('Inspection deadline exceeded before task input',),
+                    ('Context deadline exceeded after synchronous return; outcome unknown',)):raise
+            batch.checkpoint();return None,None
+        finally:native.RUN_DEADLINE.reset(token)
+
+    def _capture_once(self,batch,*,budget=REFRESH_LATE_BUDGET):
+        """One bounded read for post-click classification; None when unreadable."""
+        token=native.RUN_DEADLINE.set(min(native.RUN_DEADLINE.get(),native.active_now()+budget))
+        try:return self._capture()
+        except BatchStopped as error:
+            if error.args!=('shop_readback_unknown',):raise
+            return None,None
+        except RuntimeError as error:
+            if error.args not in (('Native task exceeded 90 seconds or inspection deadline',),
+                    ('Inspection deadline exceeded before task input',),
+                    ('Context deadline exceeded after synchronous return; outcome unknown',)):raise
+            batch.checkpoint();return None,None
+        finally:native.RUN_DEADLINE.reset(token)
+
     def _input(self,state,box,*,name=None,price=None,mark=None,bonus=None,identity_method=None):
         if not _box(box):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='shop_input_unknown'))
         if state=='shop':
@@ -367,25 +467,65 @@ class MaaShop:
 
     def _refresh(self,batch,enter_id,block_id,current,cycle):
         words=current.get('words',{}).get('Refresh',())
-        price=_refresh_price(words)
-        if price is None or not current.get('refresh_allowed') or type(current.get('balance')) is not int or current['balance']<price:
+        price=refresh_quote(current)
+        if (len(words)!=1 or price is None or not current.get('refresh_allowed')
+                or current.get('refresh_enabled') is False
+                or type(current.get('balance')) is not int or current['balance']<price):
             raise BatchStopped('shop_refresh_quote_unknown')
         fields=dict(enter_id=enter_id,block_id=block_id,cycle=cycle,price=price,currency='run_coins')
         def proposal(oid):
             sent=self._input('refresh',words[0]['box'])
             return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('shop_refresh_proposal',fields,proposal)
-        dialog,receipt=self._wait_state(batch,'refresh_confirmation')
-        body,quoted_price=confirmation_terms(dialog)
-        if quoted_price!=price or not ('更新' in body or '刷新' in body):raise BatchStopped('shop_refresh_quote_unknown')
-        batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,native=receipt,input_native=clicked['input_native']),**fields)
-        def confirm(oid):
-            sent=self._input('refresh_confirmation',dialog['words']['Confirm'][0]['box'],price=price)
-            return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
-        clicked=batch.transaction('shop_refresh_purchase',fields,confirm)
-        result,receipt=self._wait_state(batch,'shop')
-        if result['balance']!=current['balance']-price:raise BatchStopped('shop_refresh_result_unknown')
-        return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,refresh_verified=True,native=receipt,input_native=clicked['input_native']),**fields)
+        dialog,receipt=self._probe_state(batch,'refresh_confirmation')
+        refused=False;late=late_receipt=effective=None
+        if dialog is None:
+            # A very slow machine can still surface the dialog after the probe
+            # budget; read fresh, bounded frames before classifying the click.
+            late,late_receipt=self._capture_once(batch)
+            if late is not None and late.get('state')=='refresh_confirmation':
+                dialog,receipt=late,late_receipt
+            elif late is not None and late.get('state')=='shop':
+                if _same_shop(current,late,price):
+                    # Require a second clean, unchanged read so one OCR flicker
+                    # cannot turn an optional refresh into a batch stop.
+                    again,again_receipt=self._capture_once(batch)
+                    if again is not None and again.get('state')=='refresh_confirmation':
+                        dialog,receipt=again,again_receipt
+                    elif again is not None and again.get('state')=='shop' and _same_shop(late,again,price):
+                        refused=True;late,late_receipt=again,again_receipt
+                    else:raise BatchStopped('shop_refresh_result_unknown')
+                elif late.get('balance')==current.get('balance')-price:
+                    # No dialog, but the coins were deducted exactly once: the
+                    # refresh took effect without the dialog. Never re-click.
+                    effective=late
+                else:raise BatchStopped('shop_refresh_result_unknown')
+            else:raise BatchStopped('shop_refresh_result_unknown')
+        if dialog is not None:
+            body,actual=confirmation_terms(dialog)
+            if actual!=price or not ('更新' in body or '刷新' in body):raise BatchStopped('shop_refresh_quote_unknown')
+            batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,native=receipt,input_native=clicked['input_native']),**fields)
+            def confirm(oid):
+                sent=self._input('refresh_confirmation',dialog['words']['Confirm'][0]['box'],price=price)
+                return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
+            clicked=batch.transaction('shop_refresh_purchase',fields,confirm)
+            result,receipt=self._wait_state(batch,'shop')
+            if result['balance']!=current['balance']-price:raise BatchStopped('shop_refresh_result_unknown')
+            return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,refresh_verified=True,native=receipt,input_native=clicked['input_native']),**fields)
+        # The click was sent, but the game never opened the confirmation dialog.
+        # This is the per-shop refresh cap / a locked control on live builds: the
+        # label keeps its price and the shop page stays unchanged. Treat it as a
+        # normal "refresh unavailable" business result so the shop can still buy
+        # imprints or leave instead of aborting the whole batch.
+        if refused:
+            batch.emit_log('商店刷新无响应，按不可刷新继续')
+            return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,
+                refresh_refused=True,native=late_receipt,input_native=clicked['input_native']),**fields)
+        if effective is not None:
+            return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,
+                refresh_verified=True,refresh_confirmation_missing=True,native=late_receipt,
+                input_native=clicked['input_native']),**fields)
+        raise BatchStopped('shop_refresh_result_unknown')
 
     def _imprint_following(self,batch,enter_id,identifier,owned,characters,selected):
         from .rewards import MaaRoleReward
@@ -431,9 +571,9 @@ class MaaShop:
             batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,page=scene.kind,native=scene.native,input_native=clicked['input_native']),**fields)
         raise BatchStopped('shop_imprint_result_unknown')
 
-    def run(self,batch,enter_id,block_id,*,owned=(),stacks=None,context=None,buy_relics=True,refresh_shop=False,area=None,locked_focus=None,priority=(),characters=None):
+    def run(self,batch,enter_id,block_id,*,owned=(),stacks=None,context=None,buy_relics=True,refresh_shop=False,area=None,locked_focus=None,priority=(),characters=None,final_shop=False):
         if self.blocked:raise BatchStopped('shop_blocked')
-        self.observer.stopped=batch.stopped;self.scene.stopped=batch.stopped;self.scene.observer.stopped=batch.stopped;observed_stacks=None if stacks is None else dict(stacks);purchased=[];calibrated_marks=set();roles=list(owned);refreshed=False;cycle=0;relic_cycle=0
+        self.observer.stopped=batch.stopped;self.scene.stopped=batch.stopped;self.scene.observer.stopped=batch.stopped;observed_stacks=None if stacks is None else dict(stacks);purchased=[];calibrated_marks=set();roles=list(owned);refreshed=False;cycle=0;relic_cycle=0;refresh_unavailable=False
         from .roles import strategy_value
         strategy=getattr(batch.settings,'strategy',None)
         policy={key:strategy_value(strategy,key,default) for key,default in (('baseline_last_area',3),('baseline_target',4),('debuff_pivot_minimum',12),('debuff_pivot_tolerance',2))}
@@ -450,14 +590,28 @@ class MaaShop:
             for _ in range(100):
                 batch.checkpoint();current,receipt=self._capture()
                 if current['state']!='shop':raise BatchStopped('shop_initial_page_unknown')
-                if not buy_relics or area==4 and not refresh_permitted:break
+                if not buy_relics or (area==4 and not (final_shop or refresh_permitted)):break
                 if not ready(current):current,receipt=self._wait_state(batch,'shop',accept=ready)
                 items=[dict(i,relic=Relic(**i['relic'])) if i['kind']=='relic' else dict(i) for i in current['items']]
                 observed_stacks=calibrated_stacks(observed_stacks,items)
                 calibrated_marks.update(i['relic'].mark for i in items if i['kind']=='relic')
-                if exhausted(current) and refresh_permitted and current.get('refresh_allowed'):
-                    self._refresh(batch,enter_id,block_id,current,cycle);cycle+=1;relic_cycle=0;refreshed=True;continue
-                selected=None if observed_stacks is None else shop_relic(observed_stacks,items,balance=current['balance'],buy=buy_relics,area=area,allow_area4=refresh_permitted,locked_focus=locked_focus,priority=priority,**policy)
+                purchasable=any(i.get('purchasable') is True for i in items)
+                refresh_price=refresh_quote(current)
+                refresh_ok=bool(not refresh_unavailable and refresh_permitted
+                    and current.get('refresh_allowed') and current.get('refresh_enabled') is not False
+                    and (refresh_price is None or type(current.get('balance')) is int and current['balance']>=refresh_price))
+                # Last shop of the run must not carry run coins out: keep
+                # refreshing even when the leftover stock has nothing purchasable.
+                if (exhausted(current) or (final_shop and not purchasable)) and refresh_ok:
+                    result=self._refresh(batch,enter_id,block_id,current,cycle) or {}
+                    if result.get('refresh_refused') is True:
+                        # The control is already locked (per-shop refresh cap);
+                        # never re-click it in this visit. Continue with the
+                        # normal imprint fallback / leave path below.
+                        refresh_unavailable=True
+                        continue
+                    cycle+=1;relic_cycle=0;refreshed=True;continue
+                selected=None if observed_stacks is None else shop_relic(observed_stacks,items,balance=current['balance'],buy=buy_relics,area=area,final_shop=final_shop,allow_area4=refresh_permitted,locked_focus=locked_focus,priority=priority,**policy)
                 if selected is None and any(i['kind']=='relic' and i['purchasable'] for i in items):
                     raise BatchStopped('shop_relic_state_unknown')
                 if selected is None:

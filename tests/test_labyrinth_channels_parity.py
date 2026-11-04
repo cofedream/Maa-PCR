@@ -280,7 +280,7 @@ def test_channel_title_retry_waits_five_seconds_and_requires_fresh_expected_iden
     def observe(batch,node,**_):
         clock[0],page=next(pages)
         names=['LabyDateChangedObserved','LabyDisconnect6002Observed','LabyClientNoticeObserved',
-            'LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved','LabyClientTitleObserved']
+            'LabyClientAnnouncementObserved','LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved','LabyClientTitleObserved']
         upto=names.index(page)+1
         return dict(tasker_inited=True,task_id=1,native_ok=True,nodes=[dict(name=node,completed=True,
             recognition=[dict(name=name,algorithm='And',box=[0,0,1,1] if name==page else None)
@@ -303,7 +303,7 @@ def test_late_channel_title_frame_never_sends_another_title_click(monkeypatch):
     def observe(batch,node,**_):
         clock[0]=76
         names=['LabyDateChangedObserved','LabyDisconnect6002Observed','LabyClientNoticeObserved',
-            'LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved','LabyClientTitleObserved']
+            'LabyClientAnnouncementObserved','LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved','LabyClientTitleObserved']
         return dict(tasker_inited=True,task_id=1,native_ok=True,nodes=[dict(name=node,completed=True,
             recognition=[dict(name=name,algorithm='And',box=[0,0,1,1] if name==names[-1] else None) for name in names])])
     monkeypatch.setattr(session,'_channel_observe',observe)

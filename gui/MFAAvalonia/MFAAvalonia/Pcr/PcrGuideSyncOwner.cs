@@ -99,10 +99,13 @@ internal static class PcrGuideSyncOwner
                 if (PcrLabyrinthCaptchaMessage.TryParse(line.Text, out var captcha))
                 {
                     cancel.Token.ThrowIfCancellationRequested();
-                    captcha!.OpenPage(UrlUtilities.OpenUrl);
+                    var inApp = await PcrCaptchaHost.OpenAsync(captcha!.Url);
+                    cancel.Token.ThrowIfCancellationRequested();
+                    if (!inApp) captcha.OpenPage(UrlUtilities.OpenUrl);
                     deadline.CancelAfter(TimeSpan.FromSeconds(810));
                     continue;
                 }
+                PcrCaptchaHost.Hide();
                 var bytes = ReadResult(line.Text);
                 // Validate before publication; failure leaves the previous panel untouched.
                 _ = PcrGuideData.AccountSnapshot(bytes, input.Catalog!, request["account_id"]!.ToString(), DateTimeOffset.Now);
@@ -116,6 +119,7 @@ internal static class PcrGuideSyncOwner
         }
         finally
         {
+            PcrCaptchaHost.Hide();
             request.Remove("credentials");
             try
             {

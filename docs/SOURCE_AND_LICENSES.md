@@ -7,7 +7,7 @@
 - 本项目原始 Python、pipeline 和工具代码使用根目录 `LICENSE` 的 MIT 许可。
 - 修改后的 MFAAvalonia 界面遵守 GPL-3.0，原文在 `licenses/MFAAvalonia-LICENSE.txt`，对应源码在源码包 `gui/MFAAvalonia/`。
 - MaaFramework 原生库和 C# binding 遵守 LGPL-3.0；MaaAgentBinary 项目与其内部各组件分别保留原许可，不能用一个许可证覆盖它们。
-- 字体、OCR 模型、GUI 第三方库、Python 包和 native vendor 库保留原始许可证及版权信息。旧来源审计是历史材料；本版新增来源和 notice 以 `licenses/verified-r24/MATERIALS.json` 为准。
+- 字体、OCR 模型、GUI 第三方库、Python 包和 native vendor 库保留原始许可证及版权信息。旧来源审计是历史材料；本版新增来源和 notice 以 `licenses/verified-r24/MATERIALS.json` 为准。人工验证窗口使用 Microsoft.Web.WebView2，原始许可和 NOTICE 保留在 `docs/licenses/nuget/Microsoft.Web.WebView2/`；WebView2 Evergreen 运行时由系统单独安装，不随包分发。
 - 原创替换图标、缺图占位、通知音及文件夹矢量的作者、许可、生成代码和哈希保留在匹配 GUI 源码中。它们不是游戏截图或第三方图片的改色版本。
 
 整个压缩包不统一重许可为 MIT 或 GPL。GPL/LGPL 源码交付和哈希记录不代表游戏官方授权。

@@ -1,4 +1,9 @@
-"""Shop refresh uses the visible quote throughout the existing purchase flow."""
+"""Shop refresh uses the visible quote throughout the existing purchase flow.
+
+The merged refresh path also requires the control's inner-luma evidence before it
+treats the quote as actionable, so synthetic frames have to carry an enabled
+refresh button instead of a blank fill.
+"""
 from types import SimpleNamespace as NS
 
 import numpy as np
@@ -7,6 +12,14 @@ import pytest
 from pcr_maa.labyrinth import shop_execution as shops
 from pcr_maa.labyrinth.batch import BatchStopped
 from test_labyrinth_reward_shop_upstream import harness, word
+
+
+def enabled_shop_frame(luma=200):
+    """1280x720 synthetic shop frame with an actionable refresh control."""
+    image = np.zeros((720, 1280, 3), dtype=np.uint8)
+    x, y, w, h = shops.REFRESH_BUTTON_RECT
+    image[y:y + h, x:x + w, :] = luma
+    return image
 
 
 def observe_refresh(text, balance):
@@ -19,7 +32,7 @@ def observe_refresh(text, balance):
             text=text, box=shops._READS[key][1], score=.99)] if text is not None else []})
 
     return shops.ShopRecognition().analyze(NS(run_recognition=recognize), NS(
-        image=np.zeros((720, 1280, 3), dtype=np.uint8), custom_recognition_param='{}')).detail
+        image=enabled_shop_frame(), custom_recognition_param='{}')).detail
 
 
 @pytest.mark.parametrize('text,balance,allowed,known', [
@@ -47,6 +60,7 @@ def test_refresh_quote_confirmation_journal_and_balance_use_the_same_price(price
     states = iter([(dict(state='refresh_confirmation', words={
         'DialogBody': [word(f'要消耗阿尔法金币×{price}更新商店')], 'Confirm': [word('确认')]}), {}),
         (dict(state='shop', balance=3000-price), {})])
+    shop._probe_state = lambda *args: next(states)
     shop._wait_state = lambda *args: next(states)
     calls = []
     shop._input = lambda state, *args, **kwargs: calls.append((state, kwargs)) or dict(native_ok=True)
@@ -69,6 +83,7 @@ def test_dynamic_refresh_keeps_quote_and_result_checks(change):
     states = iter([(dict(state='refresh_confirmation', words={
         'DialogBody': [word(f'要消耗{currency}×{900 if change == "dialog_price" else 600}更新商店')],
         'Confirm': [word('确认')]}), {}), (dict(state='shop', balance=991), {})])
+    shop._probe_state = lambda *args: next(states)
     shop._wait_state = lambda *args: next(states)
     calls = []
     shop._input = lambda state, *args, **kwargs: calls.append(state) or dict(native_ok=True)

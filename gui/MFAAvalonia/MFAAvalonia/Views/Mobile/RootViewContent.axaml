@@ -12,6 +12,7 @@
     xmlns:markup="https://codewf.com"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pages="clr-namespace:MFAAvalonia.Views.Pages"
+    xmlns:pcr="clr-namespace:MFAAvalonia.Pcr"
     xmlns:suki="https://github.com/kikipoulet/SukiUI"
     xmlns:styling="clr-namespace:Avalonia.Styling;assembly=Avalonia.Base"
     xmlns:windows="clr-namespace:MFAAvalonia.ViewModels.Windows"
@@ -140,5 +141,8 @@
 
         <!-- First-use tutorial overlay -->
         <controls:TeachingTipOverlay x:Name="TutorialOverlay" />
+
+        <!-- Labyrinth/clan human verification stays inside the main window. -->
+        <pcr:PcrCaptchaOverlay x:Name="CaptchaOverlay" />
     </Grid>
 </UserControl>

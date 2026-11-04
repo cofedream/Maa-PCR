@@ -87,29 +87,6 @@ def test_stable_ties_keep_order_variant_merge_and_rival(matcher, monkeypatch):
     assert actual.candidates[0].variant == matcher.entries[0]['variant']
 
 
-@pytest.mark.parametrize('gap,inside_selected',[(.079, True), (.08, False), (.081, False)])
-def test_roster_override_keeps_strict_existing_gap(matcher, monkeypatch, gap, inside_selected):
-    frame = art_frame(matcher)
-    outside = 0
-    inside = next(i for i, entry in enumerate(matcher.entries) if entry['character_id'] != matcher.entries[outside]['character_id'])
-    requested = []
-
-    def fixed(frame, box, mask, width, *, _prepared=None, _indices=None):
-        out = np.zeros(801)
-        if width == 12:
-            out[outside] = gap
-        else:
-            requested.append(_indices.tolist())
-        return out
-
-    monkeypatch.setattr(matcher, '_scores', fixed)
-    role = matcher.entries[inside]['character_id']
-    matcher.match(frame, BOXES[0], roster=[role])
-    assert (outside not in requested[0]) is inside_selected
-    if inside_selected:
-        assert all(matcher.entries[i]['character_id'] == role for i in requested[0])
-
-
 def test_private_fine_subset_still_rejects_different_array(matcher):
     frame = art_frame(matcher)
     prepared = dict(frame=frame)

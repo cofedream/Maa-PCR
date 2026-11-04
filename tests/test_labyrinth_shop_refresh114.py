@@ -68,8 +68,9 @@ def test_actual_quote_then_refresh_ack_needs_independent_balance_readback(tmp_pa
     try:
         dialog,_=shop._capture()
         # Actual quote, simulated ACK and successor; no claim of real refresh spending.
-        states=iter([(dialog,{}),(dict(state='shop',balance=balance,items=[]),{})]);calls=[]
-        shop._wait_state=lambda *a:next(states)
+        calls=[]
+        shop._probe_state=lambda *a:(dialog,{})
+        shop._wait_state=lambda *a:(dict(state='shop',balance=balance,items=[]),{})
         def ack(state,*a,**kw):
             assert batch.journal.events()[-1]['state']=='in_flight'
             calls.append(state);return dict(native_ok=True)

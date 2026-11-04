@@ -80,9 +80,9 @@ def choose_relic(stacks,candidates,*,locked_focus=None,area=None,priority=(),bas
     phase='baseline' if early and immediate is None and deficits.get(choice.mark,0)>0 else 'debuff15' if effective=='弱体' and (pivot or immediate and immediate.mark=='弱体') else 'capstone15'
     return RelicChoice(choice,effective,phase)
 
-def shop_relic(stacks,items,*,balance,buy=True,area=None,allow_area4=False,locked_focus=None,priority=(),**policy):
+def shop_relic(stacks,items,*,balance,buy=True,area=None,final_shop=False,allow_area4=False,locked_focus=None,priority=(),**policy):
     if type(balance) is not int or balance<0: return None
-    if not buy or area==4 and not allow_area4: return None
+    if not buy or area==4 and not (final_shop or allow_area4): return None
     eligible=[i for i in items if i.get('verified') is True and i.get('kind')=='relic'
               and i.get('currency')=='run_coins' and type(i.get('price')) is int
               and 0<i['price']<=balance and i.get('purchasable') is True

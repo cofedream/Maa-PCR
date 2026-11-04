@@ -331,27 +331,34 @@ class MaaEncounter:
         return result
 
 def scan_effective(characters,batch,stamp,enter_id,block_id,*,page,roster):
-    from .character_recognition import CharacterNavigation
+    from .character_recognition import CharacterNavigation,formation_complete
     if page not in ('battle','boss'):raise ValueError('effective_page_required')
     nav=CharacterNavigation(characters,stamp,roster=roster);observation,_=characters.read(batch,page,roster=roster)
     if observation['filter']!='EFFECTIVE_EFFECT':
         observation=nav.move(batch,enter_id,page,observation,filter='EFFECTIVE_EFFECT',block_id=block_id)
     ids=set();skipped=False
     if observation.get('empty_effective_verified') is not True:
-        observation=nav.edge(batch,enter_id,page,observation,'up',block_id=block_id)
-        same=0;anchor=observation
-        for _ in range(24):
-            if observation['filter']!='EFFECTIVE_EFFECT':raise BatchStopped('effective_filter_changed')
+        if formation_complete(observation):
+            # Fewer cards than one 8x2 formation screen: the filtered list is
+            # already whole, so top/down swipes cannot reveal another identity.
             for card in observation['cards']:
                 if card.get('trusted') is True and card.get('character_id') in roster:ids.add(card['character_id'])
                 else:skipped=True
-            before=observation
-            observation=nav.move(batch,enter_id,page,before,direction='down',block_id=block_id)
-            unchanged=nav.unchanged(anchor,observation)
-            same=same+1 if unchanged else 0
-            if not unchanged:anchor=observation
-            if same>=2:break
-        else:raise BatchStopped('character_list_edge_unknown')
+        else:
+            observation=nav.edge(batch,enter_id,page,observation,'up',block_id=block_id)
+            same=0;anchor=observation
+            for _ in range(24):
+                if observation['filter']!='EFFECTIVE_EFFECT':raise BatchStopped('effective_filter_changed')
+                for card in observation['cards']:
+                    if card.get('trusted') is True and card.get('character_id') in roster:ids.add(card['character_id'])
+                    else:skipped=True
+                before=observation
+                observation=nav.move(batch,enter_id,page,before,direction='down',block_id=block_id)
+                unchanged=nav.unchanged(anchor,observation)
+                same=same+1 if unchanged else 0
+                if not unchanged:anchor=observation
+                if same>=2:break
+            else:raise BatchStopped('character_list_edge_unknown')
     elif observation.get('cards'):raise BatchStopped('effective_empty_conflict')
     observation=nav.move(batch,enter_id,page,observation,filter='ALL',block_id=block_id)
     # A completed empty scan stays empty; there is no catalog/old-encounter fallback.

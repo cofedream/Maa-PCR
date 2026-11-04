@@ -74,6 +74,7 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
         <PackageReference Include="NETCore.Encrypt" Version="2.1.1" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
         <PackageReference Include="runtime.native.System.Net.Http" Version="4.3.1" />
