@@ -363,6 +363,34 @@ internal static class StartupActionsChecks
                 }
                 finally { if (!helper.HasExited) { helper.Kill(true); helper.WaitForExit(3000); } }
             }
+            // Reproduce a database log arriving while the human captcha layer is open.
+            var overlay = new PcrCaptchaOverlay { IsVisible = true };
+            var host = typeof(PcrCaptchaOverlay).Assembly.GetType("MFAAvalonia.Pcr.PcrCaptchaHost", true)!;
+            host.GetMethod("Attach", Hidden)!.Invoke(null, [overlay]);
+            File.WriteAllText(script, "import sys,json\njson.loads(sys.stdin.readline())\n"
+                + "print(json.dumps({'kind':'log','text':'游戏数据库已更新，下次任务将使用新数据。'}),flush=True)\n"
+                + "print(json.dumps({'kind':'control','state':'paused'}),flush=True)\n"
+                + "sys.stdin.readline()\n");
+            var pending = (Task)typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner", true)!
+                .GetMethod("RequestStartAsync", Hidden)!.Invoke(null, [vm])!;
+            try
+            {
+                var timer = Stopwatch.StartNew();
+                while (!vm.LabyrinthSettings.IsPaused && !pending.IsCompleted && timer.Elapsed < TimeSpan.FromSeconds(15))
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    Thread.Sleep(2);
+                }
+                Require(vm.LabyrinthSettings.IsPaused, "captcha_fixture_background_messages_received");
+                Require(overlay.IsVisible, "background_log_and_pause_keep_captcha_visible");
+            }
+            finally
+            {
+                vm.StopTask();
+                Complete(pending);
+                host.GetMethod("Detach", Hidden)!.Invoke(null, [overlay]);
+            }
+            Require(!overlay.IsVisible && !vm.IsRunning, "stopping_owner_closes_captcha");
         }
         finally { processField.SetValue(null, previous); }
     }

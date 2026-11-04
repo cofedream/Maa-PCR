@@ -204,9 +204,8 @@ internal static class PcrLabyrinthOwner
                         DuplicatePropertyNameHandling=DuplicatePropertyNameHandling.Error });
                 } catch { throw new InvalidOperationException("黎明界组件返回了无效消息，本次任务已停止。"); }
                 var kind=(string?)value["kind"];
-                // Any business message after the captcha means the human wait has
-                // resolved (proof, cancel or timeout); the layer must not linger.
-                if (kind!="captcha") PcrCaptchaHost.Hide();
+                // Background logs and pause notifications can arrive during the human wait.
+                if (kind is "progress" or "result") PcrCaptchaHost.Hide();
                 if (kind=="player_log") { vm.ReceivePlayerLog(feedbackRun,value); continue; }
                 if (kind=="control") {
                     var state=(string?)value["state"];

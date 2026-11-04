@@ -7782,7 +7782,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
-      "local_sha256": "817eb194daab106fb6a7ace69e0e20bbca9252f25e6b27de1c1e1a7813258519",
+      "local_sha256": "af2d27bfa8dfc3d30b7a8869549e0c743c17dda90404dc82ffd48cbc8d73e5dd",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
