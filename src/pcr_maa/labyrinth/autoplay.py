@@ -340,6 +340,11 @@ class NodePixels:
             image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),cv2.IMREAD_UNCHANGED)
             if image is None or image.ndim!=3 or image.shape[2]!=4:raise BatchStopped('node_resource_invalid')
             rgb=image[:,:,:3];mask=image[:,:,3]>=128
+            if attribute=='boss_anchor_active':
+                # Boss feet obscure the upper corners; retain the nameplate and lower base.
+                mask[:30]=False
+                mask[:65,:65]=False
+                mask[:65,140:]=False
             light,gradient=self._features(rgb)
             interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
             setattr(self,attribute,(rgb,mask,light,gradient,interior))

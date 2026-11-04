@@ -2,10 +2,12 @@
 both the locked (grey-blue) and the unlocked (magenta-glowing) state."""
 import shutil
 import sys
+from hashlib import sha256
 from pathlib import Path
 
 import cv2
 import numpy as np
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
@@ -73,6 +75,28 @@ def test_active_anchor_locates_unlocked_boss_platform():
     assert row['block_type'] == 8 and row['active'] is True
     assert row['template'] == 'node_boss_platform_active.png'
     assert row['score'] >= .99 and row['color_score'] >= .95
+
+
+@pytest.mark.parametrize('number,digest', [
+    (1, '56c48ab59d2536182b8b89e380a0782303491b86e50504fcaca7f5e3803901a3'),
+    (2, 'bca1f15f3da2ca7db957bd4dfad4aaeb7c82fc74880141025ef74f6a9394f6d5'),
+])
+def test_dragon_feet_do_not_hide_the_final_boss(number, digest):
+    from pcr_maa.labyrinth.autoplay import bind_route_target
+    from pcr_maa.labyrinth.routes import Node, Route
+
+    data = (ROOT / f'tests/data/labyrinth-boss-dragon-20261104-{number}.png').read_bytes()
+    assert sha256(data).hexdigest() == digest
+    frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    columns = NodePixels().final_boss(frame)
+    assert len(columns) == 1 and len(columns[0]) == 1
+    assert columns[0][0]['box'] == [539, 366, 203, 141]
+    current = Node(50701, 5, 7, 1, 7, (50801,))
+    boss = Node(50801, 5, 8, 1, 8, ())
+    route = Route(1, (current, boss), (current, boss), 'protocol')
+    target = bind_route_target(route, current, columns)
+    assert target is not None and target['target_block_id'] == 50801
+    assert target['detected_block_type'] == 8
 
 
 def test_active_platform_is_located_by_the_anchor_not_collected_as_a_node():
