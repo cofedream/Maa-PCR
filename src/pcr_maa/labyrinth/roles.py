@@ -243,7 +243,13 @@ class Optimizer:
         # fight, and the no-anchor penalty already scores it lower, so it fights
         # the best available team instead of ending the batch (2026-11-02 live
         # run, six-role pool).
-        if not found and gated:found=rank(False)
+        # This relaxation belongs to the caller's ladder, not to the cohesive
+        # pass: with prefer_single the gate-reachable front may be the other
+        # damage system, so a relaxed pure-system team is not an alternative to
+        # the mixed team, it is a worse one. Both cohesive callers (best(), and
+        # boss_plan's supplement fill) treat an empty result as "search the mixed
+        # pool", which is where the relaxation then happens.
+        if not found and gated and not cohesive:found=rank(False)
         return found
     def best(self,ids,c,*,required=(),battle=False,system_only=False,excluded=()):
         ids=tuple(dict.fromkeys(ids))

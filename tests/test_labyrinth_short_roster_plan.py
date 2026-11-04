@@ -96,14 +96,16 @@ def test_forced_short_roster_prepares_the_team_instead_of_stopping(monkeypatch):
     assert {role for role,_ in chars.inputs}==set(OPENING)
 
 
-def synthetic_profile(uid,position,*,tank=False):
+def synthetic_profile(uid,position,*,tank=False,damage='PHYSICAL',front=0):
+    magic=damage=='MAGIC'
     return Profile(dict(characterId=uid,displayName=uid,roleClass='掩护者' if tank else '攻击者',
-        attribute='FIRE',damageType='PHYSICAL',position=position,userScore=60,modelStatus='database-v2',
-        physicalTeamUplift=0,magicTeamUplift=0,physicalDamage1Target=60,magicDamage1Target=0,
-        physicalDamagePotential=60,magicDamagePotential=0,dataConfidence=dict(support='present'),
+        attribute='FIRE',damageType=damage,position=position,userScore=60,modelStatus='database-v2',
+        physicalTeamUplift=0,magicTeamUplift=0,physicalDamage1Target=0 if magic else 60,
+        magicDamage1Target=60 if magic else 0,physicalDamagePotential=0 if magic else 60,
+        magicDamagePotential=60 if magic else 0,dataConfidence=dict(support='present'),
         support=dict(universalSurvival=40 if tank else 0),
-        functions=dict(reliableVanguard=90 if tank else 0,selfSustain=80 if tank else 0,healing=0,
-            singleTargetDamage=60,physicalDefenseDown=40,magicDefenseDown=40)))
+        functions=dict(reliableVanguard=90 if tank else front,selfSustain=80 if tank else front,
+            healing=0,singleTargetDamage=60,physicalDefenseDown=40,magicDefenseDown=40)))
 
 
 # Every five-member combination here keeps a fragile role in the front slot, so
@@ -143,3 +145,27 @@ def test_gate_dead_end_prepares_and_fights_instead_of_stopping(monkeypatch):
     assert len(result['team'])==5 and set(result['team'])<=set(roster)
     assert team.prepared[(113,30203)]==sorted(result['team']) and team.pages[(113,30203)]=='battle'
     assert len(chars.inputs)==5
+
+
+# prefer_single must not buy a pure damage system with the front line.  The only
+# gate-reaching role here is the magic front, so every gate-valid team is mixed;
+# the relaxed pure-system pass answered first and returned frontline 0 (a team
+# that fails the very gate the relaxation dropped).  2026-11-04 review.
+PREFER_SINGLE_ROLES=[synthetic_profile(f'dps{i}',2+i) for i in range(5)]+[
+    synthetic_profile('magic_front',1,damage='MAGIC',front=100)]
+
+
+def test_prefer_single_keeps_the_reachable_front_instead_of_a_pure_system():
+    roles=PREFER_SINGLE_ROLES;optimizer=dead_end_optimizer(roles);context=Context(prefer_single=True)
+    plan=optimizer.best(tuple(p.id for p in roles),context,battle=True)
+    assert plan is not None and 'magic_front' in plan.members
+    assert optimizer.eligible(tuple(optimizer.profiles[uid] for uid in plan.members),context)
+
+
+def test_prefer_single_still_fights_a_pool_where_no_team_passes_the_gate():
+    # The same relaxation must keep working where nothing can pass the gate: with
+    # prefer_single the mixed search now owns it, so the batch still fights.
+    roles=[*DEAD_END_ROLES,synthetic_profile('magic_front',700,damage='MAGIC',front=100)]
+    optimizer=dead_end_optimizer(roles);context=Context(prefer_single=True)
+    plan=optimizer.best(tuple(p.id for p in roles),context,battle=True)
+    assert plan is not None and len(plan.members)==5
