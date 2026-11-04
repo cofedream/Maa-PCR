@@ -4,6 +4,7 @@ are read independently. Private SDK creation/account qualification remains
 with the caller. Generic card resources come from the pinned upstream pack.
 """
 import time
+from collections.abc import Mapping
 from .. import native
 from .batch import BatchStopped
 from .timing import Timings
@@ -17,11 +18,13 @@ def _guild_units(settings,guild_id):
 
     Optional: configurations saved before this field (or older GUI builds) have
     no guild_units and keep the historical per-card matching path.  Settings
-    validation already guarantees unique 4-6 digit ids per guild.
+    validation already guarantees unique 4-6 digit ids per guild, and freezes
+    the parsed mapping (MappingProxyType), so any Mapping is accepted here; an
+    exact-dict check silently dropped every real parsed configuration.
     """
     strategy=getattr(settings,'strategy',None)
     units=getattr(strategy,'guild_units',None) if strategy is not None else None
-    if type(units) is not dict:return None
+    if not isinstance(units,Mapping):return None
     value=units.get(str(guild_id)) if type(guild_id) is int else None
     if type(value) not in (tuple,list) or not value:return None
     return tuple(value)

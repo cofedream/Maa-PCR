@@ -222,3 +222,16 @@ def test_opening_guild_units_helper_is_optional_and_type_safe():
     assert _guild_units(NS(strategy=NS(guild_units={'4': units})), 5) is None
     assert _guild_units(NS(strategy=NS(guild_units={'5': []})), 5) is None
     assert _guild_units(NS(strategy=NS(guild_units={'5': ('1049',)})), '5') is None
+
+
+def test_opening_guild_units_survives_real_settings_parsing():
+    # Settings.parse freezes the guild map (MappingProxyType), so the helper must
+    # accept any Mapping: an exact-dict check returned None for every real GUI
+    # configuration and silently dropped expected_roster from the whole
+    # invitation path (2026-11-04 review).
+    settings = Settings.parse({'version': 1, 'goals': [{'guild_id': 5, 'clears': 1}],
+                               'strategy': {'guild_units': {'5': ['1049', '1091', '1171']}}})
+    assert type(settings.strategy.guild_units) is not dict
+    assert _guild_units(settings, 5) == ('1049', '1091', '1171')
+    assert _guild_units(settings, 4) is None
+    assert _guild_units(Settings.parse({'version': 1, 'goals': [{'guild_id': 5, 'clears': 1}]}), 5) is None
