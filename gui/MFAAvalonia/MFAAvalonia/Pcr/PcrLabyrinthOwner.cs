@@ -309,8 +309,14 @@ internal static class PcrLabyrinthOwner
             if (run.Child is { Exited: false }) {
                 try {
                     await run.Child.Send("{\"kind\":\"stop\"}").WaitAsync(TimeSpan.FromSeconds(1));
-                    // Allow the bounded 90-second native action and 20-second cleanup to finish.
-                    await Task.WhenAll(run.Child.StdoutCompletion,run.Child.StderrCompletion).WaitAsync(TimeSpan.FromSeconds(120));
+                    // The owned process exiting is the stop boundary: allow the bounded
+                    // 90-second native action and 20-second cleanup to finish. Its stdout/
+                    // stderr pipes can stay open after exit while a descendant of this
+                    // private Job keeps an inherited handle, so pipe EOF is not an exit
+                    // signal; Dispose terminates the Job and proves the final exit.
+                    var exitedBy=DateTime.UtcNow.AddSeconds(120);
+                    while (!run.Child.Exited && DateTime.UtcNow<exitedBy)
+                        await Task.Delay(50);
                 } catch { /* The private Job enforces final exit below. */ }
             }
         } catch (Exception ex) {
