@@ -103,7 +103,8 @@ internal static class PlayerLogChecks
                 using var image = new RenderTargetBitmap(new PixelSize(900,260)); image.Render(view);
                 image.Save(Path.Combine(root,id+"-live-log.png"));
                 Check(view.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(t=>t.Text!.Contains("合成示例")),"shared_selectable_view:"+id);
-                CheckFeedback(view,vm,root,id);
+                CheckFeedback(view,vm,root,id,false);
+                CheckFeedback(view,vm,root,id,true);
                 vm.LabyrinthLogRows.Clear(); Check(Directory.GetFiles((string)Property(Property(vm,"PlayerLog")!,"DirectoryPath")!).Length>0,"clear_only_panel:"+id);
             }
             finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
@@ -112,12 +113,13 @@ internal static class PlayerLogChecks
         CheckRunHandoff(owner);
         Console.WriteLine($"PCR player log checks passed: {count}; cache/ZIP <=16MiB, isolation, redaction, stale output, three rendered profiles, awaitable cleanup; game inputs=0; messages sent=0");
     }
-    private static void CheckFeedback(PcrLiveLogView view,TaskQueueViewModel vm,string root,string id)
+    private static void CheckFeedback(PcrLiveLogView view,TaskQueueViewModel vm,string root,string id,bool fromError)
     {
         var actions=typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrFeedbackActions",true)!;
         var opens=new List<string>();var copies=new List<string>();Window? dialog=null;
         var previous=actions.GetFields(Hidden).ToDictionary(f=>f,f=>f.GetValue(null));
-        var target=Path.Combine(root,id+"-feedback.zip");
+        var label=id+(fromError?"-error":"-export");
+        var target=Path.Combine(root,label+"-feedback.zip");
         var file=DispatchProxy.Create<IStorageFile,PlayerLogStorageProxy>();
         ((PlayerLogStorageProxy)(object)file).Filename=target;
         try
@@ -129,9 +131,13 @@ internal static class PlayerLogChecks
             var store=Property(vm,"PlayerLog")!;
             var imagePath=Path.Combine((string)Property(store,"DirectoryPath")!,"image-"+new string('f',32)+".png");
             using(var picture=new RenderTargetBitmap(new PixelSize(1280,720))) picture.Save(imagePath);
-            vm.PcrStartError="合成报错：此测试没有实际游戏、账号或反馈提交。";
-            Call(view,"ShowExport",true);Dispatcher.UIThread.RunJobs();
+            vm.PcrStartError=fromError?"合成报错：此测试没有实际游戏、账号或反馈提交。":"";
+            var entry=view.GetLogicalDescendants().OfType<Button>().First(b=>(string?)b.Content==(fromError?"反馈问题":"导出本次日志"));
+            Check(entry.IsEffectivelyVisible && entry.IsEnabled,"toolbar_entry:"+label);
+            entry.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             Check(dialog!=null,"feedback_window_opened:"+id);
+            Check(dialog!.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(t=>t.IsEffectivelyVisible && t.Text?.Contains("a877236828@gmail.com")==true),"visible_feedback_address:"+label);
+            Check(opens.Count==0,"opening_does_not_share:"+label);
             void Click(string name)=>dialog!.GetLogicalDescendants().OfType<Button>().First(b=>(string?)b.Content==name)
                 .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             void Until(Func<bool> ready)
@@ -142,17 +148,17 @@ internal static class PlayerLogChecks
             }
             Click("预览截图");Check(opens.Contains(imagePath),"preview_is_explicit_and_intercepted:"+id);
             Click("复制反馈邮箱");Check(copies.Contains("a877236828@gmail.com"),"copy_latest_email:"+id);
-            Click("准备 GitHub 反馈");Until(()=>opens.Any(s=>s.StartsWith("https://github.com/")));
+            Click("打开 GitHub 反馈页");Until(()=>opens.Any(s=>s.StartsWith("https://github.com/shiwandehongbai/Maa-PCR/issues/new?")));
             using(var zip=ZipFile.OpenRead(target))Check(zip.Entries.Any(e=>e.FullName.EndsWith(".png")),"selected_picture_exported:"+id);
             Check(new FileInfo(target).Length<=16*1024*1024,"feedback_zip_limit:"+id);
             foreach(var box in dialog!.GetLogicalDescendants().OfType<CheckBox>())box.IsChecked=false;
-            Click("准备邮件反馈");Until(()=>opens.Any(s=>s.StartsWith("mailto:a877236828@gmail.com")));
+            Click("写反馈邮件");Until(()=>opens.Any(s=>s.StartsWith("mailto:a877236828@gmail.com")));
             using(var zip=ZipFile.OpenRead(target))Check(!zip.Entries.Any(e=>e.FullName.EndsWith(".png")),"unselected_picture_removed:"+id);
             Click("复制反馈说明");Check(copies.Any(s=>s.Contains("运行编号")),"copy_feedback_without_mail_client:"+id);
             Click("打开日志包位置");Check(opens.Contains(Path.GetDirectoryName(target)!),"open_saved_package_directory:"+id);
             Check(dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t=>t.Text?.Contains("尚未发送")==true),"prepare_never_claims_sent:"+id);
             using var frame=new RenderTargetBitmap(new PixelSize(680,490));frame.Render(dialog);
-            frame.Save(Path.Combine(root,id+"-feedback-window.png"));
+            frame.Save(Path.Combine(root,label+"-feedback-window.png"));
         }
         finally
         {

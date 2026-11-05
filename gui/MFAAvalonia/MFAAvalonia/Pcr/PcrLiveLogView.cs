@@ -83,8 +83,9 @@ public sealed class PcrLiveLogView : UserControl
         var status = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var panel = new StackPanel { Spacing = 10, Margin = new Thickness(18) };
         panel.Children.Add(new TextBlock { Text = $"{log.Title} · 运行 {log.RunId}\n仅导出本功能、本次运行，ZIP 上限 16 MiB。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
-        panel.Children.Add(new TextBlock { Text = "截图可能含昵称或玩家 ID。请预览；不想分享的截图可以取消勾选。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
-        if (feedback) panel.Children.Add(new SelectableTextBlock { Text = "反馈邮箱：" + PcrPlayerRunLog.FeedbackEmail });
+        var channels = new WrapPanel();
+        panel.Children.Add(channels);
+        panel.Children.Add(new TextBlock { Text = "先保存日志包，再把 ZIP 拖到 GitHub 反馈页或添加到邮件。截图可能含昵称或玩家 ID，请检查勾选的图片。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
         var choices = log.Screenshots().Select(path => (Path: path, Box: new CheckBox { Content = Path.GetFileName(path), IsChecked = true })).ToArray();
         foreach (var choice in choices)
         {
@@ -123,11 +124,11 @@ public sealed class PcrLiveLogView : UserControl
         }
         var actions = new WrapPanel { Orientation = Orientation.Horizontal };
         var save = Tool("保存日志包", () => { _ = Prepare(); }); actions.Children.Add(save);
-        if (feedback)
-        {
-            actions.Children.Add(Tool("准备 GitHub 反馈", () => { _ = OpenFeedback(log.GitHubLink(reason)); }));
-            actions.Children.Add(Tool("准备邮件反馈", () => { _ = OpenFeedback(log.MailLink(reason)); }));
-        }
+        channels.Children.Add(Tool("打开 GitHub 反馈页", () => { _ = OpenFeedback(log.GitHubLink(reason)); }));
+        channels.Children.Add(Tool("写反馈邮件", () => { _ = OpenFeedback(log.MailLink(reason)); }));
+        channels.Children.Add(new SelectableTextBlock { Text = "反馈邮箱：" + PcrPlayerRunLog.FeedbackEmail,
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4,0,8,0) });
+        channels.Children.Add(Tool("复制反馈邮箱", () => { _ = Copy(PcrPlayerRunLog.FeedbackEmail); }));
         async Task OpenFeedback(string uri)
         {
             if (!await Prepare()) return;
@@ -135,7 +136,6 @@ public sealed class PcrLiveLogView : UserControl
             catch { status.Text = "未能打开浏览器或邮件客户端。请使用下面的复制按钮，并手动附上日志包。"; }
         }
         actions.Children.Add(Tool("复制反馈说明", () => { _ = Copy(log.FeedbackText(reason)); }));
-        actions.Children.Add(Tool("复制反馈邮箱", () => { _ = Copy(PcrPlayerRunLog.FeedbackEmail); }));
         actions.Children.Add(Tool("打开日志包位置", () =>
         {
             if (savedPath == null) { status.Text = "请先保存日志包。"; return; }
