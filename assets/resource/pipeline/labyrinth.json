@@ -1821,9 +1821,9 @@
     "recognition": "OCR",
     "expected": ".+",
     "roi": [
-      195,
+      124,
       444,
-      160,
+      294,
       64
     ],
     "threshold": 0.85,
@@ -1901,9 +1901,9 @@
     "recognition": "OCR",
     "expected": ".+",
     "roi": [
-      564,
+      493,
       444,
-      160,
+      294,
       64
     ],
     "threshold": 0.85,
@@ -1981,9 +1981,9 @@
     "recognition": "OCR",
     "expected": ".+",
     "roi": [
-      932,
+      863,
       444,
-      160,
+      294,
       64
     ],
     "threshold": 0.85,

@@ -55,13 +55,13 @@ class RoleOffer:
 def role_offer_from_words(slot,words,optimizer):
     words=sorted(words,key=lambda w:(w.get('box',[0,0])[1],w.get('box',[0])[0]))
     if not 1<=len(words)<=3:raise BatchStopped('role_reward_names_unknown')
-    x=(195,564,932)[slot]
+    x=(124,493,863)[slot]
     for word in words:
         box=word.get('box');text=word.get('text')
         if (not isinstance(text,str) or not text.strip() or word.get('score',0)<.85
                 or not isinstance(box,list) or len(box)!=4 or any(type(v) is not int for v in box)
                 or box[0]<x or box[1]<444 or box[2]<=0 or box[3]<=0
-                or box[0]+box[2]>x+160 or box[1]+box[3]>508):raise BatchStopped('role_reward_names_unknown')
+                or box[0]+box[2]>x+294 or box[1]+box[3]>508):raise BatchStopped('role_reward_names_unknown')
     key=resolve_role_name(''.join(w['text'] for w in words),optimizer)
     return RoleOffer(slot,key,tuple(dict(w) for w in words))
 
