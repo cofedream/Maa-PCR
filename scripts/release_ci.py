@@ -6,7 +6,7 @@ import sys
 
 sys.dont_write_bytecode = True
 from assemble_release import seal, require_acceptance, owned_payload_sha256
-from build_release import ROOT, R38_MANIFEST_SHA256, R39_MANIFEST_SHA256, R41_MANIFEST_SHA256, R45_MANIFEST_SHA256, R46_MANIFEST_SHA256, R49_MANIFEST_SHA256, R50_MANIFEST_SHA256, R51_MANIFEST_SHA256, R52_MANIFEST_SHA256, R53_MANIFEST_SHA256, R55_MANIFEST_SHA256, R56_MANIFEST_SHA256, R57_MANIFEST_SHA256, R58_MANIFEST_SHA256, R59_MANIFEST_SHA256, R60_MANIFEST_SHA256, R61_MANIFEST_SHA256, R64_MANIFEST_SHA256, R65_MANIFEST_SHA256, R66_MANIFEST_SHA256, R67_MANIFEST_SHA256, R68_MANIFEST_SHA256, R69_MANIFEST_SHA256, R70_MANIFEST_SHA256, R71_MANIFEST_SHA256, package_outputs, save, digest
+from build_release import ROOT, R38_MANIFEST_SHA256, R39_MANIFEST_SHA256, R41_MANIFEST_SHA256, R45_MANIFEST_SHA256, R46_MANIFEST_SHA256, R49_MANIFEST_SHA256, R50_MANIFEST_SHA256, R51_MANIFEST_SHA256, R52_MANIFEST_SHA256, R53_MANIFEST_SHA256, R55_MANIFEST_SHA256, R56_MANIFEST_SHA256, R57_MANIFEST_SHA256, R58_MANIFEST_SHA256, R59_MANIFEST_SHA256, R60_MANIFEST_SHA256, R61_MANIFEST_SHA256, R64_MANIFEST_SHA256, R65_MANIFEST_SHA256, R66_MANIFEST_SHA256, R67_MANIFEST_SHA256, R68_MANIFEST_SHA256, R69_MANIFEST_SHA256, R70_MANIFEST_SHA256, R71_MANIFEST_SHA256, R72_MANIFEST_SHA256, package_outputs, save, digest
 from source_delivery import prepare, pack, refresh_player_snapshot
 from source_gate import gate
 
@@ -128,6 +128,10 @@ def main():
         baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
         if baseline_path is None or digest(baseline_path) != R71_MANIFEST_SHA256:
             raise ValueError('R72_requires_exact_R71_patch_base')
+    if revision == 73:
+        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
+        if baseline_path is None or digest(baseline_path) != R72_MANIFEST_SHA256:
+            raise ValueError('R73_requires_exact_R72_patch_base')
     args.output.mkdir(parents=True, exist_ok=False)
     prepared = args.output / 'prepared-source'
     prepare(ROOT, prepared, revision=revision, player_manifest=manifest_path)
