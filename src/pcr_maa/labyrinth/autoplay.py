@@ -321,49 +321,46 @@ class NodePixels:
                 self.templates.append((name,kind,rgb,mask,interior,light,gradient))
         # Boss (8) has no mandatory node-body template: the retired
         # node_boss_yellow/dragon card crops never matched live 720p frames, and
-        # the final Boss is located only by the optional tight platform anchor
-        # below. A missing anchor must merely disable final_boss, so only the
-        # seven real node types are required; 8 is accepted when present.
+        # the final Boss is located only by the optional tight 首领 nameplate
+        # anchors below. A missing anchor must merely disable that platform
+        # state, so only the seven real node types are required; 8 is accepted
+        # when present.
         if not {2,3,4,5,6,7}<={t[1] for t in self.templates}: raise BatchStopped('node_resources_incomplete')
-        # Optional tight boss-platform anchors. node_boss_platform.png is the
-        # locked/grey-blue platform crop with the per-run reward icons removed,
-        # so it stays valid when the reward content changes;
-        # node_boss_platform_active.png is the same tight crop in the unlocked
-        # (magenta-glowing) state; node_boss_platform_reward.png is the
-        # icon-bearing variant, retained only as an extra evidence score.
-        self.boss_anchor=self.boss_anchor_active=self.boss_check=None
-        for name,attribute in (('node_boss_platform.png','boss_anchor'),
-                               ('node_boss_platform_active.png','boss_anchor_active'),
-                               ('node_boss_platform_reward.png','boss_check')):
+        # Optional tight 首领 nameplate anchors, one per platform state. Both are
+        # UI glyph crops with alpha masks, so a boss sprite never occludes them;
+        # final_boss() expands each match back to its measured platform box.
+        # Their names intentionally have no node_ prefix so collect() cannot
+        # mistake them for map-node templates. A missing anchor only disables
+        # that state, never final_boss itself.
+        self.boss_anchor_active=self.boss_anchor_inactive=None
+        for name,attribute in (('boss_nameplate.png','boss_anchor_active'),
+                               ('boss_nameplate_inactive.png','boss_anchor_inactive')):
             path=Path(root)/name
             if not path.is_file():continue
             image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),cv2.IMREAD_UNCHANGED)
             if image is None or image.ndim!=3 or image.shape[2]!=4:raise BatchStopped('node_resource_invalid')
             rgb=image[:,:,:3];mask=image[:,:,3]>=128
-            if attribute=='boss_anchor_active':
-                # Boss feet obscure the upper corners; retain the nameplate and lower base.
-                mask[:30]=False
-                mask[:65,:65]=False
-                mask[:65,140:]=False
             light,gradient=self._features(rgb)
             interior=cv2.erode(mask.astype(np.uint8),np.array([[0,1,0],[1,1,1],[0,1,0]],np.uint8))
             setattr(self,attribute,(rgb,mask,light,gradient,interior))
 
     def final_boss(self,image):
-        """Final Boss locator over every optional locked/unlocked platform anchor.
+        """Final Boss locator over every optional locked/unlocked nameplate anchor.
 
         Empty when no anchor is loaded or the frame shows no single platform.
         Anchors that describe the same physical platform (e.g. a transition
-        frame that matches both the locked and the unlocked crop) collapse to
-        one match; two distinct platforms stay ambiguous and return empty.
+        frame that matches both) collapse to one match; two distinct platforms
+        stay ambiguous and return empty. Each nameplate match is expanded back
+        to its measured platform box, so the shared preview click (center x,
+        32% height) stays on the nameplate exactly as before.
         """
-        anchors=[(self.boss_anchor,'node_boss_platform.png',.80,True),
-                 (self.boss_anchor_active,'node_boss_platform_active.png',.70,False)]
+        anchors=[(self.boss_anchor_active,'boss_nameplate.png',.75,False,(-72,-31,203,141)),
+                 (self.boss_anchor_inactive,'boss_nameplate_inactive.png',.75,False,(-73,-28,204,119))]
         matches=[]
-        for anchor,template,minimum_color,purple_fallback in anchors:
+        for anchor,template,minimum_color,purple_fallback,output in anchors:
             if anchor is not None:
                 matches.extend(self._final_boss_anchor(image,anchor,template,
-                    minimum_color,purple_fallback))
+                    minimum_color,purple_fallback,output))
         unique=[]
         for match in sorted(matches,key=lambda m:m['score'],reverse=True):
             x,y,w,h=match['box'];cx,cy=x+w/2,y+h/2
@@ -375,16 +372,17 @@ class NodePixels:
         # preview click (center x, 32% height) lands on the nameplate area.
         return [[unique[0]]] if len(unique)==1 else []
 
-    def _final_boss_anchor(self,image,anchor,template,minimum_color,purple_fallback):
-        """Locate one static boss platform state with its tight, icon-free anchor.
+    def _final_boss_anchor(self,image,anchor,template,minimum_color,purple_fallback,output=None):
+        """Locate one 首领 nameplate state with its tight, alpha-masked glyph crop.
 
-        The anchors keep the 首领 nameplate and the platform base but drop the
-        per-run reward icons, so they survive reward changes. The locked crop
-        keeps its original colour gate plus the purple side-band fallback; the
-        unlocked crop is brighter and animated (measured .75-.79 stride colour
-        on live frames) but the masked NCC gate stays .80, and the locked frame
-        only reaches .70, so its colour gate is relaxed to .70. The icon-bearing
-        reward variant is only recorded as independent evidence, never required.
+        The nameplate is UI, so a boss sprite never occludes it: the unlocked
+        anchor scored 1.0000 across the live animated frames and .9816-.9818 on
+        the boss-sprite frames where the retired platform crop fell to
+        .8495-.8714. Both anchors use the .75 colour gate: unlocked .8655-.8948
+        (occluded .7918-.8068) versus locked .9450-.9711, while the cross-state
+        colours stay at .6421-.6986 and are rejected. ``output`` expands the
+        nameplate match back to the measured platform box so the click point
+        and the route geometry are unchanged.
         """
         rgb,mask,light,gradient,interior=anchor
         h,w=light.shape
@@ -415,18 +413,14 @@ class NodePixels:
                 blue,green,red=cv2.split(image[c:d+1:3,a:b+1:3].astype(np.int16))
                 return float(np.mean((red>=130)&(blue>=140)&(red-green>=30)&(blue-green>=35)))
             purple=min(band(-1.35,-.95,-.7,2.6),band(.95,1.35,-.7,2.6),band(-.8,.8,2,3))
-            check_score=None
-            if self.boss_check is not None:
-                _,_,check_light,check_gradient,check_interior=self.boss_check
-                if check_light.shape==(h,w):
-                    check_score=max(float(cv2.matchTemplate(lights[y:y+h,x:x+w],check_light,
-                        cv2.TM_CCOEFF_NORMED,mask=check_interior)[0,0]),
-                        float(cv2.matchTemplate(gradients[y:y+h,x:x+w],check_gradient,
-                        cv2.TM_CCOEFF_NORMED,mask=check_interior)[0,0]))
             if color>=minimum_color or purple_fallback and score>=.80 and purple>=.20:
-                matches.append(dict(box=[x,y,w,h],block_type=8,active=True,score=score,
-                    color_score=color,purple_glow=purple,platform2_check_score=check_score,
-                    template=template,activation_basis='tight_boss_platform_anchor',
+                if output is None:box=[x,y,w,h]
+                else:
+                    dx,dy,width,height=output
+                    box=[x+dx,y+dy,width,height]
+                matches.append(dict(box=box,block_type=8,active=True,score=score,
+                    color_score=color,purple_glow=purple,
+                    template=template,activation_basis='boss_nameplate_anchor',
                     score_method='anchored masked gradient/luminance NCC'))
         return matches
 
@@ -505,9 +499,6 @@ class NodePixels:
             score_maps=list(pool.map(lambda template:self._frame_scores(lights,gradients,template),visible))
         proposals=[]
         for (name,kind,template,mask,interior,light,gradient),scores in zip(visible,score_maps):
-            # Boss platforms use final_boss's nameplate; their scenery also
-            # matches portals, so no boss-platform crop is a map-node template.
-            if name.startswith('node_boss_platform'):continue
             h,w=gradient.shape
             for _ in range(24):
                 _,score,_,location=cv2.minMaxLoc(scores)
