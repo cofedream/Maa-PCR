@@ -2130,26 +2130,52 @@ class CharacterNavigation:
         # Same native scrollbar tolerance already used by the viewport cache.
         return type(x) in (int,float) and type(y) in (int,float) and math.isfinite(x) and math.isfinite(y) and abs(x-y)<=.02
 
-    def edge(self,batch,enter_id,page,observation,direction,*,block_id=None,limit=24):
+    @classmethod
+    def same_scroll_view(cls,before,after,direction):
+        if any(before.get(k)!=after.get(k) for k in ('page','filter','boss_tab','count','selected')):return False
+        if cls.unchanged(before,after):return True
+        viewport=VIEWPORTS.get(before.get('page'))
+        if viewport is None:return False
+        def member_ids(view):
+            return [(c.get('slot_id'),c.get('character_id'),c.get('trusted')) for c in view.get('members',())]
+        if member_ids(before)!=member_ids(after):return False
+        # At a measured endpoint, clipping can change portrait matches without moving the whole row.
+        def whole_cards(view):
+            bar=view.get('scrollbar',{});position=bar.get('position')
+            if (bar.get('visible') is not True or bar.get('can_scroll') is not True
+                    or type(position) not in (int,float) or not 0<=position<=1
+                    or (position>.02 if direction=='up' else position<.98)):return []
+            return [c for c in view.get('cards',()) if c.get('box')
+                and viewport[1]<=c['box'][1] and c['box'][1]+c['box'][3]<=viewport[1]+viewport[3]]
+        left,right=whole_cards(before),whole_cards(after)
+        if not left or len(left)!=len(right):return False
+        matched=False
+        for a,b in zip(left,right):
+            if any(abs(x-y)>6 for x,y in zip(a['box'],b['box'])) or a.get('selected')!=b.get('selected'):return False
+            if a.get('trusted') and b.get('trusted'):
+                if a['character_id']!=b['character_id']:return False
+                matched=True
+        return matched
 
-        """Two unchanged list observations end scrolling, even with unknown portraits."""
-
+    def scroll_views(self,batch,enter_id,page,observation,direction,*,block_id=None,limit=24,reason='character_list_edge_unknown'):
+        """Yield every settled frame, including the one that confirms the edge."""
+        yield observation
         same=0;anchor=observation
-
         for _ in range(limit):
-
-            before=observation
-
-            observation=self.move(batch,enter_id,page,before,direction=direction,block_id=block_id)
-
-            unchanged=self.unchanged(anchor,observation)
-
+            previous=observation
+            observation=self.move(batch,enter_id,page,previous,direction=direction,block_id=block_id)
+            unchanged=self.same_scroll_view(anchor,observation,direction)
+            if same and unchanged:unchanged=self.same_scroll_view(previous,observation,direction)
             same=same+1 if unchanged else 0
             if not unchanged:anchor=observation
+            yield observation
+            if same>=2:return
+        raise BatchStopped(reason)
 
-            if same>=2:return observation
-
-        raise BatchStopped('character_list_edge_unknown')
+    def edge(self,batch,enter_id,page,observation,direction,*,block_id=None,limit=24):
+        for observation in self.scroll_views(batch,enter_id,page,observation,direction,block_id=block_id,limit=limit):
+            pass
+        return observation
 
 
 
@@ -2175,26 +2201,9 @@ class CharacterNavigation:
             if found():return observation,found()
             observation=self.edge(batch,enter_id,page,observation,'up',block_id=block_id)
 
-            same=0;anchor=observation
-
-            for _ in range(24):
-
+            for observation in self.scroll_views(batch,enter_id,page,observation,'down',block_id=block_id):
                 matches=found()
-
                 if matches:return observation,matches
-
-                before=observation
-
-                observation=self.move(batch,enter_id,page,before,direction='down',block_id=block_id)
-
-                unchanged=self.unchanged(anchor,observation)
-
-                same=same+1 if unchanged else 0
-                if not unchanged:anchor=observation
-
-                if same>=2:break
-
-            else:raise BatchStopped('character_list_edge_unknown')
             exhausted_filters.append(observation.get('filter'))
 
         raise CharacterNotFound(wanted,observation,exhausted_filters)

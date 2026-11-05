@@ -1,4 +1,6 @@
 """Pure offline endpoint regressions; no native resource or device is created."""
+import pytest
+
 from pcr_maa.labyrinth import character_recognition as cr
 from pcr_maa.labyrinth.encounters import scan_effective
 
@@ -192,3 +194,68 @@ def test_short_effective_list_skips_the_formation_sweep(monkeypatch):
     assert events[-1]['effective_scan_verified'] is True
     assert events[-1]['effective_scan_skipped_unsafe'] is True
     assert events[-1]['filter_restored'] is True
+
+
+def boss_bottom(partial, *, position=.986, known='1001', last=None):
+    cards = row((partial,), top=211) + row((known, last), top=356)
+    for card in cards:
+        card['trusted'] = card['character_id'] is not None
+    value = formation(cards, page='boss', filter='EFFECTIVE_EFFECT', signature=str(cards))
+    value['scrollbar'] = dict(visible=True, can_scroll=True, position=position)
+    return value
+
+
+def test_end_scan_consumes_new_trusted_card_on_last_read(monkeypatch):
+    from types import SimpleNamespace as NS
+    initial = boss_bottom('1003')
+    settled = iter((boss_bottom('1004'), boss_bottom('1005', last='1006')))
+    calls = []
+    def move(self, batch, enter, page, current, *, filter=None, direction=None, **kwargs):
+        calls.append(filter or direction)
+        return dict(current, filter=filter) if filter else next(settled)
+    monkeypatch.setattr(cr.CharacterNavigation, 'edge', lambda self, *args, **kw: initial)
+    monkeypatch.setattr(cr.CharacterNavigation, 'move', move)
+    observed = scan_effective(NS(read=lambda *a, **k: (initial, {})),
+        NS(observation=lambda value, **k: value), lambda **kw: kw, 1, 20101,
+        page='boss', roster=('1001','1003','1004','1005','1006'))
+    assert observed == ('1001','1003','1004','1005','1006')
+    assert calls == ['down', 'down', 'ALL']
+
+
+def test_directional_edge_requires_fixed_whole_cards_and_matching_context():
+    before, after = boss_bottom('1003'), boss_bottom('1004')
+    same = cr.CharacterNavigation.same_scroll_view
+    assert same(before, after, 'down')
+    assert not same(before, after, 'up')
+    assert not same(boss_bottom('1003', position=.5), boss_bottom('1004', position=.5), 'down')
+    assert not same(before, boss_bottom('1004', known='1009'), 'down')
+    assert not same(before, dict(after, filter='ALL'), 'down')
+    assert not same(before, dict(after, boss_tab=2), 'down')
+    assert not same(boss_bottom('1003', known=None), boss_bottom('1004', known=None), 'down')
+    after = boss_bottom('1004')
+    after['cards'][1]['box'][1] -= 25
+    assert not same(before, after, 'down')
+
+
+@pytest.mark.parametrize('page', ['opening', 'battle', 'boss', 'roster'])
+@pytest.mark.parametrize('direction,position', [('up', .015), ('down', .985)])
+def test_scroll_edges_ignore_only_the_clipped_row(page, direction, position):
+    def view(partial):
+        value = boss_bottom(partial, position=position)
+        value['page'] = page
+        for card in value['cards']:
+            card['box'][1] += cr.VIEWPORTS[page][1] - cr.VIEWPORTS['boss'][1]
+        return value
+    assert cr.CharacterNavigation.same_scroll_view(view('1004'),view('1005'),direction)
+
+
+def test_conflicting_whole_card_after_unknown_resets_edge_confirmation(monkeypatch):
+    nav = cr.CharacterNavigation(None, None)
+    reads = [boss_bottom('1003', last=role) for role in ('1007', '1008', '1008', '1008')]
+    calls = []
+    def move(*args, **kwargs):
+        calls.append(kwargs['direction'])
+        return reads[len(calls)-1]
+    monkeypatch.setattr(nav, 'move', move)
+    assert nav.edge(None, 1, 'boss', boss_bottom('1003'), 'down') == reads[-1]
+    assert calls == ['down'] * 4

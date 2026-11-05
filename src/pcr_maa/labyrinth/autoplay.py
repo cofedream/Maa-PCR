@@ -893,7 +893,7 @@ class MaaRunActions:
         self.battle_result_scene=None
         def read(enter,block):
             started=native.active_now();deadline=min(native.RUN_DEADLINE.get(),started+300)
-            token=native.RUN_DEADLINE.set(deadline);team_grace=True
+            token=native.RUN_DEADLINE.set(deadline);team_grace=True;team_visible_since=started
             try:
                 while True:
                     self.batch.checkpoint();sampled_at=native.active_now();remaining=deadline-sampled_at
@@ -911,8 +911,11 @@ class MaaRunActions:
                         self.battle_result_scene=recovered
                         return dict(verified=True,enter_id=enter,block_id=block,outcome='won',native=scene.native)
                     if scene.kind in ('date_changed','disconnected'):raise BatchStopped(_STOP[scene.kind])
-                    if scene.kind=='team':
-                        if not team_grace or sampled_at-started>=3:raise BatchStopped('battle_result_unknown')
+                    if scene.kind=='connecting':
+                        team_visible_since=None
+                    elif scene.kind=='team':
+                        if team_visible_since is None:team_visible_since=sampled_at
+                        if not team_grace or sampled_at-team_visible_since>=3:raise BatchStopped('battle_result_unknown')
                     # Owned Start may briefly expose its challenge page while
                     # loading. Poll that existing source in the same 300s budget.
                     elif scene.kind in ('unknown','battle',getattr(self,'combat_kind',None)):
@@ -1110,7 +1113,12 @@ class AutoplayRunner:
             if pending_error is not None and native.active_now()>=deadline:
                 raise BatchStopped('route_target_not_visible') from pending_error
             if detail.get('status')=='scene_changed':
-                fresh=detail['scene'];return Scene(fresh['kind'],receipt,fresh['payload'])
+                fresh=detail['scene']
+                if fresh['kind']=='connecting':
+                    remaining=deadline-native.active_now()
+                    if remaining<=0:raise BatchStopped('route_target_not_visible')
+                    return self._observe(batch,route,timeout=remaining,drive_final=False)
+                return Scene(fresh['kind'],receipt,fresh['payload'])
             if detail.get('status')=='target_observed':
                 if key in self.moves:raise BatchStopped('node_move_already_attempted')
                 try:clicked=batch.transaction('node_preview',fields,preview)

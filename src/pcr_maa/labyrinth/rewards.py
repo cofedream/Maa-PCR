@@ -158,22 +158,17 @@ class MaaRoleReward:
         required=current.get('required_count')
         if type(required) is not int or not 1<=required<=3 or current['count']!=0 or current['selected']:
             raise BatchStopped('event_free_role_count_unknown')
-        selected=[];scrolls=0;same=0;anchor=current
+        selected=[];scrolls=0
+        nav=CharacterNavigation(chars,self.stamp)
         while len(selected)<required:
-            batch.checkpoint()
-            cards=[c for c in current['cards'] if c['trusted'] and not c['selected']
-                and c['character_id'] not in set(acquired)|set(selected)
-                and c['character_id'] in optimizer.profiles and optimizer.profiles[c['character_id']].rating is not None]
-            if not cards:
-                if scrolls>=24:raise BatchStopped('character_not_visible')
-                before=current
-                current=CharacterNavigation(chars,self.stamp).move(batch,enter_id,'opening',current,direction='down')
-                scrolls+=1
-                unchanged=CharacterNavigation.unchanged(anchor,current)
-                same=same+1 if unchanged else 0
-                if not unchanged:anchor=current
-                if same>=2:raise BatchStopped('character_not_visible')
-                continue
+            views=nav.scroll_views(batch,enter_id,'opening',current,'down',limit=24-scrolls,reason='character_not_visible')
+            for scrolls,current in enumerate(views,start=scrolls):
+                batch.checkpoint()
+                cards=[c for c in current['cards'] if c['trusted'] and not c['selected']
+                    and c['character_id'] not in set(acquired)|set(selected)
+                    and c['character_id'] in optimizer.profiles and optimizer.profiles[c['character_id']].rating is not None]
+                if cards:break
+            else:raise BatchStopped('character_not_visible')
             card=min(cards,key=lambda c:(-optimizer.profiles[c['character_id']].rating,c['box'][1],c['box'][0]))
             role=card['character_id'];before=sorted(selected);after=sorted(selected+[role])
             fields=dict(enter_id=enter_id,reward_id=reward_id,role_id=role,required_count=required)
@@ -187,7 +182,7 @@ class MaaRoleReward:
                 and v.get('required_count')==required and set(v['selected'])<=set(after))
             batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,native=receipt,
                 input_native=clicked['input_native'],selection_verified=True),**fields)
-            selected=after;same=0;anchor=current
+            selected=after
         fields=dict(enter_id=enter_id,reward_id=reward_id,roles=selected,required_count=required)
         def invite(oid):
             batch.checkpoint()

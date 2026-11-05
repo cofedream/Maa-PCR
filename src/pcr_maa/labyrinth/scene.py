@@ -170,6 +170,7 @@ def classify_scene(anchors):
     scores={k:v['score'] for k,v in anchors.items()}
     if scores.get('DATE',0)>=.8:return 'date_changed',.8
     if scores.get('DISCONNECT',0)>=.8:return 'disconnected',.8
+    if scores.get('DATA_CONNECTION',0)>=.8:return 'connecting',scores['DATA_CONNECTION']
     ranked=[]
     for kind,alternatives in _RULES.items():
         score=max(min(scores.get(key,0) for key in terms) for terms in alternatives)
@@ -192,6 +193,7 @@ def classify_scene(anchors):
     return ranked[0][1],ranked[0][0]
 
 def _controls(kind,anchors):
+    if kind=='connecting':return {}
     controls=dict(anchors)
     for logical,keys in {
       'close':(('CONFIRM',) if kind in ('shop_complete','chest') or 'NO_REWARD_BODY' in anchors else ())+('ITEM_CLOSE','ITEM_REWARD_CLOSE','RELIC_EFFECT_RESULT_CLOSE','JOINED_CLOSE','JOINED_CLOSE_STANDARD','RUN_CLEAR_CHEST_CONFIRM_BUTTON'),
@@ -302,7 +304,12 @@ class SceneRecognition(CustomRecognition):
                 word=_primitive(context.run_recognition('LabySceneWord_'+key,argv.image),key)
                 if word is not None:anchors[key]=word
             return anchors.get(key)
-        if scope is None:
+        connection=_primitive(context.run_recognition('HomeDataConnection',argv.image),'DATA_CONNECTION')
+        scanned.add('DATA_CONNECTION')
+        if connection is not None and connection['score']>=.8:
+            anchors['DATA_CONNECTION']=connection
+            read('DATE');read('DISCONNECT')
+        elif scope is None:
             for key in self.specs:read(key)
             for key in _OCR:
                 if key not in ('REVIVE_NEXT','DAMAGE_REPORT'):read(key)
@@ -386,7 +393,7 @@ def scene_readback(receipt):
     raw=_detail(raw)
     if type(raw) is not dict or type(raw.get('kind')) is not str or type(raw.get('payload')) is not dict:raise BatchStopped('scene_unknown')
     kind=raw['kind'];payload=raw['payload']
-    if kind not in _RULES and kind not in ('unknown','date_changed','disconnected'):raise BatchStopped('scene_unknown')
+    if kind not in _RULES and kind not in ('unknown','connecting','date_changed','disconnected'):raise BatchStopped('scene_unknown')
     return Scene(kind,receipt,payload)
 
 def observe_scene(tasker,*,stopped=None,timings=None,timeout=OBSERVATION_TIMEOUT_SECONDS,probe_kinds=None):
@@ -523,6 +530,8 @@ class MaaSceneRuntime:
                 if native.active_now()>=deadline:raise BatchStopped(reason)
                 _native_ok(after.native)
                 if after.kind in ('date_changed','disconnected'):raise BatchStopped(after.kind)
+                if after.kind=='connecting':
+                    _poll_pause(self.tasker,batch,'LabySceneTransitionPollSpacing',reason);continue
                 # An owned summon may expose MAP before its actual JOINED popup.
                 if acquisition_fields is not None and final_fields is None and after.kind=='map' and 'map' not in allowed:
                     _poll_pause(self.tasker,batch,'LabySceneTransitionPollSpacing',reason);continue

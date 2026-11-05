@@ -284,6 +284,23 @@ def test_slow_shop_exit_scopes_both_observations_without_replaying_purchases(slo
     assert owner.stops == 0
 
 
+def test_shop_exit_waits_out_connection_before_sending_its_only_input(slow):
+    class ConnectingShop(SlowOwner):
+        def post_task(self, entry):
+            if entry == scene.NODE and len(self.observations) == 1:
+                self.kind = 'shop'
+            return super().post_task(entry)
+    owner = ConnectingShop(slow, seconds=1, kind='connecting')
+    batch, stamp = harness()
+    shop = shops.MaaShop.__new__(shops.MaaShop)
+    shop.tasker, shop.stamp, shop.scene = owner, stamp, runtime(owner)
+    shop.observer, shop.blocked = NS(), False
+    shop._capture = lambda: (dict(state='shop', items=[], balance=390), {})
+    result = shop.run(batch, 309, 30601, buy_relics=False)
+    assert result['page'] == 'map' and [guard['kind'] for guard in owner.inputs] == ['shop']
+    assert owner.observations[1][0] < owner.observations[0][0]
+
+
 @pytest.mark.parametrize('kind', ['shop_confirmation', 'shop_complete', 'joined', 'free_role_reward', 'item_reward'])
 def test_shop_exit_refuses_pending_modal_without_input(slow, kind):
     owner = SlowOwner(slow, kind=kind)

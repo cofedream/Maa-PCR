@@ -205,16 +205,10 @@ class MaaRoster:
         observation,receipt=self.characters.read(batch,page)
         if page!='roster' and observation['filter']!='ALL':
             observation=nav.move(batch,enter_id,page,observation,filter='ALL')
-        observation=nav.edge(batch,enter_id,page,observation,'up');seen=set();same=0;anchor=observation
-        for _ in range(48):
+        observation=nav.edge(batch,enter_id,page,observation,'up');seen=set()
+        for observation in nav.scroll_views(batch,enter_id,page,observation,'down',limit=48,reason='roster_complete_unknown'):
             if not nav.trusted_content(observation) or any(not card['trusted'] for card in observation['cards']):raise BatchStopped('roster_identity_unknown')
             seen.update(c['character_id'] for c in observation['cards'])
-            before=observation;observation=nav.move(batch,enter_id,page,before,direction='down')
-            unchanged=nav.trusted_content(observation) and nav.unchanged(anchor,observation)
-            same=same+1 if unchanged else 0
-            if not unchanged:anchor=observation
-            if same>=2:break
-        else:raise BatchStopped('roster_complete_unknown')
         if not set(expected_ids)<=seen:raise BatchStopped('roster_owned_mismatch')
         observation,receipt=self.characters.read(batch,page)
         result=self.stamp(source='maa',enter_id=enter_id,roles=sorted(seen),complete_roster_verified=True,native=receipt)
