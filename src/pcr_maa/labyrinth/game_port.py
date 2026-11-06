@@ -9,6 +9,7 @@ import time
 from .. import native
 from .batch import BatchStopped
 from .game_session import MaaGameSession, game_session_pipeline, _root, _box
+from .launch_command import launch_accepted, launch_command, launch_component
 from .opening import MaaOpening
 from .session import resume_home_pipeline
 from .interruptions import date_changed_pipeline
@@ -40,7 +41,7 @@ class MaaGamePort:
         if not callable(stamp):raise ValueError('owner_stamp_required')
         self.tasker,self.stamp=tasker,stamp
         self.session=None;self.opening=None;self.used=set();self.restarted=set();self.blocked=False
-        self.runtime=None;self.runner=None
+        self.runtime=None;self.runner=None;self.component=None
         self._restore_result=self._restore_snapshot=self._restore_batch=self._restore_facts=None
         self.server=get_server(server);self.stopped=stopped;self._hard_closed=None
 
@@ -143,13 +144,36 @@ class MaaGamePort:
                 creation_operation_id=self._active_creation_oid)
         return None
 
+    def _launch_component(self):
+        """Resolve this server's launcher once; Maa's StartApp needs `monkey`.
+
+        Some images (LDPlayer 14 and other recent Android builds) ship no
+        `monkey`, so the default StartApp cannot start anything there. The
+        component comes from the device, never from a table, because every
+        channel package names its entry differently.
+        """
+        if self.component is not None:return self.component
+        from .app_version import controller_shell
+        try:
+            output=controller_shell(self.tasker.controller,
+                'cmd package resolve-activity --brief '+self.server.package,stopped=self.stopped)
+        except BatchStopped:raise
+        except Exception as error:
+            raise BatchStopped('game_port_launch_component_unknown') from error
+        component=launch_component(output,self.server.package)
+        if component is None:raise BatchStopped('game_port_launch_component_unknown')
+        self.component=component
+        return component
+
     def _restart_client(self,batch,snapshot):
         """Invalidate the cached UI once after protocol creation, via Maa only.
 
-        Package is the selected server's fixed client package.
+        Package is the selected server's fixed client package. Start runs
+        `am start -W` on the resolved component, not the default `monkey`.
         Stop/Start are two durable navigation intents. No recovery loop or Back
-        is used. Each action ACK settles once; fresh Title/Home readiness is
-        a separate readonly follow-up and cannot mint a game handoff.
+        is used. `am start` ACKs even on error, so the printed Status is the
+        launch evidence; fresh Title/Home readiness is a separate readonly
+        follow-up and cannot mint a game handoff.
         """
         self._checkpoint(batch)
         cold=self.server.closes_client_before_login
@@ -161,17 +185,20 @@ class MaaGamePort:
         key=(snapshot.enter_id,self._active_creation_oid)
         if key in self.restarted:raise BatchStopped('client_restart_already_attempted')
         self.restarted.add(key)
+        component=self._launch_component()
+        command=launch_command(component)
         nodes=game_session_pipeline(snapshot.account_id,server=self.server.server_id)
         nodes.update({
             'LabyGamePortStopClientOnce':dict(recognition='DirectHit',action='StopApp',
                 package=self.server.package,max_hit=1,next=[],pre_delay=0,post_delay=0),
-            'LabyGamePortStartClientOnce':dict(recognition='DirectHit',action='StartApp',
-                package=self.server.package,max_hit=1,next=[],pre_delay=0,post_delay=0),
+            'LabyGamePortStartClientOnce':dict(recognition='DirectHit',action='Shell',
+                cmd=command,shell_timeout=20000,max_hit=1,next=[],pre_delay=0,post_delay=0),
         })
         if not self.tasker.resource.override_pipeline(nodes):
             raise BatchStopped('game_port_restart_unavailable')
         fields=dict(source='maa',enter_id=snapshot.enter_id,protocol_enter_id=snapshot.enter_id,
-            creation_operation_id=self._active_creation_oid,package=self.server.package)
+            creation_operation_id=self._active_creation_oid,package=self.server.package,
+            component=component)
         def stop(oid):
             self._checkpoint(batch)
             with batch.timings.measure('page_wait'):
@@ -190,9 +217,14 @@ class MaaGamePort:
             with batch.timings.measure('page_wait'):
                 sent=native.run(self.tasker,'LabyGamePortStartClientOnce',reset_hits=('LabyGamePortStartClientOnce',))
             action=_root(sent,'LabyGamePortStartClientOnce').get('action')
+            raw=action.get('raw') if type(action) is dict else None
+            # `success` is only the adb exit code, and am exits 0 on every
+            # outcome. The command it ran plus the printed Status are the
+            # launch evidence; neither can be minted by a stale receipt.
             if (type(action) is not dict or action.get('name')!='LabyGamePortStartClientOnce'
-                    or action.get('success') is not True or type(action.get('raw')) is not dict
-                    or action['raw'].get('package')!=fields['package']):
+                    or action.get('success') is not True or type(raw) is not dict
+                    or raw.get('cmd')!=command
+                    or launch_accepted(raw.get('output')) is not True):
                 raise BatchStopped('game_port_restart_input_unknown')
             self._checkpoint(batch)
             return self.stamp(operation_id=oid,**fields,start_app_action_verified=True,

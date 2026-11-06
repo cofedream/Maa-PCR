@@ -514,9 +514,14 @@
                             IsVisible="{Binding PcrHasStartError}" IsEnabled="{Binding CanEditPcrTarget}"
                             HorizontalAlignment="Left" Padding="8,3" FontSize="12" />
                 </StackPanel>
-                <Button x:Name="PcrStartStopButton" Grid.Column="1" Command="{Binding ToggleCommand}" IsEnabled="{Binding ToggleEnable}"
+                <Button x:Name="PcrStartStopButton" Grid.Column="1" Command="{Binding ToggleCommand}"
+                        IsEnabled="{calcBinding:Binding 'ToggleEnable and !PcrCleanupPending'}"
                         Classes="Flat Rounded" Background="{DynamicResource SukiPrimaryColor}" Foreground="White" Padding="20,12" MinWidth="112" VerticalAlignment="Center">
-                    <Grid><TextBlock Text="开始任务" IsVisible="{Binding !IsRunning}" FontWeight="SemiBold" /><TextBlock Text="停止任务" IsVisible="{Binding IsRunning}" FontWeight="SemiBold" /></Grid>
+                    <Grid>
+                        <TextBlock Text="开始任务" IsVisible="{Binding Idle}" FontWeight="SemiBold" />
+                        <TextBlock Text="停止任务" IsVisible="{calcBinding:Binding 'IsRunning and !PcrCleanupPending'}" FontWeight="SemiBold" />
+                        <TextBlock Text="处理中…" IsVisible="{Binding PcrCleanupPending}" FontWeight="SemiBold" />
+                    </Grid>
                 </Button>
                 <Expander x:Name="PcrRunResult" Grid.Row="1" Grid.ColumnSpan="2" Header="本次结果" IsExpanded="True"
                           IsVisible="{Binding PcrHasRunSummary}" HorizontalAlignment="Stretch">

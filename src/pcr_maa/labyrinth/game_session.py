@@ -175,6 +175,12 @@ def _box(value):
 
 
 def _root(receipt,name):
+    """The single completed node of this task, or an unknown readback.
+
+    `native_ok` is the task status only. A `Shell` action always ACKs because
+    adb prints an error and still exits 0, so callers that launch through it
+    must also read the action output; this gate cannot stand in for that.
+    """
     if (type(receipt) is not dict or receipt.get('tasker_inited') is not True
         or type(receipt.get('task_id')) is not int or receipt['task_id']<=0):
         raise BatchStopped('game_session_readback_unknown')

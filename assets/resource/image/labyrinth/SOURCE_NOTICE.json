@@ -688,30 +688,21 @@
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
-      "key": "node.boss.platform",
+      "key": "node.boss.platform.nameplate",
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_platform.png",
       "source_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_platform.png",
-      "local_sha256": "2f1e7fb370fcec1e860062f60863a7dc50589736536dbf402a070bf1f30d5407",
-      "transform": "tight crop from an actual live 1280x720 game frame; reward icons removed",
+      "local": "assets\\resource\\image\\labyrinth\\node\\boss_nameplate.png",
+      "local_sha256": "90ab7ebfa46b1655dc74d1d14305f47a2cd996d84b658b4b2bbe50c22660aff9",
+      "transform": "tight crop of the 首领 nameplate from an actual live 1280x720 game frame; soft alpha; unlocked state nameplate only; upstream art reference kept",
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {
-      "key": "node.boss.platform.reward",
+      "key": "node.boss.platform.nameplate.inactive",
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_platform.png",
       "source_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_platform_reward.png",
-      "local_sha256": "c4e2044675f7b9a437428869e735222867fe1365d63981c056e62d619b4d2754",
-      "transform": "tight crop from an actual live 1280x720 game frame; reward icons kept",
-      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
-    },
-    {
-      "key": "node.boss.platform.active",
-      "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\node_boss_platform.png",
-      "source_sha256": "b238393526d8b3467d1eb5ec5fefa06eb7d22aeadb4a61da5bbfa5fbb92151eb",
-      "local": "assets\\resource\\image\\labyrinth\\node\\node_boss_platform_active.png",
-      "local_sha256": "5b2f4e498acfe011776ad0a7f5d25bee4d676fa321e7caf32fa2c776d552dbc5",
-      "transform": "tight crop from an actual live 1280x720 game frame; unlocked active 首领 state; reward icons removed; upstream art reference kept",
+      "local": "assets\\resource\\image\\labyrinth\\node\\boss_nameplate_inactive.png",
+      "local_sha256": "55bc9bab8c43d72b54d21c19120ca3af93b34b13de40f8b5e89423e7d4f7a10d",
+      "transform": "tight crop of the locked 首领 nameplate from an actual live 1280x720 game frame; soft alpha; upstream art reference kept",
       "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
     },
     {

@@ -46,7 +46,7 @@ def test_ci_runs_all_profile_contract_modes_from_one_build_with_bounded_evidence
     assert modes is not None
     assert re.findall(r"'([^']+)'", modes[1]) == [
         'default', 'clan-daily-only', 'clan-workflow-only', 'clan-formal-only',
-        'clan-postsave-only', 'profile-registration-only']
+        'clan-postsave-only', 'profile-registration-only', 'runbar-only']
     assert checks.count('dotnet build gui/MFAAvalonia/PcrProfileSwitch.Tests/') == 1
     assert 'dotnet run --project gui/MFAAvalonia/PcrProfileSwitch.Tests/' not in checks
     assert checks.index('dotnet build ') < checks.index('foreach ($mode ')
