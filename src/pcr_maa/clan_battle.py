@@ -41,8 +41,16 @@ def _file(binding, path_key, hash_key, *, limit):
     return data
 
 
-def load_snapshot(plan):
-    data = _file(plan['snapshot'], 'path', 'sha256', limit=16 * 1024 * 1024)
+def load_snapshot(plan, *, now=None):
+    try:
+        data = _file(plan['snapshot'], 'path', 'sha256', limit=16 * 1024 * 1024)
+    except ValueError as exc:
+        if now is None or str(exc) not in ('clan_battle_source_changed', 'clan_battle_source_file_missing'):
+            raise
+        # Refreshed account caches retain the exact bytes needed by old intents.
+        digest = plan['snapshot']['sha256']
+        archived = Path(plan['snapshot']['path']).parent / '.snapshot-history' / (digest + '.json')
+        data = _file(dict(path=str(archived), sha256=digest), 'path', 'sha256', limit=16 * 1024 * 1024)
     try:
         snapshot = json.loads(data)
         observed = datetime.fromisoformat(snapshot['observed_at'].replace('Z', '+00:00'))
@@ -54,7 +62,7 @@ def load_snapshot(plan):
         raise ValueError('clan_battle_snapshot_identity_mismatch')
     if observed.tzinfo is None:
         raise ValueError('clan_battle_snapshot_time_invalid')
-    age = (datetime.now(timezone.utc) - observed.astimezone(timezone.utc)).total_seconds()
+    age = ((now if now is not None else datetime.now(timezone.utc)) - observed.astimezone(timezone.utc)).total_seconds()
     if not 0 <= age <= 24 * 3600:
         raise ValueError('clan_battle_snapshot_expired')
     if type(snapshot.get('ownership_complete')) is not bool:
@@ -95,7 +103,7 @@ def account_battle_stars(plan):
     return stars
 
 
-def validate_plan(plan):
+def validate_plan(plan, *, snapshot_at=None):
     if type(plan) is not dict or set(plan) != PLAN_KEYS:
         raise ValueError('clan_battle_plan_invalid')
     ids, stars = plan['unit_ids'], plan['stars']
@@ -150,7 +158,7 @@ def validate_plan(plan):
             or plan_hash(plan) != plan['confirmed_for']):
         raise ValueError('clan_battle_confirmation_changed')
     _file(source, 'image_path', 'image_sha256', limit=32 * 1024 * 1024)
-    load_snapshot(plan)
+    load_snapshot(plan, now=snapshot_at)
     return deepcopy(plan)
 
 

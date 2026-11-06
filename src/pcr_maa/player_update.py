@@ -446,6 +446,35 @@ def run_worker(player, archive=None, *, recover=False, parent_pid=None, archive_
             popen=popen, wait_seconds=wait_seconds)
 
 
+def _suppress_restart_tasks(player):
+    # Older GUI versions also consume this one-time flag after rollback.
+    name = 'pcr-alpha-v1/appsettings.json'
+    path = maintenance._path(player, name, optional=True)
+    before = None
+    if path.exists():
+        _require(maintenance._plain(path).st_size <= maintenance.MAX_JSON, 'json_too_large')
+        before = path.read_bytes()
+    settings = maintenance._json(before) if before is not None else {}
+    _require(all(value is None or type(value) is str for value in settings.values()),
+        'invalid_global_configuration')
+    if settings.get('NoAutoStart') == 'True':
+        return
+    settings['NoAutoStart'] = 'True'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    maintenance._path(player, name, optional=True)
+    temporary = path.with_name(path.name + '.' + uuid4().hex + '.tmp')
+    try:
+        with temporary.open('xb') as stream:
+            stream.write((json.dumps(settings, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
+        maintenance._sync_file(temporary)
+        current = maintenance._path(player, name, optional=True)
+        _require((current.read_bytes() if current.exists() else None) == before,
+            'restart_configuration_changed')
+        maintenance._replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def _run_worker(player, archive=None, *, recover=False, parent_pid=None, archive_sha256=None,
         process_probe=None, sleep=None, popen=None, wait_seconds=120):
     player = maintenance._root(player)
@@ -462,6 +491,8 @@ def _run_worker(player, archive=None, *, recover=False, parent_pid=None, archive
             and maintenance._sha(Path(archive)) == archive_sha256, 'update_archive_changed')
         validate_archive(player, archive)
         result = maintenance.apply_update(player, archive, process_probe=probe)
+    _require(not probe(player), 'player_reopened_before_restart')
+    _suppress_restart_tasks(player)
     _require(not probe(player), 'player_reopened_before_restart')
     (popen or subprocess.Popen)([str(player / 'MFAAvalonia.exe')],
         cwd=str(player), stdin=subprocess.DEVNULL, close_fds=True,

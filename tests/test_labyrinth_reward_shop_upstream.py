@@ -119,6 +119,53 @@ def test_multi_choice_selection_is_pending_until_actual_joined(monkeypatch,remai
  assert result['roles_pending']==['b'] and result['selection_pending'] and not result['inventory_added']
  assert not any(e['result'].get('inventory_added') for e in batch.journal.events() if e['state']=='settled')
 
+@pytest.mark.parametrize('before_ids,after_ids,before_remaining,after_remaining,unsafe_before,unsafe_after,expected',[
+ (('a','b',None),('a','b','c'),2,2,None,None,'joined'),
+ (('a','b',None),('a','b','c'),1,1,None,None,'joined'),
+ (('a','b','c'),('d','e','f'),1,1,2,None,'joined'),
+ (('a','b','c'),('d','e','f'),1,1,None,2,'joined'),
+ (('a','b','c'),('d','e','d'),1,1,None,None,'joined'),
+ (('a','b','c'),('a','b','c'),1,1,None,None,'joined'),
+ (('a','b','c'),('d','e','f'),1,1,None,None,'role_reward'),
+ (('a','b','c'),('d','e','f'),2,2,None,None,'role_reward'),
+ (('a','b',None),('a','b','c'),2,1,None,None,'role_reward'),
+ (('a','b','c'),('a','b','c'),2,1,None,None,'role_reward'),
+])
+def test_reward_wait_uses_complete_identities_or_decreased_count(monkeypatch,before_ids,after_ids,
+        before_remaining,after_remaining,unsafe_before,unsafe_after,expected):
+ from pcr_maa.labyrinth import autoplay,scene
+ def observation(roles,remaining,unsafe):
+  return dict(page='reward',remaining=remaining,cards=[dict(slot=i,character_id=role,
+      name=role or '',trusted=bool(role) and i!=unsafe,identity_source='maa_name')
+      for i,role in enumerate(roles)])
+ before=observation(before_ids,before_remaining,unsafe_before)
+ following=observation(after_ids,after_remaining,unsafe_after)
+ characters=NS(read=lambda *a,**kw:(before,native_receipt()),probe=lambda *a,**kw:following)
+ optimizer=NS(profiles={role:object() for role in 'abcdef'},
+     choose_role=lambda *a,**kw:[dict(character_id='a')])
+ batch,stamp=harness();clock=[0.0];reads=[];inputs=[]
+ def observe(**kw):
+  kind='role_reward' if not reads else 'joined';reads.append(kind)
+  return Scene(kind,native_receipt(),{})
+ runtime=NS(tasker=NS(),stamp=stamp,observe=observe)
+ wait_for=scene.MaaSceneRuntime.wait_for
+ runtime.wait_for=lambda *a,**kw:wait_for(runtime,*a,**kw)
+ monkeypatch.setattr(scene,'MaaSceneRuntime',lambda *a,**kw:runtime)
+ monkeypatch.setattr(rewards.native,'active_now',lambda:clock[0])
+ monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:clock.__setitem__(0,clock[0]+.25))
+ monkeypatch.setattr(rewards,'portrait_selection',lambda *a:nullcontext())
+ def select(*a,**kw):
+  inputs.append('select')
+  return dict(native_ok=True,nodes=[dict(name='LabyRoleRewardSelectOnce',completed=True,action={'success':True})])
+ monkeypatch.setattr(rewards.native,'run',select)
+ result=rewards.MaaRoleReward(NS(),stamp,optimizer=optimizer,characters=characters).choose(
+     batch,1,'batch1',(),defer_joined=True)
+ assert result['following_scene'].kind==expected
+ assert reads==(['role_reward','joined'] if expected=='joined' else ['role_reward'])
+ assert inputs==['select'] and result['roles_pending']==['a'] and not result['inventory_added']
+ assert len([e for e in batch.journal.events() if e['state']=='settled'])==1
+
+
 def test_refresh_quote_and_result_are_separate_new_intents_unknown_never_repeats():
  batch,stamp=harness();shop=shops.MaaShop.__new__(shops.MaaShop);shop.stamp=stamp
  before=dict(balance=900,refresh_allowed=True,refresh_enabled=True,refresh_price=300,stock_state='exhausted',items=[],words={'Refresh':[word('用300更新')]})

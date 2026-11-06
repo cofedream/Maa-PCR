@@ -32,10 +32,23 @@ public sealed class PcrGuideAccountStore(string directory)
         if (Stamp(catalog, accountId) != expectedHash) throw new IOException("账号缓存已改变，本次未覆盖；请重新载入。");
         if (File.Exists(path))
         {
-            var previous = PcrGuideData.AccountSnapshot(PcrGuideData.ReadLocal(path), catalog, accountId, now);
+            var previousBytes = PcrGuideData.ReadLocal(path);
+            var previous = PcrGuideData.AccountSnapshot(previousBytes, catalog, accountId, now);
             if (PcrGuideData.Observation(previous["observed_at"]!.ToString()) > PcrGuideData.Observation(incoming["observed_at"]!.ToString())
                 || previous["ownership_complete"]?.Value<bool>() == true && incoming["ownership_complete"]?.Value<bool>() != true)
                 throw new InvalidDataException("不能用更早或部分资料覆盖已有完整快照。");
+            var history = Path.Combine(Path.GetDirectoryName(path)!, ".snapshot-history",
+                Convert.ToHexString(SHA256.HashData(previousBytes)).ToLowerInvariant() + ".json");
+            if (File.Exists(history))
+            {
+                if (!PcrGuideData.ReadLocal(history).SequenceEqual(previousBytes))
+                    throw new IOException("历史账号快照已改变，本次未覆盖；请保留资料并检查。");
+            }
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(history)!);
+                JsonHelper.SaveJsonTextAtomicallyOrThrow(history, new UTF8Encoding(false, true).GetString(previousBytes));
+            }
         }
         JsonHelper.SaveJsonTextAtomicallyOrThrow(path, new UTF8Encoding(false, true).GetString(bytes));
     }

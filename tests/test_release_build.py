@@ -1,5 +1,7 @@
 """Synthetic release trust-boundary checks; never run GUI or game tasks."""
 import importlib.util
+import hashlib
+import io
 import json
 from pathlib import Path
 import sys
@@ -274,6 +276,62 @@ def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, v
 def test_download_metadata_hash_shape_is_checked_before_network(tmp_path):
     with pytest.raises(ValueError, match='invalid_download_digest'):
         builder.download({'url': 'https://example.invalid/runtime.zip', 'sha256': 'invented'}, tmp_path)
+
+
+@pytest.mark.parametrize('failure', ['read_interrupted', 'wrong_hash'])
+def test_failed_dependency_download_can_retry_without_clearing_cache(tmp_path, monkeypatch, failure):
+    payload = b'verified dependency payload'
+    record = {'url': 'https://example.invalid/runtime.zip',
+              'sha256': hashlib.sha256(payload).hexdigest()}
+
+    class Response(io.BytesIO):
+        url = record['url']
+
+        def read(self, size=-1):
+            if failure == 'read_interrupted' and self.tell():
+                raise OSError('synthetic interrupted response')
+            return super().read(size)
+
+    monkeypatch.setattr(builder.urllib.request, 'urlopen', lambda *args, **kwargs: Response(b'incomplete'))
+    expected_error = OSError if failure == 'read_interrupted' else ValueError
+    with pytest.raises(expected_error, match='synthetic interrupted response|download_hash_mismatch'):
+        builder.download(record, tmp_path)
+    assert list(tmp_path.iterdir()) == []
+
+    response = io.BytesIO(payload)
+    response.url = record['url']
+    monkeypatch.setattr(builder.urllib.request, 'urlopen', lambda *args, **kwargs: response)
+    target = builder.download(record, tmp_path)
+    assert target.read_bytes() == payload
+    assert list(tmp_path.iterdir()) == [target]
+
+
+def test_dependency_download_preserves_unrelated_partial_and_concurrent_valid_cache(tmp_path, monkeypatch):
+    payload = b'verified dependency payload'
+    record = {'url': 'https://example.invalid/runtime.zip',
+              'sha256': hashlib.sha256(payload).hexdigest()}
+    legacy_partial = tmp_path / (record['sha256'] + '.partial')
+    legacy_partial.write_bytes(b'prior interrupted download')
+    calls = []
+
+    class Response(io.BytesIO):
+        url = record['url']
+
+        def read(self, size=-1):
+            if len(calls) == 1:
+                calls.append(builder.download(record, tmp_path))
+            return super().read(size)
+
+    def open_response(*args, **kwargs):
+        calls.append('opened')
+        return Response(payload)
+
+    monkeypatch.setattr(builder.urllib.request, 'urlopen', open_response)
+    target = builder.download(record, tmp_path)
+    assert calls == ['opened', 'opened', target]
+    assert target.read_bytes() == payload
+    assert legacy_partial.read_bytes() == b'prior interrupted download'
+    assert set(tmp_path.iterdir()) == {legacy_partial, target}
 
 
 def test_offline_wheelhouse_needs_every_exact_hash(tmp_path):

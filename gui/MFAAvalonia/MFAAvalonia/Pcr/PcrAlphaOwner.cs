@@ -151,7 +151,7 @@ public static partial class PcrAlphaOwner
         lock (PcrProfileRunGate.StartGate)
         lock (Gate)
         {
-            if (prompting != 0 || PcrLabyrinthOwner.IsActive || PcrGuideSyncOwner.IsActive || PcrProfileRunGate.UpdatePending || PcrProfileRunGate.ConnectionPending) return;
+            if (prompting != 0 || PcrLabyrinthOwner.IsActive || PcrGuideSyncOwner.IsActive || PcrProfileRunGate.StartBlocked || PcrProfileRunGate.ConnectionPending) return;
             if (vm.Processor.InstanceId == PcrClanGuide.ProfileId)
                 PcrClanDailyExecution.RequireStartAllowed(PcrClanDailyExecution.ModeFor(AppPaths.ConfigDirectory));
             prompting = 1;
@@ -498,7 +498,7 @@ public static partial class PcrAlphaOwner
     private static void RequirePendingStart(PendingStart attempt)
     {
         lock (Gate)
-            if (pendingStart != attempt || attempt.Revoked)
+            if (pendingStart != attempt || attempt.Revoked || PcrProfileRunGate.ShutdownPending)
                 throw new InvalidOperationException("Start revoked while awaiting confirmation or cleanup");
     }
 
@@ -704,9 +704,10 @@ public static partial class PcrAlphaOwner
     }
     public static bool ClaimStart(MaaProcessor processor)
     {
+        lock (PcrProfileRunGate.StartGate)
         lock (Gate)
         {
-            if (current == null || current.Processor != processor || current.Revoked || current.Started || current.PreparationOnly || current.Preparing || !current.IsOffline && current.Mapping == null) return false;
+            if (PcrProfileRunGate.ShutdownPending || current == null || current.Processor != processor || current.Revoked || current.Started || current.PreparationOnly || current.Preparing || !current.IsOffline && current.Mapping == null) return false;
             current.Started = true; return true;
         }
     }

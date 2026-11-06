@@ -101,6 +101,40 @@ class ResultCheckpoint:
         require(not self.path.is_symlink(), 'checkpoint_symlink')
         return check(json.loads(self.path.read_text(encoding='utf-8')), self.original, self.root_sha, self.kind)
 
+    def count_restored(self):
+        path = self.path.with_suffix('.count-restored.json')
+        if not path.exists():
+            return False
+        require(not path.is_symlink(), 'count_restore_symlink')
+        require(self.kind == 'preset' and self.read() is not None, 'count_restore_checkpoint')
+        expected = dict(version=1, checkpoint_sha256=sha256(self.path.read_bytes()).hexdigest(),
+                        restored_count=self.original['count_fit']['original'])
+        require(json.loads(path.read_text(encoding='utf-8')) == expected, 'count_restore_binding')
+        return True
+
+    def save_count_restored(self, fit):
+        require(self.kind == 'preset' and self.read() is not None, 'count_restore_checkpoint')
+        original = self.original['count_fit']
+        require(fit.get('restored') is True and fit.get('restoration', {}).get('verified') is True
+                and fit.get('original') == original['original'] and fit.get('target') == original['target']
+                and type(fit.get('restore_readback')) is int
+                and fit['restore_readback'] == original['original'], 'count_restore_unverified')
+        if self.count_restored():
+            return
+        # Keep the immutable consumption checkpoint and its terminal digest intact.
+        path = self.path.with_suffix('.count-restored.json')
+        value = dict(version=1, checkpoint_sha256=sha256(self.path.read_bytes()).hexdigest(),
+                     restored_count=fit['restore_readback'])
+        temporary = path.with_name(path.name + '.' + uuid4().hex + '.tmp')
+        try:
+            with temporary.open('x', encoding='utf-8', newline='\n') as handle:
+                json.dump(value, handle, ensure_ascii=False, separators=(',', ':'))
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
 
 def bind(port, journal, kind, before, quote):
     checkpoint = ResultCheckpoint(journal, kind=kind, before=before, quote=quote)

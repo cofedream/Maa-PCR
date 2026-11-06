@@ -94,6 +94,23 @@ internal static class GuideAccountChecks
         var read=typeof(PcrGuideInput).Assembly.GetType("MFAAvalonia.Pcr.PcrGuideSyncOwner")!.GetMethod("ReadResult",BindingFlags.NonPublic|BindingFlags.Static)!;
         var bytes=(byte[])read.Invoke(null,new object[]{message.ToString()})!;
         Check(message.ToString().Length>262144 && PcrGuideData.AccountSnapshot(bytes,largeCatalog,"123",now)["units"]!.Count()==2000,"large_owner_response");
+        var refreshRoot=Path.Combine(root,"refresh"); var refreshStore=new PcrGuideAccountStore(refreshRoot);
+        var originalBytes=Bytes(data); refreshStore.Save(originalBytes,catalog,"123",now,null);
+        var originalHash=refreshStore.Stamp(catalog,"123")!;
+        var livePath=PcrClanGuide.SnapshotPaths(refreshRoot).Single();
+        var historyPath=Path.Combine(Path.GetDirectoryName(livePath)!,".snapshot-history",originalHash.ToLowerInvariant()+".json");
+        var refreshed=(JObject)data.DeepClone(); refreshed["observed_at"]=now.AddHours(25).ToString("O");
+        refreshStore.Save(Bytes(refreshed),catalog,"123",now.AddHours(25),originalHash);
+        Check(File.ReadAllBytes(historyPath).SequenceEqual(originalBytes),"refresh_preserves_exact_expired_snapshot");
+        Check(PcrClanGuide.SnapshotPaths(refreshRoot).SequenceEqual(new[]{livePath}),"historical_snapshot_not_selectable");
+        var refreshedHash=refreshStore.Stamp(catalog,"123")!;
+        refreshStore.Save(Bytes(refreshed),catalog,"123",now.AddHours(25),refreshedHash);
+        Check(File.ReadAllBytes(historyPath).SequenceEqual(originalBytes),"repeated_refresh_preserves_original_history");
+        var refreshedHistory=Path.Combine(Path.GetDirectoryName(historyPath)!,refreshedHash.ToLowerInvariant()+".json");
+        File.WriteAllText(refreshedHistory,"{}",new UTF8Encoding(false));
+        var newer=(JObject)refreshed.DeepClone(); newer["observed_at"]=now.AddHours(26).ToString("O");
+        Reject(()=>refreshStore.Save(Bytes(newer),catalog,"123",now.AddHours(26),refreshedHash),"changed_history_blocks_refresh");
+        Check(refreshStore.Stamp(catalog,"123")==refreshedHash,"changed_history_preserves_live_snapshot");
         Console.WriteLine($"Guide account checks passed: {count}; data synthetic; protocol logins=0");
     }
     private static void RenderAccount(PcrGuideReviewView view, string root, string label, int width, int height, int dpi)

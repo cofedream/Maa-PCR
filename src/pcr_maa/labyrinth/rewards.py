@@ -255,7 +255,12 @@ class MaaRoleReward:
                 if self.characters is None:return False
                 actual=self.characters.probe(batch,'reward')
                 if actual is None:return False
-                return tuple(c.get('character_id') for c in actual['cards'])!=before or actual.get('remaining',0)<observation.get('remaining',0)
+                if actual.get('remaining',0)<observation.get('remaining',0):return True
+                current=tuple(c.get('character_id') for c in actual['cards'])
+                # Identity completion on the same page cannot authorize another choice.
+                return (tuple(c.get('slot') for c in actual['cards'])==(0,1,2)
+                    and current!=before and len(set(before))==len(set(current))==3
+                    and all(reward_identity_safe(c) for c in (*observation['cards'],*actual['cards'])))
             after=runtime.wait_for(batch,{'role_reward','joined','event_animation'},source='role_reward',accept=advanced,timeout=12,reason='role_reward_readback_unknown',acquisition_fields=dict(source='maa',enter_id=enter_id,reward_id=reward_id) if self.characters is not None and observation.get('remaining')==1 else None)
             return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,roles_pending=[selected.character_id],selection_pending=True,inventory_added=False,following_scene=after,native=after.native,input_native=clicked['input_native']),**fields)
         if self.read_joined is not None:readback=self.read_joined(enter_id,selected.character_id)

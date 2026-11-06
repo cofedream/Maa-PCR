@@ -283,11 +283,11 @@ public partial class RootView : SukiWindow
 #pragma warning disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法。请考虑将 "await" 运算符应用于调用结果。
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        if (Instances.RootViewModel.IsRunning && !_exitConfirmed)
+        if (!_exitConfirmed && (_exitConfirmationInProgress || RequiresExitConfirmation))
         {
             e.Cancel = true;
             if (!_exitConfirmationInProgress)
-                _ = ConfirmExitAndShutdownAsync();
+                _ = RequestExitAsync();
             return;
         }
 
@@ -295,24 +295,44 @@ public partial class RootView : SukiWindow
         base.OnClosing(e);
     }
 
-    private async Task ConfirmExitAndShutdownAsync()
+    internal bool RequiresExitConfirmation => Instances.RootViewModel.IsRunning
+        || MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled && MFAAvalonia.Pcr.PcrProfileRunGate.HasRunningWork;
+
+    public Task RequestExitAsync() => RequestExitAsync(ConfirmExit, Instances.ShutdownApplication);
+
+    internal async Task RequestExitAsync(Func<Task<bool>> confirm, Action shutdown)
     {
+        if (_exitConfirmationInProgress) return;
         _exitConfirmationInProgress = true;
+        var ownsShutdown = false;
+        var shutdownRequested = false;
         try
         {
-            if (!await ConfirmExit()) return;
-            ShutdownAfterConfirmedExit();
+            if (!await confirm()) return;
+            lock (MFAAvalonia.Pcr.PcrProfileRunGate.StartGate)
+            {
+                if (MFAAvalonia.Pcr.PcrProfileRunGate.ShutdownPending) return;
+                MFAAvalonia.Pcr.PcrProfileRunGate.ShutdownPending = ownsShutdown = true;
+                MFAAvalonia.Pcr.PcrProfileRunGate.Notify();
+            }
+            await MFAAvalonia.Pcr.PcrLabyrinthOwner.StopForExitAsync();
+            _exitConfirmed = true;
+            shutdown();
+            shutdownRequested = true;
         }
         finally
         {
+            if (ownsShutdown && !shutdownRequested)
+            {
+                lock (MFAAvalonia.Pcr.PcrProfileRunGate.StartGate)
+                {
+                    MFAAvalonia.Pcr.PcrProfileRunGate.ShutdownPending = false;
+                    MFAAvalonia.Pcr.PcrProfileRunGate.Notify();
+                }
+                _exitConfirmed = false;
+            }
             _exitConfirmationInProgress = false;
         }
-    }
-
-    public void ShutdownAfterConfirmedExit()
-    {
-        _exitConfirmed = true;
-        Instances.ShutdownApplication();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -379,7 +399,7 @@ public partial class RootView : SukiWindow
 
     public async Task<bool> ConfirmExit()
     {
-        if (!Instances.RootViewModel.IsRunning)
+        if (!RequiresExitConfirmation)
             return true;
 
         // SukiMessageBox uses the desktop main window as its owner. A tray exit can

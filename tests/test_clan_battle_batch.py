@@ -28,7 +28,7 @@ def daily_request(tmp_path):
     image.write_bytes(b'SYNTHETIC ONLY - never a game frame')
     snapshot = tmp_path / 'synthetic-snapshot.json'
     snapshot.write_text(json.dumps(dict(schema_version=1, server='cn-bilibili', account_id='123456789',
-        content_version='202610141431', observed_at=datetime.now(timezone.utc).isoformat(),
+        content_version='202610141431', observed_at=NOW.isoformat(),
         ownership_complete=True, units=[dict(unit_id=slot * 100 + offset, battle_rarity=5)
             for slot in (1, 2, 3) for offset in range(1, 6)], unknown_fields=[])), encoding='utf-8')
     plans, materials = {}, {}
@@ -358,7 +358,8 @@ def test_new_game_day_requires_explicit_start_and_actual_reset_preserves_old_unk
     run(tmp_path, daily_request, old)
     old_path = ledgers(tmp_path)[0]
     old_bytes = old_path.read_bytes()
-    tomorrow = NOW + timedelta(days=1)
+    tomorrow = (datetime.fromisoformat(batch.current_game_day(NOW)).replace(tzinfo=batch.BEIJING)
+        + timedelta(days=1, hours=5))
     new = Port(daily_request, now=tomorrow)
     result = batch.execute_batch(new, Journal(tmp_path / 'daily-ledger'), daily_request, now=tomorrow)
     assert result['error'] == 'daily_explicit_start_required' and not new.observations

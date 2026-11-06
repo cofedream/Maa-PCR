@@ -14,6 +14,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import urllib.request
 import zipfile
 
@@ -93,20 +94,30 @@ def download(record, cache):
         if digest(target, algorithm) != expected:
             raise ValueError('download_cache_hash_mismatch')
         return target
-    partial = target.with_suffix('.partial')
-    with urllib.request.urlopen(record['url'], timeout=60) as source, partial.open('xb') as output:
-        if not source.url.startswith('https://'):
-            raise ValueError('download_redirect_requires_https')
-        copied = 0
-        while chunk := source.read(1024 * 1024):
-            copied += len(chunk)
-            if copied > 1024 * 1024 * 1024:
-                raise ValueError('download_too_large')
-            output.write(chunk)
-    if digest(partial, algorithm) != expected:
-        raise ValueError('download_hash_mismatch')
-    partial.rename(target)
-    return target
+    partial = None
+    try:
+        with urllib.request.urlopen(record['url'], timeout=60) as source, tempfile.NamedTemporaryFile(
+                dir=cache, prefix=expected + '.', suffix='.partial', delete=False) as output:
+            partial = Path(output.name)
+            if not source.url.startswith('https://'):
+                raise ValueError('download_redirect_requires_https')
+            copied = 0
+            while chunk := source.read(1024 * 1024):
+                copied += len(chunk)
+                if copied > 1024 * 1024 * 1024:
+                    raise ValueError('download_too_large')
+                output.write(chunk)
+        if digest(partial, algorithm) != expected:
+            raise ValueError('download_hash_mismatch')
+        try:
+            partial.rename(target)
+        except FileExistsError:
+            if digest(target, algorithm) != expected:
+                raise ValueError('download_cache_hash_mismatch')
+        return target
+    finally:
+        if partial is not None:
+            partial.unlink(missing_ok=True)
 
 
 def extract(archive, target, *, wheel=False, allow_manifest=False):

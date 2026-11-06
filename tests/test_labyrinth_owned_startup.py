@@ -567,6 +567,54 @@ def test_launcher_emits_configuration_stage_before_runner(tmp_path, monkeypatch,
         kind='result', outcome='stopped', batch_complete=False)
 
 
+def test_failed_pause_notification_keeps_native_cleanup_timeout(tmp_path, monkeypatch):
+    from pcr_maa import native
+    wait_job = native.wait_job
+    owned, _, calls = runtime(tmp_path, monkeypatch)
+    clock = [100.0]
+
+    def failed_emit(message):
+        assert message == dict(kind='control', state='paused')
+        clock[0] += 5
+        raise BrokenPipeError('synthetic closed GUI stdout')
+
+    class StopJob:
+        succeeded = True
+
+        @property
+        def done(self):
+            return clock[0] >= 135
+
+    job = StopJob()
+
+    def stop_job():
+        calls.append('native_stop')
+        return job
+
+    def batch(*args):
+        monkeypatch.setattr(native.time, 'monotonic', lambda: clock[0])
+        monkeypatch.setattr(native.time, 'sleep', lambda seconds: clock.__setitem__(0, clock[0] + seconds))
+        monkeypatch.setattr(native, 'wait_job', wait_job)
+        monkeypatch.setattr(owned.tasker, 'post_stop', stop_job)
+        owned.stop.set_paused(True)
+        owned.stop.checkpoint()
+        pytest.fail('pause output failure was swallowed')
+
+    owned.stop.emit = failed_emit
+    owned._run_batch = batch
+    token = native.RUN_CONTROL.set(owned.stop)
+    try:
+        assert owned.run() == dict(outcome='adapter_failed', batch_complete=False)
+    finally:
+        native.RUN_CONTROL.reset(token)
+
+    assert 20 <= clock[0] - 105 < 20.1
+    assert not job.done
+    assert owned.stop.pause_started is None and owned.stop.paused_seconds == 5
+    assert calls.count('native_stop') == calls.count('client_close') == 1
+    assert owned.request.username == owned.request.password == ''
+
+
 def test_timing_read_failure_preserves_business_result_and_cleanup(tmp_path, monkeypatch):
     from pcr_maa.labyrinth import timing
     owned, events, calls = runtime(tmp_path, monkeypatch)

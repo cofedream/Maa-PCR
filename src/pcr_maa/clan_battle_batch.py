@@ -47,7 +47,7 @@ def _json(data):
     return json.loads(data, object_pairs_hook=unique)
 
 
-def validate_daily_request(value):
+def validate_daily_request(value, *, snapshot_at=None):
     """Validate three original reviewed jobs, including their raw material hashes."""
     _object(value, {'version', 'daily_plan', 'slot_plans', 'slot_materials', 'confirmed_for'}, 'daily_request_invalid')
     if type(value['version']) is not int or value['version'] != 1:
@@ -68,14 +68,14 @@ def validate_daily_request(value):
                     for key in ('bundle_sha256', 'material_sha256', 'confirmed_for'))):
             raise ValueError('daily_reference_invalid')
         seen.add(slot)
-        job = simulation.validate_plan(value['slot_plans'][str(slot)])
+        job = simulation.validate_plan(value['slot_plans'][str(slot)], snapshot_at=snapshot_at)
         material = value['slot_materials'][str(slot)]
         _object(material, MATERIAL_KEYS, 'daily_material_invalid')
         if (ref['confirmed_for'] != job['confirmed_for'] or ref['job_id'] != job['source']['job_id']
                 or _hash(material) != ref['material_sha256']
                 or any(material[key] != job[key] for key in MATERIAL_KEYS - {'stars'})):
             raise ValueError('daily_job_reference_changed')
-        snapshot = simulation.load_snapshot(job)
+        snapshot = simulation.load_snapshot(job, now=snapshot_at)
         raw_stars = material['stars']
         if type(raw_stars) is not list or len(raw_stars) != 5:
             raise ValueError('daily_material_stars_invalid')
@@ -205,12 +205,12 @@ def _action(row):
         raise ValueError('daily_action_invalid')
 
 
-def _ready(row, action, request, binding):
+def _ready(row, action, request, binding, *, snapshot_at=None):
     _object(row, READY_KEYS, 'daily_ready_invalid')
     _action({key: row[key] for key in ACTION_KEYS})
     _bound(row, binding)
     job = request['slot_plans'][str(action['slot'])]
-    support = simulation.support_requirement(job, simulation.load_snapshot(job))
+    support = simulation.support_requirement(job, simulation.load_snapshot(job, now=snapshot_at))
     _units(row['unit_ids'])
     if (any(row[key] != value for key, value in action.items()) or row['verified'] is not True
             or row['slot_confirmed_for'] != job['confirmed_for'] or not _evidence(row['evidence'])
@@ -228,7 +228,7 @@ def _ready(row, action, request, binding):
 
 def _result(value, intent, request, binding, *, now=None):
     _object(value, RESULT_KEYS, 'daily_result_invalid')
-    _ready(value['ready'], intent['action'], request, binding)
+    _ready(value['ready'], intent['action'], request, binding, snapshot_at=_timestamp(intent['observed_at']))
     if (value['ready'] != intent['ready'] or value['result_verified'] is not True
             or value['consumption_verified'] is not True or value['settings_verified'] is not True
             or type(value['return_verified']) is not bool or not _integer(value['damage'], 0, 10**15)
@@ -380,7 +380,7 @@ def validate_external_regular_event(row, request=None, binding=None):
     if any(_target_identity(row['before'], action) != _target_identity(row['after'], action) for action in preview['actions']):
         raise ValueError('daily_external_regular_observation_changed')
     if request is not None:
-        if _external_candidates(request, row['before']) != preview['actions']:
+        if _external_candidates(request, row['before'], snapshot_at=_timestamp(row['before']['observed_at'])) != preview['actions']:
             raise ValueError('daily_external_regular_team_mismatch')
     return row
 
@@ -390,11 +390,11 @@ def _target_identity(observation, action):
     return None if row is None else tuple(row[key] for key in ('boss', 'round', 'phase', 'instance_id', 'available'))
 
 
-def _external_candidates(request, observation):
+def _external_candidates(request, observation, *, snapshot_at=None):
     candidates = []
     for slot in (1, 2, 3):
         job = request['slot_plans'][str(slot)]
-        if simulation.support_requirement(job, simulation.load_snapshot(job)) is not None:
+        if simulation.support_requirement(job, simulation.load_snapshot(job, now=snapshot_at)) is not None:
             raise ValueError('daily_external_regular_owned_team_required')
         target = _target(job, observation['bosses'])
         if target is None:
@@ -405,27 +405,35 @@ def _external_candidates(request, observation):
     return candidates
 
 
-def _history(events, request, binding):
+def _history(events, request, binding, *, request_versions=None):
     regular, grants, consumed, external = {}, {}, set(), {}
     previous_after = None
+    def context(row):
+        original = (request_versions or {}).get(row.get('daily_plan_hash'), request)
+        original_binding = _binding(original, _timestamp(row['observed_at']))
+        if any(original_binding[key] != binding[key] for key in ('server', 'account_id', 'period', 'game_day')):
+            raise ValueError('daily_batch_binding_mismatch')
+        _bound(row, original_binding)
+        return original, original_binding
     if events and events[0].get('state') == 'observed_external':
-        row = validate_external_regular_event(events[0], request, binding)
+        original, original_binding = context(events[0])
+        row = validate_external_regular_event(events[0], original, original_binding)
         external[row['slot']] = row
         previous_after = row['after']
         events = events[1:]
     for index, intent in enumerate(events[::2]):
         _object(intent, INTENT_KEYS, 'daily_ledger_invalid')
-        _bound(intent, binding)
+        original, original_binding = context(intent)
         _action(intent['action'])
         if (intent.get('state') != 'in_flight' or intent.get('operation') not in ('clan_battle_regular', 'clan_battle_carryover')
                 or type(intent.get('intent_id')) is not str or not re.fullmatch(r'[0-9a-f]{64}', intent['intent_id'])
                 or type(intent.get('action')) is not dict or set(intent['action']) != ACTION_KEYS
                 or intent['operation'] != 'clan_battle_' + intent['action']['kind']
-                or intent['intent_id'] != _hash(dict(binding=binding, action=intent['action']))
-                or intent['slot_confirmed_for'] != request['slot_plans'][str(intent['action']['slot'])]['confirmed_for']):
+                or intent['intent_id'] != _hash(dict(binding=original_binding, action=intent['action']))
+                or intent['slot_confirmed_for'] != original['slot_plans'][str(intent['action']['slot'])]['confirmed_for']):
             raise ValueError('daily_ledger_invalid')
-        _ready(intent.get('ready'), intent['action'], request, binding)
-        before = _observation(intent.get('before'), binding, _timestamp(intent['observed_at']))
+        _ready(intent.get('ready'), intent['action'], original, original_binding, snapshot_at=_timestamp(intent['observed_at']))
+        before = _observation(intent.get('before'), original_binding, _timestamp(intent['observed_at']))
         if before['observed_at'] != intent['observed_at']:
             raise ValueError('daily_ledger_observation_mismatch')
         if index == 0 and (before['reset_verified'] is not True or not _evidence(before['reset_evidence'])):
@@ -437,7 +445,8 @@ def _history(events, request, binding):
                 for stock, reason in held.items())):
             raise ValueError('daily_ledger_carryover_hold_invalid')
         blocked = {int(stock): reason for stock, reason in held.items()}
-        chosen = choose_action(request, binding, before, regular, grants, consumed, blocked_carryovers=blocked, external=external)
+        chosen = choose_action(original, original_binding, before, regular, grants, consumed,
+            blocked_carryovers=blocked, external=external, snapshot_at=_timestamp(intent['observed_at']))
         if chosen.get('action') != intent['action']:
             raise ValueError('daily_ledger_action_mismatch')
         if previous_after is not None and _timestamp(before['observed_at']) < _timestamp(previous_after['observed_at']):
@@ -449,12 +458,12 @@ def _history(events, request, binding):
             previous_after = before
             continue
         if 'recovery' in settled:
-            previous_after = _cancelled_carryover_confirmation(settled, intent, grants, consumed, binding)
+            previous_after = _cancelled_carryover_confirmation(settled, intent, grants, consumed, original_binding)
             continue
         if (any(settled.get(key) != value for key, value in intent.items() if key != 'state')
                 or settled.get('state') != 'settled' or set(settled) != set(intent) | {'result'}):
             raise ValueError('daily_ledger_binding_mismatch')
-        result = _result(settled['result'], intent, request, binding)
+        result = _result(settled['result'], intent, original, original_binding)
         slot, stock = intent['action']['slot'], intent['action']['stock_index']
         if intent['action']['kind'] == 'regular':
             if slot in regular:
@@ -492,7 +501,8 @@ def _check_counts(observation, regular, grants, consumed, *, external=None):
         raise ValueError('daily_carryover_inventory_history_mismatch')
 
 
-def choose_action(request, binding, observation, regular, grants, consumed, *, blocked_carryovers=None, external=None):
+def choose_action(request, binding, observation, regular, grants, consumed, *, blocked_carryovers=None, external=None,
+        snapshot_at=None):
     """Pure bound candidate selection; this does not authorize any input."""
     external = external or {}
     _check_counts(observation, regular, grants, consumed, external=external)
@@ -528,7 +538,7 @@ def choose_action(request, binding, observation, regular, grants, consumed, *, b
         if observation['remaining_count'] == 0:
             held_regular.append(dict(slot=slot, boss=job['boss'], reason='regular_challenges_not_earned'))
             continue
-        support = simulation.support_requirement(job, simulation.load_snapshot(job))
+        support = simulation.support_requirement(job, simulation.load_snapshot(job, now=snapshot_at))
         if (set(job['unit_ids']) - {support}) & set(observation['used_unit']):
             raise ValueError('daily_self_unit_already_used')
         action = dict(kind='regular', slot=slot, stock_index=None, boss=target['boss'], round=target['round'],
@@ -611,6 +621,51 @@ def _consumption_candidates(action, request, observation, regular, grants, *, ex
     return actions[:observation['remaining_count']]
 
 
+def _fixed_plan(request):
+    value = deepcopy(request)
+    value.pop('confirmed_for')
+    for job in value['slot_plans'].values():
+        job.pop('snapshot')
+        job.pop('confirmed_for')
+    for ref in value['daily_plan']['slots']:
+        ref.pop('confirmed_for')
+    return value
+
+
+def _request_versions(frozen_path, events, request, binding, now):
+    versions = {request['confirmed_for']: request}
+    if not frozen_path.exists():
+        return versions
+    frozen = _json(frozen_path.read_bytes())
+    stored = [frozen]
+    seen = {request['confirmed_for'], frozen.get('request', {}).get('confirmed_for')}
+    for event in events:
+        digest = event.get('daily_plan_hash')
+        if type(digest) is not str or simulation.HEX.fullmatch(digest) is None:
+            raise ValueError('daily_ledger_invalid')
+        if digest not in seen:
+            stored.append(_json(frozen_path.with_name('batch-' + digest + '.json').read_bytes()))
+            seen.add(digest)
+    for value in stored:
+        _object(value, {'binding', 'request'}, 'daily_frozen_batch_invalid')
+        original = value['request']
+        if (value['binding'] != _binding(original, now) or _fixed_plan(original) != _fixed_plan(request)
+                or original['confirmed_for'] != request_hash(original)
+                or any(job['confirmed_for'] != simulation.plan_hash(job) for job in original['slot_plans'].values())):
+            raise ValueError('daily_consumed_batch_plan_immutable')
+        previous = next((row for row in events if row.get('daily_plan_hash') == original['confirmed_for']), None)
+        if previous is not None:
+            prepared_at = _timestamp(previous['observed_at'])
+            validate_daily_request(original, snapshot_at=prepared_at)
+            for slot, job in original['slot_plans'].items():
+                current = request['slot_plans'][slot]
+                if (simulation.support_requirement(job, simulation.load_snapshot(job, now=prepared_at))
+                        != simulation.support_requirement(current, simulation.load_snapshot(current))):
+                    raise ValueError('daily_consumed_batch_plan_immutable')
+        versions[original['confirmed_for']] = original
+    return versions
+
+
 def execute_batch(port, journal, request, *, now=None, explicit_start=False):
     """Execute a reviewed batch through the Owner port and the durable Journal."""
     from .supported_daily import _atomic_json
@@ -627,14 +682,11 @@ def execute_batch(port, journal, request, *, now=None, explicit_start=False):
     frozen_path = day_journal.directory / 'batch.json'
     try:
         with day_journal.locked():
-            if frozen_path.exists():
-                frozen = _json(frozen_path.read_bytes())
-                if frozen != dict(binding=binding, request=request):
-                    raise ValueError('daily_consumed_batch_plan_immutable')
             events = day_journal.events()
             if events and not frozen_path.exists():
                 raise ValueError('daily_frozen_batch_missing')
-            regular, grants, consumed, pending, external = _history(events, request, binding)
+            versions = _request_versions(frozen_path, events, request, binding, now)
+            regular, grants, consumed, pending, external = _history(events, request, binding, request_versions=versions)
             if pending:
                 raise ValueError('daily_previous_result_unknown')
             report.update(regular_settled=len(regular), external_regular_observed=len(external), carryover_settled=len(consumed))
@@ -813,10 +865,16 @@ def execute_batch(port, journal, request, *, now=None, explicit_start=False):
                     reserved.add(action_key)  # Never released after a possibly sent input or an uncertain append.
                     ready['evidence']['consumption_authorization'] = dict(permission,
                         reserved_intent_id=intent_id, authorization_generation=authorization_binding['authorization_generation'])
-                if not frozen_path.exists():
-                    _atomic_json(frozen_path, dict(binding=binding, request=request))
-                    if _json(frozen_path.read_bytes()) != dict(binding=binding, request=request):
+                # Keep the first plan and every later snapshot binding for immutable history.
+                request_path = (frozen_path if not frozen_path.exists()
+                    or _json(frozen_path.read_bytes())['request']['confirmed_for'] == request['confirmed_for'] else
+                    frozen_path.with_name('batch-' + request['confirmed_for'] + '.json'))
+                if not request_path.exists():
+                    _atomic_json(request_path, dict(binding=binding, request=request))
+                    if _json(request_path.read_bytes()) != dict(binding=binding, request=request):
                         raise ValueError('daily_frozen_batch_readback_failed')
+                elif _json(request_path.read_bytes()) != dict(binding=binding, request=request):
+                    raise ValueError('daily_frozen_batch_readback_failed')
                 intent = dict(state='in_flight', operation='clan_battle_' + action['kind'], **binding,
                     intent_id=intent_id, action=deepcopy(action),
                     slot_confirmed_for=job['confirmed_for'], ready=deepcopy(ready),
@@ -839,7 +897,7 @@ def execute_batch(port, journal, request, *, now=None, explicit_start=False):
                 result_now = fresh_now if not callable(getattr(port, 'now', None)) else _now(port.now())
                 result = _result(value, intent, request, binding, now=result_now)
                 proposed = events + [intent, dict(intent, state='settled', result=deepcopy(result))]
-                regular, grants, consumed, pending, external = _history(proposed, request, binding)
+                regular, grants, consumed, pending, external = _history(proposed, request, binding, request_versions=versions)
                 day_journal.append(proposed[-1])
                 player_log.text(f"第 {action['slot']} 刀已结算，伤害 {value.get('damage', '未知')}；记录已保存。")
                 events = proposed

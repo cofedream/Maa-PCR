@@ -538,7 +538,16 @@ class NativeEvent(NativePreset):
         self.event_identity = record['before'].get('event_identity')
         try:
             with self._confirmation_scope():
-                return super().recover_result(record)
+                result = super().recover_result(record)
+                if result['recovery_verified']:
+                    result['recovery_verified'] = (completed(result['result_evidence'], 'ObserveHome')
+                                                   or self.home())
+                    if result['recovery_verified']:
+                        self.start = 'home'
+                        self.entered = self._navigation_attempted = False
+                        self.map_name = self.original_view = None
+                        self.closed_adventure_verified = False
+                return result
         finally:
             self.event_identity = None  # next read must independently bind the current event
 
@@ -550,9 +559,11 @@ class NativeEvent(NativePreset):
             self.home_receipt = return_home(self.tasker)
             return completed(self.home_receipt, 'ObserveHome')
         if self.original_view == 'all':
-            if not completed(native.run(self.tasker, 'EventRestoreView'), 'EventAllReady'):
+            if not completed(native.run(self.tasker, 'EventRestoreView',
+                                        reset_hits=('EventRestoreToggle',)), 'EventAllReady'):
                 return False
-        return completed(native.run(self.tasker, 'EventReturnHome'), 'ObserveHome')
+        return completed(native.run(self.tasker, 'EventReturnHome',
+                                    reset_hits=('EventListCancel', 'EventMapHome')), 'ObserveHome')
 
     def _closed_adventure(self, entry):
         resource = self.tasker.resource

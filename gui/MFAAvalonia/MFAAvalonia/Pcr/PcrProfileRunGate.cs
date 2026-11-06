@@ -5,9 +5,12 @@ internal static class PcrProfileRunGate
 {
     internal static readonly object StartGate = new();
     internal static volatile bool UpdatePending;
+    internal static volatile bool ShutdownPending;
+    internal static bool StartBlocked => UpdatePending || ShutdownPending;
     internal static bool ConnectionPending => MaaProcessorManager.IsInstanceCreated
         && MaaProcessorManager.Instance.Instances.Any(p => p.ViewModel?.PcrConnectionPending == true);
-    internal static bool Busy => UpdatePending || PcrAlphaOwner.HasActiveRun || PcrLabyrinthOwner.IsActive || PcrGuideSyncOwner.IsActive
+    internal static bool Busy => StartBlocked || HasRunningWork;
+    internal static bool HasRunningWork => PcrAlphaOwner.HasActiveRun || PcrLabyrinthOwner.IsActive || PcrGuideSyncOwner.IsActive
         || MaaProcessorManager.IsInstanceCreated && MaaProcessorManager.Instance.Instances.Any(p => p.IsTaskRunActive || p.IsConnecting || p.ViewModel?.IsRunning == true || p.ViewModel?.PcrTargetBusy == true || p.ViewModel?.PcrConnectionPending == true);
     internal static bool OtherProfileBusy(string id) =>
         PcrGuideSyncOwner.IsActive || PcrAlphaOwner.HasActiveRun && PcrAlphaOwner.ActiveProfile != id

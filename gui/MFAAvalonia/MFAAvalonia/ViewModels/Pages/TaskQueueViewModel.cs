@@ -1594,7 +1594,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public bool CanEditPcrTarget => !PcrCleanupPending && !PcrProfileRunGate.UpdatePending && !PcrProfileRunGate.OtherProfileBusy(Processor.InstanceId) && !IsRunning && !Processor.IsTaskRunActive
+    public bool CanEditPcrTarget => !PcrCleanupPending && !PcrProfileRunGate.StartBlocked && !PcrProfileRunGate.OtherProfileBusy(Processor.InstanceId) && !IsRunning && !Processor.IsTaskRunActive
         && !Processor.IsConnecting && !PcrTargetBusy && !PcrConnectionPending && _isDisposed == 0
         && !(Processor.MaaTasker?.IsRunning ?? false)
         && !(Processor.MaaTasker?.IsStopping ?? false)
