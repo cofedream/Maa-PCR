@@ -423,9 +423,10 @@ def perform_scene_action(tasker,scene,action,*,stopped=None,timings=None,target=
         final=action=='advance_final_unknown'
         if final and target not in ([640,520,1,1],[1093,660,1,1]):
             raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='scene_action_target_unknown'))
-        # The caller owns this bounded animation phase. Pinned upstream advances
-        # its safe point even if the next known page appears before this input.
-        nodes={'LabySceneActionOnce':dict(recognition='DirectHit',action='Click',
+        # The animation may finish before input; recheck the current frame.
+        nodes={'LabySceneActionOnce':dict(recognition='Custom',custom_recognition=NAME,
+            custom_recognition_param=dict(kind=scene.kind,probe_kinds=sorted(_RULES),
+                **({'final_settlement':True} if final else {})),roi=[0,0,1280,720],action='Click',
             target=target if final else [640,520,1,1],max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)}
         if not tasker.resource.override_pipeline(nodes):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='scene_action_install_failed'))
         with (timings or Timings()).measure('page_wait'):receipt=native.run(tasker,'LabySceneActionOnce',reset_hits=('LabySceneActionOnce',))

@@ -1002,14 +1002,21 @@ class AutoplayRunner:
         try:clicked=batch.transaction(operation or action,expected,send)
         except BatchStopped as error:
             cause=error.__cause__
-            if (action not in ('close_reward','settlement_next','advance_final_animation','advance_revived_battle')
+            if (action not in ('close_reward','settlement_next','advance_final_animation','advance_revived_battle','advance_character_animation')
                     or error.args!=('native_input_not_sent',)
                     or not isinstance(cause,native.NativeInputNotSent)
                     or cause.receipt.get('native_evidence',{}).get('entry')!='LabySceneActionOnce'):
                 raise
             # The completed task sent nothing. Read once through the existing
             # router; a page already advanced needs no stale closing click.
-            following=self._observe(batch,route,drive_final=False)
+            if action=='advance_character_animation':
+                receipt=cause.receipt;proof=receipt.get('native_evidence',{})
+                if (receipt.get('input_execution')!='not_sent'
+                        or receipt.get('pre_input_validation_failed') is True
+                        or proof.get('recognition_failed') is not True
+                        or proof.get('action_started') is not False):raise
+                following=self._action_transition_readback(batch,scene,allowed)
+            else:following=self._observe(batch,route,drive_final=False)
             from .scene import classify_scene
             # Compare the actual source page, not its owned Boss result alias.
             source_kind=('unknown' if scene.kind=='boss_summary'

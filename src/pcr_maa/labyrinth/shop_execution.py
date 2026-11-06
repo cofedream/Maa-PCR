@@ -559,7 +559,18 @@ class MaaShop:
             def advance(oid):
                 sent=self.scene.perform(scene,action)
                 return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
-            clicked=batch.transaction('shop_imprint_'+action,fields,advance)
+            clicked=None
+            try:clicked=batch.transaction('shop_imprint_'+action,fields,advance)
+            except BatchStopped as error:
+                cause=error.__cause__
+                receipt=cause.receipt if isinstance(cause,native.NativeInputNotSent) else {}
+                proof=receipt.get('native_evidence',{})
+                if (action!='advance_character_animation' or error.args!=('native_input_not_sent',)
+                        or receipt.get('input_execution')!='not_sent'
+                        or receipt.get('pre_input_validation_failed') is True
+                        or proof.get('entry')!='LabySceneActionOnce'
+                        or proof.get('recognition_failed') is not True
+                        or proof.get('action_started') is not False):raise
             previous_roles=tuple(roles) if scene.kind=='joined' else None
             def changed(value):
                 if value.kind=='shop':return bool(joined) and not pending
@@ -568,7 +579,8 @@ class MaaShop:
                 if actual is None:return False
                 return tuple(actual['roles_joined'])!=previous_roles
             scene=self.scene.wait_for(batch,{'shop','joined','free_role_reward','event_animation'},source=scene.kind,accept=changed,timeout=30,reason='shop_imprint_result_unknown',acquisition_fields=dict(source='maa',enter_id=enter_id,item_id=identifier))
-            batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,page=scene.kind,native=scene.native,input_native=clicked['input_native']),**fields)
+            if clicked is not None:
+                batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,page=scene.kind,native=scene.native,input_native=clicked['input_native']),**fields)
         raise BatchStopped('shop_imprint_result_unknown')
 
     def run(self,batch,enter_id,block_id,*,owned=(),stacks=None,context=None,buy_relics=True,refresh_shop=False,area=None,locked_focus=None,priority=(),characters=None,final_shop=False):
