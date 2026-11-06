@@ -82,8 +82,12 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string allowance = "1";
     [ObservableProperty] private string thirdChoice = "必须遗物";
     [ObservableProperty] private bool perfectStart = true;
-    [ObservableProperty] private string area3BossIds = "312505,319604";
-    [ObservableProperty] private string area5BossIds = "310103";
+    public IReadOnlyList<PcrLabyrinthBossChoice> Area3Bosses { get; }
+    public IReadOnlyList<PcrLabyrinthBossChoice> Area5Bosses { get; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBossFilterStatus))]
+    private string bossFilterStatus = "";
+    public bool HasBossFilterStatus => BossFilterStatus.Length>0;
     public string[] BossModes { get; } = { "多队", "单队" };
     [ObservableProperty] private string bossMode = "多队";
     [ObservableProperty] private string deploymentWeights = "1,0.35,0.2";
@@ -146,6 +150,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             new PcrLabyrinthGoal(1,"美食殿堂",this), new PcrLabyrinthGoal(2,"破晓之星",this), new PcrLabyrinthGoal(3,"咲恋救济院",this),
             new PcrLabyrinthGoal(4,"王宫骑士团",this),new PcrLabyrinthGoal(5,"拉比林斯",this) });
         Goals[0].Enabled=true;
+        Area3Bosses=PcrLabyrinthBossTable.Choices(3,this);
+        Area5Bosses=PcrLabyrinthBossTable.Choices(5,this);
         LoadEventChoices();
         try {
             accountLibrary=new PcrLabyrinthAccounts(vm.Processor.InstanceConfiguration);
@@ -178,6 +184,25 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (!ready) return;
         vm.NotifyPcrSelectionChanged();
         SaveCore(automatic:true);
+    }
+    internal void BossSelectionEdited() {
+        if (!ready) return;
+        vm.NotifyPcrSelectionChanged();
+        SaveCore(automatic:true);
+    }
+    // 读回时只保留表中仍存在的 ID：陌生 ID 逐个丢弃，全部丢弃即视为不限制（空选择）。
+    private void ApplyBossFilters(JObject? route) {
+        var ignored=new List<int>();
+        ApplyBossSelection(Area3Bosses,3,route?["area3_bosses"],ignored);
+        ApplyBossSelection(Area5Bosses,5,route?["area5_bosses"],ignored);
+        BossFilterStatus=ignored.Count==0 ? "" : $"已忽略不再支持的 Boss ID：{string.Join(",",ignored)}。";
+    }
+    private static void ApplyBossSelection(IReadOnlyList<PcrLabyrinthBossChoice> choices,int area,JToken? token,List<int> ignored) {
+        var requested=token is JArray array
+            ? array.OfType<JValue>().Where(value=>value.Type==JTokenType.Integer).Select(value=>value.Value<int>()).ToArray()
+            : PcrLabyrinthBossTable.DefaultIds(area);
+        foreach (var choice in choices) choice.Selected=requested.Contains(choice.Id);
+        ignored.AddRange(requested.Where(id=>choices.All(choice=>choice.Id!=id)));
     }
     private void ApplyAccount(PcrLabyrinthAccount account) {
         var wasReady=ready; ready=false; switchingAccount=true;
@@ -248,8 +273,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         ThirdChoice=(string?)d["route"]?["third_choice"] switch { "event"=>ThirdChoices[1],"either"=>ThirdChoices[2],_=>ThirdChoices[0] };
         Allowance=d["route"]?["allowance"]?.ToString() ?? "1";
         PerfectStart=(bool?)d["route"]?["perfect_start"] ?? true;
-        Area3BossIds=d["route"]?["area3_bosses"] is JArray b3 ? string.Join(",",b3.Values<int>()) : "312505,319604";
-        Area5BossIds=d["route"]?["area5_bosses"] is JArray b5 ? string.Join(",",b5.Values<int>()) : "310103";
+        ApplyBossFilters(d["route"] as JObject);
         foreach (var g in Goals) { var row=(d["draft_goals"] ?? d["goals"])?.FirstOrDefault(x=>(int?)x["guild_id"]==g.GuildId); g.Enabled=(bool?)row?["enabled"] ?? (row!=null || d["draft_goals"] is null && d["goals"] is null && g.GuildId==1); g.Clears=row?["clears"]?.ToString() ?? "1"; g.TargetMode=(string?)row?["mode"]=="attempts" ? g.TargetModes[1]:g.TargetModes[0]; }
     }
     private bool SaveBeforeAccountChange() {
@@ -329,7 +353,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (!ready || e.PropertyName is nameof(ShowCredentials) or nameof(CredentialMask) or nameof(CredentialsVisibilityText) or nameof(CredentialsStatus)
                 or nameof(RosterStatus) or nameof(HasRosterStatus) or nameof(AccountSummary) or nameof(SaveButtonText)
                 or nameof(SelectedAccount) or nameof(SelectedServer) or nameof(LoginLabel) or nameof(PasswordLabel) or nameof(LoginHint)
-                or nameof(IsPaused) or nameof(PausePending) or nameof(PauseLabel) or nameof(DeleteAccountPending) or nameof(DeleteAccountText)) return;
+                or nameof(IsPaused) or nameof(PausePending) or nameof(PauseLabel) or nameof(DeleteAccountPending) or nameof(DeleteAccountText)
+                or nameof(BossFilterStatus) or nameof(HasBossFilterStatus)) return;
         vm.NotifyPcrSelectionChanged();
         if (e.PropertyName is nameof(ExpectedPlayerId) or nameof(Username) or nameof(Password)) {
             credentialsDirty=true;
@@ -386,12 +411,6 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private static int Number(string s,int min,int max,string label) {
         if (!int.TryParse(s,NumberStyles.None,CultureInfo.InvariantCulture,out var n) || n<min || n>max) throw new InvalidOperationException($"{label}请输入 {min}–{max} 的整数。");
         return n;
-    }
-    private static JArray Bosses(string text, int[] allowed) {
-        if (string.IsNullOrWhiteSpace(text)) return new JArray();
-        var ids=text.Split(',',StringSplitOptions.TrimEntries).Select(s=>Number(s,1,999999,"Boss ID")).ToArray();
-        if (ids.Distinct().Count()!=ids.Length || ids.Any(x=>!allowed.Contains(x))) throw new InvalidOperationException("Boss ID 不在当前支持列表中。");
-        return new JArray(ids);
     }
     private static double Weight(string text,double max,string label) {
         if (!double.TryParse(text,NumberStyles.AllowDecimalPoint,CultureInfo.InvariantCulture,out var value)
@@ -496,8 +515,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             ["buy_relics"]=BuyRelics,["refresh_shop"]=RefreshShop,["strategy"]=StrategySnapshot(),["route"]=new JObject {
                 ["mode"]=RouteMode==RouteModes[0] ? "value":"template",["perfect_start"]=PerfectStart,["allowance"]=Number(Allowance,0,3,"价值容差"),
                 ["third_choice"]=ThirdChoice==ThirdChoices[0] ? "relic":ThirdChoice==ThirdChoices[1] ? "event":"either",
-                ["area3_bosses"]=Bosses(Area3BossIds,new[]{301206,303306,319604,312505,306604}),
-                ["area5_bosses"]=Bosses(Area5BossIds,new[]{302501,301701,310103,315004,319401}) } };
+                ["area3_bosses"]=new JArray(PcrLabyrinthBossTable.SelectedIds(3,Area3Bosses)),
+                ["area5_bosses"]=new JArray(PcrLabyrinthBossTable.SelectedIds(5,Area5Bosses)) } };
     }
     [RelayCommand] public void Save() => SaveCore(automatic:false);
     private void SaveCore(bool automatic) {
@@ -516,4 +535,38 @@ public partial class PcrLabyrinthSettings : ObservableObject {
                 : automatic ? "已自动保存黎明界设置。" : "黎明界设置已保存。";
         } catch (Exception ex) { Status="保存失败："+ex.Message; }
     }
+}
+
+/// <summary>第三／第五区域可接受的 Boss。行顺序必须与 src/pcr_maa/labyrinth/routes.py 的 BOSSES 一致：
+/// 那份表按序号取模决定 quest 归属，顺序不同会让筛选选到别的首领。
+/// tests/test_labyrinth_boss_names_gui.py 解析本表逐项比对，改这里就要同步那边。</summary>
+public static class PcrLabyrinthBossTable {
+    public static readonly (int Id, string Name)[] Area3 = {
+        (301206,"魔像"), (303306,"滴水嘴兽"), (319604,"冰霜魔狼"), (312505,"厄勒克特拉夫人"), (306604,"沙鳗蛇") };
+    public static readonly (int Id, string Name)[] Area5 = {
+        (302501,"奇美拉"), (301701,"炸脖龙"), (310103,"愤怒巨龙"), (315004,"领主哥布林"), (319401,"究极守护者") };
+    public static (int Id, string Name)[] Rows(int area) =>
+        area==3 ? Area3 : area==5 ? Area5 : Array.Empty<(int Id, string Name)>();
+    public static List<PcrLabyrinthBossChoice> Choices(int area,PcrLabyrinthSettings owner) =>
+        Rows(area).Select(row=>new PcrLabyrinthBossChoice(area,row.Id,row.Name,owner)).ToList();
+    // 沿用原默认：第三区域只接受厄勒克特拉夫人与冰霜魔狼，第五区域只接受愤怒巨龙。
+    public static int[] DefaultIds(int area) =>
+        area==3 ? new[]{312505,319604} : area==5 ? new[]{310103} : Array.Empty<int>();
+    public static int[] SelectedIds(int area,IEnumerable<PcrLabyrinthBossChoice> choices) {
+        var selected=choices.Where(choice=>choice.Selected).Select(choice=>choice.Id).ToHashSet();
+        return Rows(area).Select(row=>row.Id).Where(selected.Contains).ToArray();
+    }
+}
+
+public partial class PcrLabyrinthBossChoice : ObservableObject {
+    private readonly PcrLabyrinthSettings owner;
+    public PcrLabyrinthBossChoice(int area,int id,string name,PcrLabyrinthSettings owner) {
+        Area=area; Id=id; Name=name; this.owner=owner;
+    }
+    public int Area { get; }
+    public int Id { get; }
+    public string Name { get; }
+    public string Label => $"{Name}（{Id}）";
+    [ObservableProperty] private bool selected;
+    partial void OnSelectedChanged(bool value) => owner.BossSelectionEdited();
 }
