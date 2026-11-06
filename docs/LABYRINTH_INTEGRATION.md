@@ -1,3 +1,23 @@
+## 2026-11-06 主页图标兜底落地（替代文字模板占位，现场截图 + 离线回放验证）
+
+现场实测补充（失败 run `40aa3ff2…` / 运行时 `2f4087bb…` 的导出帧 + 模拟器连续抓帧）：`HomeScheduleText` 的误读不是“永远错”，而是随主页背景/动画在「日程表 / 回程表」之间摇摆——亮色天空皮肤 13 帧中 6 帧读对（0.777–0.978）、7 帧读错（0.777–0.851）；宫子暗色皮肤 6/6 读成回程表（0.854–0.883）。分数都压在 threshold 0.8 附近，因此调阈值/ROI/换文字模板都不够稳。改为用主页右下角**图标行**做像素兜底：图标本身叠在白色圆盘上，两套皮肤上分辨率、位置和像素一致，与页面背景无关。
+
+实现：
+
+- 资源：`assets/resource/image/anchors/home/icons/{schedule,gift,shop,mission}.png`，来自维护者从已安装 CN 客户端 via adb 拉取的原始 UI 图标（`日程表_icon_schedulebutton.png`、`礼物_common_mypage_icon_present.png`、`商店_common_mypage_icon_shop.png`、`任务_common_mypage_icon_mission.png`，30 个候选图标中筛选出的 4 个主页专属按钮）。原始 PNG 带 alpha，而 MaaFw 的 `TemplateMatch` 不按 alpha 掩码（实测原图直接匹配仅 0.42–0.58），所以统一把透明区域垫白（`bgr*alpha + 255*(1-alpha)`；游戏图标渲染在白色圆盘上）后再入库，1:1 对应 1280×720。
+- 来源与许可：`assets/resource/image/anchors/home/icons/SOURCE_NOTICE.json` 记录原始文件名、sha256、尺寸、变换、本地路径与本地 sha256；游戏图像权利保留，不并入项目 MIT 许可。活动/主题相关的 `美食嘉年华_main_icon_seasonpass.png`（0.9651 可用）与绶带、特效类图标没有进入必须项，避免活动下线或换图标造成误杀。
+- 代码：`src/pcr_maa/anchors.py` 新增 `Icon`、`Page.icons`、`icon_template_path()`、`icon_pixel_nodes()` 与 `HomeIconPixelsLayout = And[HomeIconSchedulePixels, HomeIconGiftPixels, HomeIconShopPixels, HomeIconMissionPixels]`（threshold 0.85、pad 15 搜索窗）；`HomeAnchorLayout = Or[HomeTextLayout, HomeIconPixelsLayout]`，OCR 分支仍在首位。删除上一版 5 个 0 字节文字模板占位与对应 `HomeDefaultPixelsLayout`/`HomeEdgePixelsLayout`；文字 OCR 布局保留为第一判据。
+- 输入点击：图标兜底只用于“证明是主页”，`LabyClientHomeToAdventure` 的 `target` 从 `True` 改为固定 `[693,685,53,33]`（冒险词框），否则图标分支命中时会把 And 的点击目标带到图标上。
+- ROI：schedule `(989,549,56,49)`、gift `(1188,548,53,53)`、shop `(893,549,54,53)`、mission `(1090,550,52,52)`。
+
+离线验证：两套主页皮肤 + 失败帧上 4 枚图标均命中（0.9156 / 0.9316 / 0.9521 / 0.9382，两皮肤同分），迷宫大厅同 ROI 全部 miss。端到端回放：5 张主页帧 + 3 张失败帧的 `HomeIconPixelsLayout` / `HomeAnchorLayout` / `LabyClientGameHomeObserved` / `LabyClientHomeToAdventure` 全通过，点击落在冒险词框内（如 `[697,710]`）；迷宫大厅帧全部判负且零点击；`LabyGameSessionAfterTitleObserved` 在 8s 预算内主页通过、大厅失败。相关单测 76 passed / 79 skipped（跳过项均为缺私有夹具），`tests/test_home_guard_safety.py` 覆盖图标布局、模板非空、无 alpha、尺寸与词框包含。
+
+现场三主题复测（每主题 20/13/20 帧）：宫子暗色 / 亮色旧 / 亮色当前三个主题上，文字 OCR 首页布局成功率 **0% / 38% / 50%**（`日程表` 仍随背景在“日程表/回程表”之间摇摆），图标布局 **100% / 100% / 100%**；守卫成功率均 100%，耗时约 103 ms（OCR 分支一次尝试 ~51 ms + 图标分支 ~51 ms）。纯推理耗时：OCR 约 8–9 ms/词、图标 <1 ms/个（节点级 ~51 ms 主要是 MaaFw 任务/SDK 固定开销）。
+
+**阈值余量提示（当前保持 `ICON_THRESHOLD=0.85` 不调整）**：三主题实测每枚图标 score 范围——schedule 0.914–0.927、gift **0.859**–0.950、shop 0.896–0.965、mission 0.876–0.942；gift 最低 0.859，距阈值只有约 9 分，是本方案最薄的一处。迷宫大厅负例 0.14–0.26，与阈值仍有一个数量级的差距。若未来主题/活动把某枚图标压到 0.85 以下，优先给该主题追加模板变体（`template` 支持列表，可在 `anchors.py` 的 `Icon` 里扩展路径列表），其次才考虑把阈值降到 0.82；任何调整都必须在三主题 + 大厅负例上重跑，不能只改阈值不验证。
+
+未验证边界：标题页/公告页/副本页/角色页等更多负例、1080p 分辨率（图标位置/尺寸会变）、节日主题皮肤与活动图标替换；上线前仍按 `docs/OCR_STABILITY.md` 补门槛，并把现场抓帧脚本与证据留在本机 `.live-analysis/`（不进发行包）。
+
 ## 2026-11-06 主页锚点公共模块，“日程表”被稳定读成“回程表”后由图片兜底（占位验证）
 
 实机失败记录 `run 40aa3ff2f9f7472b97ac7e9fd5674182`（另两次 `f35556797ef044d5a7c985ceb9e872b4`、`cecc59d10cf04c808978b8f9942256cf` 同因）：12:05:27 关闭“通知”并确认为 `client_notice_close` 后，`_after_title` 连续 75 秒探测主页全部未命中，最后一次探测以 `recognition_failed=true` 结束，`_root` 拒绝该回执，批次以 `game_session_readback_unknown` 停止（位置 `game_session.py:556/282/190`，对应 `_close_startup_popup` → `_after_title` → `_root`）。

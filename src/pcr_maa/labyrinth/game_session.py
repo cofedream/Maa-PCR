@@ -87,16 +87,15 @@ def game_session_pipeline(expected_player_id,*,server='cn-bilibili'):
                           ('LabyClientScheduleLabel','HomeScheduleText'),('LabyClientGiftLabel','HomeGiftText')):
         nodes[local]=deepcopy(shared[common])
     # OCR is the primary HOME proof and stays byte-identical to the shared
-    # document; `pcr_maa.anchors` adds the same three words of the same layout
-    # as inert pixel fallbacks, for clients where the shipped recognizer reads
-    # 日程表 as 回程表 every frame. One layout's words only, OCR branch first,
-    # and the template files stay empty placeholders until real crops exist.
+    # document; `pcr_maa.anchors` adds the home button icon row as the pixel
+    # fallback for clients whose recognizer misreads the bottom words. The icon
+    # branch only proves the page; input keeps the sampled adventure word box.
     nodes.update(deepcopy(anchors.nodes()))
     home=[anchors.anchor_guard(),'HomeNoKnownLargePanel']
     nodes['LabyClientGameHomeObserved']=dict(recognition='And',all_of=home,
         action='DoNothing',next=[],timeout=5000,pre_delay=0,post_delay=0)
     nodes['LabyClientHomeToAdventure']=dict(recognition='And',all_of=home,
-        action='Click',target=True,max_hit=1,next=[],timeout=3000,rate_limit=250,pre_delay=0,post_delay=0)
+        action='Click',target=[693,685,53,33],max_hit=1,next=[],timeout=3000,rate_limit=250,pre_delay=0,post_delay=0)
     nodes['LabyClientAdventureObserved']=dict(recognition='And',all_of=['LabyAdventureIdentity','LabyDawnEntryLabel'],
         action='DoNothing',next=[],timeout=5000,pre_delay=0,post_delay=0)
     # These menu labels and targets were independently sampled. Menu's bottom
