@@ -81,7 +81,7 @@ jobs:
           $dll = Join-Path $binary 'PcrProfileSwitch.Tests.dll'
           $profileEvidence = Join-Path $source '.runtime/ci/profile-checks'
           New-Item -ItemType Directory -Force $profileEvidence | Out-Null
-          foreach ($mode in @('default', 'clan-daily-only', 'clan-workflow-only', 'clan-formal-only', 'clan-postsave-only', 'profile-registration-only')) {
+          foreach ($mode in @('default', 'clan-daily-only', 'clan-workflow-only', 'clan-formal-only', 'clan-postsave-only', 'profile-registration-only', 'runbar-only')) {
             $coreHash = (Get-FileHash -Algorithm SHA256 (Join-Path $core 'MFAAvalonia.Core.dll')).Hash
             if ((Get-FileHash -Algorithm SHA256 (Join-Path $binary 'MFAAvalonia.Core.dll')).Hash -ne $coreHash) { throw 'Profile checks do not reference the current packaged Core build.' }
             $coreHash | Set-Content -Encoding utf8 (Join-Path $profileEvidence "$mode.core.sha256")

@@ -34,7 +34,8 @@ def test_the_one_resolved_component_for_this_package_is_returned(output, expecte
     'com.bilibili.priconne.mi/.Main\n',
     # Malformed activity half.
     'com.bilibili.priconne/\n', 'com.bilibili.priconne/main activity\n',
-    'x' * (64 * 1024 + 1),
+    # The raw input stays oversized; the id keeps PYTEST_CURRENT_TEST writable.
+    pytest.param('x' * (64 * 1024 + 1), id='oversized-output'),
     'com.bilibili.priconne/.Main\x00\n',
 ])
 def test_ambiguous_foreign_or_malformed_answers_never_become_a_launch(output):
@@ -57,7 +58,7 @@ def test_the_command_asks_am_to_report_the_launch_outcome():
     # An error line next to a successful status is still a refusal.
     (STARTED + 'Error: Activity not started\n', False),
     (None, False), ('', False), ('Status: ok\x00\n', False),
-    ('x' * (64 * 1024 + 1), False),
+    pytest.param('x' * (64 * 1024 + 1), False, id='oversized-output'),
 ])
 def test_only_a_reported_status_without_an_error_counts_as_accepted(output, expected):
     assert launch_accepted(output) is expected

@@ -15,7 +15,7 @@ from xml.sax.saxutils import quoteattr
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE_CHECK_MODES = ("clan-daily-only", "clan-workflow-only", "clan-formal-only",
-                       "clan-postsave-only", "profile-registration-only")
+                       "clan-postsave-only", "profile-registration-only", "runbar-only")
 
 
 def check_python() -> None:
