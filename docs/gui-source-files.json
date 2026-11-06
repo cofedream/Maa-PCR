@@ -333,6 +333,7 @@
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrGuideSyncOwner.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrGuideTrial.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthAccounts.cs",
+    "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthBosses.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthCaptchaMessage.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthCharacters.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthEvents.cs",

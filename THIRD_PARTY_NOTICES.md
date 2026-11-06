@@ -39,7 +39,9 @@ They are not a claim that historical build outputs reproduce bit for bit.
 The earlier daily-template removal does not describe all labyrinth assets.
 R39 retains the labyrinth integration, including its upstream CC BY-NC-SA code,
 GPL-derived catalog and game-image provenance in `docs/LABYRINTH_SOURCES.json`,
-`licenses/labyrinth/` and `assets/labyrinth/character-pack/PROVENANCE.json`.
+`licenses/labyrinth/`, `assets/labyrinth/character-pack/PROVENANCE.json` and
+`assets/labyrinth/boss-pack/PROVENANCE.json` (Boss icons: game imagery rights
+retained; no distribution permission inferred).
 Original component terms and unresolved provenance statements are retained;
 the root MIT license applies only to original project source, not this entire
 aggregate. No maintainer settings, private game frames, journals, sessions or

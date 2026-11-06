@@ -30,6 +30,7 @@ try {
     typeof(AppPaths).GetField("_configDirectory",fields)!.SetValue(null,Path.Combine(root,"config"));
     typeof(AppPaths).GetField("_initialized",fields)!.SetValue(null,true);
     PcrLabyrinthCharacterCatalog.UseRepositoryRoot(args[1]);
+    PcrLabyrinthBossCatalog.UseRepositoryRoot(args[1]);
     var count=0;
     void Require(bool condition,string name) { if (!condition) throw new InvalidOperationException(name); count++; }
     TaskQueueViewModel Owner(InstanceConfiguration config) {
@@ -186,11 +187,22 @@ try {
         var interval=view.GetLogicalDescendants().OfType<ComboBox>().Single(control=>control.Items.OfType<int>().SequenceEqual(new[]{300,500}));
         interval.SetCurrentValue(ComboBox.SelectedItemProperty,300); Dispatcher.UIThread.RunJobs();
         Require(guiOwner.LabyrinthSettings.ResponseIntervalMs==300 && Reload().ResponseIntervalMs==300,"real_response_interval_control_persists");
-        var database=view.GetLogicalDescendants().OfType<CheckBox>().Single(control=>((string?)control.Content)?.StartsWith("在后台检查游戏数据库") == true);
+        var database=view.GetLogicalDescendants().OfType<CheckBox>().Single(control=>(control.Content as string)?.StartsWith("在后台检查游戏数据库") == true);
         database.SetCurrentValue(CheckBox.IsCheckedProperty,true); Dispatcher.UIThread.RunJobs();
         Require(guiOwner.LabyrinthSettings.AutoDatabaseUpdate && Reload().AutoDatabaseUpdate,"real_database_update_control_persists");
         using (var frame=new RenderTargetBitmap(new PixelSize(1080,1100))) { frame.Render(view); frame.Save(Path.Combine(root,"runtime-options-view.png")); }
         rerollPanel.IsExpanded=false;
+        var routePanel=view.GetLogicalDescendants().OfType<Expander>().Single(control=>control.Name=="RouteSettings");
+        routePanel.IsExpanded=true; Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(350); Dispatcher.UIThread.RunJobs();
+        routePanel.BringIntoView(); Dispatcher.UIThread.RunJobs(); view.UpdateLayout();
+        var bossChoices=view.GetLogicalDescendants().OfType<CheckBox>()
+            .Where(control=>control.Content is StackPanel panel && panel.Children.OfType<Image>().Any()).ToArray();
+        Require(bossChoices.Length==10,"real_boss_filter_shows_ten_icon_checkboxes");
+        Require(bossChoices.All(control=>control.Content is StackPanel panel
+                && panel.Children.OfType<Image>().Single().Source is Bitmap bitmap && bitmap.PixelSize.Width==128),
+            "real_boss_filter_icons_decode_from_boss_pack");
+        using (var frame=new RenderTargetBitmap(new PixelSize(1080,1100))) { frame.Render(view); frame.Save(Path.Combine(root,"boss-filter-view.png")); }
+        routePanel.IsExpanded=false;
         var teamPanel=view.GetLogicalDescendants().OfType<Expander>().Single(control=>control.Name=="TeamSettings");
         teamPanel.IsExpanded=true; Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(350); Dispatcher.UIThread.RunJobs();
         teamPanel.BringIntoView(); Dispatcher.UIThread.RunJobs(); view.UpdateLayout();

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "masterVersion": "202611021739",
+  "note": "Boss 目录：area=出现区域，ordinal=该区域第几位（协议 quest_id 的序号按 (ordinal-1)%5 轮转到本表，ordinal 必须为 1..5 且每区各一条）。name 取自 data/labyrinth/master-cn 的 labyrinth_enemy_parameter；icon 相对 assets/labyrinth，由 boss-pack/PROVENANCE.json 记录来源与摘要。此文件只描述“有哪些首领”，筛选逻辑、默认勾选以外的策略和专属打法仍在代码中。",
+  "bosses": [
+    {
+      "id": 301206,
+      "area": 3,
+      "ordinal": 1,
+      "name": "巨型魔像",
+      "icon": "boss-pack/icons/301206.png"
+    },
+    {
+      "id": 303306,
+      "area": 3,
+      "ordinal": 2,
+      "name": "暗黑滴水嘴兽",
+      "icon": "boss-pack/icons/303306.png"
+    },
+    {
+      "id": 319604,
+      "area": 3,
+      "ordinal": 3,
+      "name": "冰霜魔狼",
+      "icon": "boss-pack/icons/319604.png"
+    },
+    {
+      "id": 312505,
+      "area": 3,
+      "ordinal": 4,
+      "name": "厄勒克特拉夫人",
+      "icon": "boss-pack/icons/312505.png"
+    },
+    {
+      "id": 306604,
+      "area": 3,
+      "ordinal": 5,
+      "name": "毒液沙罗曼蛇",
+      "icon": "boss-pack/icons/306604.png"
+    },
+    {
+      "id": 302501,
+      "area": 5,
+      "ordinal": 1,
+      "name": "奇美拉",
+      "icon": "boss-pack/icons/302501.png"
+    },
+    {
+      "id": 301701,
+      "area": 5,
+      "ordinal": 2,
+      "name": "炸脖龙",
+      "icon": "boss-pack/icons/301701.png"
+    },
+    {
+      "id": 310103,
+      "area": 5,
+      "ordinal": 3,
+      "name": "愤怒巨龙",
+      "icon": "boss-pack/icons/310103.png"
+    },
+    {
+      "id": 315004,
+      "area": 5,
+      "ordinal": 4,
+      "name": "领主哥布林",
+      "icon": "boss-pack/icons/315004.png"
+    },
+    {
+      "id": 319401,
+      "area": 5,
+      "ordinal": 5,
+      "name": "究极守护者",
+      "icon": "boss-pack/icons/319401.png"
+    }
+  ],
+  "defaultSelection": {
+    "3": [312505, 319604],
+    "5": [310103]
+  }
+}

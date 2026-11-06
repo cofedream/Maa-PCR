@@ -102,10 +102,20 @@
      <ComboBox ItemsSource="{Binding LabyrinthSettings.ThirdChoices}" SelectedItem="{Binding LabyrinthSettings.ThirdChoice}" HorizontalAlignment="Stretch" />
      <TextBlock Text="Boss 筛选：勾选要接受的首领（名称后为 ID）；全部不勾表示不限制。" TextWrapping="Wrap" FontSize="12" />
      <TextBlock Text="第三区域" /><ItemsControl Name="Area3BossInput" ItemsSource="{Binding LabyrinthSettings.Area3Bosses}" HorizontalAlignment="Left"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="pcr:PcrLabyrinthBossChoice">
-       <CheckBox Content="{Binding Label}" IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}" />
+       <CheckBox IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+         <Image Width="24" Height="24" Source="{Binding Icon}" Stretch="Uniform" />
+         <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+        </StackPanel>
+       </CheckBox>
      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
      <TextBlock Text="第五区域" /><ItemsControl Name="Area5BossInput" ItemsSource="{Binding LabyrinthSettings.Area5Bosses}" HorizontalAlignment="Left"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="pcr:PcrLabyrinthBossChoice">
-       <CheckBox Content="{Binding Label}" IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}" />
+       <CheckBox IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+         <Image Width="24" Height="24" Source="{Binding Icon}" Stretch="Uniform" />
+         <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+        </StackPanel>
+       </CheckBox>
      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
      <TextBlock Text="{Binding LabyrinthSettings.BossFilterStatus}" TextWrapping="Wrap" FontSize="12" Foreground="OrangeRed" IsVisible="{Binding LabyrinthSettings.HasBossFilterStatus}" />
     </StackPanel></Expander>

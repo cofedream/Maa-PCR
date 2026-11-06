@@ -644,6 +644,14 @@
       "distribution_status": "source-scope-and-third-party-data-review-pending"
     },
     {
+      "local": "assets/labyrinth/labyrinth-bosses.json",
+      "kind": "game-master-derived-catalog",
+      "license": "Boss names/IDs derive from game master data; no game image in this file; selection schema is original",
+      "source": "data/labyrinth/master-cn labyrinth_enemy_parameter (master 202611021739); rotation order follows src/pcr_maa/labyrinth/routes.py BOSSES",
+      "local_sha256": "782f47138767d8fd965854f130ba05a646610af1502e4df96ba809b5c48d83ee",
+      "distribution_status": "source-scope-and-third-party-data-review-pending"
+    },
+    {
       "local": "src/pcr_maa/labyrinth/encounters.py",
       "kind": "adapted-code",
       "license": "CC-BY-NC-SA-4.0",
@@ -854,7 +862,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-11-02T13:18:28.033068+00:00",
+  "updated_at": "2026-11-06T15:15:44.165819+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -7291,6 +7299,69 @@
           "kind": "derived-template-mapping-and-source-notice"
         }
       ]
+    },
+    {
+      "local_root": "assets/labyrinth/boss-pack",
+      "kind": "local-game-boss-icon-pack",
+      "file_count": 11,
+      "icon_count": 10,
+      "icon_formats": {
+        "png": 10
+      },
+      "inventory_sha256": "777b39c3dcb8116e6996fd27bda046b22cc940a318d578a2bc35daa1e0fcb701",
+      "inventory_sha256_format": "sorted local path TAB local_sha256 LF, UTF-8",
+      "provenance": {
+        "local": "assets/labyrinth/boss-pack/PROVENANCE.json",
+        "sha256": "dcc7f5fb100038008a4c49c37748822946c08dabd30cf35e058fc5e24526f76f"
+      },
+      "image_rights": "Game imagery retains respective rights",
+      "distribution_status": "permission-and-combination-compatibility-review-pending",
+      "files": [
+        {
+          "local": "assets/labyrinth/boss-pack/PROVENANCE.json",
+          "local_sha256": "dcc7f5fb100038008a4c49c37748822946c08dabd30cf35e058fc5e24526f76f"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/301206.png",
+          "local_sha256": "4740341004430b5b5515b167c236513e94041d88ee9a21ba7ca9b2cd24490690"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/301701.png",
+          "local_sha256": "fe700b4e9e6fc06fcd6987ca23e7f1821d72662baa8f3aae6325ad208ac2d245"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/302501.png",
+          "local_sha256": "a8b6ca01f0bc73f41507e75ee24e8ffd7282983b2c140e345d2753b010f5a8e6"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/303306.png",
+          "local_sha256": "e325032c8f6444b9bef7a5b802d1178ba5e7b89a596b21bb3cf47f868e629de1"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/306604.png",
+          "local_sha256": "4d557166024d5c9003a351cf0e0facc1498722993d62d0b551dab1198f05d8c8"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/310103.png",
+          "local_sha256": "b12f65b97152571307b013bea17dd04b41c5bf448e4920fa91bfec87158aa465"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/312505.png",
+          "local_sha256": "1e66d2ecf8877c8a705e0fc6302f040e167aeb2f8326087f14efc7e97425b9b8"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/315004.png",
+          "local_sha256": "88ecf9483a7a1573489b01d36b77f27997377a2174def102ce733fcdb1180293"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/319401.png",
+          "local_sha256": "b6af03be1e121b58e4a00b6c39b25b9713f00ac7330097d333716c3e7ed33d59"
+        },
+        {
+          "local": "assets/labyrinth/boss-pack/icons/319604.png",
+          "local_sha256": "456a58f3a92c9364f595849f1a89b7cccefe8f3e2b6879d6a73be7446ed3faa7"
+        }
+      ]
     }
   ],
   "licenses": [
@@ -7685,6 +7756,78 @@
       "distribution_status": "retain-original-component-scope; no-permission-inferred"
     },
     {
+      "local": "assets/labyrinth/labyrinth-bosses.json",
+      "local_sha256": "782f47138767d8fd965854f130ba05a646610af1502e4df96ba809b5c48d83ee",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/PROVENANCE.json",
+      "local_sha256": "dcc7f5fb100038008a4c49c37748822946c08dabd30cf35e058fc5e24526f76f",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/301206.png",
+      "local_sha256": "4740341004430b5b5515b167c236513e94041d88ee9a21ba7ca9b2cd24490690",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/301701.png",
+      "local_sha256": "fe700b4e9e6fc06fcd6987ca23e7f1821d72662baa8f3aae6325ad208ac2d245",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/302501.png",
+      "local_sha256": "a8b6ca01f0bc73f41507e75ee24e8ffd7282983b2c140e345d2753b010f5a8e6",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/303306.png",
+      "local_sha256": "e325032c8f6444b9bef7a5b802d1178ba5e7b89a596b21bb3cf47f868e629de1",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/306604.png",
+      "local_sha256": "4d557166024d5c9003a351cf0e0facc1498722993d62d0b551dab1198f05d8c8",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/310103.png",
+      "local_sha256": "b12f65b97152571307b013bea17dd04b41c5bf448e4920fa91bfec87158aa465",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/312505.png",
+      "local_sha256": "1e66d2ecf8877c8a705e0fc6302f040e167aeb2f8326087f14efc7e97425b9b8",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/315004.png",
+      "local_sha256": "88ecf9483a7a1573489b01d36b77f27997377a2174def102ce733fcdb1180293",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/319401.png",
+      "local_sha256": "b6af03be1e121b58e4a00b6c39b25b9713f00ac7330097d333716c3e7ed33d59",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/boss-pack/icons/319604.png",
+      "local_sha256": "456a58f3a92c9364f595849f1a89b7cccefe8f3e2b6879d6a73be7446ed3faa7",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
       "local": "src/pcr_maa/labyrinth/encounters.py",
       "local_sha256": "7f3b08d227168c03d6ddca0d400b8120066c109c13b2efef059dc1098651888e",
       "kind": "frozen-labyrinth-source-file",
@@ -7775,6 +7918,12 @@
       "production_runtime": true
     },
     {
+      "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthBosses.cs",
+      "local_sha256": "7c37326ba3fd7ea969255676b29e32804859ad1b0e21fd054390045c521a133f",
+      "kind": "frozen-labyrinth-source-file",
+      "production_runtime": true
+    },
+    {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthEvents.cs",
       "local_sha256": "1a58fee5db08c0c46391cfb5540c94a9d2668181c54071736fd40ba6bb224056",
       "kind": "frozen-labyrinth-source-file",
@@ -7806,7 +7955,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",
-      "local_sha256": "26afdaeefeedfd85854e8e1d27584e1cad13f86b6e2f9ab9079ebeb3c194ccfe",
+      "local_sha256": "4daeda63b9aaf52f9c907e08aee6a5099467532595e046a1b1276f0ba9c2f631",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -7824,7 +7973,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml",
-      "local_sha256": "03e6be23b9fe24248e46e9c4696a0cb5c0cc6f6cd264b0a68cd54f0601342441",
+      "local_sha256": "e3d7d4acdf0a0cf9e202386212b15a56f37ed75241cc831c104399534639d8aa",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
