@@ -1,11 +1,13 @@
 """The GUI Boss filter must stay aligned with the Python route table.
 
 The GUI used to ask for raw boss IDs in a free-text box; it now offers the ten
-selectable bosses by name.  That duplicates a fact Python already owns: ``BOSSES``
-in ``src/pcr_maa/labyrinth/routes.py`` fixes both the accepted IDs per area and,
-crucially, their *order* — ``Policy.boss_matches`` maps a quest ordinal back
-through ``BOSSES[area][(ordinal-1)%5]``, so a reordered GUI table would filter a
-different boss while still looking valid.
+selectable bosses by name and saves the corresponding IDs.  Two facts must stay
+aligned with Python: the accepted IDs per area (``BOSSES`` in
+``src/pcr_maa/labyrinth/routes.py``), and -- because the user clicks a *name* --
+each name/ID pairing, which must match the game master data; a mislabeled row
+silently filters a different boss.  The ``BOSSES`` row order is only kept in
+sync so the two tables are easy to compare: ``Policy.boss_matches`` tests ID
+membership, not order.
 
 This guard reads the C# table, the defaults, and the XAML wiring, so drift fails
 on Linux without a .NET toolchain.  GUI compilation and rendering stay with the
@@ -22,6 +24,15 @@ from pcr_maa.labyrinth.routes import BOSSES, Policy
 SETTINGS = ROOT / 'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs'
 VIEW = ROOT / 'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml'
 ROW = re.compile(r'\(\s*(\d{6})\s*,\s*"([^"]+)"\s*\)')
+
+# 官方名称来自 data/labyrinth/master-cn 的 labyrinth_enemy_parameter（master 202611021739）；
+# 名称与 ID 配错时用户会按错误的名字勾选，实际存下的是另一个首领的 ID。
+MASTER_NAMES = {
+    301206: '巨型魔像', 303306: '暗黑滴水嘴兽', 319604: '冰霜魔狼',
+    312505: '厄勒克特拉夫人', 306604: '毒液沙罗曼蛇',
+    302501: '奇美拉', 301701: '炸脖龙', 310103: '愤怒巨龙',
+    315004: '领主哥布林', 319401: '究极守护者',
+}
 
 
 def _source():
@@ -44,13 +55,21 @@ def defaults():
             tuple(int(value) for value in match.group(2).split(',')))
 
 
-def test_gui_table_order_matches_python_bosses():
+def test_gui_table_ids_match_python_bosses():
     for area in (3, 5):
         ids = [boss_id for boss_id, _ in table(area)]
         assert tuple(ids) == BOSSES[area], (
-            f'area{area} GUI order {ids} != routes.BOSSES {list(BOSSES[area])}; '
-            'the ordinal modulo in Policy.boss_matches depends on this order')
+            f'area{area} GUI ids {ids} != routes.BOSSES {list(BOSSES[area])}; '
+            'keep the two tables aligned (Policy matches by id, not order)')
         assert len(set(ids)) == 5
+
+
+def test_gui_names_match_the_game_master_names():
+    rows = {boss_id: name for area in (3, 5) for boss_id, name in table(area)}
+    assert rows == MASTER_NAMES, (
+        'GUI boss labels drifted from labyrinth_enemy_parameter: '
+        + repr({boss_id: (rows.get(boss_id), name)
+                for boss_id, name in MASTER_NAMES.items() if rows.get(boss_id) != name}))
 
 
 def test_every_gui_row_is_accepted_by_the_policy_contract():

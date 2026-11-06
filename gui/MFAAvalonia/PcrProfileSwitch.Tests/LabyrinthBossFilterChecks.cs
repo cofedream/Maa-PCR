@@ -20,8 +20,8 @@ internal static class LabyrinthBossFilterChecks
             count++;
         }
 
-        // 行顺序必须与 src/pcr_maa/labyrinth/routes.py 的 BOSSES 一致：那边按 quest 序号取模取值，
-        // 顺序错位会让筛选悄悄选中别的首领。
+        // 行顺序与 src/pcr_maa/labyrinth/routes.py 的 BOSSES 对齐便于两张表互核；
+        // Python 只按 ID 集合匹配，真正的风险是名称与 ID 配错（名称由 tests/test_labyrinth_boss_names_gui.py 对照游戏数据锁定）。
         Check(PcrLabyrinthBossTable.Rows(3).Select(row => row.Id)
                 .SequenceEqual(new[] { 301206, 303306, 319604, 312505, 306604 }),
             "boss_table_area3_matches_python_bosses_order");

@@ -152,6 +152,9 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         Goals[0].Enabled=true;
         Area3Bosses=PcrLabyrinthBossTable.Choices(3,this);
         Area5Bosses=PcrLabyrinthBossTable.Choices(5,this);
+        // 先按原默认勾选：账号库读取失败，或载入中途抛错而没走到本轮筛选时，
+        // 界面仍保持旧的默认限制（312505,319604／310103），而不是静默变成不限制。
+        ApplyBossFilters(null);
         LoadEventChoices();
         try {
             accountLibrary=new PcrLabyrinthAccounts(vm.Processor.InstanceConfiguration);
@@ -187,6 +190,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     }
     internal void BossSelectionEdited() {
         if (!ready) return;
+        // 用户已重新勾选，本次保存会写入清洗后的 ID；载入时的“已忽略”提示不再成立。
+        BossFilterStatus="";
         vm.NotifyPcrSelectionChanged();
         SaveCore(automatic:true);
     }
@@ -537,12 +542,15 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     }
 }
 
-/// <summary>第三／第五区域可接受的 Boss。行顺序必须与 src/pcr_maa/labyrinth/routes.py 的 BOSSES 一致：
-/// 那份表按序号取模决定 quest 归属，顺序不同会让筛选选到别的首领。
+/// <summary>第三／第五区域可接受的 Boss。ID 与名称取自 data/labyrinth/master-cn 的
+/// labyrinth_enemy_parameter（当前 master 202611021739）；行顺序与 src/pcr_maa/labyrinth/routes.py 的
+/// BOSSES 对齐便于两张表互核，但匹配本身只看 ID 集合（Policy.boss_matches）。
+/// 勾选列表按名称展示、按 ID 保存，所以每一行的名称与 ID 必须配对正确：
+/// 名称写错会让用户以为自己选的是另一个首领，而实际存下的是本行 ID。
 /// tests/test_labyrinth_boss_names_gui.py 解析本表逐项比对，改这里就要同步那边。</summary>
 public static class PcrLabyrinthBossTable {
     public static readonly (int Id, string Name)[] Area3 = {
-        (301206,"魔像"), (303306,"滴水嘴兽"), (319604,"冰霜魔狼"), (312505,"厄勒克特拉夫人"), (306604,"沙鳗蛇") };
+        (301206,"巨型魔像"), (303306,"暗黑滴水嘴兽"), (319604,"冰霜魔狼"), (312505,"厄勒克特拉夫人"), (306604,"毒液沙罗曼蛇") };
     public static readonly (int Id, string Name)[] Area5 = {
         (302501,"奇美拉"), (301701,"炸脖龙"), (310103,"愤怒巨龙"), (315004,"领主哥布林"), (319401,"究极守护者") };
     public static (int Id, string Name)[] Rows(int area) =>
