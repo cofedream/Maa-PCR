@@ -59,6 +59,8 @@ Batch现保留仅由已验证新局交接生成的冻结GameRunSession，绑定�
 
 画面只提供当前区域，不能证明完整5区地图／连线／Boss；`select_route`拒绝visual完整图来源。协议提供完整地图与有界刷取，Maa负责实际游戏识别、输入与结果。AACCNN节点号由下向上，row不作为视觉序号；36个真实列已验证。区域末节点后路线cursor可以跨域，但画面仍可能为遗物或奖励页，不能把cursor当作区域转换或通关读回。
 
+客户端启动不再依赖 `monkey`：雷电14（Android 14）镜像里 `/system/bin/monkey` 不存在，Maa 默认 `StartApp`（`monkey -p <package> 1`）因此必失败，抓取日志显示 Stop `am force-stop` 成功、Start 返回 `DEVICE_EXIT=127`，开局第一次 Stop/Start 就停在 `game_session_readback_unknown`。改为先用只读 `cmd package resolve-activity --brief` 解析该包唯一的 MAIN/LAUNCHER 组件（渠道服入口各不相同，不建表、不猜），再用 `Shell` 动作执行 `am start -W -n <组件>`。实测 `am start` 成败退出码都是 0（组件不存在时输出 `Error type 3` 仍 `DEVICE_EXIT=0`），所以启动证据只取 stdout 的 `Status: ok` 且无 `Error` 行，就绪仍只由页面读回铸，`native.log` 附带该命令输出。27项纯检查（组件解析／证据判读）与3项合成重放（组件启动、拒绝后意图保持 in_flight、解析失败零输入）通过；本次未在设备上跑完整开局，设备侧证据仅来自用户执行的 adb 命令，不称实机验收。
+
 截图计量曾实际双计：单次外部截图同时被Controller事件与trace计为2，已修正为trace存在时只用trace。6个官方保存帧专项通过，直接Tasker／借用Context连续输入和识别保持。无trace时Maa5.13内部截图不发Controller事件，不能把无事件记为已覆盖或实际耗时0；目前page_wait是整个原生任务包络，和子阶段不可相加，正式Owner接线仍待验收。
 
 ## 来源和分发

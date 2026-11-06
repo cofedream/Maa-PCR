@@ -101,9 +101,23 @@ def observe(receipt, entry):
             if re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,127}', node or '') is None:
                 return
             _state['node'] = node if receipt.get('native_ok') is True else None
-            _emit('native', text=f"task={receipt.get('task_id')} node={node} success={receipt.get('native_ok') is True}")
+            _emit('native', text=f"task={receipt.get('task_id')} node={node} "
+                f"success={receipt.get('native_ok') is True}{_action_output(rows)}")
     except Exception:
         pass
+
+
+def _action_output(rows):
+    """Keep the command's own words: a failed action often ACKs anyway."""
+    try:
+        action = rows[-1].get('action') if rows else None
+        raw = action.get('raw') if type(action) is dict else None
+        output = raw.get('output') if type(raw) is dict else None
+        if type(output) is not str or not output:
+            return ''
+        return ' output=' + re.sub(r'\s+', ' ', output)[:300]
+    except Exception:
+        return ''
 
 
 def capture(tasker, outcome):

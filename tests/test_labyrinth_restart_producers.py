@@ -21,7 +21,16 @@ def interrupted_navigation(journal, monkeypatch, *, producer='session', enter=16
     port = Port(enter)
     port.binding = binding
     batch = Batch(request().settings, port, journal, binding)
-    tasker = NS(stopping=False, resource=NS(override_pipeline=lambda _: True))
+    tasker = NS(stopping=False, controller=NS(), resource=NS(override_pipeline=lambda _: True))
+    from pcr_maa.labyrinth import app_version
+    # The launcher component is resolved once per port; never from a table.
+    # Other reads in the same run keep the real shell.
+    shell = app_version.controller_shell
+    monkeypatch.setattr(app_version, 'controller_shell',
+        lambda controller, command, **kwargs:
+            'priority=0 preferredOrder=0 isDefault=false\ncom.bilibili.priconne/.MainActivity'
+            if command.startswith('cmd package resolve-activity')
+            else shell(controller, command, **kwargs))
     snapshot = OpeningSnapshot(binding.account_id, enter, 1, 1, ())
     calls = []
     failing = {'session': 'LabyClientHomeToAdventure',

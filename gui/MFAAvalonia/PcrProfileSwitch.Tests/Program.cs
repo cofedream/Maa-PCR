@@ -20,8 +20,8 @@ try
 {
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 if (args.Length == 4 && args[3] == "--alpha-owner-only") { AlphaOwnerChecks.Run(); return 0; }
-if (args.Length != 3 && !(args.Length == 4 && args[3] is "--guide-only" or "--guide-owner" or "--clan-only" or "--clan-daily-only" or "--clan-workflow-only" or "--clan-workflow-window" or "--clan-package-fixture" or "--clan-formal-only" or "--clan-formal-start-only" or "--clan-postsave-only" or "--clan-calibration-only" or "--profile-registration-only" or "--agent-shutdown-only" or "--channel-config-only" or "--window-lifecycle-only" or "--clan-performance-only" or "--shutdown-only"))
-    throw new ArgumentException("Usage: PcrProfileSwitch.Tests <source-root> <isolated-fixture-directory> <development-python> [--guide-only|--guide-owner|--clan-only|--clan-daily-only|--clan-workflow-only|--clan-workflow-window|--clan-package-fixture|--clan-formal-only|--clan-formal-start-only|--clan-postsave-only|--clan-calibration-only|--profile-registration-only|--agent-shutdown-only|--channel-config-only|--window-lifecycle-only|--clan-performance-only|--shutdown-only]");
+if (args.Length != 3 && !(args.Length == 4 && args[3] is "--guide-only" or "--guide-owner" or "--clan-only" or "--clan-daily-only" or "--clan-workflow-only" or "--clan-workflow-window" or "--clan-package-fixture" or "--clan-formal-only" or "--clan-formal-start-only" or "--clan-postsave-only" or "--clan-calibration-only" or "--profile-registration-only" or "--agent-shutdown-only" or "--channel-config-only" or "--window-lifecycle-only" or "--runbar-only" or "--clan-performance-only" or "--shutdown-only"))
+    throw new ArgumentException("Usage: PcrProfileSwitch.Tests <source-root> <isolated-fixture-directory> <development-python> [--guide-only|--guide-owner|--clan-only|--clan-daily-only|--clan-workflow-only|--clan-workflow-window|--clan-package-fixture|--clan-formal-only|--clan-formal-start-only|--clan-postsave-only|--clan-calibration-only|--profile-registration-only|--agent-shutdown-only|--channel-config-only|--window-lifecycle-only|--runbar-only|--clan-performance-only|--shutdown-only]");
 // Initialize rendering services for log themes without creating a window or the product App.
 AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
 Application.Current!.Styles.Add(new Avalonia.Themes.Fluent.FluentTheme());
@@ -39,6 +39,7 @@ if (args.Length == 4 && args[3] == "--profile-registration-only") { AgentProfile
 if (args.Length == 4 && args[3] == "--agent-shutdown-only") { AgentShutdownChecks.Run(args); return 0; }
 if (args.Length == 4 && args[3] == "--channel-config-only") { ChannelConfigChecks.Run(args[1]); return 0; }
 if (args.Length == 4 && args[3] == "--window-lifecycle-only") { PcrWindowLifecycleChecks.Run(); return 0; }
+if (args.Length == 4 && args[3] == "--runbar-only") { RunBarStateChecks.Run(); return 0; }
 if (args.Length == 4 && args[3] == "--clan-performance-only") { ClanGuidePerformanceChecks.Run(args[0], args[2], args[1]); return 0; }
 if (args.Length == 4 && args[3] == "--shutdown-only") { PcrShutdownChecks.Run(); return 0; }
 PcrShutdownChecks.Run();

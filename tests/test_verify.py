@@ -106,7 +106,7 @@ def test_gui_rejects_stale_core_before_running(monkeypatch, tmp_path, mode):
 
 def test_gui_plan_builds_before_checks_and_uses_matching_rids(tmp_path):
     commands = verify.gui_commands("sdk", tmp_path / "gui", tmp_path)
-    assert len(commands) == 23
+    assert len(commands) == 24
     assert [name for name, _, _ in commands][0:2] == ["MFAAvalonia.Desktop-restore", "MFAAvalonia.Desktop-build"]
     for name, command, cwd in commands:
         assert cwd.is_relative_to(tmp_path)
@@ -134,14 +134,14 @@ def test_gui_plan_builds_before_checks_and_uses_matching_rids(tmp_path):
 def test_gui_plan_runs_each_clan_contract_in_a_separate_process_without_rebuilding(tmp_path):
     commands = verify.gui_commands("sdk", tmp_path / "gui", tmp_path)
     modes = {'clan-daily-only', 'clan-workflow-only', 'clan-formal-only',
-             'clan-postsave-only', 'profile-registration-only'}
+             'clan-postsave-only', 'profile-registration-only', 'runbar-only'}
     profile = [(name, command, cwd) for name, command, cwd in commands if name.startswith('PcrProfileSwitch.Tests')]
     assert [name for name, _, _ in profile[:3]] == [
         'PcrProfileSwitch.Tests-restore', 'PcrProfileSwitch.Tests-build', 'PcrProfileSwitch.Tests-run']
     runs = profile[2:]
-    assert len(runs) == 6
+    assert len(runs) == 7
     assert len({command[1] for _, command, _ in runs}) == 1
-    assert len({command[3] for _, command, _ in runs}) == 6
+    assert len({command[3] for _, command, _ in runs}) == 7
     assert {command[-1].removeprefix('--') for _, command, _ in runs[1:]} == modes
     for name, command, cwd in runs:
         assert name.endswith('-run')  # run_step checks the Core hash for each subprocess.
