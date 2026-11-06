@@ -122,7 +122,7 @@ def test_candidate_duplicate_identities_still_remain_unknown(page,monkeypatch):
     image=np.full((720,1280,3),240,np.uint8)
     candidate=m.IconCandidate('1051','宫子','31',.9,'1051','105131')
     match=m.IconMatch('1051','宫子','31',.9,.1,.8,True,(candidate,),'105131')
-    recognizer=m.CharacterRecognizer(matcher=NS(match=lambda *a,**k:match,names={'1051':None}))
+    recognizer=m.CharacterRecognizer(matcher=NS(match=lambda *a,**k:match,refine=lambda *a,**k:match,names={'1051':None}))
     monkeypatch.setattr(m,'detect_grid',lambda *a,**k:((82,249,130,130),(224,249,130,130)))
     monkeypatch.setattr(m,'card_presence',lambda *a:1)
     monkeypatch.setattr(m,'member_slots',lambda *a,**k:())

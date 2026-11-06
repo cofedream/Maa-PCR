@@ -453,14 +453,15 @@ class IconMatcher:
         if _prepared is None:_prepared=dict(frame=frame)
         if type(_prepared) is not dict or _prepared.get('frame') is not frame:
             raise BatchStopped('character_frame_unknown')
-        if initial.trusted:return initial
+        if initial.trusted and fallback is None:return initial
         # A failed border crop retains the existing fixed-strip hint. Every
         # crop's rivals still compete under the original confidence floors.
         rects=[fallback] if fallback is not None else []
-        for x,y,w,h in (box,) + ((fallback,) if fallback is not None else ()):
-            radius=max(1,min(3,int(_round(w/90))))
-            deltas=tuple(dict.fromkeys((-radius,-1,1,radius)))
-            for d in deltas:rects.extend(((x+d,y+d,w-2*d,h-2*d),(x+d,y,w,h),(x,y+d,w,h)))
+        if not initial.trusted:
+            for x,y,w,h in (box,) + ((fallback,) if fallback is not None else ()):
+                radius=max(1,min(3,int(_round(w/90))))
+                deltas=tuple(dict.fromkeys((-radius,-1,1,radius)))
+                for d in deltas:rects.extend(((x+d,y+d,w-2*d,h-2*d),(x+d,y,w,h),(x,y+d,w,h)))
         by_id={}
 
         for result in (initial,*(self.match(frame,r,_prepared=_prepared,**kwargs) for r in dict.fromkeys(rects) if _inside(r,frame.shape))):
@@ -477,7 +478,9 @@ class IconMatcher:
 
         best=candidates[0];rival=candidates[1].confidence if len(candidates)>1 else 0
 
-        if best.confidence<self.confidence or best.confidence-rival<self.margin:return initial
+        if best.confidence<self.confidence or best.confidence-rival<self.margin:
+            if not initial.trusted:return initial
+            return IconMatch(None,None,None,best.confidence,rival,best.confidence-rival,False,tuple(candidates[:5]))
 
         return IconMatch(best.character_id,best.name,best.variant,best.confidence,rival,best.confidence-rival,True,tuple(candidates[:5]),best.unit_icon_id)
 
@@ -1174,8 +1177,10 @@ class CharacterRecognizer:
             else:
                 mask=IconMask(right=True,top_left=True,bottom_left=True)
             match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
-            if page!='opening' and not match.trusted:
-                match=self.matcher.refine(frame,icon,match,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
+            if page!='opening':
+                # Thin card borders expose a larger portrait; both crops' rivals must compete.
+                match=self.matcher.refine(frame,icon,match,fallback=(x+3,y+3,w-6,w-6),
+                    mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
             item=dict(slot_id=slots[box],box=list(box),icon_box=list(icon),attribute=attribute,selected=selected,**asdict(match))
             item['candidates']=[asdict(candidate) for candidate in match.candidates]
             cached=old.get(slots[box])
