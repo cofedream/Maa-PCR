@@ -22,6 +22,10 @@ PCR 的自绘标题、系统标题、更新设置页和启动版本日志统一�
 
 验证与压力结果见本次源码工作区 `.runtime/joined-confirmation-20261019/`。历史保存帧、合成图和真实游戏验收分别记录。本次用户日志没有故障原图，不能将历史图回放称为该玩家原图或实机复验。
 
+## 名称-only 旧读取面退役（未发布候选）
+
+加入确认现在只有“完整头像包 + 同帧姓名交叉校验”这一条身份路径。原先只在旧收据上使用的 `联恋`/`花音` 页面局部 OCR 别名、`character_details.py` 详情页读取器、`LabyOpeningJoined*`、`LabyCharactersArrivedObserved`、`LabyRecruitJoinedObserved`、`LabyRoleRewardJoinedObserved` 等旧收据分支，以及 `acquisition` 对旧 joined 节点名的兼容白名单均已删除。收到旧格式 joined 收据时现在按 `BatchStopped` 停止，而不是按姓名或页面别名推断身份。历史截图、诊断包、OCR 原始 JSON 和本文件中的历史结论保持原样；如需复算旧收据，使用对应 git 历史版本，不再让生产代码接受旧格式。
+
 ## 历史评测说明
 
 R54 为本地测试候选，实际安装状态以匹配清单和安装收据为准。账号、地图、金额、结算、Stop、未知不重发和等待预算继续由原业务代码判断；诊断文件不能放行动作或证明结算。[角色筛选状态修复](CHARACTER_FILTER_STABILITY.md) 另列点击波纹、局部稳定等待及原帧回归范围。

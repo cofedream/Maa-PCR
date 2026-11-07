@@ -104,16 +104,24 @@ def synthetic_native(node,raw=None):
 
 
 def synthetic_joined():
-    rows=[]
-    for name,text,box in (
-        ('LabyJoinedTitle','角色加入',[530,100,120,30]),
-        ('LabyJoined1075','佩可莉姆(夏日)',[420,245,200,30]),
-        ('LabyJoined1351','雪菲(夏日)',[420,339,200,30]),
-        ('LabyJoined1059','可可萝',[420,433,200,30])):
-        word=dict(text=text,box=box,score=.99)
-        rows.append(dict(name=name,algorithm='OCR',box=box,
-                         detail=dict(all=[word],filtered=[word],best=word)))
-    return synthetic_native('LabyOpeningJoinedObserved',rows)
+    """Synthetic fullpack joined receipt for the protocol handoff contract.
+
+    Batch does not parse these identities; the shape only tracks the current
+    same-frame schema, never a saved-frame or real-game qualification.
+    """
+    slots=('1075','1351','1059');names=('贪吃佩可(夏日)','雪菲(夏日)','可可萝')
+    portraits=[]
+    for slot,(key,name) in enumerate(zip(slots,names)):
+        word=dict(text=name,score=.99,box=[420,245+94*slot,200,30])
+        portraits.append(dict(character_id=key,slot=slot,box=[353,233+94*slot,60,60],
+            trusted=True,identity_source='maa_name',name_native=[word]))
+    detail=dict(page='joined',joined_identity_schema='joined-fullpack-v1',
+        roles_joined=list(slots),portrait=portraits[0],portraits=portraits)
+    best=dict(box=[0,0,1,1],detail=detail)
+    name='LabyCharacters'+'0'*32+'Read'
+    root=dict(name=name,completed=True,action=dict(name=name,success=True),
+        recognition=dict(all=[best],filtered=[best],best=best))
+    return dict(native_ok=True,tasker_inited=True,task_id=1,nodes=[root])
 
 
 def synthetic_local(nodes,frame,*,start=0):

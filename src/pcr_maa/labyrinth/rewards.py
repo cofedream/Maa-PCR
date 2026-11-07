@@ -65,18 +65,6 @@ def role_offer_from_words(slot,words,optimizer):
     key=resolve_role_name(''.join(w['text'] for w in words),optimizer)
     return RoleOffer(slot,key,tuple(dict(w) for w in words))
 
-def role_offers(receipt,optimizer):
-    node=next((n for n in receipt.get('nodes',()) if n.get('name')=='LabyRoleRewardObserved' and n.get('completed')),None)
-    raw=node.get('recognition') if node else None
-    if receipt.get('native_ok') is not True or not isinstance(raw,list):raise BatchStopped('role_reward_unknown')
-    offers=[]
-    for slot in range(3):
-        rows=[r for r in raw if r.get('name')==f'LabyRoleRewardName{slot}']
-        if len(rows)!=1:raise BatchStopped('role_reward_names_unknown')
-        offers.append(role_offer_from_words(slot,rows[0].get('detail',{}).get('filtered',()),optimizer))
-    if len({o.character_id for o in offers})!=3:raise BatchStopped('role_reward_names_ambiguous')
-    return tuple(offers)
-
 def portrait_offers(observation,optimizer):
     cards=observation.get('cards',())
     if observation.get('page')!='reward' or tuple(c.get('slot') for c in cards)!=(0,1,2):raise BatchStopped('role_reward_unknown')
@@ -105,24 +93,6 @@ def portrait_selection(tasker,characters,offers,slot):
         if not resource.override_pipeline(original):raise BatchStopped('role_reward_guard_restore_failed')
 
 @contextmanager
-def selection_guard(tasker,offers,slot):
-    if tuple(o.slot for o in offers)!=(0,1,2) or type(slot) is not int or slot not in (0,1,2):raise BatchStopped('role_reward_guard_invalid')
-    resource=tasker.resource;override={};guards=[]
-    for offer in offers:
-        for j in range(3):
-            name=f'LabyRoleRewardGuard{offer.slot}{j}';base=resource.get_node_data(name)
-            if not base:raise BatchStopped('role_reward_guard_missing')
-            word=offer.words[min(j,len(offer.words)-1)];x,y,w,h=word['box']
-            override[name]=dict(recognition='OCR',expected='^'+re.escape(word['text'])+'$',roi=[x-3,y-3,w+6,h+6],only_rec=True,threshold=.85,action='DoNothing',next=[],timeout=1500,pre_delay=0,post_delay=0)
-            guards.append(name)
-    override['LabyRoleRewardSelectOnce']=dict(recognition='And',all_of=[f'LabyRoleRewardButton{slot}','LabyRoleRewardTitle','LabyRoleRewardRemaining']+guards+[f'LabyRoleRewardButton{i}' for i in range(3)],action='Click',target=True,max_hit=1,next=[],timeout=3000,rate_limit=250)
-    original={k:resource.get_node_data(k) for k in override}
-    if any(not v for v in original.values()) or not resource.override_pipeline(override):raise BatchStopped('role_reward_guard_failed')
-    try:yield
-    finally:
-        if not resource.override_pipeline(original):raise BatchStopped('role_reward_guard_restore_failed')
-
-@contextmanager
 def joined_guard(tasker,selected):
     # Read the outcome sentence; the added roster item identifies the selected variant.
     pattern=r'\s*'.join(re.escape(normalized_name(w['text'])).replace(r'\(',r'[（(]').replace(r'\)',r'[）)]') for w in selected.words)
@@ -136,8 +106,8 @@ def joined_guard(tasker,selected):
         if not resource.override_pipeline(original):raise BatchStopped('role_reward_guard_restore_failed')
 
 class MaaRoleReward:
-    def __init__(self,tasker,stamp,read_joined=None,*,optimizer=None,timings=None,characters=None):
-        self.tasker,self.stamp,self.read_joined=tasker,stamp,read_joined
+    def __init__(self,tasker,stamp,*,optimizer=None,timings=None,characters=None):
+        self.tasker,self.stamp=tasker,stamp
         self.characters=characters
         self.optimizer=optimizer or load_optimizer();self._provided_optimizer=optimizer;self.timings=timings or Timings();self.attempted=set()
 
@@ -227,12 +197,9 @@ class MaaRoleReward:
 
         strategy=getattr(batch.settings,'strategy',None)
         optimizer=self._provided_optimizer or configured_optimizer(strategy)
-        if self.characters is not None:
-            observation,receipt=self.characters.read(batch,'reward',stable=False)
-            offers=portrait_offers(observation,optimizer)
-        else:
-            with self.timings.measure('page_wait'):receipt=native.run(self.tasker,'LabyRoleRewardObserved')
-            offers=role_offers(receipt,optimizer)
+        if self.characters is None:raise BatchStopped('character_callback_unavailable')
+        observation,receipt=self.characters.read(batch,'reward',stable=False)
+        offers=portrait_offers(observation,optimizer)
         with self.timings.measure('strategy'):ranked=optimizer.choose_role(tuple(o.character_id for o in offers),acquired,context,weights=strategy_value(strategy,'deployment_weights',(1,.35,.2)))
         if not ranked:raise BatchStopped('role_reward_strategy_unknown')
         selected=next(o for o in offers if o.character_id==ranked[0]['character_id'])
@@ -243,31 +210,24 @@ class MaaRoleReward:
             with self.timings.measure('page_wait'):result=native.run(self.tasker,'LabyRoleRewardSelectOnce',reset_hits=('LabyRoleRewardSelectOnce',))
             if not result['native_ok'] or not any(n['name']=='LabyRoleRewardSelectOnce' and n.get('completed') and n.get('action',{}).get('success') for n in result.get('nodes',())):raise BatchStopped('role_reward_input_unknown')
             return self.stamp(operation_id=oid,**fields,native=result,input_native=result,input_action_verified=True)
-        guard=portrait_selection(self.tasker,self.characters,offers,selected.slot) if self.characters is not None else selection_guard(self.tasker,offers,selected.slot)
+        guard=portrait_selection(self.tasker,self.characters,offers,selected.slot)
         with guard:clicked=batch.transaction('role_reward_select',fields,send)
         batch.checkpoint()
         if defer_joined:
             from .scene import MaaSceneRuntime
             runtime=MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings)
-            before=tuple(c.get('character_id') for c in observation['cards']) if self.characters is not None else tuple(o.character_id for o in offers)
+            before=tuple(c.get('character_id') for c in observation['cards'])
             def advanced(value):
                 if value.kind!='role_reward':return True
-                if self.characters is None:return False
                 actual=self.characters.probe(batch,'reward')
                 if actual is None:return False
                 return tuple(c.get('character_id') for c in actual['cards'])!=before or actual.get('remaining',0)<observation.get('remaining',0)
-            after=runtime.wait_for(batch,{'role_reward','joined','event_animation'},source='role_reward',accept=advanced,timeout=12,reason='role_reward_readback_unknown',acquisition_fields=dict(source='maa',enter_id=enter_id,reward_id=reward_id) if self.characters is not None and observation.get('remaining')==1 else None)
+            after=runtime.wait_for(batch,{'role_reward','joined','event_animation'},source='role_reward',accept=advanced,timeout=12,reason='role_reward_readback_unknown',acquisition_fields=dict(source='maa',enter_id=enter_id,reward_id=reward_id) if observation.get('remaining')==1 else None)
             return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,roles_pending=[selected.character_id],selection_pending=True,inventory_added=False,following_scene=after,native=after.native,input_native=clicked['input_native']),**fields)
-        if self.read_joined is not None:readback=self.read_joined(enter_id,selected.character_id)
-        else:
-            with joined_guard(self.tasker,selected):
-                if self.characters is not None:
-                    observation,joined=self.characters.read(batch,'joined',stable=False,expected_role=selected.character_id)
-                    verified=observation['roles_joined']==[selected.character_id]
-                else:
-                    with self.timings.measure('page_wait'):joined=native.run(self.tasker,'LabyRoleRewardJoinedObserved')
-                    verified=joined['native_ok']
-            readback=dict(verified=verified,role_id=selected.character_id,inventory_added=verified,native=joined)
+        with joined_guard(self.tasker,selected):
+            observation,joined=self.characters.read(batch,'joined',stable=False,expected_role=selected.character_id)
+            verified=observation['roles_joined']==[selected.character_id]
+        readback=dict(verified=verified,role_id=selected.character_id,inventory_added=verified,native=joined)
         if not isinstance(readback,dict) or readback.get('verified') is not True or readback.get('role_id')!=selected.character_id or readback.get('inventory_added') is not True:raise BatchStopped('role_reward_readback_unknown')
         return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,inventory_added=True,
             native=readback,input_native=clicked['input_native'],input_action_verified=True),**fields,inventory_added=True)
