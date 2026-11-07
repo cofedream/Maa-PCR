@@ -65,8 +65,17 @@ internal static class StartupActionsChecks
             ? [typeof(TaskQueueViewModel)] : [typeof(TaskQueueViewModel), typeof(Func<CancellationToken, Task>)], null)!
             .Invoke(null, launch == null ? [vm] : [vm, launch])!;
 
-    internal static void Run(string directory, bool restartChild = false)
+    internal static void Run(string directory, bool restartChild = false, string? repositoryRoot = null)
     {
+        // The labyrinth settings page loads data catalogs from the checkout, exactly like
+        // the PcrLabyrinth test projects. Without the source root it can only report a
+        // missing Boss catalog, which would mask the start-validation path under test.
+        if (repositoryRoot is not null)
+        {
+            PcrLabyrinthBossCatalog.UseRepositoryRoot(repositoryRoot);
+            PcrLabyrinthCharacterCatalog.UseRepositoryRoot(repositoryRoot);
+            PcrLabyrinthEventCatalog.UseRepositoryRoot(repositoryRoot);
+        }
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         AppBuilder.Configure<Application>().UseWin32().UseSkia().SetupWithoutStarting();
         Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
@@ -168,6 +177,7 @@ internal static class StartupActionsChecks
             if (IsDotnetHost) info.ArgumentList.Add(typeof(StartupActionsChecks).Assembly.Location);
             info.ArgumentList.Add(directory);
             info.ArgumentList.Add("--startup-restart-fixture");
+            if (repositoryRoot is not null) info.ArgumentList.Add(repositoryRoot);
             using var child = Process.Start(info)!;
             var output = child.StandardOutput.ReadToEndAsync();
             var errors = child.StandardError.ReadToEndAsync();
