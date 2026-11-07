@@ -25,8 +25,8 @@ public partial class TaskQueueViewModel
             catch { return null; }
         }
     }
-    public bool CanExportPlayerLog => !PcrCleanupPending && (!IsRunning || PcrHasStartError) && PlayerLog != null;
-    internal void BeginPlayerLog()
+    public bool CanExportPlayerLog => !PcrTargetBusy && !PcrCleanupPending && (!IsRunning || PcrHasStartError) && PlayerLog != null;
+    internal void BeginPlayerLog(string message = "已请求开始，正在校验当前功能和运行资源…")
     {
         try
         {
@@ -36,7 +36,7 @@ public partial class TaskQueueViewModel
         catch { playerLog = null; }
         var run = CurrentPcrFeedbackRun;
         Dispatcher.UIThread.Post(() => { if (run == CurrentPcrFeedbackRun) LabyrinthLogRows.Clear(); });
-        AddPcrLiveLog("已请求开始，正在校验当前功能和运行资源…");
+        AddPcrLiveLog(message);
         OnPropertyChanged(nameof(CanExportPlayerLog));
     }
     public void AddPcrLiveLog(string content)

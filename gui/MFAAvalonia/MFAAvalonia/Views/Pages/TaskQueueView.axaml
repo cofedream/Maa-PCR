@@ -491,7 +491,7 @@
                                     </StackPanel>
                                 </Expander>
                                 <TextBlock Text="{Binding PcrSettings.Summary}" TextWrapping="Wrap" FontSize="12" />
-                                <Button Content="导出诊断" Command="{Binding ExportPcrDiagnosticsCommand}" HorizontalAlignment="Left" IsEnabled="{Binding CanExportPlayerLog}" ToolTip.Tip="导出当前功能最近一次运行的日志和可选截图；分享前可预览、取消截图，不会自动发送。" />
+                                <Button Content="导出诊断" Command="{Binding ExportPcrDiagnosticsCommand}" HorizontalAlignment="Left" IsEnabled="{Binding CanExportPlayerLog}" ToolTip.Tip="导出当前功能最近一次连接或任务的日志和可选截图；分享前可预览、取消截图，不会自动发送。" />
                             </StackPanel>
                         </Expander>
                     </suki:GlassCard>

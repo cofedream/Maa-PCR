@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -47,6 +48,12 @@ internal static class SettingsUxChecks
         var settings = vm.LabyrinthSettings;
         require(settings.AccountSummary.Contains("待填写") && !settings.Status.StartsWith("已自动保存"),
             "settings_empty_account_and_unsaved_initial_state_are_explicit");
+        require(settings.Reroll && (bool)settings.Snapshot()["reroll"]!, "settings_fresh_reroll_defaults_on");
+        var legacyConfig = new InstanceConfiguration("pcr-settings-legacy-no-reroll");
+        legacyConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,
+            new JObject { ["version"] = 1, ["goals"] = new JArray(new JObject { ["guild_id"] = 1, ["clears"] = 1 }) }
+                .ToString(Newtonsoft.Json.Formatting.None));
+        require(owner(legacyConfig).LabyrinthSettings.Reroll, "settings_missing_reroll_defaults_on");
         settings.Difficulty = "3";
         require(settings.Status == "已自动保存黎明界设置。" && settings.SaveButtonText == "重新保存",
             "settings_automatic_save_is_visible");
@@ -103,6 +110,18 @@ internal static class SettingsUxChecks
         {
             window.Show();
             Dispatcher.UIThread.RunJobs();
+            var reroll = view.GetLogicalDescendants().OfType<CheckBox>()
+                .Single(control => ((string?)control.Content)?.StartsWith("启用刷开局") == true);
+            require(reroll.IsChecked == true, "settings_reroll_checkbox_initially_checked");
+            reroll.SetCurrentValue(CheckBox.IsCheckedProperty, false);
+            Dispatcher.UIThread.RunJobs();
+            require(!settings.Reroll && !(bool)settings.Snapshot()["reroll"]!
+                && !owner(new InstanceConfiguration(id)).LabyrinthSettings.Reroll,
+                "settings_explicit_reroll_off_persists_and_reopens");
+            reroll.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+            Dispatcher.UIThread.RunJobs();
+            require(settings.Reroll && owner(new InstanceConfiguration(id)).LabyrinthSettings.Reroll,
+                "settings_reroll_can_be_reenabled_and_saved");
             var input = view.FindControl<PcrCountInput>("DifficultyInput")!;
             var blur = typeof(PcrCountInput).GetMethod("OnLostFocus", BindingFlags.Instance | BindingFlags.NonPublic)!;
             foreach (var draft in new[] { "", "invalid", "8" })

@@ -42,7 +42,7 @@ def test_failed_log_delivery_never_changes_the_batch_result():
 def test_reroll_decision_and_stop_reason_are_traced():
     lines = []
     port = Port(bad=True)
-    result = run_batch(port, lines.append)
+    result = run_batch(port, lines.append, Settings((Goal(1, 1),), reroll=False))
     assert result['outcome'] == 'opening_not_matching'
     assert '第 1 次开局候选不符合路线计划，已关闭“重新开局”，本次结束' in lines
     assert '本次停止：opening_not_matching（位置 ' in '\n'.join(lines)

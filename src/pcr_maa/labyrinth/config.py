@@ -144,7 +144,7 @@ class Strategy:
 class Settings:
     goals: tuple[Goal,...]
     difficulty: int = 1
-    reroll: bool = False
+    reroll: bool = True
     max_attempts: int = 100
     max_seconds: int = 1800
     buy_relics: bool = True
@@ -177,7 +177,7 @@ class Settings:
         nums={k:v.get(k,d) for k,d in [('difficulty',1),('max_attempts',100),('max_seconds',1800)]}
         for k,(lo,hi) in {'difficulty':(1,5),'max_attempts':(1,100),'max_seconds':(1,1800)}.items():
             if type(nums[k]) is not int or not lo<=nums[k]<=hi: raise ValueError('invalid_'+k)
-        flags={k:v.get(k,d) for k,d in [('reroll',False),('buy_relics',True),('refresh_shop',True)]}
+        flags={k:v.get(k,d) for k,d in [('reroll',True),('buy_relics',True),('refresh_shop',True)]}
         if any(type(x) is not bool for x in flags.values()): raise ValueError('invalid_flag')
         r=v.get('route',{})
         if type(r) is not dict or set(r)-{'mode','perfect_start','allowance','third_choice','area3_bosses','area5_bosses'}:
