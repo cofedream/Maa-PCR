@@ -296,7 +296,7 @@ class ProtocolAcquisitionPort:
             self._fail('handoff_invitation_unknown')
         previous=created_frame
         for key,nodes in (('empty',('LabyOpeningEmptyObserved',)),
-                         ('joined',('LabyOpeningJoinedObserved','LabyOpeningAnyJoinedObserved')),
+                         ('joined',()),
                          ('closed',('LabyMapObserved',))):
             step=value.get(key)
             if (type(step) is not dict or step.get('verified') is not True
@@ -311,15 +311,15 @@ class ProtocolAcquisitionPort:
                     or type(native.get('task_id')) is not int or native['task_id']<=0
                     or type(native.get('nodes')) is not list or len(native['nodes'])!=1
                     or type(native['nodes'][0]) is not dict
-                    or native['nodes'][0].get('name') not in nodes and not (key=='joined'
+                    or not (native['nodes'][0].get('name') in nodes or (key=='joined'
                         and type(native['nodes'][0].get('name')) is str
-                        and re.fullmatch(r'LabyCharacters[0-9a-f]{32}Read',native['nodes'][0].get('name','')))
+                        and re.fullmatch(r'LabyCharacters[0-9a-f]{32}Read',native['nodes'][0].get('name',''))))
                     or native['nodes'][0].get('completed') is not True):
                 self._fail('handoff_invitation_unknown')
             previous=step['frame']
         try:layout,characters=joined_portrait_readback(value['joined']['native'])
         except BatchStopped:self._fail('handoff_invitation_unknown')
-        if layout not in ('opening3','joined3') or len(characters)!=3:self._fail('handoff_invitation_unknown')
+        if layout!='joined3' or len(characters)!=3:self._fail('handoff_invitation_unknown')
         # Actual joined-page identities remain independent of configured choices.
         return [dict(character_id=item.character_id,raw_name=item.raw_text,
                      name_score=item.score if item.alias_source!='full-pack-portrait' else None,
