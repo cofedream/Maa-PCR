@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
+import cv2
 import numpy as np
 import pytest
 from maa.define import AlgorithmEnum
@@ -22,10 +23,59 @@ def test_home_layouts_require_three_complete_words_at_one_layout():
         for name, word in zip(names, ('冒险', '日程表', '礼物')):
             assert nodes[name]['expected'] == '^' + word + '$'
             assert nodes[name]['threshold'] == .8 and nodes[name]['only_rec'] is True
+    assert nodes['HomeAnchorLayout']['any_of'] == ['HomeTextLayout', 'HomeIconPixelsLayout']
     for entry in ('LabyClientGameHomeObserved', 'LabyClientHomeToAdventure', 'LabyClientAfterTitleHomeObserved'):
-        assert nodes[entry]['all_of'] == ['HomeTextLayout', 'HomeNoKnownLargePanel']
+        assert nodes[entry]['all_of'] == ['HomeAnchorLayout', 'HomeNoKnownLargePanel']
     assert nodes['LabyClientHomeToAdventure']['max_hit'] == 1
-    assert nodes['LabyClientHomeToAdventure']['target'] is True
+    assert nodes['LabyClientHomeToAdventure']['target'] == [693, 685, 53, 33]
+
+
+def test_shared_anchor_module_owns_the_daily_document():
+    from pcr_maa import anchors, native
+    document = json.loads((native.RESOURCE/'pipeline/home_text.json').read_text(encoding='utf-8'))
+    generated = anchors.ocr_nodes()
+    # One definition: the shipped document cannot drift from the module.
+    assert {name: document[name] for name in generated} == generated
+    assert set(generated).issubset(document)
+    # Daily keeps the shared OCR nodes verbatim; the module only adds names.
+    assert not any(document[name].get('recognition') == 'TemplateMatch' or 'template' in document[name]
+                   for name in generated)
+    assert (set(anchors.nodes()) - set(generated)).isdisjoint(document)
+
+
+def test_guard_override_only_rewires_the_callers_own_guard():
+    from pcr_maa import anchors
+    assert anchors.guard_override('EnterAdventure') == {
+        'EnterAdventure': {'all_of': ['HomeAnchorLayout', 'HomeNoKnownLargePanel']}}
+    assert anchors.guard_override('Custom', panels=()) == {'Custom': {'all_of': ['HomeAnchorLayout']}}
+    # Nothing is rewritten in the shared daily document.
+    assert not hasattr(anchors, 'HOME_DOCUMENT')
+
+
+def test_home_icon_fallback_is_one_layout_of_real_flattened_templates():
+    from pcr_maa import anchors, native
+    nodes = game_session_pipeline(123)
+    assert nodes['HomeIconPixelsLayout']['all_of'] == [
+        'HomeIconSchedulePixels', 'HomeIconGiftPixels', 'HomeIconShopPixels', 'HomeIconMissionPixels']
+    for icon in anchors.HOME.icons:
+        node = nodes['HomeIcon' + icon.name + 'Pixels']
+        assert node['recognition'] == 'TemplateMatch' and 'expected' not in node
+        assert node['threshold'] == .85 and node['action'] == 'DoNothing' and node['next'] == []
+        assert len(node['template']) == 1
+        path = native.RESOURCE/'image'/node['template'][0]
+        assert path.parent == native.RESOURCE/'image'/anchors.IMAGE_ROOT/anchors.HOME.page/'icons'
+        assert path.is_file() and path.stat().st_size > 0
+        pixels = cv2.imdecode(np.fromfile(str(path), dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+        # Alpha is flattened over the white button plate: transparent pixels are gone.
+        assert pixels.ndim == 3 and pixels.shape[2] == 3, (icon.name, pixels.shape)
+        assert (pixels.shape[1], pixels.shape[0]) == (icon.box[2], icon.box[3])
+        x, y, w, h = node['roi']
+        ix, iy, iw, ih = icon.box
+        assert 0 <= x <= ix and 0 <= y <= iy
+        assert ix + iw <= x + w <= 1280 and iy + ih <= y + h <= 720
+    # The word leaves remain OCR-only: the old inert word placeholders are gone.
+    assert not any(name.startswith('Home') and name.endswith('Pixels') and 'Icon' not in name
+                   for name in nodes)
 
 
 def response(algorithm, hit, detail):

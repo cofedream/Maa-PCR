@@ -1,0 +1,100 @@
+{
+  "schema": "pcr-anchor-image-v1",
+  "page": "home",
+  "anchor_kind": "icon-fallback",
+  "captured_at": "2026-11-06",
+  "source": {
+    "origin": "game UI icon assets pulled from the installed CN client by the maintainer via adb (user-provided archive, 2026-11-06)",
+    "source_archive_directory": "pcr_assets/UI图标资源/02_首页按钮/01_右上角入口与图标",
+    "note": "The original archive is not part of this source tree; only the flattened, resized-to-render crops below are shipped."
+  },
+  "validation": {
+    "engine": "MaaFramework 5.13 TemplateMatch, threshold 0.85",
+    "frames": "two home skins (dark night / bright sky), the original failing frame and a labyrinth-lobby negative frame at 1280x720",
+    "home_scores": {
+      "schedule": 0.9156,
+      "gift": 0.9316,
+      "shop": 0.9521,
+      "mission": 0.9382
+    },
+    "lobby": "all four miss on the fixed ROIs",
+    "score_floor": {
+      "schedule": 0.914,
+      "gift": 0.859,
+      "shop": 0.896,
+      "mission": 0.876
+    },
+    "margin_note": "gift floor 0.859 is only ~9 points above the 0.85 threshold while the lobby negative scores 0.14-0.26; prefer a per-theme template variant over lowering the threshold, and re-run the three-theme + lobby set if it changes",
+    "full_report": "docs/LABYRINTH_INTEGRATION.md"
+  },
+  "assets": [
+    {
+      "key": "HOME_ICON_SCHEDULE",
+      "source_file": "日程表_icon_schedulebutton.png",
+      "source_sha256": "8b2c2dbba4f557c422d854b1fe5c5cd28fda48945f6d9f825e4690156f3200a5",
+      "source_size": [
+        56,
+        49
+      ],
+      "local": "assets/resource/image/anchors/home/icons/schedule.png",
+      "local_sha256": "758717e98635c0ae27a3c9fc921d9088f925f3bbed9b400c6600d31b41fdb598",
+      "local_size": [
+        56,
+        49
+      ],
+      "transform": "RGBA alpha flattened over white (bgr*alpha + 255*(1-alpha)); 1280x720 client icon render is 1:1 with the asset",
+      "rights": "game imagery; respective rights retained, not relicensed under the project MIT license"
+    },
+    {
+      "key": "HOME_ICON_GIFT",
+      "source_file": "礼物_common_mypage_icon_present.png",
+      "source_sha256": "1389d211907bb3c0539662196c38e01eb1aaca2e2e6bd1e4ff858929aed2f8aa",
+      "source_size": [
+        53,
+        53
+      ],
+      "local": "assets/resource/image/anchors/home/icons/gift.png",
+      "local_sha256": "0f74dff3f7b48ddb64a9665c0fc5eb7ea99e02d06ad034540afb87c49111cbb1",
+      "local_size": [
+        53,
+        53
+      ],
+      "transform": "RGBA alpha flattened over white (bgr*alpha + 255*(1-alpha)); 1280x720 client icon render is 1:1 with the asset",
+      "rights": "game imagery; respective rights retained, not relicensed under the project MIT license"
+    },
+    {
+      "key": "HOME_ICON_SHOP",
+      "source_file": "商店_common_mypage_icon_shop.png",
+      "source_sha256": "f5132e0dd19c0e6cbea216e864e9d2edfff97e682034b0cefd12e7e7cdf4f54f",
+      "source_size": [
+        54,
+        53
+      ],
+      "local": "assets/resource/image/anchors/home/icons/shop.png",
+      "local_sha256": "61476233381b1f84a2ebb399e63227053cad1a0dc5505adf252555f47cc7f46f",
+      "local_size": [
+        54,
+        53
+      ],
+      "transform": "RGBA alpha flattened over white (bgr*alpha + 255*(1-alpha)); 1280x720 client icon render is 1:1 with the asset",
+      "rights": "game imagery; respective rights retained, not relicensed under the project MIT license"
+    },
+    {
+      "key": "HOME_ICON_MISSION",
+      "source_file": "任务_common_mypage_icon_mission.png",
+      "source_sha256": "1bcf2578af1025c3dbdd90e00331af2af5b084898a252e813c63945e2aa6f591",
+      "source_size": [
+        52,
+        52
+      ],
+      "local": "assets/resource/image/anchors/home/icons/mission.png",
+      "local_sha256": "3c4499af324276f1b59a942d9b146126356eef2055e369e1709c19834053b27a",
+      "local_size": [
+        52,
+        52
+      ],
+      "transform": "RGBA alpha flattened over white (bgr*alpha + 255*(1-alpha)); 1280x720 client icon render is 1:1 with the asset",
+      "rights": "game imagery; respective rights retained, not relicensed under the project MIT license"
+    }
+  ]
+}

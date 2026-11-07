@@ -28,7 +28,7 @@ CPython 的原始许可证汇编保留在 `runtime/python/LICENSE.txt`，第三�
 
 ## 游戏素材和使用风险
 
-日常部分沿用有页面约束的文字、颜色和形状识别。黎明界集成新增上游识别模板、角色图像和社区数据，分别按 `docs/LABYRINTH_SOURCES.json`、`licenses/labyrinth/` 与各资源包的声明记录来源及许可；不将游戏图像授予项目许可证。维护者的实际日志、证据截图、账号设置和账本不进入交付包。
+日常部分沿用有页面约束的文字、颜色和形状识别。公共锚点模块 `src/pcr_maa/anchors.py` 的图标兜底模板位于 `assets/resource/image/anchors/home/icons/`，是维护者从已安装游戏客户端 via adb 拉取的主页 UI 图标，透明区域垫白后按 1280×720 1:1 入库；原始文件名、sha256、变换与权利记录在 `assets/resource/image/anchors/home/icons/SOURCE_NOTICE.json`，游戏图像权利保留，不并入项目 MIT 许可。日常流程目前仍不启用该兜底（`tests/test_pixel_free_resources.py` 断言日常 pipeline 不声明模板），只有黎明界首页交接守卫 `HomeAnchorLayout` 使用它。黎明界集成新增上游识别模板、角色图像和社区数据，分别按 `docs/LABYRINTH_SOURCES.json`、`licenses/labyrinth/` 与各资源包的声明记录来源及许可；不将游戏图像授予项目许可证。维护者的实际日志、证据截图、账号设置和账本不进入交付包。
 
 本软件非官方产品，不代表游戏权利人认可。是否使用账号自动化由玩家自行评估游戏规则和风险。源码开放不会自动赋予第三方图片、商标或游戏内容的权利。
 

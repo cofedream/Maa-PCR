@@ -1,3 +1,39 @@
+## 2026-11-06 主页图标兜底落地（替代文字模板占位，现场截图 + 离线回放验证）
+
+现场实测补充（失败 run `40aa3ff2…` / 运行时 `2f4087bb…` 的导出帧 + 模拟器连续抓帧）：`HomeScheduleText` 的误读不是“永远错”，而是随主页背景/动画在「日程表 / 回程表」之间摇摆——亮色天空皮肤 13 帧中 6 帧读对（0.777–0.978）、7 帧读错（0.777–0.851）；宫子暗色皮肤 6/6 读成回程表（0.854–0.883）。分数都压在 threshold 0.8 附近，因此调阈值/ROI/换文字模板都不够稳。改为用主页右下角**图标行**做像素兜底：图标本身叠在白色圆盘上，两套皮肤上分辨率、位置和像素一致，与页面背景无关。
+
+实现：
+
+- 资源：`assets/resource/image/anchors/home/icons/{schedule,gift,shop,mission}.png`，来自维护者从已安装 CN 客户端 via adb 拉取的原始 UI 图标（`日程表_icon_schedulebutton.png`、`礼物_common_mypage_icon_present.png`、`商店_common_mypage_icon_shop.png`、`任务_common_mypage_icon_mission.png`，30 个候选图标中筛选出的 4 个主页专属按钮）。原始 PNG 带 alpha，而 MaaFw 的 `TemplateMatch` 不按 alpha 掩码（实测原图直接匹配仅 0.42–0.58），所以统一把透明区域垫白（`bgr*alpha + 255*(1-alpha)`；游戏图标渲染在白色圆盘上）后再入库，1:1 对应 1280×720。
+- 来源与许可：`assets/resource/image/anchors/home/icons/SOURCE_NOTICE.json` 记录原始文件名、sha256、尺寸、变换、本地路径与本地 sha256；游戏图像权利保留，不并入项目 MIT 许可。活动/主题相关的 `美食嘉年华_main_icon_seasonpass.png`（0.9651 可用）与绶带、特效类图标没有进入必须项，避免活动下线或换图标造成误杀。
+- 代码：`src/pcr_maa/anchors.py` 新增 `Icon`、`Page.icons`、`icon_template_path()`、`icon_pixel_nodes()` 与 `HomeIconPixelsLayout = And[HomeIconSchedulePixels, HomeIconGiftPixels, HomeIconShopPixels, HomeIconMissionPixels]`（threshold 0.85、pad 15 搜索窗）；`HomeAnchorLayout = Or[HomeTextLayout, HomeIconPixelsLayout]`，OCR 分支仍在首位。删除上一版 5 个 0 字节文字模板占位与对应 `HomeDefaultPixelsLayout`/`HomeEdgePixelsLayout`；文字 OCR 布局保留为第一判据。
+- 输入点击：图标兜底只用于“证明是主页”，`LabyClientHomeToAdventure` 的 `target` 从 `True` 改为固定 `[693,685,53,33]`（冒险词框），否则图标分支命中时会把 And 的点击目标带到图标上。
+- ROI：schedule `(989,549,56,49)`、gift `(1188,548,53,53)`、shop `(893,549,54,53)`、mission `(1090,550,52,52)`。
+
+离线验证：两套主页皮肤 + 失败帧上 4 枚图标均命中（0.9156 / 0.9316 / 0.9521 / 0.9382，两皮肤同分），迷宫大厅同 ROI 全部 miss。端到端回放：5 张主页帧 + 3 张失败帧的 `HomeIconPixelsLayout` / `HomeAnchorLayout` / `LabyClientGameHomeObserved` / `LabyClientHomeToAdventure` 全通过，点击落在冒险词框内（如 `[697,710]`）；迷宫大厅帧全部判负且零点击；`LabyGameSessionAfterTitleObserved` 在 8s 预算内主页通过、大厅失败。相关单测 76 passed / 79 skipped（跳过项均为缺私有夹具），`tests/test_home_guard_safety.py` 覆盖图标布局、模板非空、无 alpha、尺寸与词框包含。
+
+现场三主题复测（每主题 20/13/20 帧）：宫子暗色 / 亮色旧 / 亮色当前三个主题上，文字 OCR 首页布局成功率 **0% / 38% / 50%**（`日程表` 仍随背景在“日程表/回程表”之间摇摆），图标布局 **100% / 100% / 100%**；守卫成功率均 100%，耗时约 103 ms（OCR 分支一次尝试 ~51 ms + 图标分支 ~51 ms）。纯推理耗时：OCR 约 8–9 ms/词、图标 <1 ms/个（节点级 ~51 ms 主要是 MaaFw 任务/SDK 固定开销）。
+
+**阈值余量提示（当前保持 `ICON_THRESHOLD=0.85` 不调整）**：三主题实测每枚图标 score 范围——schedule 0.914–0.927、gift **0.859**–0.950、shop 0.896–0.965、mission 0.876–0.942；gift 最低 0.859，距阈值只有约 9 分，是本方案最薄的一处。迷宫大厅负例 0.14–0.26，与阈值仍有一个数量级的差距。若未来主题/活动把某枚图标压到 0.85 以下，优先给该主题追加模板变体（`template` 支持列表，可在 `anchors.py` 的 `Icon` 里扩展路径列表），其次才考虑把阈值降到 0.82；任何调整都必须在三主题 + 大厅负例上重跑，不能只改阈值不验证。
+
+未验证边界：标题页/公告页/副本页/角色页等更多负例、1080p 分辨率（图标位置/尺寸会变）、节日主题皮肤与活动图标替换；上线前仍按 `docs/OCR_STABILITY.md` 补门槛，并把现场抓帧脚本与证据留在本机 `.live-analysis/`（不进发行包）。
+
+## 2026-11-06 主页锚点公共模块，“日程表”被稳定读成“回程表”后由图片兜底（占位验证）
+
+实机失败记录 `run 40aa3ff2f9f7472b97ac7e9fd5674182`（另两次 `f35556797ef044d5a7c985ceb9e872b4`、`cecc59d10cf04c808978b8f9942256cf` 同因）：12:05:27 关闭“通知”并确认为 `client_notice_close` 后，`_after_title` 连续 75 秒探测主页全部未命中，最后一次探测以 `recognition_failed=true` 结束，`_root` 拒绝该回执，批次以 `game_session_readback_unknown` 停止（位置 `game_session.py:556/282/190`，对应 `_close_startup_popup` → `_after_title` → `_root`）。
+
+原因：屏幕确实是主页，`HomeAdventureText`（冒险 0.986）与 `HomeGiftText`（礼物 0.997）每帧命中，但 `HomeScheduleText`（ROI `[986,594,68,34]`、`^日程表$`、0.8）被 v4 识别器读成 `回程表`（0.82–0.90）；扩大 ROI、`only_rec:false`、锐化、1.5 倍放大、JPEG 压缩均不改结果。三次运行合计 217 帧读成“回程表”、2 帧“固程表”、0 帧“日程表”。同一帧整条底栏的其它词（商店 0.999、任务 0.947、礼物 0.999、主菜单 0.989、公会之家 0.997）都正常，所以不是 ROI、阈值、分辨率或加载中的问题；用仓库同一份 pipeline 与模型回放导出原帧即可稳定复现。共享 `assets/resource/pipeline/home_text.json` 的 sha256 与仓库一致。
+
+修复：新增公共模块 `src/pcr_maa/anchors.py` 作为**唯一份锚点定义**（词、紧裁剪词框、所属布局、模板路径），输出三种节点：OCR 叶子与布局（必须与共享 `home_text.json` 逐字段相等，由 `tests/test_home_guard_safety.py::test_shared_anchor_module_owns_the_daily_document` 断言）、`TemplateMatch` 叶子（同词框 + 十余像素搜索窗、阈值 0.9）、以及 `HomeAnchorLayout = Or[HomeTextLayout, HomeDefaultPixelsLayout, HomeEdgePixelsLayout]`。模板资源按页面分目录：`assets/resource/image/anchors/home/{adventure,schedule,gift,edge_schedule,edge_gift}.png`。每套布局只认自己那三个词，OCR 分支永远在前，不做 OCR 与图片的跨布局或跨词拼接。
+
+接入方式（调用方各自决定信任哪个守卫，模块不改任何既有 document）：黎明界在 `game_session_pipeline()` 内 `nodes.update(anchors.nodes())` 并令 `LabyClientGameHomeObserved` / `LabyClientHomeToAdventure` / `LabyClientAfterTitleHomeObserved` 使用 `HomeAnchorLayout`；日常若要启用，只需在 Owner 侧 `anchors.install(resource)` 加 `resource.override_pipeline(anchors.guard_override('EnterAdventure'))` 两行，`home_text.json` 与 `presets.json` 一个字都不用改（`ObserveHome` 仍引用 `EnterAdventure`）。日常默认**不启用**：`docs/SOURCE_AND_LICENSES.md` 规定日常只用有页面约束的文字、颜色和形状识别，游戏图像仅随黎明界集成按 `docs/LABYRINTH_SOURCES.json`、`licenses/labyrinth/` 与资源包 NOTICE 记录许可；`tests/test_pixel_free_resources.py` 把这条落成断言（日常 pipeline 不得声明模板，`image/` 命名空间限定），`scripts/source_delivery.py` 还把旧的主页模板（`home_schedule.png` 等）列为禁止再入公开源码。要日常也启用，需一并处理这三处政策与授权登记。
+
+模板只取文字字形，不取按钮图标或含白底的整块：同一失败帧实测文字紧裁跨帧（另一次运行的主页帧，动画与对话不同）0.951，含白底边框的 84×46 降到 0.866，而按钮整图会被“开放/新内容”角标与选中高亮破坏。负例（黎明界迷宫页、遮住日程表）在 0.8/0.9 阈值下均无命中，±2px 整体平移仍为 1.0。
+
+**当前落地状态：五个模板文件是 0 字节占位**，兜底分支尚未生效，行为与修改前完全一致（不可读的模板只产生 `TemplateResMgr` 加载错误并判定未命中，资源加载、任务与既有守卫都不受影响）。真机取样后直接替换同名 PNG 即可：`adventure.png` `(693,685,746,718)`、`schedule.png` `(986,594,1054,628)`、`gift.png` `(1188,596,1239,626)`、`edge_schedule.png` `(1028,598,1090,622)`、`edge_gift.png` `(1230,596,1280,626)`，全部取 1280×720 原帧、逐字紧裁、同一画面、不含白底/角标/选中高亮；另需补迷宫页、副本页、标题页、遮住底栏四类负例与至少两帧跨帧正例，按 `docs/OCR_STABILITY.md` 门槛记录后再签发。图片属游戏画面，替换时需按 `assets/resource/image/labyrinth/SOURCE_NOTICE.json` 的方式登记来源与权利，不把游戏图像授予项目许可证。
+
+验证：`tests/test_home_guard_safety.py` 覆盖共享定义一致性、同布局三词、词框包含关系、占位状态与 `guard_override` 形态；`tests/test_labyrinth_home_ocr.py` 的入口守卫名同步为 `HomeAnchorLayout`；`tests/test_pixel_free_resources.py` 增加 `anchors` 命名空间与“无孤立模板”检查（日常 pipeline 仍不得声明模板）。相关用例 23 项通过、77 项按私有夹具跳过；黎明界/公会战/引导相关 452 项通过、2 项因缺少设备 shell 原有失败、2 项跳过。离线回放同一原帧确认占位时 `LabyClientGameHomeObserved` 仍失败（行为不变）；临时投放真实裁剪后，同一帧与另一帧的日常 `ObserveHome`、黎明界 `LabyClientGameHomeObserved` 均通过，迷宫页两者都拒绝，验证后已还原为 0 字节占位。未实机复跑本局。
+
 ## 2026-11-02 遗物名称分隔点识别不一致导致选择停止（离线复现）
 
 实机失败记录 `run f161b1717150451ab5fc31f02c4f505f`（业务账本 `59a631199d944da7870e4fb9ac06bf84`，`enter_id=13439`，第三次尝试）：三选一遗物页选择 slot 0 时，`LabyRelicSelectOnce` 的 `And` 在 `LabyRelicGuardName00` 未命中，点击未开始，账本把 `relic_reward_select` 结为 `input_execution=not_sent`，批次以 `native_input_not_sent` 停止（进程位置 `relics.py:583`、`relics.py:546`、`native.py:336`）。GUI 的“操作 relic_reward_select 已发出”只是 intent 已落盘，没有发出输入。

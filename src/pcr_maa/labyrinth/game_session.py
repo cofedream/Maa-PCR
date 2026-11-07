@@ -9,7 +9,7 @@ prove a handoff, or settle any previous unknown consumption.
 from copy import deepcopy
 from dataclasses import dataclass
 import math,re,time
-from .. import native
+from .. import native, anchors
 from .batch import BatchStopped
 from .interruptions import date_changed_pipeline
 from .session import (title_pipeline,title_player_id,notice_pipeline,home_announcement_pipeline,
@@ -86,11 +86,16 @@ def game_session_pipeline(expected_player_id,*,server='cn-bilibili'):
     for local, common in (('LabyClientAdventureLabel','HomeAdventureText'),
                           ('LabyClientScheduleLabel','HomeScheduleText'),('LabyClientGiftLabel','HomeGiftText')):
         nodes[local]=deepcopy(shared[common])
-    home=['HomeTextLayout','HomeNoKnownLargePanel']
+    # OCR is the primary HOME proof and stays byte-identical to the shared
+    # document; `pcr_maa.anchors` adds the home button icon row as the pixel
+    # fallback for clients whose recognizer misreads the bottom words. The icon
+    # branch only proves the page; input keeps the sampled adventure word box.
+    nodes.update(deepcopy(anchors.nodes()))
+    home=[anchors.anchor_guard(),'HomeNoKnownLargePanel']
     nodes['LabyClientGameHomeObserved']=dict(recognition='And',all_of=home,
         action='DoNothing',next=[],timeout=5000,pre_delay=0,post_delay=0)
     nodes['LabyClientHomeToAdventure']=dict(recognition='And',all_of=home,
-        action='Click',target=True,max_hit=1,next=[],timeout=3000,rate_limit=250,pre_delay=0,post_delay=0)
+        action='Click',target=[693,685,53,33],max_hit=1,next=[],timeout=3000,rate_limit=250,pre_delay=0,post_delay=0)
     nodes['LabyClientAdventureObserved']=dict(recognition='And',all_of=['LabyAdventureIdentity','LabyDawnEntryLabel'],
         action='DoNothing',next=[],timeout=5000,pre_delay=0,post_delay=0)
     # These menu labels and targets were independently sampled. Menu's bottom

@@ -41,8 +41,14 @@ def test_daily_resources_have_no_game_image_templates():
         assert all(isinstance(template, str) and Path(template).parent == Path('guide-trial')
                    for template in templates), (filename, templates)
     # Shared resources keep calibrated modes in their own namespaces; daily stays OCR-only.
-    assert all(path.name in {'labyrinth', 'guide-trial', 'clan-battle'} and path.is_dir()
+    # `anchors` holds the optional home-page icon fallback templates, and no daily
+    # pipeline may reference them yet (asserted above), so they cannot decide a daily page.
+    assert all(path.name in {'labyrinth', 'guide-trial', 'clan-battle', 'anchors'} and path.is_dir()
                for path in native.RESOURCE.joinpath('image').iterdir())
+    from pcr_maa import anchors
+    wanted = {template for node in anchors.nodes().values() for template in node.get('template') or ()}
+    assert {path.relative_to(native.RESOURCE/'image').as_posix()
+            for path in (native.RESOURCE/'image'/anchors.IMAGE_ROOT).rglob('*.png')} == wanted
 
 
 def test_native_home_navigation_without_game_templates():
