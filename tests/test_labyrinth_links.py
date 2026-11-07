@@ -43,6 +43,25 @@ def test_reader_preserves_complete_quantity_and_does_not_claim_inventory():
     assert all(o.quantity_words[0].text.endswith('×3') for o in offers)
 
 
+@pytest.mark.parametrize('ending', ['', '.', '。'])
+def test_link_subtitle_punctuation_does_not_change_the_offer(ending):
+    value=receipt();text='请选择要获得的连结印记'+ending
+    row(value,'Subtitle')['filtered'][0]['text']=text
+    assert re.fullmatch(links.link_pipeline()['LabyLinkSubtitle']['expected'],text)
+    assert links.link_offers(value)==links.link_offers(receipt())
+
+
+def test_selection_guard_matches_semantic_quantity_across_ocr_separator_changes():
+    offers=links.link_offers(receipt(marker='?'))
+    override=links.selection_override(offers,0)
+    guard=override['LabyLinkGuardQuantity0']
+    assert guard['only_rec'] is True
+    assert re.fullmatch(guard['expected'],'火属性的随机印记×3')
+    assert not re.fullmatch(guard['expected'],'火属性的随机印记×13')
+    assert not re.fullmatch(guard['expected'],'水属性的随机印记×3')
+    assert not any('GuardName' in name for name in override['LabyLinkSelectOnce']['all_of'])
+
+
 @pytest.mark.parametrize('elements',list(permutations(links.ELEMENT_PRIORITY,3)))
 def test_priority_matches_upstream_order_for_every_displayed_permutation(elements):
     offers=links.link_offers(receipt(elements))
@@ -496,6 +515,46 @@ def test_link_transaction_result_proof_precedes_close_and_settlement(monkeypatch
     assert [r for _,r in calls]==[(),('LabyLinkSelectOnce',),(),('LabyLinkResultCloseOnce',),()]
     assert [e['state'] for e in journal.events()]==['in_flight','settled']*2
     assert journal.events()[0]['operation']=='link_reward_select'
+
+
+@pytest.mark.parametrize('failure', ['once','persistent','unknown','started','prevalidation','changed','stopped'])
+def test_link_selection_reobserves_only_proven_unsent_input(monkeypatch,tmp_path,failure):
+    batch,reward,journal,calls,_,stopped=mock_link_runtime(monkeypatch,tmp_path)
+    original=native.run;attempts=[];reads=[]
+    def run(tasker,node,*,reset_hits=()):
+        if node=='LabyLinkObserved':
+            reads.append(node)
+            value=original(tasker,node,reset_hits=reset_hits)
+            if failure=='changed' and len(reads)>1:
+                value=receipt(elements=('暗','水','光'))
+            return value
+        if node=='LabyLinkSelectOnce':
+            attempts.append(node)
+            if len(attempts)==1 or failure=='persistent':
+                calls.append((node,reset_hits))
+                if failure=='unknown':raise RuntimeError('input outcome unknown')
+                if failure=='stopped':stopped[0]=True
+                raise native.NativeInputNotSent(dict(input_execution='not_sent',
+                    pre_input_validation_failed=failure=='prevalidation',native_evidence=dict(
+                        entry=node,started=True,finished=True,failed=True,
+                        recognition_failed=True,action_started=failure=='started')))
+        return original(tasker,node,reset_hits=reset_hits)
+    monkeypatch.setattr(native,'run',run)
+    with journal.locked():
+        if failure=='once':
+            assert reward.choose(batch,1,'reward-a')['imprints_obtained'] is True
+        else:
+            with pytest.raises((BatchStopped,RuntimeError)):
+                reward.choose(batch,1,'reward-a')
+        with pytest.raises(BatchStopped):reward.choose(batch,1,'reward-a')
+    assert len(attempts)==(2 if failure in ('once','persistent') else 1)
+    assert len(reads)==(2 if failure in ('once','persistent','changed') else 1)
+    if failure=='once':
+        events=journal.events()
+        assert len(events)==6 and events[1]['result']['input_execution']=='not_sent'
+        assert events[3]['result']['input_action_verified'] is True
+    elif failure=='unknown':assert journal.events()[-1]['state']=='in_flight'
+    else:assert not any(name=='LabyLinkObtainedObserved' for name,_ in calls)
 
 
 def test_link_transaction_same_reward_cannot_resend_even_with_fresh_adapter(monkeypatch,tmp_path):

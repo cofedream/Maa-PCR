@@ -224,7 +224,7 @@ def test_owned_opening_map_cannot_supply_names_and_keeps_confirmation_budget(mon
     monkeypatch.setattr(s,'MaaSceneRuntime',lambda *a,**kw:runtime);monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:pytest.fail('must hand off to original name reader'))
     port=opening.MaaOpening(NS(),lambda **kw:kw)
     def names(node):
-        calls.append(node);assert native.RUN_DEADLINE.get()==opening.JOINED_CONFIRMATION_TIMEOUT_SECONDS
+        calls.append(node);assert native.RUN_DEADLINE.get()==opening.INVITATION_TRANSITION_TIMEOUT_SECONDS
         raise s.BatchStopped('opening_joined_unknown')
     port._run=names
     with pytest.raises(s.BatchStopped,match='^opening_joined_unknown$'):
