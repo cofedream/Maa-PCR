@@ -245,6 +245,8 @@ $items=@(Get-Process -Name MFAAvalonia,python,pythonw,dotnet -ErrorAction Silent
     if ($problem) {
         try {
             $native=Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $_.Id) -ErrorAction Stop
+            # A process may exit after Get-Process took its snapshot.
+            if ($null -eq $native) { return }
             if (-not [string]::IsNullOrWhiteSpace($native.ExecutablePath)) {
                 $image=$native.ExecutablePath; $problem=$null
             }

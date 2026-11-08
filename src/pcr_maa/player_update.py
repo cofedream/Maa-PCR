@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlsplit
 from urllib.request import Request, urlopen
@@ -551,7 +552,16 @@ def main(argv=None):
         return 1
     except Exception as error:
         code = str(error) if re.fullmatch('[a-z][a-z0-9_]{2,127}', str(error)) else type(error).__name__
-        print(json.dumps({'status': 'failed', 'error': code}, ensure_ascii=False))
+        print(json.dumps({'status': 'failed', 'error': code}, ensure_ascii=False), flush=True)
+        if args.command == 'worker':
+            traceback.print_exc()
+            sys.stderr.flush()
+            if os.name == 'nt':
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(None,
+                    '更新未完成，请保留原程序目录。重新打开软件后查看版本；如提示更新中断，请先恢复更新。\n\n'
+                    + '错误：' + code + '\n更新记录目录：' + str(Path.cwd()),
+                    'Maa-PCR 更新失败', 0x00010010)
         return 1
 
 

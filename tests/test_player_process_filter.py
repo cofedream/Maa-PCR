@@ -42,7 +42,7 @@ def test_updater_itself_is_excluded_before_unavailable_path_check(monkeypatch, t
     assert maintenance._processes(tmp_path) == []
 
 
-def fake_shell(monkeypatch, image, *, path_throws=False, query_error=False):
+def fake_shell(monkeypatch, image, *, path_throws=False, query_error=False, exited=False):
     """Run the emitted PowerShell with fake APIs; no Get-Process reaches the OS."""
     original = maintenance.subprocess.run
     value = json.dumps(image)
@@ -56,11 +56,34 @@ function Get-CimInstance { param($ClassName,$Filter) [pscustomobject]@{Executabl
             "([pscustomobject]@{Id=123} | Add-Member -MemberType ScriptProperty -Name Path -Value { throw 'fake path denied' } -PassThru)")
     if query_error:
         prefix = prefix.replace('[pscustomobject]@{ExecutablePath=', "throw 'fake query denied'; [pscustomobject]@{ExecutablePath=")
+    if exited:
+        prefix = prefix.replace('[pscustomobject]@{ExecutablePath=', 'return; [pscustomobject]@{ExecutablePath=')
     def inspect(command, **options):
         assert options['timeout'] == 30
         assert 'CommandLine' not in command[-1]
         return original([*command[:-1], prefix + command[-1]], **options)
     monkeypatch.setattr(maintenance.subprocess, 'run', inspect)
+
+
+def test_process_exiting_between_enumeration_and_image_query_is_ignored(monkeypatch, tmp_path):
+    fake_shell(monkeypatch, None, exited=True)
+    assert maintenance._processes(tmp_path) == []
+
+
+def test_exited_process_does_not_hide_a_following_running_player(monkeypatch, tmp_path):
+    image = str(tmp_path / 'MFAAvalonia.exe').replace("'", "''")
+    original = maintenance.subprocess.run
+    prefix = """
+function Get-Process {
+    [pscustomobject]@{Id=123;Path=$null}
+    [pscustomobject]@{Id=124;Path='IMAGE'}
+}
+function Get-CimInstance { param($ClassName,$Filter) }
+""".replace('IMAGE', image)
+    def inspect(command, **options):
+        return original([*command[:-1], prefix + command[-1]], **options)
+    monkeypatch.setattr(maintenance.subprocess, 'run', inspect)
+    assert maintenance._processes(tmp_path) == [124]
 
 
 @pytest.mark.parametrize('owned', [False, True])

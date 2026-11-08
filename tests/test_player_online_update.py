@@ -671,3 +671,23 @@ def test_worker_refuses_still_running_owner_without_force_kill(online_case):
             wait_seconds=0)
     assert calls == []
     assert_original(case)
+
+
+@pytest.mark.skipif(updater.os.name != 'nt', reason='Windows installer failure dialog')
+def test_detached_worker_failure_is_visible_and_keeps_diagnostic_log(online_case, monkeypatch, capsys):
+    import ctypes
+    messages = []
+    def fail(*args, **kwargs):
+        raise ValueError('process_inspection_incomplete')
+    monkeypatch.setattr(updater, 'run_worker', fail)
+    monkeypatch.setattr(ctypes.windll.user32, 'MessageBoxW',
+        lambda owner, message, title, flags: messages.append((message, title)) or 1)
+    assert updater.main(['worker', '--player', str(online_case['player']), '--recover']) == 1
+    output = capsys.readouterr()
+    assert json.loads(output.out) == {'status': 'failed', 'error': 'process_inspection_incomplete'}
+    assert 'Traceback' in output.err and 'process_inspection_incomplete' in output.err
+    assert len(messages) == 1
+    assert 'process_inspection_incomplete' in messages[0][0]
+    assert str(Path.cwd()) in messages[0][0]
+    assert messages[0][1] == 'Maa-PCR 更新失败'
+    assert_original(online_case)
