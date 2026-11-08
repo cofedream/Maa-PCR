@@ -61,7 +61,8 @@ def test_announcement_is_reported_by_the_startup_wait_and_guarded_by_title():
     any_of = nodes['LabyGameSessionAfterTitleObserved']['any_of']
     assert any_of[:4] == ['LabyDateChangedObserved', 'LabyDisconnect6002Observed',
                           'LabyClientNoticeObserved', 'LabyClientAnnouncementObserved']
-    assert any_of[4:] == ['LabyClientAfterTitleHomeObserved', 'LabyClientDownloadErrorObserved']
+    assert any_of[4:] == ['LabyClientAfterTitleHomeObserved', 'LabyClientDownloadErrorObserved',
+                          'LabyClientDataDownloadObserved']
     shared = json.loads((native.RESOURCE / 'pipeline/presets.json').read_text(encoding='utf-8'))
     assert '活动结束预告' in shared['HomeModalTitle']['expected']
     assert shared['HomeKnownLargePanel']['all_of'] == ['HomePaleCenter', 'HomeModalTitle']

@@ -1,0 +1,19 @@
+{
+  "source": "2026-11-08 local MuMu ADB capture of the B-client 11.7.2 startup data fetch, 1280x720. The frame contains no player name, account ID, device ID or run ID.",
+  "purpose": "通知 activity on top of HOME right after the client finished the data fetch (~33 s after 确认). The existing sampled notice page must be reported (and closed by its own intent) before HOME counts. Does not establish live-game acceptance.",
+  "page": "startup_data_download",
+  "frames": {
+    "labyrinth-start-data-download-notice-20261108.png": {
+      "sha256": "92b63bb538417b6f2b545a06fe069de0714b35a1ca956e749aca51787012eeae",
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "expected": {
+    "data_download_observed": false,
+    "notice_observed": true,
+    "home_observed": false,
+    "startup_wait_hit": true,
+    "startup_page": "notice"
+  }
+}

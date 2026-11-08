@@ -27,6 +27,26 @@
 验证（离线，真实帧）：pre 帧三格 trusted **12003/14003/32002**（score .90/.91/.88，margin .27/.39/.35），OCR 名称/价格/当前层数（0/1/0）与卡面一致；确认帧 `selected_icon_verified=true`、`dialog_catalog.id=32002`、价格 2850、系列「削弱+3/当前 0」与货架属性行一致；购买完毕 `2850`/深渊蚀杖诅咒；购买后余额 2735，slot 0 当前 3、slot 1 当前 1、slot 2 职能印记，底行已售罄的 32002 仍可被图鉴命中。合成帧反例：把 14003（强化+1）图标贴到 slot 2（卡面 削弱+3）→ 图鉴与属性行冲突，`_capture` 以 `shop_readback_unknown` 停止、零输入；抹掉图标 → 图鉴不可信，回退 OCR 文本路径；`relic_catalog` 返回 None → 同样回退。新增 `tests/test_labyrinth_shop_relic_identity.py`（6 项，含完整购买序列与反例）。`pytest -k shop` `238 passed / 28 skipped`；`pytest -k labyrinth` `1888 passed / 123 skipped / 5982 deselected`（18 subtests，4:28）。
 
 未做/边界：本局未实机复跑；商店 `item_id` 仍是可见身份（未改为 catalog id）；确认弹窗的 catalog 证据要求图鉴可信，不可信时仍用捕获图标模板/精确 OCR；商店以外的 name-only 路径（地图/物品读取、链接/角色奖励）未并入；阈值、ROI、图标包与 masterdata 未改。
+## 2026-11-08 开局前“数据下载”提示导致黎明界启动等待超时（实机原帧复现 + 现场探测）
+
+实机失败：GUI 日志 2026-11-08 20:40:02（`gui/MFAAvalonia/bin/x64/Release/logs/log-20261108.log`，实例“黎明界bot/pcr-labyrinth-v1”）记录“游戏客户端页面未通过校验，本次已停止”；同一时刻导出的识别快照 `.runtime/ocr-failures/442a883b.../cc3da090...json` 显示 `entry=LabyGameSessionAfterTitleObserved` 的最后读回是“数据下载”（词框 583,180,114,31，0.9987）与“确认”（756,477,60,34，0.9944），其余通知/公告/主页/下载错误/6002 分支全部未命中（`hit=false`）。现有启动等待只认识已采样页面，所以既不能关闭也不能点击，75 秒预算用完后由 `_root` 以 `game_session_readback_unknown` 停止。
+
+现场探测（同一 MuMu 设备，1280x720，`.runtime/start-download-live/` 35 帧）：在“数据下载 / 即将下载新增数据。(98.42 MB) / 取消 / 确认”上点“确认”（786,496）后，客户端在弹窗内下载（8.7 s 25.79 MB 26.20% → 26.6 s 95.30 MB 96.83%，98.42 MB 约 26–29 s、约 3.5–3.8 MB/s），28.7–30.7 s 为黑屏 + 右上“正在进行数据连接”，约 33 s 直接回到主页并弹出“通知”（独立 activity `com.gsc.announcement.AnnouncementActivity`，更新信息/活动日历/关闭，关闭框约 x502–778、y608–660）；约 97 s 手动关闭“通知”后主页稳定。全程同一进程 PID/窗口，客户端没有重启，也没有再次出现标题 START。因此确认后必须继续轮询同一只读端点，而不是等标题或再点 START；下载页（数据下载中…）不属于任何已知页面。
+
+修复：
+
+- 识别：`game_session_pipeline()` 新增 4 个同帧 OCR 锚点（`^数据下载$` ROI 470,160,340,70；`^即将下载新增数据[。.]?$` ROI 400,290,480,90；`^确认$` ROI 660,440,290,100；`^取消$` ROI 400,440,290,100，阈值 .8）与 `And` 观察节点 `LabyClientDataDownloadObserved`、点击节点 `LabyClientDataDownloadConfirmOnce`；点击节点把“确认”放 `all_of[0]`（box_index 0），目标只能是“确认”词框，永不点标题、说明或“取消”（[game_session.py:152](src/pcr_maa/labyrinth/game_session.py#L152)）。`LabyGameSessionAfterTitleObserved` 增加该页上报（[game_session.py:175](src/pcr_maa/labyrinth/game_session.py#L175)）。
+- 处理：`_after_title` 命中该页时只确认一次（独立意图 `client_data_download_confirm`，同时加入 `_OPERATIONS` 与 `restart._CLIENT_NAVIGATION`），然后在一次性扩展 `_DATA_DOWNLOAD_WAIT_SECONDS=300 s` 内用 `_DATA_DOWNLOAD_POLL_SECONDS=30 s` 的短原生窗口继续轮询；只有原生回执证明“任务完成、识别失败、没有开始任何动作”的干净空窗（`_clean_wait_miss`）才视为“仍在下载”并继续，其它回执仍按未知停止（[game_session.py:310](src/pcr_maa/labyrinth/game_session.py#L310)）。任何已知页面返回后恢复原 75/120 秒启动预算；重复出现同一提示只等待、不再次点击；Stop/暂停检查点每个窗口执行。返回的“通知”由既有采样关闭路径处理，主页随后按原流程进入冒险→主菜单→简介。
+- 既有“下载错误 / 通信超时 / 重试”页面、通知/公告关闭、75 秒标题交接预算、未知输入不重发与重启旧局规则均不变。
+
+验证（离线，无设备）：
+
+- 公开失败原帧（脱敏后 `tests/data/labyrinth-start-data-download-20261108.png`，顶部系统消息带与右下版本/玩家 ID 角已涂黑）回放：`LabyGameSessionAfterTitleObserved` / `LabyClientDataDownloadObserved` 命中，`下载错误` / `主页` 分支不命中；四词分 0.9988/0.9951/0.9981/0.9997；`ConfirmOnce` 点击 (789,485) 落在“确认”词框 756,476,61,35 内。
+- 下载中帧（`...-progress-...png`，25.79 MB 26.20%）不属于任何已知页面，一次窗口必须以干净空窗结束而不是停止；下载后“通知”帧（`...-notice-...png`）命中既有通知页而主页被大面板守卫拒绝，`LabyClientNoticeCloseOnce` 点击落在关闭框内。
+- 新增 `tests/test_labyrinth_start_data_download.py` 15 项：节点/ROI/锚点顺序、操作名与重开集合、确认一次后穿过多窗口、重复提示不重点、预算耗尽/坏回执/停止/未发出输入反例、channel 窗口过期可重试而非过期错误不重试；三张原帧回放。另对 `tests/data` 与探测目录的 18 张 1280x720 帧做误报扫描：只有真实提示帧命中，下载中/通知/主页/遗物/Boss 等帧均不命中。
+- 回归：`pytest tests/test_labyrinth_start_data_download.py` 15 passed；相邻套件（通知/公告、channel、预算、重启策略/记录、公会战恢复、主页 OCR/守卫）350 passed / 50 skipped；`pytest -k labyrinth` 1893 passed / 127 skipped / 5982 deselected（18 subtests，4:13）；`python -X utf8 -B scripts/verify.py public` 7403 passed / 398 skipped / 201 deselected（34:01）。
+
+未做/边界：客户端冷启动时若在第一次 START 之前就弹“数据下载”，本轮没有采样，`_entry` 仍按未知停止（本次实机快照与探测都发生在 START 之后）；`_after_title` 的扩展仍受 `_startup_home` 既有 120 秒启动窗口约束，更大的数据包可能仍超时；下载中途出现通信错误/其它弹窗未采样，“下载错误/重试”只按既有页面处理一次；本次未再实机复跑新代码（探测时已手动确认并下载完该数据），真实整局验收仍待后续。
 
 ## 2026-11-08 账本查询改为只读视图（奖励选择不再深拷贝整本账本）
 

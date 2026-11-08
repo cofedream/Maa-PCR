@@ -22,10 +22,19 @@ from .session import ChannelPrompts
 from pathlib import Path
 import json
 
-_OPERATIONS=('client_channel_prompt','client_download_retry','client_return_title','client_title_start','client_notice_close',
+_OPERATIONS=('client_channel_prompt','client_download_retry','client_data_download_confirm',
+             'client_return_title','client_title_start','client_notice_close',
              'client_announcement_close','client_open_adventure','client_open_labyrinth',
              'client_open_main_menu','client_open_profile','client_profile_back',
              'client_menu_to_adventure','client_profile_return_title')
+# A 98.42 MB prompt was measured on the B-client 11.7.2 startup screen and the
+# client needed ~26-29 s to fetch it before its own 数据连接 transition. This is
+# a bounded wait, not a download-progress claim; the client may restart itself,
+# so only a fresh title/HOME/popup frame ends the window.
+_DATA_DOWNLOAD_WAIT_SECONDS=300
+# Maa rejects one native task after 90 s, so the download wait polls in windows
+# shorter than that. An ordinary startup wait is already bounded by 75/120 s.
+_DATA_DOWNLOAD_POLL_SECONDS=30
 # Only these sampled startup popups may be closed. Nothing generic is confirmed.
 _STARTUP_POPUP_CLOSE={
     'notice':('client_notice_close','LabyClientNoticeCloseOnce'),
@@ -140,6 +149,25 @@ def game_session_pipeline(expected_player_id,*,server='cn-bilibili'):
         action='DoNothing',next=[],timeout=3000,pre_delay=0,post_delay=0)
     nodes['LabyClientDownloadRetryOnce']=dict(recognition='And',all_of=download,
         action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)
+    # The client's new-data prompt (数据下载 / 即将下载新增数据。(N MB) / 取消 / 确认)
+    # is a required client update, not a consumption. It is only reported/filled
+    # when all four sampled words are on the same frame; the click target is the
+    # 确认 word box (box_index 0), never the title, prompt or 取消.
+    # Word boxes and scores were read from the live 1280x720 11.7.2 failure frame:
+    # 数据下载 582,179,114,34 (.9988); 即将下载新增数据。542,331,182,19 (.9951);
+    # 确认 756,476,61,35 (.9981); 取消 465,479,57,32 (.9997).
+    nodes['LabyClientDataDownloadTitle']=label('^数据下载$',[470,160,340,70])
+    nodes['LabyClientDataDownloadPrompt']=label('^即将下载新增数据[。.]?$',[400,290,480,90])
+    nodes['LabyClientDataDownloadConfirmLabel']=label('^确认$',[660,440,290,100])
+    nodes['LabyClientDataDownloadCancelLabel']=label('^取消$',[400,440,290,100])
+    data_download=['LabyClientDataDownloadTitle','LabyClientDataDownloadPrompt',
+        'LabyClientDataDownloadConfirmLabel','LabyClientDataDownloadCancelLabel']
+    nodes['LabyClientDataDownloadObserved']=dict(recognition='And',all_of=data_download,
+        action='DoNothing',next=[],timeout=3000,pre_delay=0,post_delay=0)
+    nodes['LabyClientDataDownloadConfirmOnce']=dict(recognition='And',
+        all_of=['LabyClientDataDownloadConfirmLabel','LabyClientDataDownloadTitle',
+                'LabyClientDataDownloadPrompt','LabyClientDataDownloadCancelLabel'],
+        action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)
     # Upstream permits HOME without announcement and allows cold-start loading.
     # This endpoint wait is read-only; only the full announcement guard can close
     # it. Both sampled startup popups are reported so the caller closes each one
@@ -147,7 +175,8 @@ def game_session_pipeline(expected_player_id,*,server='cn-bilibili'):
     nodes['LabyGameSessionAfterTitleObserved']=dict(recognition='Or',
         any_of=['LabyDateChangedObserved','LabyDisconnect6002Observed',
                 'LabyClientNoticeObserved','LabyClientAnnouncementObserved',
-                'LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved'],
+                'LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved',
+                'LabyClientDataDownloadObserved'],
         action='DoNothing',next=[],timeout=75000,rate_limit=250,pre_delay=0,post_delay=0)
     if selected.channel:
         nodes['LabyGameSessionAfterTitleObserved']['any_of'].append('LabyClientTitleObserved')
@@ -194,6 +223,25 @@ def _root(receipt,name):
         or nodes[0].get('name')!=name or nodes[0].get('completed') is not True
         or receipt.get('native_ok') is not True):raise BatchStopped('game_session_readback_unknown')
     return nodes[0]
+
+
+def _clean_wait_miss(receipt):
+    """A read-only page wait that ended with no page, not a broken receipt.
+
+    Only the client's own data fetch uses this: its progress screen is not one
+    of our pages, so the bounded startup probe has to run more than once. The
+    proof still requires a complete native task whose recognition failed and
+    whose action never started; anything else remains an unknown readback.
+    """
+    proof=receipt.get('native_evidence') or {} if type(receipt) is dict else {}
+    return (type(receipt) is dict and receipt.get('native_ok') is False
+        and receipt.get('tasker_inited') is True
+        and type(receipt.get('task_id')) is int and receipt['task_id']>0
+        and type(proof) is dict and proof.get('source')=='native_task_events'
+        and proof.get('task_id')==receipt['task_id']
+        and proof.get('started') is True and proof.get('finished') is True
+        and proof.get('complete') is True and proof.get('recognition_failed') is True
+        and proof.get('action_started') is False)
 
 
 class MaaGameSession:
@@ -260,12 +308,20 @@ class MaaGameSession:
         return receipt
 
     def _after_title(self,batch):
-        """Two fresh identical popup/Notice/HOME frames; startup budget is shared."""
+        """Two fresh identical popup/Notice/HOME frames; startup budget is shared.
+
+        A new-data prompt (数据下载) is confirmed once as its own durable intent.
+        The client then fetches the data on its own, with no page of ours to
+        prove; the read-only endpoint is polled in short native windows inside
+        one bounded extension, and the normal startup budget restarts once a
+        fresh title/HOME/popup frame actually returns.
+        """
         self._checkpoint(batch);entry='LabyGameSessionAfterTitleObserved'
         wait='LabyGameSessionTitleStabilityWait'
         names=['LabyDateChangedObserved','LabyDisconnect6002Observed',
                'LabyClientNoticeObserved','LabyClientAnnouncementObserved',
-               'LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved']
+               'LabyClientAfterTitleHomeObserved','LabyClientDownloadErrorObserved',
+               'LabyClientDataDownloadObserved']
         if self.server.channel:names.append('LabyClientTitleObserved')
         started=native.active_now();owner_deadline=native.RUN_DEADLINE.get()
         startup_seconds=120 if self.server.transient_rotation else 75
@@ -273,17 +329,29 @@ class MaaGameSession:
         # Repeated endpoint reads share the original 75s pipeline budget and
         # preserve the Owner's earlier deadline; native conversion gets 85s max.
         token=native.RUN_DEADLINE.set(min(owner_deadline,started+(startup_seconds if self.server.channel else 85)))
-        previous_page=previous_native=wait_native=None;download_retries=0
+        previous_page=previous_native=wait_native=None;download_retries=0;download_confirms=0
+        downloading=False
         last_title_tap=started
         try:
             while True:
                 self._checkpoint(batch);remaining=expires-native.active_now()
                 if remaining<=0:raise BatchStopped('game_session_readback_unknown')
-                if not self.tasker.resource.override_pipeline({entry:dict(timeout=max(1,int(remaining*1000)))}):
+                # A native task may run at most 90s. While the client is fetching
+                # its new data there is no page to prove, so each read-only window
+                # stays short and a clean miss is retried inside the extension.
+                window=min(remaining,_DATA_DOWNLOAD_POLL_SECONDS) if downloading else remaining
+                if not self.tasker.resource.override_pipeline({entry:dict(timeout=max(1,int(window*1000)))}):
                     raise BatchStopped('game_session_pipeline_unavailable')
-                if self.server.channel:receipt=self._channel_observe(batch,entry,seconds=remaining)
+                if self.server.channel:
+                    try:receipt=self._channel_observe(batch,entry,seconds=window)
+                    except BatchStopped as error:
+                        if not downloading or error.args!=('game_session_readback_unknown',):raise
+                        self._checkpoint(batch);continue
                 else:
                     with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)
+                if downloading and receipt.get('native_ok') is not True:
+                    if not _clean_wait_miss(receipt):raise BatchStopped('game_session_readback_unknown')
+                    self._checkpoint(batch);continue
                 self._checkpoint(batch);raw=_root(receipt,entry).get('recognition')
                 if (type(raw) is not list or not 1<=len(raw)<=len(names)
                     or any(type(row) is not dict or row.get('algorithm')!='And' for row in raw)
@@ -291,8 +359,29 @@ class MaaGameSession:
                     or any(row.get('box') is not None for row in raw[:-1]) or not _box(raw[-1].get('box'))):
                     raise BatchStopped('game_session_readback_unknown')
                 hit=raw[-1]['name']
+                if downloading and hit!='LabyClientDataDownloadObserved':
+                    downloading=False
+                    expires=min(owner_deadline,native.active_now()+startup_seconds)
+                    native.RUN_DEADLINE.reset(token);token=native.RUN_DEADLINE.set(expires)
                 if hit=='LabyDateChangedObserved':raise BatchStopped('date_changed')
                 if hit=='LabyDisconnect6002Observed':raise BatchStopped('disconnected')
+                if hit=='LabyClientDataDownloadObserved':
+                    if native.active_now()>=expires:raise BatchStopped('game_session_readback_unknown')
+                    # One completed dialog is one required update; a repeated
+                    # prompt is waited on, never clicked again.
+                    if download_confirms:continue
+                    download_confirms+=1
+                    fields=self._fields(self.opening_snapshot,input_node='LabyClientDataDownloadConfirmOnce')
+                    def download_send(oid):
+                        sent=self._input(batch,'LabyClientDataDownloadConfirmOnce')
+                        return self.stamp(operation_id=oid,**fields,input_action_verified=True,
+                            client_page_verified=False,native=sent,input_native=sent)
+                    batch.transaction('client_data_download_confirm',fields,download_send)
+                    expires=max(expires,min(owner_deadline,
+                        native.active_now()+_DATA_DOWNLOAD_WAIT_SECONDS))
+                    native.RUN_DEADLINE.reset(token);token=native.RUN_DEADLINE.set(expires)
+                    downloading=True;previous_page=previous_native=wait_native=None
+                    self._checkpoint(batch);continue
                 if hit=='LabyClientTitleObserved':
                     if native.active_now()>=expires:raise BatchStopped('game_session_readback_unknown')
                     if native.active_now()-last_title_tap>=5:
