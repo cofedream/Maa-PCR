@@ -95,9 +95,12 @@ internal static class PcrLabyrinthOwner
         "channel_credentials_required"=>"请填写所选渠道的 UID 和 access_key。",
         "channel_client_close_required"=>"所选渠道需要先关闭游戏客户端，关闭状态尚未确认，本次已停止。",
         "login_failed"=>"协议登录未通过校验，本次未开始游戏任务。请检查网络或导出黎明界诊断记录。",
+        "sdk_login_failed"=>"账号登录服务未接受本次登录，本次未开始游戏任务。请核对账号资料；若刚完成人工验证码，请稍后重新开始。",
         "manual_verification_required"=>"登录需要人工验证码；本次已停止，没有自动重试。",
         "captcha_cancelled" or "captcha_timeout"=>"人工验证码已取消或超时，本次已停止。",
-        "captcha_failed" or "captcha_rejected" or "captcha_network_failed"=>"人工验证码未通过或加载失败，本次已停止。",
+        "captcha_failed" or "captcha_rejected" or "captcha_network_failed" or "captcha_network_or_protocol_failed"=>"人工验证码未通过或加载失败，本次已停止。",
+        "captcha_response_invalid" or "captcha_proof_invalid" or "captcha_request_invalid"=>"人工验证码数据或验证结果不完整，本次已停止。请重新开始验证；仍失败时导出本次日志。",
+        "captcha_type_unsupported"=>"登录服务要求的验证码类型暂不支持，本次已停止。请导出本次日志反馈。",
         "game_session_readback_unknown"=>"游戏客户端页面未通过校验，本次已停止。请检查游戏是否仍在加载或有弹窗，并导出黎明界诊断记录。",
         "sdk_login_timeout" or "protocol_login_timeout"=>"协议账号登录网络超时，本次已停止；不会自动重试。请检查网络后重新点击开始。",
         "complete"=>"已完成本次目标。",
@@ -174,7 +177,6 @@ internal static class PcrLabyrinthOwner
             } catch (Exception ex) {
                 vm.LabyrinthSettings.Status=ex.Message;
                 vm.ShowPcrStartError(feedbackRun,"本次未能开始："+ex.Message);
-                Trace(vm,"本次未能开始："+ex.Message);
                 vm.FinishPlayerLog("not_started");
                 vm.Processor.AddLog(ex.Message,(IBrush?)null);
                 return;
@@ -299,7 +301,7 @@ internal static class PcrLabyrinthOwner
                     Trace(vm,lastLogged);
                     var reason=StatusFor(outcome);
                     if (outcome!="complete") vm.ShowPcrStartError(feedbackRun,reason);
-                    Trace(vm,reason);
+                    else Trace(vm,reason);
                     break; // Terminal receipt; the owned Job closes descendant pipes in finally.
                 }
             }
@@ -313,7 +315,7 @@ internal static class PcrLabyrinthOwner
             Trace(vm,vm.LabyrinthSettings.Progress);
             vm.LabyrinthSettings.Status=timedOut ? waiting+"等待超时，本次已停止。" : "已停止本次任务。";
             if (timedOut) vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
-            Trace(vm,vm.LabyrinthSettings.Status);
+            else Trace(vm,vm.LabyrinthSettings.Status);
             if (run.Child is { Exited: false }) {
                 try {
                     await run.Child.Send("{\"kind\":\"stop\"}").WaitAsync(TimeSpan.FromSeconds(1));
@@ -332,7 +334,6 @@ internal static class PcrLabyrinthOwner
             // network errors are intentionally never interpolated into UI logs.
             vm.LabyrinthSettings.Status=ex is IOException ? "黎明界组件通信失败，请核对运行记录。" : ex.Message;
             vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
-            Trace(vm,vm.LabyrinthSettings.Status);
         } finally {
             try {
             PcrCaptchaHost.Hide();

@@ -59,7 +59,9 @@ def main(*, collector=collect):
         safe = {'stopped', 'content_update_required', 'account_mismatch', 'invalid_configuration', 'invalid_snapshot',
             'select_one_team', 'manual_verification_required', 'sdk_login_failed', 'sdk_login_timeout',
             'protocol_login_timeout', 'login_failed', 'protocol_version_invalid', 'tutorial_incomplete',
-            'captcha_cancelled', 'captcha_timeout', 'captcha_rejected', 'captcha_network_failed', 'captcha_failed'}
+            'captcha_cancelled', 'captcha_timeout', 'captcha_rejected', 'captcha_network_failed', 'captcha_failed',
+            'captcha_response_invalid', 'captcha_type_unsupported', 'captcha_proof_invalid',
+            'captcha_network_or_protocol_failed', 'captcha_request_invalid'}
         result['outcome'] = str(error) if str(error) in safe else 'snapshot_failed'
     finally:
         line = None

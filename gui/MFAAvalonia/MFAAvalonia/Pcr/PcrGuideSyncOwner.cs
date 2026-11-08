@@ -55,7 +55,9 @@ internal static class PcrGuideSyncOwner
             "content_update_required" => "游戏内容版本已变化，请先更新静态角色表。",
             "manual_verification_required" => "登录需要人工验证码；本次停止，没有自动重试。",
             "captcha_cancelled" or "captcha_timeout" => "验证码已取消或超时，原资料保持。",
-            "captcha_failed" or "captcha_rejected" or "captcha_network_failed" => "验证码未通过或加载失败，本次停止，原资料保持。",
+            "captcha_failed" or "captcha_rejected" or "captcha_network_failed" or "captcha_network_or_protocol_failed" => "验证码未通过或加载失败，本次停止，原资料保持。",
+            "captcha_response_invalid" or "captcha_proof_invalid" or "captcha_request_invalid" => "验证码数据或验证结果不完整，请重新开始验证，原资料保持。",
+            "captcha_type_unsupported" => "登录服务要求的验证码类型暂不支持，原资料保持。",
             "sdk_login_failed" or "login_failed" => "账号登录失败，请检查黎明界配置中的账号资料。",
             "sdk_login_timeout" or "protocol_login_timeout" => "账号登录超时，本次停止，没有自动重试。",
             _ => "账号读取未完成，原资料保持。"

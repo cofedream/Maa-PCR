@@ -320,6 +320,21 @@ def test_worker_sanitizes_failure_and_clears_request(monkeypatch):
     assert json.loads(stdout.getvalue()) == dict(kind='result', outcome='snapshot_failed')
 
 
+@pytest.mark.parametrize('outcome', ['captcha_response_invalid', 'captcha_type_unsupported',
+    'captcha_proof_invalid', 'captcha_network_or_protocol_failed', 'captcha_request_invalid'])
+def test_worker_keeps_safe_captcha_failure_reason(monkeypatch, outcome):
+    import io
+    import sys
+    script = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'scripts/read-guide-snapshot.py'))
+    request = dict(version=2, account_id=123, content_version='202610141431',
+        credentials=dict(username='synthetic-user', password='synthetic-password'))
+    monkeypatch.setattr(sys, 'stdin', io.StringIO(json.dumps(request) + '\n'))
+    stdout = io.StringIO(); monkeypatch.setattr(sys, 'stdout', stdout)
+    async def failed(*args, **kwargs): raise SnapshotFailure(outcome)
+    assert script['main'](collector=failed) == 2
+    assert json.loads(stdout.getvalue()) == dict(kind='result', outcome=outcome)
+
+
 def test_worker_eof_revokes_before_client_creation(monkeypatch):
     import io
     import sys

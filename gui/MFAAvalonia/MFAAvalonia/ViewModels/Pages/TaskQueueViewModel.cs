@@ -1524,8 +1524,8 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
             if (run == Interlocked.Read(ref _pcrFeedbackRun) && Volatile.Read(ref _isDisposed) == 0)
             {
                 PcrRunSummary = summary;
-                AddPcrLiveLog(summary);
                 if (failed) PcrStartError = summary;
+                else AddPcrLiveLog(summary);
             }
         });
     }
