@@ -2,6 +2,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import tempfile
 import unittest
 import zipfile
@@ -33,6 +34,27 @@ def test_matching_source_excludes_only_the_local_guide_handoff(tmp_path):
     assert not (prepared / 'source/docs/GUIDE_CHECK.md').exists()
     assert (prepared / 'source/docs/public.md').read_bytes() == b'public guide'
     assert private.read_bytes() == original
+
+
+def test_current_workflow_baselines_are_in_matching_source(tmp_path):
+    repository = Path(__file__).resolve().parents[1]
+    required = {
+        name
+        for workflow in (repository / '.github/workflows').iterdir()
+        if workflow.suffix in ('.yml', '.yaml')
+        for name in re.findall(r'delivery/baselines/[\w.-]+\.json', workflow.read_text(encoding='utf-8'))
+    }
+    assert required
+    source = tmp_path / 'source'
+    for name in required:
+        path = source / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((repository / name).read_bytes())
+    prepared = tmp_path / 'prepared'
+    inventory = delivery.prepare(source, prepared)
+    assert {row['path'] for row in inventory['files']} == required
+    for name in required:
+        assert (prepared / 'source' / name).read_bytes() == (repository / name).read_bytes()
 
 
 class SourceDeliveryTests(unittest.TestCase):

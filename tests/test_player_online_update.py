@@ -549,6 +549,10 @@ def test_recovery_rejects_conflicting_archive_arguments_without_writes(online_ca
 @pytest.mark.parametrize('kind', ['full', 'patch', 'online'])
 def test_worker_updates_runtime_then_restarts_only_gui(online_case, kind):
     case = online_case
+    config = case['player'] / 'pcr-alpha-v1/appsettings.json'
+    config.parent.mkdir()
+    saved = {'NoAutoStart': 'False', 'Keep': '用户设置', 'Nullable': None}
+    config.write_bytes(encode(saved))
     if kind == 'online':
         opener, _ = fake_opener(case)
         archive = Path(updater.download_update(case['player'], opener=opener)['archive'])
@@ -559,6 +563,7 @@ def test_worker_updates_runtime_then_restarts_only_gui(online_case, kind):
     calls = []
 
     def popen(args, **kwargs):
+        assert json.loads(config.read_bytes()) == {**saved, 'NoAutoStart': 'True'}
         calls.append((args, kwargs))
         return SimpleNamespace(pid=789)
 
@@ -574,6 +579,70 @@ def test_worker_updates_runtime_then_restarts_only_gui(online_case, kind):
     assert len(calls) == 1
     assert list(map(str, calls[0][0])) == [str(case['player'] / 'MFAAvalonia.exe')]
     assert result['game_tasks_started'] is False
+
+
+@pytest.mark.parametrize('original', [b'{', b'[]', b'null', b'{"NoAutoStart":false}',
+                                      b'{"Keep":"one","Keep":"two"}'])
+def test_worker_rejects_invalid_restart_settings_without_launch(online_case, original):
+    player = online_case['player']
+    config = player / 'pcr-alpha-v1/appsettings.json'
+    config.parent.mkdir()
+    config.write_bytes(original)
+    launches = []
+    with pytest.raises(ValueError):
+        updater.run_worker(player, recover=True, process_probe=lambda _: [],
+            popen=lambda *args, **kwargs: launches.append(args))
+    assert launches == [] and config.read_bytes() == original
+
+
+@pytest.mark.parametrize('change', ['concurrent', 'replace_failure'])
+def test_worker_preserves_restart_settings_when_atomic_save_fails(online_case, monkeypatch, change):
+    player = online_case['player']
+    config = player / 'pcr-alpha-v1/appsettings.json'
+    config.parent.mkdir()
+    original = encode({'Keep': 'original'})
+    concurrent = encode({'Keep': 'new edit'})
+    config.write_bytes(original)
+    if change == 'concurrent':
+        sync = maintenance._sync_file
+        def changed(path):
+            sync(path)
+            config.write_bytes(concurrent)
+        monkeypatch.setattr(maintenance, '_sync_file', changed)
+    else:
+        def rejected(*args):
+            raise PermissionError('synthetic locked config')
+        monkeypatch.setattr(maintenance, '_replace', rejected)
+    launches = []
+    with pytest.raises((ValueError, OSError)):
+        updater.run_worker(player, recover=True, process_probe=lambda _: [],
+            popen=lambda *args, **kwargs: launches.append(args))
+    assert launches == []
+    assert config.read_bytes() == (concurrent if change == 'concurrent' else original)
+    assert list(config.parent.iterdir()) == [config]
+
+
+def test_worker_creates_only_one_time_restart_setting_when_global_config_is_absent(online_case):
+    player = online_case['player']
+    config = player / 'pcr-alpha-v1/appsettings.json'
+    launches = []
+    updater.run_worker(player, recover=True, process_probe=lambda _: [],
+        popen=lambda *args, **kwargs: launches.append(json.loads(config.read_bytes())))
+    assert launches == [{'NoAutoStart': 'True'}]
+
+
+def test_worker_does_not_change_restart_settings_after_player_reopens(online_case):
+    player = online_case['player']
+    config = player / 'pcr-alpha-v1/appsettings.json'
+    config.parent.mkdir()
+    original = encode({'Keep': 'original'})
+    config.write_bytes(original)
+    observations = iter([[], [], [123]])
+    launches = []
+    with pytest.raises(ValueError, match='player_reopened_before_restart'):
+        updater.run_worker(player, recover=True, process_probe=lambda _: next(observations),
+            popen=lambda *args, **kwargs: launches.append(args))
+    assert launches == [] and config.read_bytes() == original
 
 
 def test_worker_rejects_archive_changed_after_handoff_without_launch(online_case):

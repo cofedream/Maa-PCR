@@ -3,17 +3,25 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
+using Avalonia.Platform.Storage;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using MaaFramework.Binding;
 using MaaFramework.Binding.Buffers;
 using MaaFramework.Binding.Custom;
 using MFAAvalonia.Extensions.MaaFW;
+using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.Pcr;
 using MFAAvalonia.ViewModels.Other;
@@ -34,10 +42,15 @@ internal static class PreviewConnectionChecks
         Directory.CreateDirectory(directory);
         adbPath = Path.Combine(directory, "adb.exe");
         File.WriteAllText(adbPath, "OFFLINE FIXTURE - MUST NEVER EXECUTE");
+        var repository = typeof(PcrAlphaOwner).GetField("repository", Hidden)!;
+        var previousRepository = repository.GetValue(null);
+        repository.SetValue(null, directory);
         var previousContext = SynchronizationContext.Current;
         SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
         try
         {
+            foreach (var profile in new[] { "pcr-alpha-v1", "pcr-labyrinth-v1", PcrClanGuide.ProfileId })
+                ConnectionFeedback(manager, directory, profile);
             CheckOwnerStartFixture(manager);
             foreach (var phase in new[] { "connect", "first_frame" })
             {
@@ -52,7 +65,84 @@ internal static class PreviewConnectionChecks
             FactoryLateReturn(manager);
             Console.WriteLine($"PCR preview connection checks passed: {checks}; synthetic native callbacks only; real ADB/device inputs=0");
         }
-        finally { SynchronizationContext.SetSynchronizationContext(previousContext); }
+        finally { repository.SetValue(null, previousRepository); SynchronizationContext.SetSynchronizationContext(previousContext); }
+    }
+
+    private static void ConnectionFeedback(MaaProcessorManager manager, string directory, string profile)
+    {
+        using var fixture = new Fixture(manager, profile);
+        var native = new PreviewController("failed");
+        fixture.Factory(native);
+        var view = new PcrLiveLogView { DataContext = fixture.Vm };
+        var window = new Window { Content = view, Width = 900, Height = 300, ShowActivated = false,
+            ShowInTaskbar = false, Position = new PixelPoint(-12000, -12000) };
+        var actions = VmType.Assembly.GetType("MFAAvalonia.Pcr.PcrFeedbackActions", true)!;
+        var previous = actions.GetFields(Hidden).ToDictionary(f => f, f => f.GetValue(null));
+        Window? dialog = null;
+        var target = Path.Combine(directory, profile + "-connection-feedback.zip");
+        var file = DispatchProxy.Create<IStorageFile, LogExportStorageProxy>();
+        ((LogExportStorageProxy)(object)file).WritePath = target;
+        ((LogExportStorageProxy)(object)file).PathValue = new Uri(target);
+        try
+        {
+            actions.GetField("Open", Hidden)!.SetValue(null, (Action<string>)(_ => throw new Exception("No feedback may be sent")));
+            actions.GetField("PickFile", Hidden)!.SetValue(null,
+                (Func<IStorageProvider, FilePickerSaveOptions, Task<IStorageFile?>>)((_, _) => Task.FromResult<IStorageFile?>(file)));
+            actions.GetField("WindowOpened", Hidden)!.SetValue(null, (Action<Window>)(value => dialog = value));
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            var export = view.GetLogicalDescendants().OfType<Button>().Single(b => (string?)b.Content == "导出本次日志");
+            Require(!export.IsEnabled, profile + "_fresh_profile_has_no_record");
+            var request = fixture.Connect();
+            Require(!export.IsEnabled, profile + "_export_waits_for_connection_result");
+            Until(() => request.IsCompleted && !fixture.Pending, profile + "_failed_connection_settles");
+            request.GetAwaiter().GetResult();
+            Require(!fixture.Vm.IsRunning && !fixture.Vm.IsConnected && export.IsEnabled,
+                profile + "_failed_connection_enables_export_without_task");
+            Require(fixture.Vm.PcrStartError.Contains("底层连接未成功")
+                && view.GetLogicalDescendants().OfType<Button>().Single(b => (string?)b.Content == "反馈问题").IsVisible,
+                profile + "_connection_error_exposes_feedback");
+            export.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
+            Require(dialog != null, profile + "_connection_export_window_opens");
+            Require(dialog!.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("连接或任务") == true),
+                profile + "_dialog_describes_connection_scope");
+            dialog.GetLogicalDescendants().OfType<Button>().Single(b => (string?)b.Content == "保存日志包")
+                .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Until(() => dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("日志包已准备") == true),
+                profile + "_connection_zip_saved");
+            using (var zip = ZipFile.OpenRead(target))
+            {
+                using var reader = new StreamReader(zip.GetEntry("events.log")!.Open());
+                var text = reader.ReadToEnd();
+                Require(text.Contains("127.0.0.1:16384") && text.Contains("adb.exe") && text.Contains("尚未开始任务")
+                    && text.Contains("底层连接未成功"), profile + "_zip_contains_target_and_failure");
+                Require(zip.Entries.All(e => !e.FullName.EndsWith(".png")) && new FileInfo(target).Length <= 16 * 1024 * 1024,
+                    profile + "_connection_zip_has_no_game_images_and_respects_quota");
+            }
+            using (var frame = new RenderTargetBitmap(new PixelSize(680, 490)))
+            { frame.Render(dialog); frame.Save(Path.Combine(directory, profile + "-connection-export.png")); }
+            var failedLog = VmType.GetProperty("PlayerLog", Hidden)!.GetValue(fixture.Vm)!;
+            var replacement = new PreviewController("none"); fixture.Factory(replacement);
+            var reconnect = fixture.Connect();
+            Until(() => reconnect.IsCompleted && !fixture.Pending, profile + "_feedback_reconnect_completes");
+            reconnect.GetAwaiter().GetResult();
+            var nextLog = VmType.GetProperty("PlayerLog", Hidden)!.GetValue(fixture.Vm)!;
+            Require(fixture.Vm.IsConnected && fixture.Vm.PcrStartError == "" && !ReferenceEquals(failedLog, nextLog),
+                profile + "_reconnect_has_fresh_log_and_clears_error");
+            var nextPath = (string)nextLog.GetType().GetProperty("DirectoryPath", Hidden)!.GetValue(nextLog)!;
+            Require(!File.ReadAllText(Path.Combine(nextPath, "events.log")).Contains("底层连接未成功"),
+                profile + "_reconnect_does_not_export_previous_failure");
+            VmType.GetMethod("BeginPcrRunFeedback", Hidden)!.Invoke(fixture.Vm, null);
+            Dispatcher.UIThread.RunJobs();
+            Require(!ReferenceEquals(nextLog, VmType.GetProperty("PlayerLog", Hidden)!.GetValue(fixture.Vm)),
+                profile + "_task_start_uses_separate_record");
+            VmType.GetMethod("FinishPlayerLog", Hidden)!.Invoke(fixture.Vm, ["not_started"]);
+            Require(native.Inputs == 0 && replacement.Inputs == 0, profile + "_feedback_does_not_send_device_input");
+        }
+        finally
+        {
+            dialog?.Close(); window.Close(); Dispatcher.UIThread.RunJobs();
+            foreach (var field in previous) field.Key.SetValue(null, field.Value);
+        }
     }
 
     private static void CheckOwnerStartFixture(MaaProcessorManager manager)
@@ -85,6 +175,8 @@ internal static class PreviewConnectionChecks
         if (!timeout) StopTwice(fixture.Vm, name);
         Until(() => request.IsCompleted, name + "_request_completes_without_native_return", 2000);
         request.GetAwaiter().GetResult();
+        Require(fixture.Vm.CanExportPlayerLog && fixture.Vm.PcrHasStartError,
+            name + "_can_export_while_native_cleanup_is_pending");
         if (timeout) StopTwice(fixture.Vm, name + "_stop_after_timeout");
         CheckQuarantine(fixture, name);
         Require(!blocked.Returned && blocked.DisposeCalls == 0 && fixture.Processor.MaaTasker == null,
@@ -352,12 +444,12 @@ internal static class PreviewConnectionChecks
         internal int FactoryCalls;
         internal bool Pending => (bool)VmType.GetProperty("PcrConnectionPending", Hidden)!.GetValue(Vm)!;
 
-        internal Fixture(MaaProcessorManager manager)
+        internal Fixture(MaaProcessorManager manager, string profile = "pcr-alpha-v1")
         {
             this.manager = manager;
             foreach (var name in new[] { "_instances", "_viewModels", "_instanceOrder", "<Current>k__BackingField" })
                 previous[name] = manager.GetType().GetField(name, Hidden)!.GetValue(manager);
-            Set(Processor, "<InstanceId>k__BackingField", "pcr-alpha-v1");
+            Set(Processor, "<InstanceId>k__BackingField", profile);
             Set(Vm, "_processorField", Processor);
             Set(Vm, "_currentDevice", new AdbDeviceInfo("synthetic preview controller", adbPath, "127.0.0.1:16384", AdbScreencapMethods.Encode, AdbInputMethods.None, "{}"));
             foreach (var name in new[] { "_agentContexts", "_screenshotTaskerInitLock", "_liveViewScreencapJobLock", "_screencapLogLock", "_detachedScreenshotTaskersLock", "_detachedScreenshotTaskers" }) New(Processor, name);
@@ -430,7 +522,7 @@ internal static class PreviewConnectionChecks
             if (!Hold.Wait(TimeSpan.FromSeconds(15))) throw new TimeoutException("synthetic native callback remained blocked");
             Returned = true;
         }
-        public bool Connect() { Interlocked.Increment(ref ConnectCalls); if (phase == "connect") Block(); return online = true; }
+        public bool Connect() { Interlocked.Increment(ref ConnectCalls); if (phase == "connect") Block(); return online = phase != "failed"; }
         public bool Connected() => online;
         public bool RequestUuid(IMaaStringBuffer buffer) => buffer.TrySetValue("offline-preview-cancellation");
         public ControllerFeatures GetFeatures() => ControllerFeatures.None;

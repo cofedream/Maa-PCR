@@ -224,9 +224,7 @@ public class TrayIconManager
 
     private static async void App_exit(object sender, EventArgs e)
     {
-        if (!await Instances.RootView.ConfirmExit())
-            return;
-        Instances.RootView.ShutdownAfterConfirmedExit();
+        await Instances.RootView.RequestExitAsync();
     }
 
     private static void App_hide(object sender, EventArgs e) =>

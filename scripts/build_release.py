@@ -14,6 +14,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import urllib.request
 import zipfile
 
@@ -55,6 +56,7 @@ R70_MANIFEST_SHA256 = '0874649a122c34dea2c6715b9667a332289b8ae6e1bd8bb0659bcf80c
 R71_MANIFEST_SHA256 = 'ae7ae607f6e483ab85f38eeba048603a152da7d73dae487099e441056d23453c'
 R72_MANIFEST_SHA256 = '96e933259ffe70c18888b777d2d63c7e7934608daff868c7deac5367c59da5c1'
 R73_MANIFEST_SHA256 = 'b94de28b0de627499077a4c47e16428cae79d79ab07913f10ccbf9a9998c8a05'
+R74_MANIFEST_SHA256 = 'cb6c6182bd70f207e8afe3aa45eda2d0d8596679d7a1efeab09c0fb653eb10ab'
 GUI_PROJECT = 'gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj'
 PAYLOAD_DIRS = ('src', 'vendor', 'assets', 'third_party', 'licenses', 'docs')
 PAYLOAD_SCRIPTS = ('pcr.py', 'validate-alpha-config.py', 'start-alpha-agent.py',
@@ -94,20 +96,30 @@ def download(record, cache):
         if digest(target, algorithm) != expected:
             raise ValueError('download_cache_hash_mismatch')
         return target
-    partial = target.with_suffix('.partial')
-    with urllib.request.urlopen(record['url'], timeout=60) as source, partial.open('xb') as output:
-        if not source.url.startswith('https://'):
-            raise ValueError('download_redirect_requires_https')
-        copied = 0
-        while chunk := source.read(1024 * 1024):
-            copied += len(chunk)
-            if copied > 1024 * 1024 * 1024:
-                raise ValueError('download_too_large')
-            output.write(chunk)
-    if digest(partial, algorithm) != expected:
-        raise ValueError('download_hash_mismatch')
-    partial.rename(target)
-    return target
+    partial = None
+    try:
+        with urllib.request.urlopen(record['url'], timeout=60) as source, tempfile.NamedTemporaryFile(
+                dir=cache, prefix=expected + '.', suffix='.partial', delete=False) as output:
+            partial = Path(output.name)
+            if not source.url.startswith('https://'):
+                raise ValueError('download_redirect_requires_https')
+            copied = 0
+            while chunk := source.read(1024 * 1024):
+                copied += len(chunk)
+                if copied > 1024 * 1024 * 1024:
+                    raise ValueError('download_too_large')
+                output.write(chunk)
+        if digest(partial, algorithm) != expected:
+            raise ValueError('download_hash_mismatch')
+        try:
+            partial.rename(target)
+        except FileExistsError:
+            if digest(target, algorithm) != expected:
+                raise ValueError('download_cache_hash_mismatch')
+        return target
+    finally:
+        if partial is not None:
+            partial.unlink(missing_ok=True)
 
 
 def extract(archive, target, *, wheel=False, allow_manifest=False):
@@ -363,7 +375,7 @@ def package_outputs(player, output, base=None, base_manifest=None):
             result = patcher.build_patch(base, player, patch)
         else:
             expected = {38: R38_MANIFEST_SHA256, 39: R39_MANIFEST_SHA256,
-                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256, 61: R61_MANIFEST_SHA256, 64: R64_MANIFEST_SHA256, 65: R65_MANIFEST_SHA256, 66: R66_MANIFEST_SHA256, 67: R67_MANIFEST_SHA256, 68: R68_MANIFEST_SHA256, 69: R69_MANIFEST_SHA256, 70: R70_MANIFEST_SHA256, 71: R71_MANIFEST_SHA256, 72: R72_MANIFEST_SHA256, 73: R73_MANIFEST_SHA256}.get(base_version['revision'])
+                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256, 61: R61_MANIFEST_SHA256, 64: R64_MANIFEST_SHA256, 65: R65_MANIFEST_SHA256, 66: R66_MANIFEST_SHA256, 67: R67_MANIFEST_SHA256, 68: R68_MANIFEST_SHA256, 69: R69_MANIFEST_SHA256, 70: R70_MANIFEST_SHA256, 71: R71_MANIFEST_SHA256, 72: R72_MANIFEST_SHA256, 73: R73_MANIFEST_SHA256, 74: R74_MANIFEST_SHA256}.get(base_version['revision'])
             if expected is None:
                 raise ValueError('unsupported_patch_baseline')
             result = patcher.build_patch_from_manifest(base_path, player, patch, expected)
@@ -544,8 +556,8 @@ def build(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--revision', type=int, default=74)
-    parser.add_argument('--version', default='v0.1.27')
+    parser.add_argument('--revision', type=int, default=75)
+    parser.add_argument('--version', default='v0.1.28')
     parser.add_argument('--dotnet', type=Path)
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--nuget-source', type=Path, help='optional official package cache/feed for offline builds')

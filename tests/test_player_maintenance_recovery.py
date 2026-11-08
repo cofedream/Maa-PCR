@@ -197,6 +197,10 @@ def test_recovery_bootstrap_uses_coherent_verified_old_runtime(online_case):
 @pytest.mark.parametrize('old_revision', [38, 39])
 def test_recovery_worker_restarts_only_gui_after_old_manifest_verifies(online_case, old_revision):
     case = online_case
+    config = case['player'] / 'pcr-alpha-v1/appsettings.json'
+    config.parent.mkdir()
+    saved = {'NoAutoStart': 'False', 'Keep': 'original settings'}
+    config.write_bytes(encode(saved))
     old_manifest = json.loads(case['old_bytes'])
     old_manifest['update']['revision'] = old_revision
     case['old_bytes'] = encode(old_manifest)
@@ -207,6 +211,7 @@ def test_recovery_worker_restarts_only_gui_after_old_manifest_verifies(online_ca
         popen=lambda args, **kwargs: launches.append(args) or SimpleNamespace(pid=123))
     assert result['status'] == 'rolled_back' and result['revision'] == old_revision
     assert result['gui_started'] is True and result['game_tasks_started'] is False
+    assert json.loads(config.read_bytes()) == {**saved, 'NoAutoStart': 'True'}
     assert launches == [[str(case['player'] / 'MFAAvalonia.exe')]]
     assert (case['player'] / maintenance.MANIFEST).read_bytes() == case['old_bytes']
 

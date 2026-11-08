@@ -9,7 +9,7 @@ from pcr_maa import clan_battle_batch as batch
 from pcr_maa import clan_battle_daily_native as daily
 from pcr_maa.game_day import BEIJING, current_game_day
 from pcr_maa.preset_execution import Journal
-from test_clan_battle_batch import daily_request, Port, ledgers, run
+from test_clan_battle_batch import daily_request, Port, ledgers, run, NOW
 from test_clan_battle_daily_native import executable, profile
 from test_clan_battle_native import calibration, calibration_v2, plan, receipt
 
@@ -47,8 +47,7 @@ def test_partial_personal_group_is_rejected(executable, plan, member):
         daily.require_daily_execution(executable, plan)
 
 
-def observer(monkeypatch, request, *, regular=None, remaining=3, cp=900, elapsed=0,
-             start=datetime(2026, 10, 25, 12, tzinfo=BEIJING)):
+def observer(monkeypatch, request, *, regular=None, remaining=3, cp=900, elapsed=0, start=NOW):
     port = daily.NativeClanDailyAdapter.__new__(daily.NativeClanDailyAdapter)
     port.plan = request['slot_plans']['1']
     port.calibration = {'daily': {'execution': {'formation_mode': {'carryover': 'synthetic-supported'}}}}
@@ -129,13 +128,13 @@ def test_different_bound_day_stops_before_navigation(daily_request, monkeypatch)
 
 
 def settled_first(tmp_path, request, *, cp=900):
-    port = Port(request, now=datetime(2026, 10, 25, 12, tzinfo=BEIJING))
+    port = Port(request, now=NOW)
     port.cp, port.remaining = cp, cp // 300
     def stop_after_settled(intent, result):
         raise RuntimeError('synthetic_stop_after_settlement')
     port.after_settlement = stop_after_settled
     result, _ = run(tmp_path, request, port, now=port.now())
-    assert result['regular_settled'] == 1 and result['error'] == 'synthetic_stop_after_settlement'
+    assert result['regular_settled'] == 1 and result['error'] == 'synthetic_stop_after_settlement', result.get('error')
     journal = Journal(ledgers(tmp_path)[0].parent)
     events = journal.events()
     binding = batch._binding(request, port.now())
@@ -154,7 +153,7 @@ def test_known_consumption_uses_actual_ready_members_and_accepts_later_cp_gain(d
 
 def test_native_history_boundary_copies_external_nested_state(daily_request, tmp_path):
     regular, _ = settled_first(tmp_path, daily_request)
-    binding = batch._binding(daily_request, datetime(2026, 10, 25, 12, tzinfo=BEIJING))
+    binding = batch._binding(daily_request, NOW)
     expected_binding, expected_regular = deepcopy(binding), deepcopy(regular)
     port = daily.NativeClanDailyAdapter.__new__(daily.NativeClanDailyAdapter)
     port.bind_history(binding, regular)

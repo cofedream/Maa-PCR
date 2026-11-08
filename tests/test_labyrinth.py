@@ -70,11 +70,20 @@ class StrategyTests(unittest.TestCase):
     def test_config_credentials_cannot_persist(self):
         value=dict(version=1,goals=[dict(guild_id=1,clears=1)])
         settings=Settings.parse(value)
-        self.assertFalse(settings.reroll);self.assertEqual(settings.max_attempts,100);self.assertEqual(settings.max_seconds,1800)
+        self.assertTrue(settings.reroll);self.assertEqual(settings.max_attempts,100);self.assertEqual(settings.max_seconds,1800)
         for change in ({'password':'secret'},{'reroll':'true'},{'refresh_shop':'true'},{'route':{'area3_bosses':'312505'}},{'version':True}):
             with self.assertRaises(ValueError): Settings.parse(dict(value,**change))
 
 class ConfigBudgetTests(unittest.TestCase):
+    def test_reroll_defaults_on_and_preserves_explicit_choice(self):
+        base=dict(version=1,goals=[dict(guild_id=1,clears=1)])
+        self.assertTrue(Settings((Goal(1,1),)).reroll)
+        for saved,expected in (({},True),({'reroll':False},False),({'reroll':True},True)):
+            with self.subTest(saved=saved):
+                settings=Settings.parse(dict(base,**saved))
+                self.assertIs(settings.reroll,expected)
+                self.assertIs(Settings.parse(settings.payload()).reroll,expected)
+
     def test_reroll_budget_accepts_confirmed_caps_and_smaller_values(self):
         base=dict(version=1,goals=[dict(guild_id=1,clears=1)])
         for attempts,seconds in ((100,1800),(1,1),(99,1799)):
@@ -82,7 +91,7 @@ class ConfigBudgetTests(unittest.TestCase):
                 settings=Settings.parse(dict(base,max_attempts=attempts,max_seconds=seconds))
                 self.assertEqual((settings.max_attempts,settings.max_seconds),(attempts,seconds))
                 self.assertEqual((settings.payload()['max_attempts'],settings.payload()['max_seconds']),(attempts,seconds))
-                self.assertFalse(settings.reroll)
+                self.assertTrue(settings.reroll)
     def test_reroll_budget_rejects_above_confirmed_caps(self):
         base=dict(version=1,goals=[dict(guild_id=1,clears=1)])
         for field,values in (('max_attempts',(101,800)),('max_seconds',(1801,21600))):
@@ -197,8 +206,11 @@ class BatchTests(unittest.TestCase):
         port=Port(defeated=True);result,_=self.run_batch(port)
         self.assertEqual(result['outcome'],'defeated');self.assertEqual(result['completed'],{1:0});self.assertEqual(port.enters,1)
     def test_reroll_disabled_never_retires(self):
-        port=Port(bad=True);result,_=self.run_batch(port)
+        port=Port(bad=True);result,_=self.run_batch(port,Settings((Goal(1,1),),reroll=False))
         self.assertEqual(result['outcome'],'opening_not_matching');self.assertEqual(port.retires,0)
+    def test_default_reroll_retries_unmatched_opening(self):
+        port=Port(bad=True);result,_=self.run_batch(port,Settings((Goal(1,1),),max_attempts=3))
+        self.assertEqual(result['outcome'],'reroll_attempt_limit');self.assertEqual(port.enters,3);self.assertEqual(port.retires,2)
     def test_attempt_limit_keeps_last_opening(self):
         port=Port(bad=True);result,_=self.run_batch(port,Settings((Goal(1,1),),reroll=True,max_attempts=3))
         self.assertEqual(result['outcome'],'reroll_attempt_limit');self.assertEqual(port.enters,3);self.assertEqual(port.retires,2)

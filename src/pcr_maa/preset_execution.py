@@ -399,10 +399,12 @@ def execute_one(port, preset, context, journal, *, execute=False, preview=False,
             pending = next((e for e in reversed(events) if e.get('state') == 'settled' and e.get('slot') == preset['slot']), None)
             if pending and pending.get('disposition') != checkpoints.DISPOSITION:
                 pending = None
-            if pending and callable(getattr(port, 'recover_result', None)):
+            if pending:
                 index = events.index(pending)
                 prefix = b''.join(journal.path.read_bytes().splitlines(keepends=True)[:index])
-                recovery = checkpoints.ResultCheckpoint(journal, kind='preset', original=events[index-1], prefix=prefix).read()
+                recovery_checkpoint = checkpoints.ResultCheckpoint(journal, kind='preset', original=events[index-1], prefix=prefix)
+            if pending and callable(getattr(port, 'recover_result', None)):
+                recovery = recovery_checkpoint.read()
                 report['result_recovery'] = call('recover_result', recovery)
                 if not report['result_recovery'].get('recovery_verified'):
                     report.update(outcome='result_verified_followup_incomplete', recovery_available=True, retry_permitted=False)
@@ -412,7 +414,7 @@ def execute_one(port, preset, context, journal, *, execute=False, preview=False,
             if not fresh():
                 report['outcome'] = 'need_new_observation'
                 return report
-            if pending and pending['original'].get('count_fit'):
+            if pending and pending['original'].get('count_fit') and not recovery_checkpoint.count_restored():
                 old_fit = pending['original']['count_fit']
                 if old_fit['original'] != old_fit['target']:
                     if ([list(key(r)) for r in reading.get('rows', [])] != pending['identities']
@@ -427,6 +429,7 @@ def execute_one(port, preset, context, journal, *, execute=False, preview=False,
                     report['count_fit'] = fit
                     if not restore():
                         return report
+                    recovery_checkpoint.save_count_restored(fit)
                     report['recovered_count_fit'] = deepcopy(fit)
             status, goal = assess(reading, preset, context)
             report['goal'] = goal

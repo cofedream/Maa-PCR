@@ -23,6 +23,7 @@ internal static class PcrLabyrinthOwner
     private sealed class Run(TaskQueueViewModel vm) {
         internal readonly TaskQueueViewModel ViewModel = vm;
         internal readonly CancellationTokenSource Cancel = new();
+        internal readonly TaskCompletionSource Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal PcrWindowsChild? Child;
     }
     private static Run? current;
@@ -39,6 +40,13 @@ internal static class PcrLabyrinthOwner
             if (current?.ViewModel != vm) return;
             current.Cancel.Cancel();
             vm.LabyrinthSettings.Progress = "正在等待当前操作记账，然后停止执行组件…";
+        }
+    }
+    internal static Task StopForExitAsync() {
+        lock (PcrProfileRunGate.StartGate) {
+            if (current is not { } run) return Task.CompletedTask;
+            Stop(run.ViewModel);
+            return run.Completion.Task;
         }
     }
     internal static async Task TogglePauseAsync(TaskQueueViewModel vm) {
@@ -326,6 +334,7 @@ internal static class PcrLabyrinthOwner
             vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
             Trace(vm,vm.LabyrinthSettings.Status);
         } finally {
+            try {
             PcrCaptchaHost.Hide();
             vm.PcrCleanupPending=true;
             Trace(vm,"任务已结束，正在释放执行资源…");
@@ -352,6 +361,7 @@ internal static class PcrLabyrinthOwner
             vm.Processor.AddLog(vm.LabyrinthSettings.Status,(IBrush?)null);
             vm.PcrCleanupPending=false;
             vm.FinishPlayerLog(released ? cancelled ? "stopped" : terminalOutcome : "cleanup_unconfirmed");
+            } finally { run.Completion.TrySetResult(); }
         }
         if (released && finished && !cancelled)
             vm.Processor.HandleAfterTaskOperation();

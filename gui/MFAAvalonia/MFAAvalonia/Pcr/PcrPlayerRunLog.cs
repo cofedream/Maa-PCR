@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -84,6 +85,39 @@ internal sealed class PcrPlayerRunLog
             Tail(path, native ? 512 * 1024 : 2 * 1024 * 1024);
             Trim();
         }
+    }
+    internal void CaptureConnectionNativeLog(string root, DateTime startedAt, DateTime endedAt)
+    {
+        var captured = 0;
+        try
+        {
+            var prefix = new Regex(@"^\[(?<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\]\[[A-Z]+\]\[Px" + Environment.ProcessId + @"\]",
+                RegexOptions.None, TimeSpan.FromSeconds(1));
+            var directory = Path.Combine(root, "debug");
+            // Only bounded native tails from this process and this connection window are shared.
+            foreach (var path in PcrLogFiles.OrdinaryFiles(root)
+                         .Where(p => string.Equals(Path.GetDirectoryName(p), directory, StringComparison.OrdinalIgnoreCase))
+                         .OrderByDescending(File.GetLastWriteTimeUtc).Take(4).OrderBy(File.GetLastWriteTimeUtc))
+            {
+                if (!PcrLogFiles.IsRegularPath(Path.GetPathRoot(path)!, path)) continue;
+                using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                var bytes = new byte[(int)Math.Min(input.Length, 512 * 1024)];
+                input.Seek(-bytes.Length, SeekOrigin.End);
+                input.ReadExactly(bytes);
+                foreach (var line in Encoding.UTF8.GetString(bytes).Split('\n'))
+                {
+                    var match = prefix.Match(line);
+                    if (!match.Success || !DateTime.TryParseExact(match.Groups["time"].Value, "yyyy-MM-dd HH:mm:ss.fff",
+                            CultureInfo.InvariantCulture, DateTimeStyles.None, out var time)
+                        || time < startedAt || time > endedAt) continue;
+                    Append(line.TrimEnd('\r'), native: true);
+                    captured++;
+                }
+            }
+        }
+        catch { Append("部分底层连接日志无法读取；已保留连接目标和界面报错。"); }
+        Append(captured == 0 ? "未取得本次连接的底层日志；请附上报错截图。"
+            : "已附上本进程在连接等待期间的底层日志片段（可能因轮换或大小限制截断）。");
     }
     private static void Tail(string path, int limit)
     {

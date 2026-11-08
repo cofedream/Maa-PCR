@@ -75,7 +75,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     public string[] RouteModes { get; } = { "价值路线 v2", "固定模板路线" };
     public string[] ThirdChoices { get; } = { "必须遗物", "必须事件", "两者都行" };
     [ObservableProperty] private string difficulty = "1";
-    [ObservableProperty] private bool reroll;
+    [ObservableProperty] private bool reroll = true;
     [ObservableProperty] private bool keepOldRun;
     [ObservableProperty] private string maxAttempts = "100";
     [ObservableProperty] private string maxMinutes = "30";
@@ -236,7 +236,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         OnPropertyChanged(nameof(AccountSummary));
     }
     private void LoadSettings(JObject d) {
-        Difficulty=d["difficulty"]?.ToString() ?? "1"; Reroll=(bool?)d["reroll"] ?? false;
+        Difficulty=d["difficulty"]?.ToString() ?? "1"; Reroll=(bool?)d["reroll"] ?? true;
         KeepOldRun=(bool?)d["keep_old_run"] ?? false;
         MaxAttempts=d["max_attempts"]?.ToString() ?? "100";
         MaxMinutes=(((int?)d["max_seconds"] ?? 1800)/60).ToString(CultureInfo.InvariantCulture);

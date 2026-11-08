@@ -78,11 +78,11 @@ public sealed class PcrLiveLogView : UserControl
         if (DataContext is not TaskQueueViewModel vm || !vm.CanExportPlayerLog) return;
         PcrPlayerRunLog? log;
         try { log = vm.PlayerLog; } catch { log = null; }
-        if (log == null) { vm.AddPcrLiveLog("没有本功能可导出的运行记录，请先运行一次任务。"); return; }
+        if (log == null) { vm.AddPcrLiveLog("没有本功能可导出的记录，请先连接设备或运行任务。"); return; }
         var reason = vm.PcrStartError.Length > 0 ? vm.PcrStartError : vm.PcrRunSummary;
         var status = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var panel = new StackPanel { Spacing = 10, Margin = new Thickness(18) };
-        panel.Children.Add(new TextBlock { Text = $"{log.Title} · 运行 {log.RunId}\n仅导出本功能、本次运行，ZIP 上限 16 MiB。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = $"{log.Title} · 记录 {log.RunId}\n仅导出本功能最近一次连接或任务的记录，ZIP 上限 16 MiB。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
         var channels = new WrapPanel();
         panel.Children.Add(channels);
         panel.Children.Add(new TextBlock { Text = "先保存日志包，再把 ZIP 拖到 GitHub 反馈页或添加到邮件。截图可能含昵称或玩家 ID，请检查勾选的图片。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });

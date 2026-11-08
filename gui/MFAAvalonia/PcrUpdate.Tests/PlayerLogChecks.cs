@@ -41,6 +41,7 @@ internal static class PlayerLogChecks
     internal static void Run(string directory, Func<string, TaskQueueViewModel> owner)
     {
         var root = Path.Combine(directory, "player-logs"); Directory.CreateDirectory(root);
+        CheckConnectionNativeLog(root);
         var log = Call(null,"Begin",root,"daily")!;
         var path = (string)Property(log,"DirectoryPath")!;
         Call(log,"Append","测试 password=SECRET token=HIDDEN UID:123456789",false);
@@ -112,6 +113,43 @@ internal static class PlayerLogChecks
         CheckLifecycle(owner);
         CheckRunHandoff(owner);
         Console.WriteLine($"PCR player log checks passed: {count}; cache/ZIP <=16MiB, isolation, redaction, stale output, three rendered profiles, awaitable cleanup; game inputs=0; messages sent=0");
+    }
+    private static void CheckConnectionNativeLog(string root)
+    {
+        var nativeRoot = Path.Combine(root, "connection-native");
+        Directory.CreateDirectory(Path.Combine(nativeRoot, "debug"));
+        var time = DateTime.Now.AddSeconds(-1);
+        string Line(DateTime when, int pid, string text) => $"[{when:yyyy-MM-dd HH:mm:ss.fff}][ERR][Px{pid}][fixture] {text}\n";
+        var pid = Environment.ProcessId;
+        File.WriteAllText(Path.Combine(nativeRoot, "debug", "maafw.log"),
+            new string('x', 600 * 1024) + "\n" + Line(time.AddSeconds(-10), pid, "OLD_CONNECTION")
+            + Line(time, pid + 1, "OTHER_PROCESS") + Line(time, pid, "CURRENT_FAILURE password=SECRET token=HIDDEN UID:123456789")
+            + Line(time.AddMinutes(1), pid, "NEXT_CONNECTION"));
+        File.WriteAllText(Path.Combine(nativeRoot, "debug", "maa.bak.2026.11.07-01.02.03.001.log"),
+            Line(time, pid, "ROTATED_CONNECTION_LINE"));
+        File.SetLastWriteTimeUtc(Path.Combine(nativeRoot, "debug", "maa.bak.2026.11.07-01.02.03.001.log"), DateTime.UtcNow.AddMinutes(-1));
+        File.WriteAllText(Path.Combine(nativeRoot, "debug", "private.log"), Line(time, pid, "UNLISTED_LOG"));
+        var log = Call(null, "Begin", nativeRoot, "daily")!;
+        Call(log, "CaptureConnectionNativeLog", nativeRoot, time.AddSeconds(-1), time.AddSeconds(1));
+        Call(log, "Finish", "failed");
+        var bytes = (byte[])Call(log, "Export", (object)Array.Empty<string>())!;
+        using (var zip = new ZipArchive(new MemoryStream(bytes)))
+        {
+            using var reader = new StreamReader(zip.GetEntry("native.log")!.Open());
+            var text = reader.ReadToEnd();
+            Check(text.Contains("CURRENT_FAILURE") && text.Contains("ROTATED_CONNECTION_LINE"), "connection_native_tail_and_rotation");
+            Check(text.IndexOf("ROTATED_CONNECTION_LINE", StringComparison.Ordinal) < text.IndexOf("CURRENT_FAILURE", StringComparison.Ordinal),
+                "connection_native_keeps_newest_tail_last");
+            Check(!text.Contains("OLD_CONNECTION") && !text.Contains("NEXT_CONNECTION") && !text.Contains("OTHER_PROCESS")
+                && !text.Contains("UNLISTED_LOG"), "connection_native_window_process_and_allowlist");
+            Check(!text.Contains("SECRET") && !text.Contains("HIDDEN") && !text.Contains("123456789"), "connection_native_redaction");
+            Check(zip.GetEntry("native.log")!.Length <= 512 * 1024 && bytes.Length <= 16 * 1024 * 1024, "connection_native_bounded_export");
+        }
+        var empty = Call(null, "Begin", nativeRoot, "clan")!;
+        Call(empty, "CaptureConnectionNativeLog", Path.Combine(nativeRoot, "missing"), time, DateTime.Now);
+        Check(File.ReadAllText(Path.Combine((string)Property(empty, "DirectoryPath")!, "events.log")).Contains("未取得本次连接的底层日志"),
+            "connection_without_native_log_explains_missing_evidence");
+        Call(empty, "Finish", "failed");
     }
     private static void CheckFeedback(PcrLiveLogView view,TaskQueueViewModel vm,string root,string id,bool fromError)
     {

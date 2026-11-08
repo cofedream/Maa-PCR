@@ -1,5 +1,7 @@
 """Synthetic release trust-boundary checks; never run GUI or game tasks."""
 import importlib.util
+import hashlib
+import io
 import json
 from pathlib import Path
 import shutil
@@ -257,6 +259,7 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
     (71, 72, 'v0.1.24', 'v0.1.25'),
     (72, 73, 'v0.1.25', 'v0.1.26'),
     (73, 74, 'v0.1.26', 'v0.1.27'),
+    (74, 75, 'v0.1.27', 'v0.1.28'),
 ])
 def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revision, target_revision, base_version, target_version):
     base, target, _, _, _ = case
@@ -285,7 +288,7 @@ def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revisio
 
 
 @pytest.mark.parametrize('provide_wrong_baseline', [False, True])
-@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52), (55, 'v0.1.10', 53), (56, 'v0.1.11', 55), (57, 'v0.1.12', 56), (58, 'v0.1.13', 57), (59, 'v0.1.14', 58), (60, 'v0.1.15', 59), (61, 'v0.1.16', 60), (64, 'v0.1.17', 61), (65, 'v0.1.18', 64), (66, 'v0.1.19', 65), (67, 'v0.1.20', 66), (68, 'v0.1.21', 67), (69, 'v0.1.22', 68), (70, 'v0.1.23', 69), (71, 'v0.1.24', 70), (72, 'v0.1.25', 71), (73, 'v0.1.26', 72), (74, 'v0.1.27', 73)])
+@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52), (55, 'v0.1.10', 53), (56, 'v0.1.11', 55), (57, 'v0.1.12', 56), (58, 'v0.1.13', 57), (59, 'v0.1.14', 58), (60, 'v0.1.15', 59), (61, 'v0.1.16', 60), (64, 'v0.1.17', 61), (65, 'v0.1.18', 64), (66, 'v0.1.19', 65), (67, 'v0.1.20', 66), (68, 'v0.1.21', 67), (69, 'v0.1.22', 68), (70, 'v0.1.23', 69), (71, 'v0.1.24', 70), (72, 'v0.1.25', 71), (73, 'v0.1.26', 72), (74, 'v0.1.27', 73), (75, 'v0.1.28', 74)])
 def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, version, base_revision, provide_wrong_baseline):
     base, target, _, _, _ = case
     metadata = builder.maintenance._read_json(target / builder.maintenance.MANIFEST)
@@ -310,6 +313,62 @@ def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, v
 def test_download_metadata_hash_shape_is_checked_before_network(tmp_path):
     with pytest.raises(ValueError, match='invalid_download_digest'):
         builder.download({'url': 'https://example.invalid/runtime.zip', 'sha256': 'invented'}, tmp_path)
+
+
+@pytest.mark.parametrize('failure', ['read_interrupted', 'wrong_hash'])
+def test_failed_dependency_download_can_retry_without_clearing_cache(tmp_path, monkeypatch, failure):
+    payload = b'verified dependency payload'
+    record = {'url': 'https://example.invalid/runtime.zip',
+              'sha256': hashlib.sha256(payload).hexdigest()}
+
+    class Response(io.BytesIO):
+        url = record['url']
+
+        def read(self, size=-1):
+            if failure == 'read_interrupted' and self.tell():
+                raise OSError('synthetic interrupted response')
+            return super().read(size)
+
+    monkeypatch.setattr(builder.urllib.request, 'urlopen', lambda *args, **kwargs: Response(b'incomplete'))
+    expected_error = OSError if failure == 'read_interrupted' else ValueError
+    with pytest.raises(expected_error, match='synthetic interrupted response|download_hash_mismatch'):
+        builder.download(record, tmp_path)
+    assert list(tmp_path.iterdir()) == []
+
+    response = io.BytesIO(payload)
+    response.url = record['url']
+    monkeypatch.setattr(builder.urllib.request, 'urlopen', lambda *args, **kwargs: response)
+    target = builder.download(record, tmp_path)
+    assert target.read_bytes() == payload
+    assert list(tmp_path.iterdir()) == [target]
+
+
+def test_dependency_download_preserves_unrelated_partial_and_concurrent_valid_cache(tmp_path, monkeypatch):
+    payload = b'verified dependency payload'
+    record = {'url': 'https://example.invalid/runtime.zip',
+              'sha256': hashlib.sha256(payload).hexdigest()}
+    legacy_partial = tmp_path / (record['sha256'] + '.partial')
+    legacy_partial.write_bytes(b'prior interrupted download')
+    calls = []
+
+    class Response(io.BytesIO):
+        url = record['url']
+
+        def read(self, size=-1):
+            if len(calls) == 1:
+                calls.append(builder.download(record, tmp_path))
+            return super().read(size)
+
+    def open_response(*args, **kwargs):
+        calls.append('opened')
+        return Response(payload)
+
+    monkeypatch.setattr(builder.urllib.request, 'urlopen', open_response)
+    target = builder.download(record, tmp_path)
+    assert calls == ['opened', 'opened', target]
+    assert target.read_bytes() == payload
+    assert legacy_partial.read_bytes() == b'prior interrupted download'
+    assert set(tmp_path.iterdir()) == {legacy_partial, target}
 
 
 def test_offline_wheelhouse_needs_every_exact_hash(tmp_path):
@@ -356,11 +415,11 @@ def test_build_defaults_to_current_release_identity_without_running_build(tmp_pa
     captured = []
     monkeypatch.setattr(builder, 'build', lambda args: captured.append(args) or {'status': 'not_executed'})
     assert builder.main(['--output', str(tmp_path / 'unused-output')]) == 0
-    assert captured[0].revision == 74 and captured[0].version == 'v0.1.27'
+    assert captured[0].revision == 75 and captured[0].version == 'v0.1.28'
     assert not (tmp_path / 'unused-output').exists()
 
 
-@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8'), (53, 'v0.1.9'), (55, 'v0.1.10'), (56, 'v0.1.11'), (57, 'v0.1.12'), (58, 'v0.1.13'), (59, 'v0.1.14'), (60, 'v0.1.15'), (61, 'v0.1.16'), (64, 'v0.1.17'), (65, 'v0.1.18'), (66, 'v0.1.19'), (67, 'v0.1.20'), (68, 'v0.1.21'), (69, 'v0.1.22'), (70, 'v0.1.23'), (71, 'v0.1.24'), (72, 'v0.1.25'), (73, 'v0.1.26')])
+@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8'), (53, 'v0.1.9'), (55, 'v0.1.10'), (56, 'v0.1.11'), (57, 'v0.1.12'), (58, 'v0.1.13'), (59, 'v0.1.14'), (60, 'v0.1.15'), (61, 'v0.1.16'), (64, 'v0.1.17'), (65, 'v0.1.18'), (66, 'v0.1.19'), (67, 'v0.1.20'), (68, 'v0.1.21'), (69, 'v0.1.22'), (70, 'v0.1.23'), (71, 'v0.1.24'), (72, 'v0.1.25'), (73, 'v0.1.26'), (74, 'v0.1.27')])
 def test_public_manifest_is_exact_pinned_release_baseline(revision, version):
     path = ROOT / f'delivery/baselines/r{revision}-package-manifest.json'
     assert builder.digest(path) == getattr(builder, f'R{revision}_MANIFEST_SHA256')

@@ -141,10 +141,26 @@ internal static class StartupActionsChecks
         try { Complete(Start(vm, _ => throw new Exception("launch during update"))); }
         finally { Set(null, "UpdatePending", false, Gate); }
         Require(ownerStarts == selected, "update_blocks_startup");
-        GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.TrueString);
-        Complete(Start(vm, _ => throw new Exception("suppressed launch")));
-        Require(ownerStarts == selected && GlobalConfiguration.GetValue(ConfigurationKeys.NoAutoStart, "") == bool.FalseString,
-            "restart_suppression_is_consumed_once");
+        foreach (var action in new[] { "None", "StartupSoftware", "StartupSoftwareAndScript", "StartupScriptOnly" })
+        {
+            config.SetValue(ConfigurationKeys.BeforeTask, action);
+            var savedProfile = File.ReadAllBytes(config.GetConfigFilePath());
+            GlobalConfiguration.SetValue("UpdateRestartKeep", "unchanged");
+            GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.TrueString);
+            Complete(Start(vm, _ => throw new Exception("suppressed launch")));
+            Require(ownerStarts == selected && GlobalConfiguration.GetValue(ConfigurationKeys.NoAutoStart, "") == bool.FalseString,
+                "restart_suppression_is_consumed_once:" + action);
+            Require(File.ReadAllBytes(config.GetConfigFilePath()).SequenceEqual(savedProfile)
+                && GlobalConfiguration.GetValue("UpdateRestartKeep", "") == "unchanged", "restart_keeps_saved_actions:" + action);
+            var launches = 0;
+            Complete(Start(vm, _ => { launches++; return Task.CompletedTask; }));
+            Require(launches == (action is "StartupSoftware" or "StartupSoftwareAndScript" ? 1 : 0)
+                && ownerStarts - selected == (action is "StartupSoftwareAndScript" or "StartupScriptOnly" ? 1 : 0),
+                "next_normal_start_keeps_saved_action:" + action);
+            selected = ownerStarts;
+        }
+        CheckLegacyUpdateRestart(vm, root);
+        selected = ownerStarts;
         config.SetValue(ConfigurationKeys.BeforeTask, "invalid-action");
         Complete(Start(vm));
         Require(vm.PcrStartError.Contains("启动后操作无效"), "invalid_saved_action_is_rejected");
@@ -191,7 +207,90 @@ internal static class StartupActionsChecks
         Require(PcrAlphaOwner.ControllerCreations == 0 && PcrAlphaOwner.AgentCreations == 0 && PcrAlphaOwner.Grants == 0,
             "no_real_controller_agent_or_grant");
         PlayerLogChecks.Run(directory, id => Owner(manager, id));
+        CheckUnreadableGlobalRestart(Owner(manager, "pcr-alpha-v1"));
         Console.WriteLine($"PCR startup/completion actions checks passed: {checks}; two fresh processes, real harmless launch marker; game inputs=0; OS shutdowns=0");
+    }
+
+    private static void CheckUnreadableGlobalRestart(TaskQueueViewModel vm)
+    {
+        vm.Processor.InstanceConfiguration.SetValue(ConfigurationKeys.BeforeTask, "StartupScriptOnly");
+        var before = ownerStarts;
+        Complete(Start(vm));
+        Require(ownerStarts == ++before, "consumed_receipt_allows_start_before_global_read_failure");
+        GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.TrueString);
+        var saved = File.ReadAllBytes(GlobalConfiguration.ConfigPath);
+        using (var locked = new FileStream(GlobalConfiguration.ConfigPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            Complete(Start(vm));
+        Require(ownerStarts == before && GlobalConfiguration.HasFileAccessError,
+            "unreadable_noautostart_never_falls_back_to_autostart");
+        Require(File.ReadAllBytes(GlobalConfiguration.ConfigPath).SequenceEqual(saved), "unreadable_noautostart_keeps_global_settings");
+    }
+
+    private static void CheckLegacyUpdateRestart(TaskQueueViewModel vm, string root)
+    {
+        var config = vm.Processor.InstanceConfiguration;
+        config.SetValue(ConfigurationKeys.BeforeTask, "StartupScriptOnly");
+        var savedProfile = File.ReadAllBytes(config.GetConfigFilePath());
+        var manifest = Path.Combine(root, "package-manifest.json");
+        File.WriteAllText(manifest, "{\"update\":{\"revision\":74,\"version\":\"synthetic-fixed\"}}");
+        var digest = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(manifest))).ToLowerInvariant();
+        var maintenance = Path.Combine(root, ".runtime", "player-maintenance");
+        var work = Path.Combine(maintenance, "update-" + new string('a', 32));
+        var receipt = Path.Combine(work, "verification.json");
+        var consumed = Path.Combine(maintenance, "startup-consumed.json");
+        var before = ownerStarts;
+        Complete(Start(vm));
+        Require(ownerStarts == ++before, "new_install_without_receipt_keeps_autostart");
+        Directory.CreateDirectory(work);
+        var value = new JObject
+        {
+            ["status"] = "rolled_back", ["version"] = "synthetic-fixed", ["revision"] = 74,
+            ["manifest_sha256"] = digest, ["changed_payload_count"] = 1, ["removed_program_files"] = 0,
+            ["archive_kind"] = "delta", ["base_revision"] = 73, ["backup_path"] = Path.Combine(work, "before"),
+            ["private_state_preserved"] = true, ["gui_started"] = false
+        };
+        File.WriteAllText(receipt, value.ToString());
+        Complete(Start(vm));
+        Require(ownerStarts == ++before, "unsuccessful_receipt_does_not_suppress");
+        value["status"] = "updated";
+        value["manifest_sha256"] = new string('b', 64);
+        File.WriteAllText(receipt, value.ToString());
+        Complete(Start(vm));
+        Require(ownerStarts == ++before, "other_manifest_receipt_does_not_suppress");
+        value["manifest_sha256"] = digest;
+        File.WriteAllText(receipt, value.ToString());
+        Complete(Start(vm));
+        Require(ownerStarts == before && File.Exists(consumed), "r73_worker_receipt_suppresses_first_fixed_gui_start");
+        Complete(Start(vm));
+        Require(ownerStarts == ++before, "consumed_receipt_allows_next_normal_start");
+        var repeatedWork = Path.Combine(maintenance, "update-" + new string('d', 32));
+        Directory.CreateDirectory(repeatedWork);
+        File.WriteAllText(Path.Combine(repeatedWork, "verification.json"), value.ToString());
+        Complete(Start(vm));
+        Require(ownerStarts == before, "same_manifest_new_update_receipt_suppresses_again");
+        Complete(Start(vm));
+        Require(ownerStarts == ++before, "all_matching_receipts_consumed_together");
+        File.Delete(consumed);
+        GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.TrueString);
+        Complete(Start(vm));
+        Require(ownerStarts == before && GlobalConfiguration.GetValue(ConfigurationKeys.NoAutoStart, "") == bool.FalseString,
+            "receipt_and_noautostart_consumed_together");
+        Complete(Start(vm));
+        Require(ownerStarts == ++before, "combined_markers_do_not_suppress_twice");
+        File.Delete(consumed);
+        using (var locked = new FileStream(receipt, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            Complete(Start(vm));
+        Require(ownerStarts == before && !File.Exists(consumed), "unreadable_update_receipt_never_starts_tasks");
+        File.WriteAllText(consumed, new JObject { ["manifest_sha256"] = new string('c', 64) }.ToString());
+        using (var locked = new FileStream(consumed, FileMode.Open, FileAccess.Read, FileShare.Read))
+            Complete(Start(vm));
+        Require(ownerStarts == before, "failed_consumption_write_never_starts_tasks");
+        File.Delete(consumed);
+        Complete(Start(vm));
+        Require(ownerStarts == before && File.Exists(consumed), "repaired_receipt_consumption_remains_one_time");
+        Complete(Start(vm));
+        Require(ownerStarts == ++before && File.ReadAllBytes(config.GetConfigFilePath()).SequenceEqual(savedProfile),
+            "legacy_update_suppression_keeps_profile_and_recovers_autostart");
     }
 
     private static void CheckShortcut(TaskQueueViewModel vm, string root)

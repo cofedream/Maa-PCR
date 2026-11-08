@@ -1461,7 +1461,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     internal TimeSpan PcrConnectTimeout { get; set; } = TimeSpan.FromSeconds(30);
     private bool _applyingPcrDevices;
     private bool _restoringPcrAdbSelection;
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanEditPcrTarget))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanEditPcrTarget), nameof(CanExportPlayerLog))]
     private bool _pcrTargetBusy;
     partial void OnPcrTargetBusyChanged(bool value) => PcrProfileRunGate.Notify();
     [ObservableProperty] private bool _pcrSearching;
@@ -1594,7 +1594,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public bool CanEditPcrTarget => !PcrCleanupPending && !PcrProfileRunGate.UpdatePending && !PcrProfileRunGate.OtherProfileBusy(Processor.InstanceId) && !IsRunning && !Processor.IsTaskRunActive
+    public bool CanEditPcrTarget => !PcrCleanupPending && !PcrProfileRunGate.StartBlocked && !PcrProfileRunGate.OtherProfileBusy(Processor.InstanceId) && !IsRunning && !Processor.IsTaskRunActive
         && !Processor.IsConnecting && !PcrTargetBusy && !PcrConnectionPending && _isDisposed == 0
         && !(Processor.MaaTasker?.IsRunning ?? false)
         && !(Processor.MaaTasker?.IsStopping ?? false)
@@ -1787,6 +1787,8 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     {
         PcrPreviewConnection connection;
         AdbDeviceInfo device;
+        PcrPlayerRunLog? log;
+        DateTime startedAt;
         lock (PcrProfileRunGate.StartGate)
         {
             if (PcrFormalPreflight.SettingsOnly || !CanEditPcrTarget) return;
@@ -1796,8 +1798,16 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                 return;
             }
             device = selected;
-            _pcrConnectSession = connection = new PcrPreviewConnection(Processor, device, PcrPreviewControllerFactory);
             PcrTargetBusy = true;
+            Interlocked.Increment(ref _pcrFeedbackRun);
+            PcrRunSummary = "";
+            PcrStartError = "";
+            BeginPlayerLog("正在连接设备并获取画面，尚未开始任务。");
+            AddPcrLiveLog($"设备：{device.Name}；ADB 地址：{device.AdbSerial}");
+            AddPcrLiveLog($"ADB 程序：{device.AdbPath}");
+            log = playerLog;
+            startedAt = DateTime.Now.AddMilliseconds(-1);
+            _pcrConnectSession = connection = new PcrPreviewConnection(Processor, device, PcrPreviewControllerFactory);
             PcrProfileRunGate.Notify();
         }
         SetConnected(false);
@@ -1850,12 +1860,27 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         }
         finally
         {
+            var endedAt = DateTime.Now;
+            var outcome = IsConnected ? "complete" : "failed";
+            if (_isDisposed == 0)
+            {
+                if (IsConnected) { PcrRunSummary = PcrDiscoveryStatus; AddPcrLiveLog(PcrDiscoveryStatus); }
+                else PcrStartError = PcrDiscoveryStatus;
+            }
+            try
+            {
+                await Task.Run(() => {
+                    log?.CaptureConnectionNativeLog(AppPaths.DataRoot, startedAt, endedAt);
+                    log?.Finish(outcome);
+                });
+            }
+            catch { /* Diagnostics must not prevent native cleanup. */ }
             if (_isDisposed == 0) PcrTargetBusy = false;
-            _ = ObservePcrConnectionCleanup(connection, recoveredStatus);
+            _ = ObservePcrConnectionCleanup(connection, recoveredStatus, log);
         }
     }
 
-    private async Task ObservePcrConnectionCleanup(PcrPreviewConnection connection, string? recoveredStatus)
+    private async Task ObservePcrConnectionCleanup(PcrPreviewConnection connection, string? recoveredStatus, PcrPlayerRunLog? log)
     {
         try
         {
@@ -1865,8 +1890,12 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                 lock (PcrProfileRunGate.StartGate)
                 {
                     if (!ReferenceEquals(_pcrConnectSession, connection)) return;
+                    if (_isDisposed == 0 && recoveredStatus != null)
+                    {
+                        PcrDiscoveryStatus = recoveredStatus;
+                        PcrStartError = recoveredStatus;
+                    }
                     _pcrConnectSession = null;
-                    if (_isDisposed == 0 && recoveredStatus != null) PcrDiscoveryStatus = recoveredStatus;
                     PcrProfileRunGate.Notify();
                 }
             });
@@ -1874,10 +1903,11 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         catch (Exception ex)
         {
             LoggerHelper.Warning("PCR 预览连接清理失败：" + ex.Message);
+            try { log?.Append("连接清理失败：" + ex.Message); } catch { }
             await DispatcherHelper.RunOnMainThreadAsync(() =>
             {
                 if (_isDisposed == 0 && ReferenceEquals(_pcrConnectSession, connection))
-                    PcrDiscoveryStatus = "连接清理失败；已保留隔离，请关闭并重新启动程序后连接设备。";
+                    PcrStartError = PcrDiscoveryStatus = "连接清理失败；已保留隔离，请关闭并重新启动程序后连接设备。";
             });
         }
     }

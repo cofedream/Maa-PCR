@@ -134,8 +134,8 @@ class StopSignal:
             if self.diagnostics is not None:
                 try:self.diagnostics.capture_state('paused')
                 except Exception:pass
-            self.emit(dict(kind='control',state='paused'))
             try:
+                self.emit(dict(kind='control',state='paused'))
                 while self.pause_requested and not self.event.is_set():
                     self.condition.wait(.1)
             finally:

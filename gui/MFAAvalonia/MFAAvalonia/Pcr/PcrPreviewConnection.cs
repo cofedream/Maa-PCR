@@ -45,10 +45,10 @@ internal sealed class PcrPreviewConnection
             resource = new MaaResource();
             preview = new MaaTasker(controller, resource, DisposeOptions.None, false);
             if (!controller.SetOption_ScreenshotUseRawSize(true))
-                throw new InvalidOperationException("Maa 设备连接失败。");
+                throw new InvalidOperationException("Maa 截图选项初始化失败。");
             cancellation.Token.ThrowIfCancellationRequested();
             if (controller.LinkStart().Wait() != MaaJobStatus.Succeeded || !controller.IsConnected)
-                throw new InvalidOperationException("Maa 设备连接失败。");
+                throw new InvalidOperationException("Maa 设备连接失败（底层连接未成功）。");
             cancellation.Token.ThrowIfCancellationRequested();
             firstFrame = processor.GetImage(controller);
             if (firstFrame == null || !controller.IsConnected
