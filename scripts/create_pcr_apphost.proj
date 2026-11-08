@@ -4,6 +4,6 @@
     <CreateAppHost AppHostSourcePath="$(HostTemplate)" AppHostDestinationPath="$(EntryOutput)"
       AppBinaryName="MFAAvalonia.dll" IntermediateAssembly="$(GuiAssembly)"
       WindowsGraphicalUserInterface="true" EnableMacOSCodeSign="false"
-      DotNetSearchLocations="AppRelative" AppRelativeDotNet="runtime/dotnet" />
+      DotNetSearchLocations="AppRelative;Global" AppRelativeDotNet="runtime/dotnet" />
   </Target>
 </Project>

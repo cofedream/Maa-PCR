@@ -9,6 +9,7 @@ from .batch import BatchStopped
 from .timing import Timings
 
 JOINED_CONFIRMATION_TIMEOUT_SECONDS=12
+INVITATION_TRANSITION_TIMEOUT_SECONDS=30
 
 
 
@@ -43,12 +44,12 @@ class MaaOpening:
         return receipt
     def _wait_invitation_joined(self,batch,enter_id,invited):
         from .scene import MaaSceneRuntime
-        # Transition and identity reads share one budget, capped by the Owner.
-        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+JOINED_CONFIRMATION_TIMEOUT_SECONDS)
+        # Three entrances plus fresh click guards share a budget capped by the caller.
+        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+INVITATION_TRANSITION_TIMEOUT_SECONDS)
         token=native.RUN_DEADLINE.set(deadline)
         try:
             MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(
-                batch,{'joined','role_reward','free_role_reward','map'},timeout=JOINED_CONFIRMATION_TIMEOUT_SECONDS,
+                batch,{'joined','role_reward','free_role_reward','map'},timeout=INVITATION_TRANSITION_TIMEOUT_SECONDS,
                 reason='opening_readback_unknown',acquisition_fields=dict(
                     enter_id=enter_id,invitation_operation_id=invited['operation_id']))
             # A MAP background supplies no identities; the shared fullpack joined

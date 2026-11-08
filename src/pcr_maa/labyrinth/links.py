@@ -48,7 +48,7 @@ class LinkOffer:
 def link_pipeline():
     nodes = {
         'LabyLinkTitle':_ocr('^获得道具的机会[！!]$',TITLE_ROI),
-        'LabyLinkSubtitle':_ocr('^请选择要获得的连结印记[。.]$',SUBTITLE_ROI),
+        'LabyLinkSubtitle':_ocr('^请选择要获得的连结印记[。.]?$',SUBTITLE_ROI),
         'LabyLinkRemaining':_ocr(r'^还剩\s*[1-9][0-9]{0,18}\s*次$',REMAINING_ROI),
         'LabyLinkGuardRequired':_ocr('^__qualified_link_offer_required__$',TITLE_ROI),
     }
@@ -64,8 +64,6 @@ def link_pipeline():
             lower=[85,70,220],upper=[130,255,255],count=800,connected=True,
             action='DoNothing',next=[],timeout=1500,pre_delay=0,post_delay=0)
         observed.append(bright)
-        for part in range(2):
-            nodes[f'LabyLinkGuardName{slot}{part}']=_ocr('^__qualified_link_offer_required__$',TITLE_ROI)
         nodes[f'LabyLinkGuardQuantity{slot}']=_ocr('^__qualified_link_offer_required__$',TITLE_ROI)
     nodes['LabyLinkObserved']=dict(recognition='And',all_of=observed,action='DoNothing',next=[],
         timeout=3000,pre_delay=0,post_delay=0)
@@ -133,7 +131,7 @@ def link_offers(receipt):
     for label,roi,text in (('Title',TITLE_ROI,'获得道具的机会!'),
             ('Subtitle',SUBTITLE_ROI,'请选择要获得的连结印记.')):
         words=_link_words(rows['LabyLink'+label],roi)
-        if _normalized(words[0].text)!=text:raise BatchStopped('link_page_unknown')
+        if _normalized(words[0].text).rstrip('.')!=text.rstrip('.'):raise BatchStopped('link_page_unknown')
     words=_link_words(rows['LabyLinkRemaining'],REMAINING_ROI)
     match=re.fullmatch(r'还剩([1-9][0-9]{0,18})次',_normalized(words[0].text))
     if match is None:raise BatchStopped('link_remaining_unknown')
@@ -170,18 +168,14 @@ def preferred_choice(offers,ordered_elements=ELEMENT_PRIORITY):
 def selection_override(offers,slot):
     offers=_validate_offers(offers)
     if type(slot) is not int or slot not in (0,1,2):raise BatchStopped('link_guard_invalid')
-    overrides={'LabyLinkRemaining':_ocr(r'^还剩\s*'+str(offers[0].remaining)+r'\s*次$',REMAINING_ROI)};guards=[]
-    for offer in (offers[slot],):
-        groups=[(f'LabyLinkGuardName{offer.slot}{part}',offer.name_words[min(part,len(offer.name_words)-1)])
-                for part in range(2)]
-        groups.append((f'LabyLinkGuardQuantity{offer.slot}',offer.quantity_words[0]))
-        for name,word in groups:
-            x,y,w,h=word.box
-            roi=QUANTITY_ROIS[offer.slot] if 'Quantity' in name else NAME_ROIS[offer.slot]
-            overrides[name]=_ocr(_pattern(word.text),roi)
-            overrides[name]['only_rec']=False;guards.append(name)
+    offer=offers[slot]
+    overrides={'LabyLinkRemaining':_ocr(r'^还剩\s*'+str(offer.remaining)+r'\s*次$',REMAINING_ROI)}
+    name=f'LabyLinkGuardQuantity{slot}'
+    # The full line binds attribute and quantity; separator OCR does not change either.
+    overrides[name]=dict(_ocr(r'^'+offer.element+r'属性的随机印记[×?？xX*]?'+str(offer.quantity)+r'$',
+        QUANTITY_ROIS[slot]),only_rec=True)
     first=f'LabyLinkButton{slot}'
-    rest=['LabyLinkTitle','LabyLinkSubtitle','LabyLinkRemaining']+guards
+    rest=['LabyLinkTitle','LabyLinkSubtitle','LabyLinkRemaining',name]
     rest += [f'LabyLinkBright{slot}']
     overrides['LabyLinkSelectOnce']=dict(recognition='And',all_of=[first]+rest,
         action='Click',target=True,max_hit=1,next=[],timeout=2500,rate_limit=250,
@@ -301,8 +295,8 @@ class MaaLinkReward:
     """Durable imprint choice and exact item proof, with no role acquisition flow.
 
     Load link_pipeline() and result_pipeline() first. Only a new persisted intent
-    may rearm the two dedicated input nodes. Unknown results and recorded reward
-    identities cannot resend, including through a newly constructed adapter.
+    may rearm the two dedicated input nodes. A proven unsent selection can be
+    reobserved once in this call; unknown results and later calls cannot resend.
     """
     def __init__(self, tasker, stamp, *, timings=None):
         from .timing import Timings
@@ -324,6 +318,7 @@ class MaaLinkReward:
         return receipt
 
     def choose(self, batch, enter_id, reward_id, *, ordered_elements=ELEMENT_PRIORITY):
+        from .. import native
         if (type(enter_id) is not int or enter_id <= 0 or type(reward_id) is not str
                 or not reward_id or len(reward_id) > 128 or any(ord(c) < 32 for c in reward_id)):
             raise BatchStopped('link_reward_identity_required')
@@ -348,8 +343,26 @@ class MaaLinkReward:
             selection = self._run('LabyLinkSelectOnce', input=True)
             return self.stamp(operation_id=operation_id, **fields,native=selection,
                 input_native=selection,input_action_verified=True)
-        with selection_guard(self.tasker, offers, selected.slot):
-            clicked=batch.transaction('link_reward_select',fields,send)
+        for attempt in range(2):
+            try:
+                with selection_guard(self.tasker, offers, selected.slot):
+                    clicked=batch.transaction('link_reward_select',fields,send)
+                break
+            except BatchStopped as error:
+                cause=error.__cause__
+                if attempt or error.args!=('native_input_not_sent',) or not isinstance(cause,native.NativeInputNotSent):raise
+                proof=cause.receipt.get('native_evidence',{})
+                if (cause.receipt.get('input_execution')!='not_sent'
+                        or cause.receipt.get('pre_input_validation_failed') is True
+                        or proof.get('entry')!='LabyLinkSelectOnce'
+                        or any(proof.get(key) is not True for key in ('started','finished','failed','recognition_failed'))
+                        or proof.get('action_started') is not False):raise
+                batch.checkpoint()
+                fresh=link_offers(self._run('LabyLinkObserved'))
+                if ([(o.slot,o.element,o.quantity,o.remaining) for o in fresh]
+                        !=[(o.slot,o.element,o.quantity,o.remaining) for o in offers]):
+                    raise BatchStopped('link_offers_changed') from error
+                offers=fresh;selected=offers[selected.slot]
         batch.checkpoint()
         with obtained_guard(self.tasker, selected):
             obtained = link_obtained(self._run('LabyLinkObtainedObserved'), selected)
