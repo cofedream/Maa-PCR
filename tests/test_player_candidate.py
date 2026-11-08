@@ -105,7 +105,7 @@ def test_native_entry_missing_tool_preserves_existing_exe(tmp_path,monkeypatch):
 
 
 def test_native_entry_uses_bundled_runtime(tmp_path):
-    """Verify actual native libraries, and no global fallback with missing runtime."""
+    """Verify bundled .NET takes priority and missing .NET uses the system installation."""
     import os
     import shutil
     import subprocess
@@ -121,9 +121,7 @@ def test_native_entry_uses_bundled_runtime(tmp_path):
         DOTNET_DISABLE_GUI_ERRORS='1',COREHOST_TRACE='1',DOTNET_HOST_TRACE='1')
     env['PATH']=str(Path(os.environ['SystemRoot'])/'System32')+';'+os.environ['SystemRoot']
     missing=tmp_path/'missing-runtime'
-    missing.mkdir()
-    for name in ('MFAAvalonia.exe','MFAAvalonia.dll','MFAAvalonia.deps.json','MFAAvalonia.runtimeconfig.json'):
-        shutil.copyfile(package/name,missing/name)
+    shutil.copytree(package,missing,ignore=shutil.ignore_patterns('runtime'))
     results=[]
     for name,folder in [('bundled',package),('missing',missing)]:
         command=[str(folder/'MFAAvalonia.exe'),'--identify']
@@ -138,8 +136,10 @@ def test_native_entry_uses_bundled_runtime(tmp_path):
             assert {Path(path).name.lower() for path in libraries}>={'hostfxr.dll','hostpolicy.dll','coreclr.dll'}
             assert all(Path(path).resolve().is_relative_to(physical/'runtime/dotnet') for path in libraries)
         else:
-            assert result.returncode!=0 and not libraries
-            assert 'runtime/dotnet' in result.stderr or 'runtime\\dotnet' in result.stderr
+            assert result.returncode==0 and result.stdout.strip()=='MFAAvalonia', result.stderr[-4000:]
+            assert {Path(path).name.lower() for path in libraries}>={'hostfxr.dll','hostpolicy.dll','coreclr.dll'}
+            assert all(not Path(path).resolve().is_relative_to(physical) for path in libraries)
+            assert 'Using global install location [' in result.stderr
     (tmp_path/'apphost-verification.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
 
 

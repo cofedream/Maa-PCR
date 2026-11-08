@@ -118,7 +118,7 @@ def runtime_distributions(site):
 
 
 def create_native_entry(output):
-    """Use the SDK apphost task; the player executable searches its bundled runtime."""
+    """Use the SDK apphost task; prefer bundled .NET, then the system installation."""
     output=Path(output).resolve()
     project=ROOT/'scripts/create_pcr_apphost.proj'
     tasks=SDK/'sdk/10.0.101/Sdks/Microsoft.NET.Sdk/tools/net10.0/Microsoft.NET.Build.Tasks.dll'
@@ -417,7 +417,7 @@ def build(app, output, *, bind_checkout=False, vc_redist=None, revision=8, playe
         'python_distributions':{n:d.version for n,d in distributions.items()},
         'vc_redist':{'architecture':'x64', 'destinations':['runtimes/win-x64/native', 'runtime/python'],
             'files':[{'name':name, 'sha256':inputs['runtimes/win-x64/native/'+name][1]} for name in VC_CRT_FILES]},
-        'native_entry':{'dotnet_search':'app-relative-only','relative_runtime':'runtime/dotnet'},
+        'native_entry':{'dotnet_search':'app-relative-then-global','relative_runtime':'runtime/dotnet'},
         'private_assets_included_for_local_use':True,'personal_settings_or_ledgers_included':False,
         'blockers':['asset_redistribution_evidence_pending','real_device_and_business_acceptance_pending','player_machine_acceptance_pending'],
         'files':sorted(inventory,key=lambda r:r['path'])}
