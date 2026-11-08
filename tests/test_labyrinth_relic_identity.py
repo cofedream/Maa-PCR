@@ -118,6 +118,20 @@ def test_offer_facts_use_the_catalog_name_across_the_display_separator():
     assert [fact['id'] for fact in facts] == [35004, 11001, 13001]
 
 
+def test_identify_relic_offers_is_the_single_identity_entry():
+    offers = _offers()
+    identified = R.identify_relic_offers(offers, _offer_detail(
+        _slot(35004, CANONICAL_NAME, '守备', 3),
+        _slot(11001, '加速玉饰', '强化', 2),
+        _slot(13001, '杀戮之矛', '会心', 4)))
+    assert all(offer.identity is None for offer in offers)
+    assert [offer.identity['id'] for offer in identified] == [35004, 11001, 13001]
+    assert identified[0].name == SELECTED_NAME
+    assert identified[0].identity['name'] == CANONICAL_NAME
+    assert identified[0].mark == '守备' and identified[0].bonus == 3
+    assert identified[0].current == 14
+
+
 def test_offer_facts_stop_when_the_attribute_line_contradicts_the_icon():
     # A wrong catalog fact would corrupt the stack ledger, so never guess.
     with pytest.raises(BatchStopped, match='relic_identity_conflict'):
@@ -277,4 +291,52 @@ def test_obtained_static_identity_node_identifies_a_saved_frame(tmp_path, monkey
     node = _saved_frame_node(tmp_path, monkeypatch, frame, 'LabyRelicObtainedStaticIdentity')
     assert node['completed'] is True
     assert node['recognition']['filtered'][0]['detail']['relic']['id'] == 35004
+
+
+def test_choose_guards_with_the_trusted_catalog_identity(monkeypatch, tmp_path):
+    """A trusted icon's catalog fact must reach the fresh click guard.
+
+    2026-11-08 live run: the offer OCR read 自光辉铠·断壁 while the catalog and
+    the click frame read 白光辉铠·断壁. The journal already used the catalog
+    name, but the guard still expected the OCR spelling and sent no input.
+    """
+    from contextlib import nullcontext
+    from pcr_maa.labyrinth.batch import Batch, Binding
+    from pcr_maa.labyrinth.config import Goal, Settings
+    from pcr_maa.preset_execution import Journal
+
+    observed = (
+        _offer(0, _words(('自光辉铠·断壁',), R.NAME_ROIS[0], (220,)), '守备', 3, 6),
+        _offer(1, _words(('空命护珠',), R.NAME_ROIS[1], (120,)), '守备', 2, 6),
+        _offer(2, _words(('再生之手镯',), R.NAME_ROIS[2], (120,)), '守备', 1, 6),
+    )
+    fact = dict(id=35003, name='白光辉铠·断壁', mark='守备', bonus=3, rarity=3)
+    batch = Batch(Settings((Goal(1, 1),)), None, Journal(tmp_path),
+                  Binding(123, 'synthetic-no-device'))
+    reward = object.__new__(R.MaaRelicReward)
+    reward.attempted = set()
+    reward.tasker = object()
+    reward.catalog = object()
+    reward.timings = _Args(measure=lambda name: nullcontext())
+    seen = []
+
+    def guard(tasker, offers, slot, *, icon=False):
+        seen.append((slot, icon, offers[0].identity))
+        raise BatchStopped('guard_probe')
+
+    monkeypatch.setattr(R, 'selection_guard', guard)
+    monkeypatch.setattr(R, 'choose_offer', lambda *args, **kwargs: observed[0])
+    reward._identify_offers = lambda offers: R.attach_offer_identity(
+        offers, (fact, None, None))
+    with pytest.raises(BatchStopped, match='guard_probe'):
+        reward.choose(batch, 13473, '50501:relic_reward:1', 1, offers=observed)
+    assert seen == [(0, True, fact)]
+    assert observed[0].identity is None  # the caller's tuple is not mutated
+
+    # An untrusted icon keeps the previous text-only guard path.
+    reward.attempted = set()
+    reward._identify_offers = lambda offers: offers
+    with pytest.raises(BatchStopped, match='guard_probe'):
+        reward.choose(batch, 13473, '50501:relic_reward:2', 1, offers=observed)
+    assert seen[-1] == (0, True, None)
 

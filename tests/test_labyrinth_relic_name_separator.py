@@ -14,10 +14,21 @@ journaled name was `幽玄煌装绝魔`, while the obtained modal read the line 
 `幽玄煌装·绝魔×1`. The same separator rule reached the guard, but the result
 layer still compared the two spellings verbatim and stopped the batch with
 `relic_result_mismatch` after the reward had actually been acquired.
+
+Live run 2026-11-08T03:17:37Z (player-log run `65bdcc4e34b74c0b9d89707782ea4f74`,
+`enter_id=13473`, `relic_id=35003`): the offer frame read `自光辉铠` + `·断壁`
+(`白` misread as `自`), while the click frame read `白光辉铠·断壁`. The static
+icon catalog had already identified the card as `35003` and journaled its
+canonical name, but the fresh click guard was still built from the observed OCR
+spelling, so it expected `自` and rejected the real card; no input was sent.
+The trusted catalog name must therefore replace the OCR spelling in the guard,
+without adding any character tolerance.
 """
 import os
 import re
+from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -25,8 +36,9 @@ from pcr_maa.labyrinth import relics as R
 from pcr_maa.labyrinth.batch import BatchStopped
 
 SEPARATORS = '·・‧•'
-LIVE_NAME = '白光辉铠·断壁'          # click-frame reading
+LIVE_NAME = '白光辉铠·断壁'          # click-frame reading / catalog name
 JOURNALED_NAME = '白光辉铠断壁'      # offer-frame reading that stopped the run
+OCR_MISREAD_NAME = '自光辉铠·断壁'   # 2026-11-08 offer-frame reading
 OBTAINED_JOURNALED_NAME = '幽玄煌装绝魔'   # 2026-11-07 offer-frame reading
 OBTAINED_RESULT_TEXT = '幽玄煌装·绝魔×1'   # 2026-11-07 obtained-modal line
 
@@ -83,6 +95,53 @@ def test_separator_tolerance_is_not_character_tolerance():
     assert re.fullmatch(expected, '白光辉挥·断壁') is None
     assert re.fullmatch(expected, '白光辉铠·断壁X') is None
     assert re.fullmatch(expected, '白光辉铠') is None
+
+
+def test_guard_uses_the_trusted_catalog_name_not_the_offer_ocr_spelling():
+    observed = _offers(OCR_MISREAD_NAME)
+    fact = dict(id=35003, name=LIVE_NAME, mark='守备', bonus=3, rarity=3)
+    identified = R.attach_offer_identity(observed, (fact, None, None))
+    expected = R.selection_override(identified, 0)[
+        'LabyRelicGuardName00Line']['expected']
+    assert re.fullmatch(expected, LIVE_NAME)
+    assert re.fullmatch(expected, OCR_MISREAD_NAME) is None
+    # The override is name-only: a different card name still refuses input.
+    assert re.fullmatch(expected, '幽玄煌装·绝魔') is None
+    # Without a trusted catalog fact the existing OCR path is unchanged.
+    text_only = _name_guard_expected(OCR_MISREAD_NAME)
+    assert re.fullmatch(text_only, OCR_MISREAD_NAME)
+    assert re.fullmatch(text_only, LIVE_NAME) is None
+
+
+@pytest.mark.parametrize('name', ['', '   ', '白×1', '白\n光辉铠', 3, True, 'x' * 49])
+def test_catalog_identity_name_must_be_a_plain_display_name(name):
+    fact = dict(id=35003, name=name, mark='守备', bonus=3, rarity=3)
+    with pytest.raises(BatchStopped, match='relic_identity_unknown'):
+        R.attach_offer_identity(_offers(OCR_MISREAD_NAME), (fact, None, None))
+
+
+class _GuardResource:
+    def __init__(self):
+        self.nodes = deepcopy(R.relic_pipeline())
+        self.calls = []
+
+    def get_node_data(self, name):
+        return deepcopy(self.nodes.get(name))
+
+    def override_pipeline(self, override):
+        self.calls.append(deepcopy(override))
+        return True
+
+
+def test_selection_guard_installs_the_catalog_name_override():
+    fact = dict(id=35003, name=LIVE_NAME, mark='守备', bonus=3, rarity=3)
+    identified = R.attach_offer_identity(_offers(OCR_MISREAD_NAME), (fact, None, None))
+    resource = _GuardResource()
+    with R.selection_guard(SimpleNamespace(resource=resource), identified, 0):
+        expected = resource.calls[-1]['LabyRelicGuardName00Line']['expected']
+        assert expected == resource.calls[-1]['LabyRelicGuardName00Detected']['expected']
+        assert re.fullmatch(expected, LIVE_NAME)
+        assert re.fullmatch(expected, OCR_MISREAD_NAME) is None
 
 
 def test_separator_class_is_literal_for_the_native_regex_engine():

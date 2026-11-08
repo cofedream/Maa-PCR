@@ -1,12 +1,16 @@
 """Maa three-card relic observations and a fresh, exact one-shot input guard.
 
-Card names identify only this visible offer; they are not protocol item IDs.
-The upstream strategy is reused without assuming unobserved mark stacks are zero.
-Acquisition matches the current selected icon and a new quantity result; the native click ACK commits
-only the input, before that independent business observation.
+A visible offer carries one identity: OCR evidence plus, when the static icon is
+trusted, the catalog fact. The journal, fresh guard and result reader all read
+`RelicOffer.identity`; OCR spelling is only the fallback when that fact is
+missing. Card names identify only this visible offer; they are not protocol item
+IDs. The upstream strategy is reused without assuming unobserved mark stacks are
+zero. Acquisition matches the current selected icon and a new quantity result;
+the native click ACK commits only the input, before that independent business
+observation.
 """
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from itertools import product
 import math
 import re
@@ -167,6 +171,10 @@ class RelicOffer:
     attribute_words: tuple[Word, ...]
     button_words: tuple[Word, ...]
     remaining: int = 1
+    # One trusted catalog fact when the static icon identified this slot; the
+    # journal, fresh guard and result reader all read this one identity instead
+    # of rebuilding a second, OCR-spelled one.
+    identity: dict | None = None
 
 
 def _normalized(text):
@@ -222,14 +230,32 @@ def _attribute(words, *, require_current=True):
     return mark, int(marks[0][1]), int(current[0]) if len(current)==1 else None
 
 
-def _offer(slot, name_words, attribute_words, button_words, remaining=1):
+def _catalog_fact(value):
+    """The one validated catalog identity shape carried by a RelicOffer."""
+    if (type(value) is not dict or type(value.get('id')) is not int
+            or type(value.get('name')) is not str or not value['name'].strip()
+            or len(value['name']) > 48 or '×' in value['name']
+            or any(ord(c) < 32 for c in value['name'])
+            or value.get('mark') is not None and value.get('mark') not in MARKS
+            or type(value.get('bonus')) is not int or type(value.get('rarity')) is not int):
+        raise BatchStopped('relic_identity_unknown')
+    return dict(id=value['id'], name=value['name'], mark=value.get('mark'),
+                bonus=value['bonus'], rarity=value['rarity'])
+
+
+def _offer(slot, name_words, attribute_words, button_words, remaining=1, *, identity=None):
     name = _normalized(''.join(w.text for w in name_words))
     if not name or len(name) > 48 or any(ord(c) < 32 for c in name):
         raise BatchStopped('relic_name_unknown')
     if _normalized(''.join(w.text for w in button_words)) != '选择':
         raise BatchStopped('relic_button_unknown')
     mark, bonus, current = _attribute(attribute_words)
-    return RelicOffer(slot, name, mark, bonus, current, name_words, attribute_words, button_words, remaining)
+    if identity is not None:
+        identity = _catalog_fact(identity)
+        if identity['mark'] is not None and (identity['mark'] != mark or identity['bonus'] != bonus):
+            raise BatchStopped('relic_identity_conflict')
+    return RelicOffer(slot, name, mark, bonus, current, name_words, attribute_words,
+                      button_words, remaining, identity)
 
 
 def _validate_offers(offers):
@@ -251,7 +277,8 @@ def _validate_offers(offers):
                 for w in words]), roi, maximum=maximum))
         if (type(offer.name) is not str or type(offer.mark) is not str
                 or type(offer.bonus) is not int or type(offer.current) is not int
-                or _offer(slot, *groups, remaining=offer.remaining) != offer):
+                or _offer(slot, *groups, remaining=offer.remaining,
+                          identity=offer.identity) != offer):
             raise BatchStopped('relic_offers_unknown')
         parsed.append(offer)
     if len({o.remaining for o in parsed}) != 1:
@@ -264,6 +291,22 @@ def _validate_offers(offers):
             raise BatchStopped('relic_stacks_conflicting')
         observed[offer.mark] = offer.current
     return tuple(parsed), observed
+
+
+def attach_offer_identity(offers, facts):
+    """Attach the trusted catalog facts to the offers they describe.
+
+    This is the reward page's single identity step: every later reader (journal,
+    fresh guard, result) uses `offer.identity`, so an OCR spelling can never be
+    reintroduced by a caller as a second source of truth.
+    """
+    offers, _ = _validate_offers(offers)
+    if type(facts) not in (tuple, list) or len(facts) != 3:
+        raise BatchStopped('relic_identity_unknown')
+    attached = []
+    for offer, fact in zip(offers, facts):
+        attached.append(offer if fact is None else replace(offer, identity=_catalog_fact(fact)))
+    return _validate_offers(tuple(attached))[0]
 
 
 def relic_offers(receipt):
@@ -394,7 +437,12 @@ def _name_identity_matches(observed, name):
 
 
 def selection_override(offers, slot):
-    """Build current identity guards for the selected offer; does not reset a spent Maa hit budget."""
+    """Build current identity guards for the selected offer.
+
+    The fresh name guard follows the offer's trusted catalog identity when the
+    static icon identified it; otherwise it keeps the observed OCR spelling.
+    Attribute line, count, button and Bright checks always stay exact.
+    """
     offers, _ = _validate_offers(offers)
     if type(slot) is not int or slot not in (0, 1, 2):
         raise BatchStopped('relic_guard_invalid')
@@ -403,11 +451,12 @@ def selection_override(offers, slot):
         marks='|'.join(re.escape(mark) for mark in sorted({offer.mark}|{raw for raw,mark in ALIASES.items() if mark==offer.mark}))
         attribute=(r'^[^0-9]*(?:'+marks+r')\s*[+＋]\s*'+str(offer.bonus)
             +r'[^0-9]*当前[^0-9+\-]{0,5}'+str(offer.current)+r'(?![0-9])[^0-9]*$')
-        for kind,pattern,roi in (('Name',_pattern(offer.name),NAME_ROIS[slot]),('Attribute',attribute,ATTRIBUTE_ROIS[slot])):
-            name=f'LabyRelicGuard{kind}{offer.slot}0'
-            if kind == 'Name':overrides.update(_name_nodes(name, pattern, roi))
-            else:overrides[name]=dict(_ocr(pattern,roi), only_rec=True)
-            guards.append(name)
+        guard_name = offer.identity['name'] if offer.identity is not None else offer.name
+        for kind,pattern,roi in (('Name',_pattern(guard_name),NAME_ROIS[slot]),('Attribute',attribute,ATTRIBUTE_ROIS[slot])):
+            guard=f'LabyRelicGuard{kind}{offer.slot}0'
+            if kind == 'Name':overrides.update(_name_nodes(guard, pattern, roi))
+            else:overrides[guard]=dict(_ocr(pattern,roi), only_rec=True)
+            guards.append(guard)
     first = f'LabyRelicButton{slot}'
     rest = ['LabyRelicTitle', 'LabyRelicSubtitle', 'LabyRelicRemaining'] + guards
     rest += [f'LabyRelicBright{slot}']
@@ -450,7 +499,10 @@ RESULT_CLOSE_ROI = (500, 608, 278, 65)
 
 
 def _result_name(selected):
-    value = selected.name if type(selected) is RelicOffer else selected
+    if type(selected) is RelicOffer:
+        value = selected.identity['name'] if selected.identity is not None else selected.name
+    else:
+        value = selected
     if (type(value) is not str or not value.strip() or len(value) > 48
             or any(ord(c) < 32 for c in value) or '×' in value):
         raise BatchStopped('relic_identity_required')
@@ -556,20 +608,24 @@ def relic_offer_facts(detail, offers):
         if type(item) is not dict or item.get('trusted') is not True:
             facts.append(None)
             continue
-        relic = item.get('relic')
-        if (type(relic) is not dict or type(relic.get('id')) is not int
-                or type(relic.get('name')) is not str or not relic['name']
-                or relic.get('mark') is not None and relic.get('mark') not in MARKS
-                or type(relic.get('bonus')) is not int or type(relic.get('rarity')) is not int):
-            raise BatchStopped('relic_identity_unknown')
+        relic = _catalog_fact(item.get('relic'))
         if relic['mark'] is not None and (relic['mark'] != offer.mark or relic['bonus'] != offer.bonus):
             raise BatchStopped('relic_identity_conflict')
-        facts.append(dict(id=relic['id'], name=relic['name'], mark=relic['mark'],
-                          bonus=relic['bonus'], rarity=relic['rarity']))
+        facts.append(relic)
     known = [fact['id'] for fact in facts if fact]
     if len(known) != len(set(known)):
         raise BatchStopped('relic_identity_conflict')
     return tuple(facts)
+
+
+def identify_relic_offers(offers, detail):
+    """The reward page's one identity entry: catalog facts attached to offers.
+
+    `MaaRelicReward` calls this once after reading the three cards. Callers that
+    only need the raw per-slot facts can still use `relic_offer_facts`; the
+    journal, guard and result path use the returned offers, never a second name.
+    """
+    return attach_offer_identity(offers, relic_offer_facts(detail, offers))
 
 
 def _custom_detail(detail):
@@ -736,14 +792,14 @@ class MaaRelicReward:
                 raise BatchStopped('relic_runtime_unavailable')
             resource._labyrinth_relic_static_capture = static
 
-    def _offer_identity(self, offers):
-        """Catalog identity of the three visible offers; None keeps the OCR name."""
+    def _identify_offers(self, offers):
+        """Attach one trusted catalog identity to every visible offer."""
         receipt = self._run('LabyRelicOfferedStaticIdentity')
         node = next((n for n in receipt['nodes'] if n.get('name') == 'LabyRelicOfferedStaticIdentity'), None)
         detail = _custom_detail(node.get('recognition') if type(node) is dict else None)
         if detail is None:
-            return (None, None, None)
-        return relic_offer_facts(detail, offers)
+            return offers
+        return identify_relic_offers(offers, detail)
 
     def _run(self, node, *, input=False):
         from .. import native
@@ -770,7 +826,8 @@ class MaaRelicReward:
         batch.checkpoint()
         if offers is None:offers = relic_offers(self._run('LabyRelicObserved'))
         else:offers,_ = _validate_offers(offers)
-        identity = self._offer_identity(offers) if self.catalog is not None else (None, None, None)
+        if self.catalog is not None:
+            offers = self._identify_offers(offers)
         from .roles import strategy_value
         strategy=getattr(batch.settings,'strategy',None)
         policy={key:strategy_value(strategy,key,default) for key,default in (('baseline_last_area',3),('baseline_target',4),('debuff_pivot_minimum',12),('debuff_pivot_tolerance',2))}
@@ -780,15 +837,14 @@ class MaaRelicReward:
                                     locked_focus=locked_focus, priority=priority, **policy)
         if selected is None:
             raise BatchStopped('relic_stacks_incomplete')
-        facts = identity[selected.slot]
+        identity = selected.identity
         fields = dict(enter_id=enter_id, reward_id=reward_id, slot=selected.slot,
-                      relic_name=selected.name, mark=selected.mark, bonus=selected.bonus,
-                      quantity=1)
-        # The catalog name is the display identity; the strategy keeps the
+                      relic_name=identity['name'] if identity is not None else selected.name,
+                      mark=selected.mark, bonus=selected.bonus, quantity=1)
+        # The catalog identity is the display identity; the strategy keeps the
         # observed mark/bonus, which the same-frame attribute line confirmed.
-        if facts is not None:
-            fields['relic_id'] = facts['id']
-            fields['relic_name'] = facts['name']
+        if identity is not None:
+            fields['relic_id'] = identity['id']
         self.attempted.add(key)
         def send(operation_id):
             batch.checkpoint()
@@ -799,7 +855,7 @@ class MaaRelicReward:
             clicked=batch.transaction('relic_reward_select',fields,send)
         batch.checkpoint()
         static = self.catalog is not None
-        selected_id = facts['id'] if facts is not None else None
+        selected_id = identity['id'] if identity is not None else None
         with obtained_guard(self.tasker, selected, icon=True, static=static):
             obtained = relic_obtained(self._run('LabyRelicObtainedObserved'), selected,
                                       icon=True, static=static, relic_id=selected_id)

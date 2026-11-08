@@ -1,3 +1,15 @@
+## 2026-11-08 奖励页遗物身份收束到 RelicOffer.identity（离线原帧复现）
+
+实机失败记录 player-log run `65bdcc4e34b74c0b9d89707782ea4f74`（业务 run `11af6eafef224049ae87e287b82d8a58`，`enter_id=13473`，`reward_id=50501:relic_reward:1`）：11:17:18 进入第二次三选一遗物页，选择 slot 1「白光辉铠·断壁」（`relic_id=35003`，守备+3）。11:17:34 账本 `relic_reward_select` 已写入意图，11:17:37 以 `native_input_not_sent` 停止（`relics.py:795`、`relics.py:751`、`native.py:340`），进度 1:2，实际没有发出点击，游戏停留在原选择页。
+
+原因：观测帧把卡面名称读成 `自光辉铠` + `·断壁`（`白` 误读为 `自`），静态图鉴已可信识别为 35003 并把规范名 `白光辉铠·断壁` 写入账本；但 `MaaRelicReward.choose` 的 fresh guard 仍调用 `selection_guard(self.tasker, offers, selected.slot, icon=True)`，传的是 OCR 解析出的 `offers`，`selection_override` 用 `offer.name` 生成 `^\s*自\s*光\s*辉\s*铠\s*断\s*壁\s*$`。同一帧点击时行识别读回正确的 `白光辉铠·断壁`（0.9604），`Detected` 分支读成 `自光辉铠` + `·断壁` 碎块，两个分支都不命中，`LabyRelicSelectOnce` 2.5 秒超时，原生证据为 `recognition_failed=true`、`action_started=false`，没有点击也没有误操作。这是 2026-11-07 静态图标改动的遗留边界：图标身份只进入账本与结果校验，fresh guard 仍停在 name-only 文本身份。
+
+修复（奖励页身份收束）：`RelicOffer` 增加 `identity` 字段，唯一身份入口是 `identify_relic_offers(offers, detail)`（内部 `relic_offer_facts` 解析可信图鉴事实、`attach_offer_identity` 挂到对应 offer）：id/规范名/mark/bonus/rarity 随 offer 一起流动，`_catalog_fact` 在入口统一校验名称与属性冲突。`MaaRelicReward._identify_offers` 在读卡后只调用一次该入口；账本字段、`selection_override` 的 fresh 名称守卫、`_result_name` 与结果复核全部读取同一个 `offer.identity`，不再由调用方另传 `name`。图标不可信或包缺失时 `identity=None`，保持原 OCR 文本路径；属性行、`还剩N次`、按钮、Bright、`LabyRelicSelectedIconCapture` 与点击坐标均不变。没有给 `白/自` 或其他错字增加字符容错，避免放过真正选错卡的情况。
+
+验证（离线）：同一失败帧上，按 OCR 拼写 `自光辉铠·断壁` 构造守卫时 `LabyRelicSelectOnce` 不命中；同一帧挂上图鉴身份 `白光辉铠·断壁` 后命中并产生点击。新增公开测试资源 `tests/data/labyrinth-relic-offer-20261108.png` 与同名 `.json`（保存源、用途、1280×720、sha256；画面不含玩家名、账号、设备或运行标识），测试覆盖：原生 OCR 仍读出 `自光辉铠·断壁`、静态图标仍可信识别 25002/35003/15005、`identify_relic_offers` 把规范名挂到 offer、fresh guard 使用规范名并在该帧真实命中一次点击。另存手动选择后的 `tests/data/labyrinth-relic-obtained-20261108.png` 与同名 `.json`，新增 `tests/test_labyrinth_relic_obtained_frame.py`：从该 ADB 原帧识别 `获得道具 / 获得了以下道具。 / 白光辉铠·断壁×1 / 关闭`，静态图标可信命中 35003，`relic_obtained` 返回 `verified=true`、`identity_method=static_icon`、数量 1。新增测试覆盖：可信身份覆盖 OCR 错读、无事实时回退原文本路径、非法图鉴身份拒绝、`selection_guard` 读取 `offer.identity` 的实际安装，以及 `choose` 只把带身份的 offer 交给守卫且不修改调用方元组。`pytest tests/test_labyrinth_relic_offer_frame.py tests/test_labyrinth_relic_obtained_frame.py tests/test_labyrinth_relic_name_separator.py tests/test_labyrinth_relic_identity.py` 41 passed / 1 skipped；相关遗物、链接、商店与奖励套件 292 passed / 35 skipped；`pytest -k labyrinth` 1873 passed / 127 skipped / 5979 deselected（18 subtests，3:24）。
+
+未做/边界：本局未实机复跑；本次只收束奖励三选一页的身份（offer、账本、fresh guard、结果读取），商店 relic 身份、地图/物品读取和链接/角色奖励的 name-only 守卫仍未并入同一模块；阈值、ROI、超时、图标包与 masterdata 均未改。
+
 ## 2026-11-07 遗物身份改为静态图标 + masterdata（原帧校准 + 合成帧离线回放）
 
 同日 `relic_result_mismatch`（见下一条）说明遗物身份仍落在“两帧名称 OCR 逐字一致”上：角色与 Boss 早已是图标/数据身份，遗物是最后一块 name-only identity。本轮把三选一遗物与结果确认改为“静态图标 + masterdata 事实 + 属性行 OCR”的混合身份。
