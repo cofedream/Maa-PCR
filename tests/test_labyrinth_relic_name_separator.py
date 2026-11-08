@@ -21,8 +21,14 @@ Live run 2026-11-08T03:17:37Z (player-log run `65bdcc4e34b74c0b9d89707782ea4f74`
 icon catalog had already identified the card as `35003` and journaled its
 canonical name, but the fresh click guard was still built from the observed OCR
 spelling, so it expected `自` and rejected the real card; no input was sent.
-The trusted catalog name must therefore replace the OCR spelling in the guard,
-without adding any character tolerance.
+The trusted catalog identity must therefore own the click identity.
+
+Live run 2026-11-08T07:14:13Z (player-log run `cb977ae3ac554d2da0f01ce814e72313`,
+`enter_id=13475`, `relic_id=13001`): the card art showed `杀戮之矛` while the OCR
+read `杀之矛` (the complex glyph `戮` was dropped in both frames). Using the
+canonical name as an exact OCR pattern then rejected a correct card again, so a
+trusted catalog identity now proves the card with the same-frame icon id; the
+exact OCR name only remains when the icon is untrusted or the pack is missing.
 """
 import os
 import re
@@ -97,16 +103,18 @@ def test_separator_tolerance_is_not_character_tolerance():
     assert re.fullmatch(expected, '白光辉铠') is None
 
 
-def test_guard_uses_the_trusted_catalog_name_not_the_offer_ocr_spelling():
+def test_guard_uses_the_trusted_catalog_icon_not_the_offer_ocr_spelling():
     observed = _offers(OCR_MISREAD_NAME)
     fact = dict(id=35003, name=LIVE_NAME, mark='守备', bonus=3, rarity=3)
     identified = R.attach_offer_identity(observed, (fact, None, None))
-    expected = R.selection_override(identified, 0)[
-        'LabyRelicGuardName00Line']['expected']
-    assert re.fullmatch(expected, LIVE_NAME)
-    assert re.fullmatch(expected, OCR_MISREAD_NAME) is None
-    # The override is name-only: a different card name still refuses input.
-    assert re.fullmatch(expected, '幽玄煌装·绝魔') is None
+    guard = R.selection_override(identified, 0)
+    # The trusted identity is a same-frame icon check; the OCR name is gone.
+    assert 'LabyRelicGuardName00Detected' not in guard
+    assert 'LabyRelicGuardName00Line' not in guard
+    assert guard['LabyRelicGuardIcon00']['custom_recognition_param'] == dict(
+        mode='guard', slot=0, relic_id=35003)
+    assert 'LabyRelicGuardIcon00' in guard['LabyRelicSelectOnce']['all_of']
+    assert 'LabyRelicGuardName00' not in guard['LabyRelicSelectOnce']['all_of']
     # Without a trusted catalog fact the existing OCR path is unchanged.
     text_only = _name_guard_expected(OCR_MISREAD_NAME)
     assert re.fullmatch(text_only, OCR_MISREAD_NAME)
@@ -133,15 +141,16 @@ class _GuardResource:
         return True
 
 
-def test_selection_guard_installs_the_catalog_name_override():
+def test_selection_guard_installs_the_catalog_icon_override():
     fact = dict(id=35003, name=LIVE_NAME, mark='守备', bonus=3, rarity=3)
     identified = R.attach_offer_identity(_offers(OCR_MISREAD_NAME), (fact, None, None))
     resource = _GuardResource()
     with R.selection_guard(SimpleNamespace(resource=resource), identified, 0):
-        expected = resource.calls[-1]['LabyRelicGuardName00Line']['expected']
-        assert expected == resource.calls[-1]['LabyRelicGuardName00Detected']['expected']
-        assert re.fullmatch(expected, LIVE_NAME)
-        assert re.fullmatch(expected, OCR_MISREAD_NAME) is None
+        installed = resource.calls[-1]
+        assert installed['LabyRelicGuardIcon00']['custom_recognition_param'] == dict(
+            mode='guard', slot=0, relic_id=35003)
+        assert 'LabyRelicGuardName00Line' not in installed
+        assert 'LabyRelicGuardName00Detected' not in installed
 
 
 def test_separator_class_is_literal_for_the_native_regex_engine():

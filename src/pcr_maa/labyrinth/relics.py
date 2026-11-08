@@ -1,13 +1,15 @@
-"""Maa three-card relic observations and a fresh, exact one-shot input guard.
+"""Maa three-card relic observations and a fresh image-identity input guard.
 
 A visible offer carries one identity: OCR evidence plus, when the static icon is
 trusted, the catalog fact. The journal, fresh guard and result reader all read
 `RelicOffer.identity`; OCR spelling is only the fallback when that fact is
-missing. Card names identify only this visible offer; they are not protocol item
-IDs. The upstream strategy is reused without assuming unobserved mark stacks are
-zero. Acquisition matches the current selected icon and a new quantity result;
-the native click ACK commits only the input, before that independent business
-observation.
+missing. A trusted identity gates the click with the same-frame catalog icon id,
+so OCR glyph loss can neither block nor widen the intended card; only an
+untrusted icon (or an absent pack) keeps the exact text identity. Card names
+identify only this visible offer; they are not protocol item IDs. The upstream
+strategy is reused without assuming unobserved mark stacks are zero. Acquisition
+matches the current selected icon and a new quantity result; the native click
+ACK commits only the input, before that independent business observation.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
@@ -126,6 +128,12 @@ def relic_pipeline():
             name = f'LabyRelicGuard{kind}{slot}0'
             if kind == 'Name':nodes.update(_name_nodes(name, '^__qualified_relic_offer_required__$', TITLE_ROI))
             else:nodes[name] = _ocr('^__qualified_relic_offer_required__$', TITLE_ROI)
+        # Same-frame catalog identity of the intended card. Unusable until the
+        # selection guard supplies slot and relic_id; then it is the click's
+        # identity proof instead of the exact OCR card name.
+        nodes[f'LabyRelicGuardIcon{slot}0'] = dict(recognition='Custom', custom_recognition=STATIC_ICON,
+            custom_recognition_param=dict(mode='guard'), action='DoNothing', next=[],
+            timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicSelectedIconCapture'] = dict(recognition='Custom', custom_recognition='LabyRelicSelectedIconCapture',
         action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicObtainedIcon'] = dict(recognition='Custom', custom_recognition='LabyRelicSelectedIconCapture',
@@ -437,26 +445,37 @@ def _name_identity_matches(observed, name):
 
 
 def selection_override(offers, slot):
-    """Build current identity guards for the selected offer.
+    """Build current identity and page guards for the selected offer.
 
-    The fresh name guard follows the offer's trusted catalog identity when the
-    static icon identified it; otherwise it keeps the observed OCR spelling.
-    Attribute line, count, button and Bright checks always stay exact.
+    A trusted catalog identity proves the card with the same-frame icon id, so
+    the click no longer depends on the card-name OCR: a dropped glyph must not
+    block the intended card, and a wrong catalog id must still refuse input.
+    Only an untrusted icon (or an absent pack) keeps the exact, separator-
+    tolerant OCR name pattern. Attribute line, count, button and Bright checks
+    always stay exact.
     """
     offers, _ = _validate_offers(offers)
     if type(slot) is not int or slot not in (0, 1, 2):
         raise BatchStopped('relic_guard_invalid')
-    overrides = {'LabyRelicRemaining': _ocr(_pattern(f'还剩{offers[slot].remaining}次'), REMAINING_ROI)};guards = []
-    for offer in (offers[slot],):
-        marks='|'.join(re.escape(mark) for mark in sorted({offer.mark}|{raw for raw,mark in ALIASES.items() if mark==offer.mark}))
-        attribute=(r'^[^0-9]*(?:'+marks+r')\s*[+＋]\s*'+str(offer.bonus)
-            +r'[^0-9]*当前[^0-9+\-]{0,5}'+str(offer.current)+r'(?![0-9])[^0-9]*$')
-        guard_name = offer.identity['name'] if offer.identity is not None else offer.name
-        for kind,pattern,roi in (('Name',_pattern(guard_name),NAME_ROIS[slot]),('Attribute',attribute,ATTRIBUTE_ROIS[slot])):
-            guard=f'LabyRelicGuard{kind}{offer.slot}0'
-            if kind == 'Name':overrides.update(_name_nodes(guard, pattern, roi))
-            else:overrides[guard]=dict(_ocr(pattern,roi), only_rec=True)
-            guards.append(guard)
+    offer = offers[slot]
+    overrides = {'LabyRelicRemaining': _ocr(_pattern(f'还剩{offer.remaining}次'), REMAINING_ROI)};guards = []
+    marks='|'.join(re.escape(mark) for mark in sorted({offer.mark}|{raw for raw,mark in ALIASES.items() if mark==offer.mark}))
+    attribute=(r'^[^0-9]*(?:'+marks+r')\s*[+＋]\s*'+str(offer.bonus)
+        +r'[^0-9]*当前[^0-9+\-]{0,5}'+str(offer.current)+r'(?![0-9])[^0-9]*$')
+    guard=f'LabyRelicGuardAttribute{offer.slot}0'
+    overrides[guard]=dict(_ocr(attribute,ATTRIBUTE_ROIS[slot]), only_rec=True)
+    guards.append(guard)
+    if offer.identity is not None:
+        guard=f'LabyRelicGuardIcon{offer.slot}0'
+        overrides[guard]=dict(recognition='Custom', custom_recognition=STATIC_ICON,
+            custom_recognition_param=dict(mode='guard', slot=offer.slot,
+                                          relic_id=offer.identity['id']),
+            action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
+        guards.insert(0, guard)
+    else:
+        guard=f'LabyRelicGuardName{offer.slot}0'
+        overrides.update(_name_nodes(guard, _pattern(offer.name), NAME_ROIS[slot]))
+        guards.insert(0, guard)
     first = f'LabyRelicButton{slot}'
     rest = ['LabyRelicTitle', 'LabyRelicSubtitle', 'LabyRelicRemaining'] + guards
     rest += [f'LabyRelicBright{slot}']
@@ -538,12 +557,15 @@ def result_pipeline(selected=None):
 
 
 class RelicStaticIconCapture(CustomRecognition):
-    """Read-only catalog identity for the offer cards and the obtained icon.
+    """Read-only catalog identity for the offer cards, the obtained icon and the guard.
 
-    It always returns a hit so an And/observation stays stable; `trusted`
-    decides whether callers may use the facts. A missing pack is not a frame
-    error: it degrades to the existing text identity, while a corrupt pack is
-    refused at load time, never guessed around.
+    The observation modes always return a hit so an And/observation stays
+    stable; `trusted` decides whether callers may use the facts. The `guard`
+    mode is the one exception: it returns a hit only when this frame's catalog
+    id for the requested slot equals the intended relic id, because the click's
+    identity proof must not depend on OCR card-name spelling. A missing pack is
+    not a frame error: it degrades to the existing text identity, while a
+    corrupt pack is refused at load time, never guessed around.
     """
     def __init__(self, catalog=None):
         super().__init__()
@@ -556,24 +578,42 @@ class RelicStaticIconCapture(CustomRecognition):
             margin=float(match.margin), relic=None if facts is None else dict(id=facts.id,
                 name=facts.name, mark=facts.mark, bonus=facts.bonus, rarity=facts.rarity))
 
+    def _guard(self, image, params):
+        """One same-frame catalog id check for the fresh selection guard."""
+        slot, expected = params.get('slot'), params.get('relic_id')
+        if type(slot) is not int or slot not in (0, 1, 2) or type(expected) is not int:
+            return self.AnalyzeResult(None, dict(trusted=False, matched=False,
+                reason='guard_param_unknown', slot=slot, expected_id=expected))
+        detail = self._detail(self.catalog.match(image, ICON_ROIS[slot]))
+        relic = detail['relic']
+        matched = bool(detail['trusted'] and relic is not None and relic['id'] == expected)
+        detail.update(mode='guard', slot=slot, expected_id=expected, matched=matched)
+        return self.AnalyzeResult(list(ICON_ROIS[slot]) if matched else None, detail)
+
     def analyze(self, context, argv):
         import json
+        mode = None
         try:
-            mode = json.loads(argv.custom_recognition_param or '{}').get('mode')
+            params = json.loads(argv.custom_recognition_param or '{}')
+            mode = params.get('mode')
             image = argv.image
+            miss = None if mode == 'guard' else [0, 0, 1280, 720]
             if self.catalog is None:
-                return self.AnalyzeResult([0, 0, 1280, 720], dict(trusted=False, reason='resource_missing'))
+                return self.AnalyzeResult(miss, dict(trusted=False, reason='resource_missing'))
             if getattr(image, 'shape', None) is None or tuple(image.shape[:2]) != (720, 1280):
-                return self.AnalyzeResult([0, 0, 1280, 720], dict(trusted=False, reason='frame_unknown'))
+                return self.AnalyzeResult(miss, dict(trusted=False, reason='frame_unknown'))
             if mode == 'obtained':
                 return self.AnalyzeResult(list(RESULT_ICON_ROI),
                     self._detail(self.catalog.match(image, RESULT_ICON_ROI)))
+            if mode == 'guard':
+                return self._guard(image, params)
             if mode != 'offers':
-                return self.AnalyzeResult([0, 0, 1280, 720], dict(trusted=False, reason='mode_unknown'))
+                return self.AnalyzeResult(miss, dict(trusted=False, reason='mode_unknown'))
             slots = [self._detail(self.catalog.match(image, roi)) for roi in ICON_ROIS]
             return self.AnalyzeResult([0, 0, 1280, 720], dict(mode='offers', slots=slots))
         except Exception:
-            return self.AnalyzeResult([0, 0, 1280, 720], dict(trusted=False, reason='recognition_error'))
+            return self.AnalyzeResult(None if mode == 'guard' else [0, 0, 1280, 720],
+                                      dict(trusted=False, reason='recognition_error'))
 
 
 def _relic_catalog_state(tasker):

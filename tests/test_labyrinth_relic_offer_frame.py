@@ -3,12 +3,12 @@
 The 2026-11-08 live run stopped with native_input_not_sent on this page: the
 observed name was `自光辉铠·断壁` (白 misread as 自), while the trusted static
 icon identified `35003` and the catalog name `白光辉铠·断壁`. The fresh guard
-must use that one identity. This is an offline SavedImages replay; it is not
-live-game acceptance.
+must prove that one catalog identity on the click frame with the static icon,
+not by matching the card-name OCR. This is an offline SavedImages replay; it is
+not live-game acceptance.
 """
 from hashlib import sha256
 import json
-import re
 import socket
 from pathlib import Path
 
@@ -84,10 +84,13 @@ def test_relic_offer_frame_uses_the_catalog_identity(relic_offline):
     assert [offer.identity['mark'] for offer in identified] == ['守备', '守备', '守备']
     assert [offer.identity['bonus'] for offer in identified] == [2, 3, 1]
 
-    # The fresh guard follows the catalog identity, not the observed spelling.
-    guard = R.selection_override(identified, 1)['LabyRelicGuardName10Line']['expected']
-    assert re.fullmatch(guard, '白光辉铠·断壁')
-    assert re.fullmatch(guard, '自光辉铠·断壁') is None
+    # The fresh guard proves the same-frame catalog id, not the OCR spelling.
+    guard = R.selection_override(identified, 1)
+    assert 'LabyRelicGuardName10Line' not in guard
+    assert guard['LabyRelicGuardIcon10']['custom_recognition_param'] == dict(
+        mode='guard', slot=1, relic_id=35003)
+    nodes = guard['LabyRelicSelectOnce']['all_of']
+    assert 'LabyRelicGuardIcon10' in nodes and 'LabyRelicGuardName10' not in nodes
 
 
 def test_relic_offer_frame_fresh_guard_clicks_the_catalog_card(relic_offline):

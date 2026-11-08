@@ -1,0 +1,47 @@
+{
+  "source": "2026-11-08 local MuMu ADB capture of the three-card relic offer page, 1280x720. Full frame retained; no player name, account ID, device ID or run ID is visible.",
+  "purpose": "Relic fresh-guard regression: the card-name OCR dropped the complex glyph 戮 (杀戮之矛 read as 杀之矛) in both the offer and the click frames while the trusted static icon still identified 13001. The fresh guard must prove the same-frame catalog icon id, not the exact OCR name. Does not establish live-game acceptance.",
+  "page": "relic_reward",
+  "frames": {
+    "labyrinth-relic-ocr-drop-20261108.png": {
+      "sha256": "f96b9d701b97c1278022e95ae0c7460861ef680017fca704c0d43ce26aa21754",
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "expected": {
+    "remaining": 1,
+    "observed_ocr_names": [
+      "杀之矛",
+      "再生之手镯",
+      "暗至宝圣物"
+    ],
+    "offers": [
+      {
+        "slot": 0,
+        "relic_id": 13001,
+        "name": "杀戮之矛",
+        "mark": "会心",
+        "bonus": 1,
+        "current": 4
+      },
+      {
+        "slot": 1,
+        "relic_id": 15005,
+        "name": "再生之手镯",
+        "mark": "守备",
+        "bonus": 1,
+        "current": 1
+      },
+      {
+        "slot": 2,
+        "relic_id": 22001,
+        "name": "暗至宝圣物",
+        "mark": "弱体",
+        "bonus": 2,
+        "current": 0
+      }
+    ],
+    "notes": "Slot 0 shows 杀戮之矛 but the OCR loses 戮; the catalog icon identity is 13001 杀戮之矛 (会心+1, same-frame attribute 暴击+1 / 当前4). The 2026-11-08 15:14 live run stopped with native_input_not_sent on this frame because the guard required the canonical 4-character name as an exact OCR match."
+  }
+}

@@ -1,3 +1,15 @@
+## 2026-11-08 遗物点击守卫改为同帧图鉴身份（OCR 丢字不再拦截）
+
+实机失败记录 player-log run `cb977ae3ac554d2da0f01ce814e72313`（业务 run `489c2c929c68495ab0163ba396239c0d`，`enter_id=13475`，`reward_id=20701:relic_reward:1`）：15:13:58 进入第四次三选一遗物页，选择 slot 0「杀戮之矛」（`relic_id=13001`，会心+1，当前 4）。15:14:09 账本 `relic_reward_select` 已写入意图，15:14:13 以 `native_input_not_sent` 停止（`relics.py:851`、`relics.py:807`、`native.py:340`），进度 1:0，没有发出点击。
+
+原因：卡面实际显示「杀戮之矛」，但原生 OCR 在该帧把名称读成「杀之矛」——复杂字形「戮」被检测器漏掉（在同一帧重放 offer 读取也得到「杀之矛」，属该卡面的稳定漏检）。13:51 的 `8f1a483` 把 fresh guard 的名称来源换成图鉴规范名且明确不加字符容错，于是守卫期望 `^\s*杀\s*[·・‧•]*\s*戮\s*...\s*矛\s*$`，点击帧不命中，`LabyRelicSelectOnce` 2.5 秒超时，没有点击也没有误操作。图鉴身份本身是正确的（静态图标 13001，离线复算 score .8987 / rival margin .2699），失败只发生在「用 OCR 名称做点击身份」这一步。
+
+修复：可信图鉴身份改为「同帧图标 id」判定，OCR 名称不再参与点击成立。`RelicStaticIconCapture` 新增 `guard` 模式：只匹配目标 slot 的 `ICON_ROIS[slot]`，`trusted` 且 catalog id 等于意图 `relic_id` 才返回 hit，否则 `box=None`（不点击；异常、缺包、坏帧同样不命中）；`relic_pipeline` 新增 `LabyRelicGuardIcon{slot}0` 占位节点（未提供 slot/relic_id 时恒不命中），`selection_override` 在 `offer.identity` 可信时用该图标守卫替换 `LabyRelicGuardName{slot}0`；图标不可信或包缺失时保持原精确（分隔点可选）OCR 名称守卫。属性行、`还剩N次`、按钮、Bright、`LabyRelicSelectedIconCapture` 与点击坐标均不变。同帧图标匹配单槽约 13 ms。
+
+验证（离线）：在实机失败原帧上，`LabyRelicObserved` 仍读出 `杀之矛/再生之手镯/暗至宝圣物`，静态图标识别 13001/15005/22001；新守卫在 slot 0 命中 `LabyRelicGuardIcon00` 并点击 `[239,614]`（落在按钮 ROI），原生回执 `action_started=true`；把意图换成 `13002` 后同一帧不命中、零点击、`require_native_input` 判为 `NativeInputNotSent`。新增公开测试资源 `tests/data/labyrinth-relic-ocr-drop-20261108.png` 与同名 `.json`（sha256、1280×720、来源用途；画面不含玩家名、账号、设备或运行标识），新增 `tests/test_labyrinth_relic_icon_guard_frame.py`。更新 `test_labyrinth_relic_offer_frame.py`（图鉴身份断言改为同帧图标守卫）、`test_labyrinth_relic_name_separator.py`（身份守卫使用图鉴图标、文本路径保留）、`test_labyrinth_relic_identity.py`（guard 模式命中/拒绝/缺包/坏帧与 pipeline 节点）。目标文件 `45 passed / 1 skipped`；遗物、链接、商店与奖励相关套件 `293 passed / 25 skipped`；`pytest -k labyrinth` `1882 passed / 123 skipped / 5979 deselected`（18 subtests，3:33）；识别审计/像素策略/回调/延迟套件 `72 passed / 29 skipped`。
+
+未做/边界：本局未实机复跑；守卫改为图标后，若点击帧图标低于图鉴可信阈值（遮挡/动画）会按「未发出输入」安全停止，不再回退 OCR 名称；offer 帧与点击帧若被图鉴以同一错误 id 命中，守卫会跟随同一误判（属性行仍与图鉴 mark/bonus 交叉校验）；商店 relic、地图/物品读取和链接/角色奖励的 name-only 守卫未并入本模块；阈值、ROI、超时、图标包与 masterdata 未改。
+
 ## 2026-11-08 奖励页遗物身份收束到 RelicOffer.identity（离线原帧复现）
 
 实机失败记录 player-log run `65bdcc4e34b74c0b9d89707782ea4f74`（业务 run `11af6eafef224049ae87e287b82d8a58`，`enter_id=13473`，`reward_id=50501:relic_reward:1`）：11:17:18 进入第二次三选一遗物页，选择 slot 1「白光辉铠·断壁」（`relic_id=35003`，守备+3）。11:17:34 账本 `relic_reward_select` 已写入意图，11:17:37 以 `native_input_not_sent` 停止（`relics.py:795`、`relics.py:751`、`native.py:340`），进度 1:2，实际没有发出点击，游戏停留在原选择页。

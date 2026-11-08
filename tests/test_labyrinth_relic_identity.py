@@ -251,6 +251,44 @@ def test_pipeline_carries_the_static_identity_nodes():
     assert pipeline['LabyRelicOfferedStaticIdentity']['custom_recognition_param'] == dict(mode='offers')
     assert pipeline['LabyRelicObtainedStaticIdentity']['custom_recognition'] == R.STATIC_ICON
     assert pipeline['LabyRelicObtainedStaticIdentity']['custom_recognition_param'] == dict(mode='obtained')
+    for slot in range(3):
+        guard = pipeline[f'LabyRelicGuardIcon{slot}0']
+        assert guard['custom_recognition'] == R.STATIC_ICON
+        assert guard['custom_recognition_param'] == dict(mode='guard')
+
+
+def test_static_icon_guard_matches_only_the_expected_catalog_id():
+    from pcr_maa.labyrinth.relic_recognition import load_catalog
+    capture = R.RelicStaticIconCapture(load_catalog())
+    board = np.full((720, 1280, 3), 20, np.uint8)
+    for pid, box in zip((35004, 35001, 31006), R.ICON_ROIS):
+        _paste(board, _icon(pid), box, np.float32([20, 20, 20]))
+
+    def guard(slot, relic_id):
+        return capture.analyze(_Args(), _Args(image=board, custom_recognition_param=json.dumps(
+            dict(mode='guard', slot=slot, relic_id=relic_id))))
+
+    matched = guard(1, 35001)
+    assert matched.box is not None and matched.detail['matched'] is True
+    assert matched.detail['relic']['id'] == 35001
+    assert matched.detail['expected_id'] == 35001 and matched.detail['slot'] == 1
+    missed = guard(1, 35004)
+    assert missed.box is None and missed.detail['matched'] is False
+    assert missed.detail['relic']['id'] == 35001
+    malformed = guard(3, 35001)
+    assert malformed.box is None and malformed.detail['reason'] == 'guard_param_unknown'
+
+
+def test_static_icon_guard_without_a_pack_or_frame_never_hits():
+    from pcr_maa.labyrinth.relic_recognition import load_catalog
+    no_pack = R.RelicStaticIconCapture(None)
+    result = no_pack.analyze(_Args(), _Args(image=np.zeros((720, 1280, 3), np.uint8),
+        custom_recognition_param=json.dumps(dict(mode='guard', slot=0, relic_id=35004))))
+    assert result.box is None and result.detail['trusted'] is False
+    wrong_frame = R.RelicStaticIconCapture(load_catalog()).analyze(_Args(),
+        _Args(image=np.zeros((10, 10, 3), np.uint8),
+              custom_recognition_param=json.dumps(dict(mode='guard', slot=0, relic_id=35004))))
+    assert wrong_frame.box is None
 
 
 def _saved_frame_node(tmp_path, monkeypatch, frame, node):
