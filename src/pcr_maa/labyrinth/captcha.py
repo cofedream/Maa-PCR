@@ -30,7 +30,9 @@ class Proof:
     gt_user_id:str=field(repr=False)
     validate:str=field(repr=False)
     def checked(self,challenge):
-        if (self.challenge!=challenge.challenge or self.gt_user_id!=challenge.gt_user_id
+        # Geetest can replace the challenge during verification; keep its returned value.
+        if (type(self.challenge) is not str or not re.fullmatch(r'[A-Za-z0-9_-]{1,512}',self.challenge)
+                or self.gt_user_id!=challenge.gt_user_id
                 or type(self.validate) is not str or not re.fullmatch(r'[A-Za-z0-9_-]{1,4096}',self.validate)):
             raise CaptchaFailure('captcha_proof_invalid')
         return self
@@ -102,8 +104,8 @@ class CaptchaPage:
                         if raw!={}:raise ValueError()
                         value=None;error='captcha_cancelled'
                     else:
-                        if type(raw) is not dict or set(raw)!={'validate'}:raise ValueError()
-                        value=Proof(page.challenge.challenge,page.challenge.gt_user_id,raw['validate']).checked(page.challenge)
+                        if type(raw) is not dict or set(raw)!={'challenge','validate'}:raise ValueError()
+                        value=Proof(raw['challenge'],page.challenge.gt_user_id,raw['validate']).checked(page.challenge)
                         error=None
                 except Exception:self.reply(400);return
                 with page.lock:
@@ -152,7 +154,7 @@ if(typeof initGeetest!=='function'){status.textContent='官方组件加载失败
 else initGeetest("""+options+""",function(captcha){captcha.appendTo('#captcha');
 captcha.onReady(()=>status.textContent='请点击下方按钮，手动完成验证。');
 captcha.onSuccess(()=>{const result=captcha.getValidate();
-if(result&&result.geetest_validate)submit('complete',{validate:result.geetest_validate});
+if(result&&result.geetest_challenge&&result.geetest_validate)submit('complete',{challenge:result.geetest_challenge,validate:result.geetest_validate});
 else status.textContent='验证结果为空，请取消本次登录。';});
 captcha.onError(()=>status.textContent='验证组件加载失败，请取消本次登录。');});
 </script></html>"""

@@ -58,11 +58,12 @@
       "source": "autopcr/sdk/bsgamesdk.py",
       "destination": "autopcr_sync/sdk/bsgamesdk.py",
       "sha256": "1e94e19ebf713ed82f7fe1b40812fde0cfb477dfdbaf0a98978b0708ca63c14a",
-      "modified": false,
+      "modified": true,
       "source_sha256": {
         "autopcr/sdk/bsgamesdk.py": "1e94e19ebf713ed82f7fe1b40812fde0cfb477dfdbaf0a98978b0708ca63c14a"
       },
-      "adopted_sha256": "1e94e19ebf713ed82f7fe1b40812fde0cfb477dfdbaf0a98978b0708ca63c14a"
+      "adopted_sha256": "f4a8c6a8eb7ff8ba60dbaed0ef5dbdf34341e827a721129cf9055122a8847b35",
+      "changes": "URL-encode each SDK form field once, removing duplicate pwd and preserving special characters; keep signing the original values."
     },
     {
       "source": "autopcr/sdk/rsacr.py",

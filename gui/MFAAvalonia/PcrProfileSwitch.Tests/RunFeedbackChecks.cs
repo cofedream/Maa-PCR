@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Avalonia.Threading;
@@ -47,6 +48,8 @@ internal static class RunFeedbackChecks
         Dispatcher.UIThread.RunJobs();
         Check(vm.PcrRunSummary == partial && vm.PcrHasRunSummary,
             "feedback_displays_existing_multiline_summary_without_reinterpreting_outcome");
+        Check(vm.LabyrinthLogRows.Count(row => row.Content.StartsWith("已完成：礼物领取。")) == 1,
+            "failed_result_is_logged_once");
         Check(changed.Contains(nameof(vm.PcrHasRunSummary)), "feedback_visibility_notifies");
         foreach (var line in new[] { "info: 普通日志", "info: PCR Alpha {", "info: PCR Alpha {\"summary\":42}",
                      "info: PCR Alpha {\"summary\":\"\"}" }) Output(vm, run, line);
@@ -90,12 +93,15 @@ internal static class RunFeedbackChecks
         settings.Progress = "本次任务已停止。";
         var statusFor = type.Assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner")!
             .GetMethod("StatusFor", BindingFlags.Static | BindingFlags.NonPublic)!;
-        foreach (var outcome in new[] { "login_failed", "runtime_components_missing", "controller_connection_failed" })
+        foreach (var outcome in new[] { "login_failed", "sdk_login_failed", "captcha_response_invalid",
+                     "captcha_type_unsupported", "captcha_proof_invalid", "captcha_request_invalid",
+                     "captcha_network_or_protocol_failed", "runtime_components_missing", "controller_connection_failed" })
         {
             var reason = (string)statusFor.Invoke(null, [outcome])!;
             showError.Invoke(labyrinth, [labyrinthRun, reason]);
             Check(labyrinth.PcrRunStatus == reason && labyrinth.PcrRunStatus != settings.Progress,
                 "labyrinth_terminal_reason_remains_visible_" + outcome);
+            Check(!reason.StartsWith("本次未确认完成"), "labyrinth_login_failure_has_explanation_" + outcome);
         }
         const string timeout = "正在加载黎明界执行组件等待超时，本次已停止。";
         showError.Invoke(labyrinth, [labyrinthRun, timeout]);

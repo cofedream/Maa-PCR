@@ -4750,7 +4750,6 @@ public class MaaProcessor
         {
             var message = "执行资源退出尚未确认，请重启 Maa-PCR 后继续。原记录已保留。";
             ViewModel?.FinishPlayerLog("cleanup_unconfirmed");
-            ViewModel?.AddPcrLiveLog(message);
             DispatcherHelper.PostOnMainThread(() =>
             {
                 if (ViewModel is { } vm)

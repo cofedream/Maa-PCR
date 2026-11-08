@@ -310,6 +310,20 @@ internal static class GuideDataChecks
         var message = new JObject { ["kind"] = "result", ["outcome"] = "complete", ["snapshot"] = snapshotBytes };
         Require(((byte[])resultMethod.Invoke(null, new object[] { message.ToString() })!).Length > 0, "sync_result_parsed");
         Reject(() => resultMethod.Invoke(null, new object[] { "{\"kind\":\"result\",\"outcome\":\"secret-upstream-error\"}" }), "sync_unknown_error_sanitized");
+        foreach (var outcome in new[] { "captcha_response_invalid", "captcha_type_unsupported",
+                     "captcha_proof_invalid", "captcha_request_invalid", "captcha_network_or_protocol_failed" })
+        {
+            try
+            {
+                resultMethod.Invoke(null, [new JObject { ["kind"] = "result", ["outcome"] = outcome }.ToString()]);
+                throw new InvalidOperationException("captcha failure was accepted");
+            }
+            catch (TargetInvocationException ex)
+            {
+                Require(ex.InnerException is InvalidOperationException && ex.InnerException.Message.Contains("验证码")
+                    && ex.InnerException.Message.Contains("原资料保持"), "sync_captcha_failure_has_explanation_" + outcome);
+            }
+        }
         Reject(() => resultMethod.Invoke(null, new object[] { "{\"kind\":\"result\",\"kind\":\"result\",\"outcome\":\"complete\"}" }), "sync_duplicate_result_rejected");
         var active = ownerType.GetField("current", BindingFlags.Static | BindingFlags.NonPublic)!;
         var gateType = ownerType.Assembly.GetType("MFAAvalonia.Pcr.PcrProfileRunGate", true)!;
