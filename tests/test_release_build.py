@@ -2,6 +2,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import shutil
 import sys
 import zipfile
 
@@ -56,6 +57,40 @@ def test_player_payload_rejects_missing_guide_launcher(complete_player_stub, nam
     with pytest.raises(ValueError) as missing:
         builder.require_payload(player, metadata)
     assert str(missing.value) == 'release_payload_missing: scripts/' + name
+
+
+def test_relic_payload_is_required(tmp_path, monkeypatch):
+    player = tmp_path / 'player'
+    player.mkdir()
+    monkeypatch.setattr(builder, 'ROOT', tmp_path / 'source')
+    metadata = {'python': {'version': '3.13.16'}, 'dotnet': {'version': '10.0.1'}}
+    with pytest.raises(ValueError, match='release_payload_missing: ') as missing:
+        builder.require_payload(player, metadata)
+    text = str(missing.value)
+    assert 'assets/labyrinth/labyrinth-relics.json' in text
+    assert 'assets/labyrinth/relic-pack/PROVENANCE.json' in text
+
+
+def test_relic_payload_must_match_catalog_and_provenance(tmp_path, monkeypatch):
+    source = tmp_path / 'source'
+    assets = source / 'assets/labyrinth'
+    shutil.copytree(ROOT / 'assets/labyrinth/relic-pack', assets / 'relic-pack')
+    shutil.copyfile(ROOT / 'assets/labyrinth/labyrinth-relics.json', assets / 'labyrinth-relics.json')
+    player = tmp_path / 'player'
+    shutil.copytree(assets / 'relic-pack', player / 'assets/labyrinth/relic-pack')
+    monkeypatch.setattr(builder, 'ROOT', source)
+    builder.require_relic_payload(player)
+    icon = player / 'assets/labyrinth/relic-pack/icons/35004.png'
+    pristine = icon.read_bytes()
+    icon.write_bytes(pristine + b'\0')
+    with pytest.raises(ValueError, match='labyrinth_relic_icon_missing_or_changed'):
+        builder.require_relic_payload(player)
+    icon.write_bytes(pristine)
+    catalog = json.loads((assets / 'labyrinth-relics.json').read_text(encoding='utf-8'))
+    catalog['relics'] = catalog['relics'][:-1]
+    (assets / 'labyrinth-relics.json').write_text(json.dumps(catalog, ensure_ascii=False), encoding='utf-8')
+    with pytest.raises(ValueError, match='labyrinth_relic_icon_inventory_mismatch'):
+        builder.require_relic_payload(player)
 
 
 def test_runtime_copy_excludes_only_the_local_guide_handoff(tmp_path, monkeypatch):

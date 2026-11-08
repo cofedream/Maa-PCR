@@ -7,6 +7,13 @@ the click-frame line read `白光辉铠·断壁` as one token. The exact name gu
 rejected a correct card, the click never started and the batch stopped with
 `native_input_not_sent`. A separator may therefore be required or dropped by
 either frame; it must never be required in the guard pattern.
+
+Live run 2026-11-07T13:24:19Z (ledger run `954368389b32431baba4d7fdb76dcc14`,
+`enter_id=13461`): the offer frame read `幽玄煌装` + a 0.14 token + `绝魔`, so the
+journaled name was `幽玄煌装绝魔`, while the obtained modal read the line as
+`幽玄煌装·绝魔×1`. The same separator rule reached the guard, but the result
+layer still compared the two spellings verbatim and stopped the batch with
+`relic_result_mismatch` after the reward had actually been acquired.
 """
 import os
 import re
@@ -15,10 +22,13 @@ from pathlib import Path
 import pytest
 
 from pcr_maa.labyrinth import relics as R
+from pcr_maa.labyrinth.batch import BatchStopped
 
 SEPARATORS = '·・‧•'
 LIVE_NAME = '白光辉铠·断壁'          # click-frame reading
 JOURNALED_NAME = '白光辉铠断壁'      # offer-frame reading that stopped the run
+OBTAINED_JOURNALED_NAME = '幽玄煌装绝魔'   # 2026-11-07 offer-frame reading
+OBTAINED_RESULT_TEXT = '幽玄煌装·绝魔×1'   # 2026-11-07 obtained-modal line
 
 
 def _words(texts, roi, widths):
@@ -89,6 +99,53 @@ def test_other_punctuation_fields_stay_unchanged():
     # and the rest of the identity string are untouched.
     assert R._normalized('【守备＋3】（当前：14）') == R._normalized('【守备+3】(当前:14)')
     assert re.fullmatch(R._pattern('白光辉铠断壁×1'), '白光辉铠·断壁×1')
+
+
+def _result_receipt(item_text, *, icon):
+    """One obtained-modal receipt; boxes mirror the 2026-11-07 live frame."""
+    def line(text, roi):
+        return dict(filtered=[dict(text=text, box=list(roi), score=.99)])
+    item = [dict(text=item_text, box=[454, 186, 186, 20], score=.978742)]
+    rows = [
+        dict(name='LabyRelicObtainedTitle', detail=line('获得道具', R.RESULT_TITLE_ROI)),
+        dict(name='LabyRelicObtainedMessage', detail=line('获得了以下道具。', R.RESULT_MESSAGE_ROI)),
+        dict(name='LabyRelicObtainedItem', detail=dict(filtered=item)),
+        dict(name='LabyRelicObtainedClose', detail=line('关闭', R.RESULT_CLOSE_ROI)),
+    ]
+    if icon:
+        rows.append(dict(name='LabyRelicObtainedIdentity', detail=[dict(
+            algorithm='OCR', name='LabyRelicObtainedExactItem', box=[454, 186, 186, 20],
+            detail=dict(filtered=item))]))
+    return dict(native_ok=True, nodes=[dict(name='LabyRelicObtainedObserved',
+        completed=True, recognition=rows)])
+
+
+@pytest.mark.parametrize('icon', [False, True])
+def test_obtained_result_accepts_the_result_frame_separator(icon):
+    # 2026-11-07: the journaled name lost the dot, the obtained modal kept it.
+    # The guard and the native OCR node already tolerated that; the Python
+    # re-check must use the same identity instead of a verbatim comparison.
+    value = R.relic_obtained(_result_receipt(OBTAINED_RESULT_TEXT, icon=icon),
+                             OBTAINED_JOURNALED_NAME, icon=icon)
+    assert value['verified'] and value['relic_name'] == OBTAINED_JOURNALED_NAME
+    assert value['observed_result_text'] == OBTAINED_RESULT_TEXT
+    assert value['identity_method'] == 'exact_ocr'
+
+
+@pytest.mark.parametrize('item_text', ['幽玄煌装·破魔×1', '幽玄煌装·绝魔×2',
+                                       '幽玄煌装·绝×1', '幽玄煌装绝魔×1X'])
+def test_obtained_result_still_refuses_a_different_item(item_text):
+    # Separator tolerance is not character, quantity or tail tolerance.
+    with pytest.raises(BatchStopped, match='relic_result_mismatch'):
+        R.relic_obtained(_result_receipt(item_text, icon=False), OBTAINED_JOURNALED_NAME)
+
+
+def test_item_identity_uses_the_guard_pattern_only():
+    assert R._item_identity_matches(OBTAINED_RESULT_TEXT, OBTAINED_JOURNALED_NAME)
+    assert R._item_identity_matches('幽玄煌装・绝魔×1', OBTAINED_JOURNALED_NAME)
+    assert R._item_identity_matches('幽玄煌装绝魔×1', OBTAINED_JOURNALED_NAME)
+    assert not R._item_identity_matches('幽玄煌装·破魔×1', OBTAINED_JOURNALED_NAME)
+    assert not R._item_identity_matches('幽玄煌装·绝魔×2', OBTAINED_JOURNALED_NAME)
 
 
 @pytest.mark.private_replay

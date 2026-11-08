@@ -248,6 +248,7 @@ def require_payload(player, metadata):
         'assets/labyrinth/labyrinth-event-ocr.json', 'assets/labyrinth/labyrinth-role-decision.json',
         'assets/labyrinth/scoring-defaults.json', 'assets/labyrinth/labyrinth-bosses.json',
         'assets/labyrinth/boss-pack/PROVENANCE.json', 'assets/labyrinth/character-pack/icons.json',
+        'assets/labyrinth/labyrinth-relics.json', 'assets/labyrinth/relic-pack/PROVENANCE.json',
         'assets/labyrinth/character-pack/characters.landosolroster.json',
         'docs/RELEASE_STATUS.md', 'docs/SOURCE_AND_LICENSES.md', 'docs/LABYRINTH_INTEGRATION.md',
         'docs/LABYRINTH_SOURCES.json',
@@ -284,6 +285,23 @@ def require_boss_payload(player):
         if (not source.is_file() or digest(source) != record['sha256']
                 or not copied.is_file() or digest(copied) != record['sha256']):
             raise ValueError('labyrinth_boss_icon_missing_or_changed')
+
+
+def require_relic_payload(player):
+    """The relic catalog and its icons must ship byte-identical to the reviewed source.
+    Kept separate from require_payload for the same offline-fixture reason as the Boss pack."""
+    relic_pack = ROOT / 'assets/labyrinth/relic-pack'
+    relic_provenance = json.loads((relic_pack / 'PROVENANCE.json').read_text(encoding='utf-8'))
+    relic_catalog = json.loads((ROOT / 'assets/labyrinth/labyrinth-relics.json').read_text(encoding='utf-8'))
+    relic_icons = {row['path']: row for row in relic_provenance['icons']}
+    if {row['icon'] for row in relic_catalog['relics']} != {'relic-pack/' + name for name in relic_icons}:
+        raise ValueError('labyrinth_relic_icon_inventory_mismatch')
+    for name, record in relic_icons.items():
+        source = relic_pack / name
+        copied = player / 'assets/labyrinth/relic-pack' / name
+        if (not source.is_file() or digest(source) != record['sha256']
+                or not copied.is_file() or digest(copied) != record['sha256']):
+            raise ValueError('labyrinth_relic_icon_missing_or_changed')
 
 
 def archive_player(player, output):
@@ -488,6 +506,7 @@ def build(args):
         raise ValueError('payload_source_changed_during_build')
     require_payload(player, metadata)
     require_boss_payload(player)
+    require_relic_payload(player)
     save(player / 'build-source-manifest.json', {
         'schema_version': 1, 'purpose': 'GUI build input source binding',
         'bit_for_bit_rebuild_claimed': False,

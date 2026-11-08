@@ -652,6 +652,14 @@
       "distribution_status": "source-scope-and-third-party-data-review-pending"
     },
     {
+      "local": "assets/labyrinth/labyrinth-relics.json",
+      "kind": "game-master-derived-catalog",
+      "license": "Relic names/effects/marks derive from game master data; no game image in this file; catalog schema is original",
+      "source": "data/labyrinth/master-cn labyrinth_relic / labyrinth_relic_mark_series (master 202611021739); mark vocabulary follows src/pcr_maa/labyrinth/strategies.py MARKS/ALIASES",
+      "local_sha256": "a36e4938fa71b6171c6b54089ab9196c55947cdde56b45ae398fdbe052f75e72",
+      "distribution_status": "source-scope-and-third-party-data-review-pending"
+    },
+    {
       "local": "src/pcr_maa/labyrinth/encounters.py",
       "kind": "adapted-code",
       "license": "CC-BY-NC-SA-4.0",
@@ -862,7 +870,7 @@
   "game_icons_copied": true,
   "landosol_roster_catalog_copied": true,
   "release_status": "r38_user_approved_reused_clear_delivery",
-  "updated_at": "2026-11-07T08:19:28.024980+00:00",
+  "updated_at": "2026-11-07T15:27:12.796719+00:00",
   "asset_packages": [
     {
       "local_root": "assets/labyrinth/character-pack",
@@ -8117,6 +8125,393 @@
           "local_sha256": "456a58f3a92c9364f595849f1a89b7cccefe8f3e2b6879d6a73be7446ed3faa7"
         }
       ]
+    },
+    {
+      "local_root": "assets/labyrinth/relic-pack",
+      "kind": "local-game-relic-icon-pack",
+      "file_count": 92,
+      "icon_count": 91,
+      "icon_formats": {
+        "png": 91
+      },
+      "inventory_sha256": "d715eac2976b17dcf142646e4b7ecb0ffdc687dba2d3c2041fce5c35b8174ed3",
+      "inventory_sha256_format": "sorted local path TAB local_sha256 LF, UTF-8",
+      "provenance": {
+        "local": "assets/labyrinth/relic-pack/PROVENANCE.json",
+        "sha256": "9ce1f303937e06db149a9e80cb82e1683d99faeaa425825af36c0eb97bcf520a"
+      },
+      "image_rights": "Game imagery retains respective rights",
+      "distribution_status": "permission-and-combination-compatibility-review-pending",
+      "files": [
+        {
+          "local": "assets/labyrinth/relic-pack/PROVENANCE.json",
+          "local_sha256": "9ce1f303937e06db149a9e80cb82e1683d99faeaa425825af36c0eb97bcf520a"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/11001.png",
+          "local_sha256": "fdd2b685125988b45b526eff46af7bf652ca8f5dbcabe8f7e7682280eb710f1c"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/11002.png",
+          "local_sha256": "971767ac5b742c362e9573570008b4dc31cbfa1b5b9e8f68d84330799f20608b"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/11003.png",
+          "local_sha256": "860c1f65cbc82ad52e985edd56c38ae37ebc20ec5f282fd9ebf16bc6123e8a94"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/11004.png",
+          "local_sha256": "747713cc3215ee108f6770d3cc1252290b3c72ce9e7c7bb1fe41581716ae6153"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/11005.png",
+          "local_sha256": "8b3ad94c53288a32e9d4709a1b788d1755933a8d7d7024787db1d0277d08c340"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/12001.png",
+          "local_sha256": "28455365cc49debb6d213d0d6e06b06bca20fd1f463c23b5a22d706ca0f817df"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/12002.png",
+          "local_sha256": "2be6ffdc6f3111816a3dda087dc3621024446b565ad5e0f4880ec267bd7535c3"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/12003.png",
+          "local_sha256": "3d36f8930f6dd36814ee6b1bd453a3e70390322dfc3d82df259100ab7b4b2d36"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/12004.png",
+          "local_sha256": "aeef3ff737a76c24868643cbc5244a4e43813143732aab5976ff816e0a93947d"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/12005.png",
+          "local_sha256": "0a0d582c8a5ff957629d9f0ae683c000ba8bb09b29cd837f08630ac77260c763"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/13001.png",
+          "local_sha256": "8d8b469b6a2809fa31b91286319f2b81604e1c569d23b4d1ddfdc88f910abccd"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/13002.png",
+          "local_sha256": "ba38adbfd7c4a360b431dc25efdfa1d639259d7748cfb2e0f8a59e6b62df2bb5"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/13003.png",
+          "local_sha256": "127c281ba6c77bcf1e7d586fa07cae7f837a3ff5f4006e122bde29df4e9ae10e"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/13004.png",
+          "local_sha256": "84b06d060d6e5381cec991b9cbf1e82ed9a0bc76b87f17622f4fc8705dcf7177"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/13005.png",
+          "local_sha256": "5d570cc86968079238ba17880dadb6ae8a03814956be304edb14bc3382d9679b"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/14001.png",
+          "local_sha256": "dede10c865dbeac1b0a22bd890a1e725429ebe9c84f6e42bfe1107386333cadf"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/14002.png",
+          "local_sha256": "d532fcf5f2cf33a6f691c9941e6d8c2713ab5e709b8022d21cb5ae798b406f4e"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/14003.png",
+          "local_sha256": "c843b6652c91c0df8b02175df32206e4904e1a524a68dfaaa497579c0572ae3b"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/14004.png",
+          "local_sha256": "5772b09ef2770fadb498bb4a8cf8bf46279dbc79b5708a3b0da54594f8b41bb7"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/14005.png",
+          "local_sha256": "7f72188fe25de5d6394c6d826542e1a4e348c48181d0af04fbd43ae4629ed2a7"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/15001.png",
+          "local_sha256": "bda74846d5dab67cff164cf466ee1c841f4ce2e4bbabfd663073a03f424416d1"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/15002.png",
+          "local_sha256": "f5a13125592c3e6f10759c744ea6ee56a50b703187bda0d2021f92b1419a76a3"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/15003.png",
+          "local_sha256": "b0e8279d3f33c6ad7428840f20a8d1d823dd15d4db456b2850b3f6572260283c"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/15004.png",
+          "local_sha256": "42cd981fe303c7f02eb3a72ee1d1bbafb745ffcd77b69001ee69e04339aaa2c1"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/15005.png",
+          "local_sha256": "41d91b6abc7e060e0aafaa67d5f7261bab86cdc98acbb6639d1f3c1e1214f41e"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/21001.png",
+          "local_sha256": "c81a8c11f23dae4732832414b38a0593207cd5f6e3ded5ba58cf45360e490390"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/21002.png",
+          "local_sha256": "a1c3f6dfcf5b00bd00a44c08074904223b8b9aa946dc0c61062b02dc84cff7a2"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/21003.png",
+          "local_sha256": "d8105a2c3590135dd5dc7d710b1c6af6b219c0a9f1e86ed41368d011348cafe6"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/21004.png",
+          "local_sha256": "e72054a4938b93c8061f5b846a1abd60ad948cc247e325f14418d7bc8ed8148b"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/21005.png",
+          "local_sha256": "0e02610cf633effaad08ad578d00d074f53dddc99f39d342683d7dcece4984c4"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/22001.png",
+          "local_sha256": "4b0d2a44f32ebc00202c4829432697da31a607ea565f3ca87f63f1ae6024dc9a"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/22002.png",
+          "local_sha256": "ab1fa8c84ac6ec4c2e68944a6d286bc145c403f45819837712634d99f53fcef5"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/22003.png",
+          "local_sha256": "17ad783edb21454191180257e8401b94723797ffac1e49a6009dbcd5bdb078d9"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/22004.png",
+          "local_sha256": "cd67d70ad8dd0e748680a597e0797c5c9add667cabfeec4000c80a485764d093"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/22005.png",
+          "local_sha256": "d82e32d04261cecb85f886b20e3c5d6c861abf105845abc98d16940488df2063"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/23001.png",
+          "local_sha256": "67d4895c48e887c10d7e256fa89cdb9805222e92f7ba372e3c2bd102fbdafc64"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/23002.png",
+          "local_sha256": "80412656bc7c34ab980ab57ba8a94b6bd86467d8f58fbde5fc27c6ba90759e13"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/23003.png",
+          "local_sha256": "4a4fc60918277cf530e45b3ce465e6bdfe2249bc0f53e494f971dcc72f2a354d"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/23004.png",
+          "local_sha256": "6f2ef47f1f7ac6242662a7dd83511001f936ed409b315f1e725c96011fee3ac4"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/23005.png",
+          "local_sha256": "ccedb7e399a55b21a7c5454851476cfb71c3d535397254b49afa8c9d113a06f2"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/24001.png",
+          "local_sha256": "5d95589c6fadb46681aa4c433696bac83a6998678ee2e3a4f72a9820d4ee31bc"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/24002.png",
+          "local_sha256": "7f551fe49a14f2b542f7ac9d7de1ddb093bf7aa8576553a99ff74f28aff6f0da"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/24003.png",
+          "local_sha256": "84242caa367266283a7465b44890fa4199a4795a9e3b3345e9dae050563591f5"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/24004.png",
+          "local_sha256": "215dc2c4e9fb2f6663e5f93867fdd3228352c61270948004e64bbcbec4c4348f"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/24005.png",
+          "local_sha256": "087c8c63c34a4ab6b1fef4948f52c99967a24cfac35f3db64a75553fdb79c470"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/25001.png",
+          "local_sha256": "13f60f8dd782137a1f12e1955050b05270cebff89facc691045e567c2b77b244"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/25002.png",
+          "local_sha256": "e203a8eddbc4073fdc8d00117ce0ea46d4bdf2d0180688bcdcec10f1db272338"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/25003.png",
+          "local_sha256": "22204fb1a2e49aa866f8968d47f193e3d51f57182dd39902dd27d6cdeb7b0935"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/25004.png",
+          "local_sha256": "f423cefef79b7b5f0a3a044e445c824648916a7d586918ffe277cf56333f9948"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/25005.png",
+          "local_sha256": "54968cac191a8098889028f29965ba69289da78e365c637be352c481320d80b5"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/30001.png",
+          "local_sha256": "9858c80db5b5830a34a7107d12d665b393ef66a67b1004c55b679d2db998b83b"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/31001.png",
+          "local_sha256": "a91a84c76513fa19cc7f923f08b9a987bf73f5508513a9765cbffaa6aee26336"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/31002.png",
+          "local_sha256": "9de13de903e5868e7c6332b0b3782eb8a6cd110396ebdd2d58e74d233e5ccdde"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/31003.png",
+          "local_sha256": "5472005154a17837612a5e3e725ba1c25a91fe28853ea9553fb09507a6accfab"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/31004.png",
+          "local_sha256": "d6f7ef9c185454f47ebf509240d528dc4fc49b8cb9f0957b008971b1b401f7fe"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/31005.png",
+          "local_sha256": "378ce762cf54a49c1e0ae56927327c8845a5b8dbce817ecb6fb7110eaaac3bed"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/31006.png",
+          "local_sha256": "59f212dc44ed1712fc50ede0bd54ee96aaa10cce5d1fe522d4bb1991b111193a"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/32001.png",
+          "local_sha256": "c8a13f9fe0f4db50c3a8207ab9a4cb6eb6bb7e1e01d0f3c0da7c074a58ec7c36"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/32002.png",
+          "local_sha256": "85e90a0986de1ee1f07f416902ef86314c5fd4920a1cda0038e717cd8d0589ae"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/32003.png",
+          "local_sha256": "b053e5190d0bb2bf1ffc48fe1f9756480cee1a47d4efaecd7e63bce0d56e8e5b"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/32004.png",
+          "local_sha256": "ebd2565e1c67c5cbc672a56799d5d321c1112a5896978443756b1c4ab8520251"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/32005.png",
+          "local_sha256": "afdf0f98cfb8f5cb65e6522b26f15fd9a470d4d6f11c58778d2cb91101f8d627"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/32006.png",
+          "local_sha256": "f063cc312efd572a05d61e8d28985a13c06bbb3f3dffc37461efeba33867df83"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/33001.png",
+          "local_sha256": "86ecbc89bcb9a4bbb4dbeac09404e25a33ce225466fe59815bbb505f38e4cf35"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/33002.png",
+          "local_sha256": "e3517219279f21407b0c6ce765b95f53038021244a14bfa31a08a585c51bbc68"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/33003.png",
+          "local_sha256": "3b4efd8ad91dea3a6bb308aa272941ef282e8845ef7a48da80d965bc6732e768"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/33004.png",
+          "local_sha256": "9a81f47ee82d947eb0c7463d02d256b4e67a58dd1206de50efeedc732223165c"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/33005.png",
+          "local_sha256": "51c5aae7a0cd2edc7e87dbd4128e2fc270df8dd429fd7cf295e11c2db3c8e960"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/33006.png",
+          "local_sha256": "14bfca7bf9742aa2f4138e1c42712a6e25061d281da2557d68a950db46cb4968"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/34001.png",
+          "local_sha256": "fe8004f8790d38a4a43f18add212cfad4d9263f2d9caa747b2badd0b21bc0fe5"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/34002.png",
+          "local_sha256": "21e4f2f2000373bf4401774145e8f39d9813732bc7c00b4e91052a42e87d9559"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/34003.png",
+          "local_sha256": "0d9b3f3680e63242f855b59c2e54cbfdbdfd868cd0e2de23a0d6796e10358e4a"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/34004.png",
+          "local_sha256": "b089d838e05c7d651712bcdb6e2c789188fdc95a90ac22bd138e61646926ece1"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/34005.png",
+          "local_sha256": "ad374cb50ff4b0a0892bd48152c54ca3a1c5f34d318aa336ed641cd162ae6451"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/34006.png",
+          "local_sha256": "7a0c7594beb727aaec9f1055180e488d77033f3e17aec40630d89e0e37e1aee3"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/35001.png",
+          "local_sha256": "0da28c0119b482a57fa712892a1d5b6bd28ee99ee87515f9126cae45bfadac8a"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/35002.png",
+          "local_sha256": "6e7fe872a357cdc111a26bee8ac1da651a7d9a595a42928ceb6842d30b94b2bf"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/35003.png",
+          "local_sha256": "ff5bb8599cc83b4b2ff9629739fa921d3d0c8511f1eb1a9271a217311f4c7d80"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/35004.png",
+          "local_sha256": "592cd9b97a7a18b0e646ce682a1082529039e827af94a485ec70bff4670eebfd"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/35005.png",
+          "local_sha256": "2959f82ba637091e0b50c403220e826f972b69244b165d66aba2bdae86820e8b"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/35006.png",
+          "local_sha256": "bb61142d5d31653d428bd39684c25dd56389d2157fcdd073533cc09dbd8f59b4"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/40001.png",
+          "local_sha256": "eecab85eae121d28cd865f2efd88d988786203cae644990e3b978ac2444087b7"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/40002.png",
+          "local_sha256": "744f172fc317a4f7c081f7b1fda66d02a733dead13eca6bb47bf938dc82e1a23"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/40003.png",
+          "local_sha256": "518480d8f39e0b1e847e3f2195f900293467a213589309a308dc0a45b34f9cf2"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/40004.png",
+          "local_sha256": "b5551efaf132b1aaa48a796549ca8cd821a623861944daaa95b6697f4b25b385"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/40005.png",
+          "local_sha256": "4f55b71c9959c80d102e174acfc956e6326d50e6ff060739cb2b86b39eded0b8"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/50001.png",
+          "local_sha256": "1480a683ae9974d03d03143a1a2c9fbd2129d4d79ed60267edbcee5fbed0a81f"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/50002.png",
+          "local_sha256": "4d71e11a302006e0e5fed01bf6d4c497f39404cbeffcc704e09612b709cf79b3"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/50003.png",
+          "local_sha256": "f64badfb879a5bea461f656e029702d5c3fd78d8a70c632f3c27667c1d835944"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/50004.png",
+          "local_sha256": "a4fe07f235108b1192d577a8bb5d7a4370d66ff3b4e5697282ff3025688154dd"
+        },
+        {
+          "local": "assets/labyrinth/relic-pack/icons/50005.png",
+          "local_sha256": "575b79986682de082ce5d353cd471a023ce101b9f76294497838c51e8c1da1ca"
+        }
+      ]
     }
   ],
   "licenses": [
@@ -8577,6 +8972,564 @@
       "production_runtime": true
     },
     {
+      "local": "assets/labyrinth/labyrinth-relics.json",
+      "local_sha256": "a36e4938fa71b6171c6b54089ab9196c55947cdde56b45ae398fdbe052f75e72",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/PROVENANCE.json",
+      "local_sha256": "9ce1f303937e06db149a9e80cb82e1683d99faeaa425825af36c0eb97bcf520a",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/11001.png",
+      "local_sha256": "fdd2b685125988b45b526eff46af7bf652ca8f5dbcabe8f7e7682280eb710f1c",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/11002.png",
+      "local_sha256": "971767ac5b742c362e9573570008b4dc31cbfa1b5b9e8f68d84330799f20608b",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/11003.png",
+      "local_sha256": "860c1f65cbc82ad52e985edd56c38ae37ebc20ec5f282fd9ebf16bc6123e8a94",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/11004.png",
+      "local_sha256": "747713cc3215ee108f6770d3cc1252290b3c72ce9e7c7bb1fe41581716ae6153",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/11005.png",
+      "local_sha256": "8b3ad94c53288a32e9d4709a1b788d1755933a8d7d7024787db1d0277d08c340",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/12001.png",
+      "local_sha256": "28455365cc49debb6d213d0d6e06b06bca20fd1f463c23b5a22d706ca0f817df",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/12002.png",
+      "local_sha256": "2be6ffdc6f3111816a3dda087dc3621024446b565ad5e0f4880ec267bd7535c3",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/12003.png",
+      "local_sha256": "3d36f8930f6dd36814ee6b1bd453a3e70390322dfc3d82df259100ab7b4b2d36",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/12004.png",
+      "local_sha256": "aeef3ff737a76c24868643cbc5244a4e43813143732aab5976ff816e0a93947d",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/12005.png",
+      "local_sha256": "0a0d582c8a5ff957629d9f0ae683c000ba8bb09b29cd837f08630ac77260c763",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/13001.png",
+      "local_sha256": "8d8b469b6a2809fa31b91286319f2b81604e1c569d23b4d1ddfdc88f910abccd",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/13002.png",
+      "local_sha256": "ba38adbfd7c4a360b431dc25efdfa1d639259d7748cfb2e0f8a59e6b62df2bb5",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/13003.png",
+      "local_sha256": "127c281ba6c77bcf1e7d586fa07cae7f837a3ff5f4006e122bde29df4e9ae10e",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/13004.png",
+      "local_sha256": "84b06d060d6e5381cec991b9cbf1e82ed9a0bc76b87f17622f4fc8705dcf7177",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/13005.png",
+      "local_sha256": "5d570cc86968079238ba17880dadb6ae8a03814956be304edb14bc3382d9679b",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/14001.png",
+      "local_sha256": "dede10c865dbeac1b0a22bd890a1e725429ebe9c84f6e42bfe1107386333cadf",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/14002.png",
+      "local_sha256": "d532fcf5f2cf33a6f691c9941e6d8c2713ab5e709b8022d21cb5ae798b406f4e",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/14003.png",
+      "local_sha256": "c843b6652c91c0df8b02175df32206e4904e1a524a68dfaaa497579c0572ae3b",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/14004.png",
+      "local_sha256": "5772b09ef2770fadb498bb4a8cf8bf46279dbc79b5708a3b0da54594f8b41bb7",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/14005.png",
+      "local_sha256": "7f72188fe25de5d6394c6d826542e1a4e348c48181d0af04fbd43ae4629ed2a7",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/15001.png",
+      "local_sha256": "bda74846d5dab67cff164cf466ee1c841f4ce2e4bbabfd663073a03f424416d1",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/15002.png",
+      "local_sha256": "f5a13125592c3e6f10759c744ea6ee56a50b703187bda0d2021f92b1419a76a3",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/15003.png",
+      "local_sha256": "b0e8279d3f33c6ad7428840f20a8d1d823dd15d4db456b2850b3f6572260283c",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/15004.png",
+      "local_sha256": "42cd981fe303c7f02eb3a72ee1d1bbafb745ffcd77b69001ee69e04339aaa2c1",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/15005.png",
+      "local_sha256": "41d91b6abc7e060e0aafaa67d5f7261bab86cdc98acbb6639d1f3c1e1214f41e",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/21001.png",
+      "local_sha256": "c81a8c11f23dae4732832414b38a0593207cd5f6e3ded5ba58cf45360e490390",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/21002.png",
+      "local_sha256": "a1c3f6dfcf5b00bd00a44c08074904223b8b9aa946dc0c61062b02dc84cff7a2",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/21003.png",
+      "local_sha256": "d8105a2c3590135dd5dc7d710b1c6af6b219c0a9f1e86ed41368d011348cafe6",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/21004.png",
+      "local_sha256": "e72054a4938b93c8061f5b846a1abd60ad948cc247e325f14418d7bc8ed8148b",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/21005.png",
+      "local_sha256": "0e02610cf633effaad08ad578d00d074f53dddc99f39d342683d7dcece4984c4",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/22001.png",
+      "local_sha256": "4b0d2a44f32ebc00202c4829432697da31a607ea565f3ca87f63f1ae6024dc9a",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/22002.png",
+      "local_sha256": "ab1fa8c84ac6ec4c2e68944a6d286bc145c403f45819837712634d99f53fcef5",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/22003.png",
+      "local_sha256": "17ad783edb21454191180257e8401b94723797ffac1e49a6009dbcd5bdb078d9",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/22004.png",
+      "local_sha256": "cd67d70ad8dd0e748680a597e0797c5c9add667cabfeec4000c80a485764d093",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/22005.png",
+      "local_sha256": "d82e32d04261cecb85f886b20e3c5d6c861abf105845abc98d16940488df2063",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/23001.png",
+      "local_sha256": "67d4895c48e887c10d7e256fa89cdb9805222e92f7ba372e3c2bd102fbdafc64",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/23002.png",
+      "local_sha256": "80412656bc7c34ab980ab57ba8a94b6bd86467d8f58fbde5fc27c6ba90759e13",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/23003.png",
+      "local_sha256": "4a4fc60918277cf530e45b3ce465e6bdfe2249bc0f53e494f971dcc72f2a354d",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/23004.png",
+      "local_sha256": "6f2ef47f1f7ac6242662a7dd83511001f936ed409b315f1e725c96011fee3ac4",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/23005.png",
+      "local_sha256": "ccedb7e399a55b21a7c5454851476cfb71c3d535397254b49afa8c9d113a06f2",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/24001.png",
+      "local_sha256": "5d95589c6fadb46681aa4c433696bac83a6998678ee2e3a4f72a9820d4ee31bc",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/24002.png",
+      "local_sha256": "7f551fe49a14f2b542f7ac9d7de1ddb093bf7aa8576553a99ff74f28aff6f0da",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/24003.png",
+      "local_sha256": "84242caa367266283a7465b44890fa4199a4795a9e3b3345e9dae050563591f5",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/24004.png",
+      "local_sha256": "215dc2c4e9fb2f6663e5f93867fdd3228352c61270948004e64bbcbec4c4348f",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/24005.png",
+      "local_sha256": "087c8c63c34a4ab6b1fef4948f52c99967a24cfac35f3db64a75553fdb79c470",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/25001.png",
+      "local_sha256": "13f60f8dd782137a1f12e1955050b05270cebff89facc691045e567c2b77b244",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/25002.png",
+      "local_sha256": "e203a8eddbc4073fdc8d00117ce0ea46d4bdf2d0180688bcdcec10f1db272338",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/25003.png",
+      "local_sha256": "22204fb1a2e49aa866f8968d47f193e3d51f57182dd39902dd27d6cdeb7b0935",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/25004.png",
+      "local_sha256": "f423cefef79b7b5f0a3a044e445c824648916a7d586918ffe277cf56333f9948",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/25005.png",
+      "local_sha256": "54968cac191a8098889028f29965ba69289da78e365c637be352c481320d80b5",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/30001.png",
+      "local_sha256": "9858c80db5b5830a34a7107d12d665b393ef66a67b1004c55b679d2db998b83b",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/31001.png",
+      "local_sha256": "a91a84c76513fa19cc7f923f08b9a987bf73f5508513a9765cbffaa6aee26336",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/31002.png",
+      "local_sha256": "9de13de903e5868e7c6332b0b3782eb8a6cd110396ebdd2d58e74d233e5ccdde",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/31003.png",
+      "local_sha256": "5472005154a17837612a5e3e725ba1c25a91fe28853ea9553fb09507a6accfab",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/31004.png",
+      "local_sha256": "d6f7ef9c185454f47ebf509240d528dc4fc49b8cb9f0957b008971b1b401f7fe",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/31005.png",
+      "local_sha256": "378ce762cf54a49c1e0ae56927327c8845a5b8dbce817ecb6fb7110eaaac3bed",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/31006.png",
+      "local_sha256": "59f212dc44ed1712fc50ede0bd54ee96aaa10cce5d1fe522d4bb1991b111193a",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/32001.png",
+      "local_sha256": "c8a13f9fe0f4db50c3a8207ab9a4cb6eb6bb7e1e01d0f3c0da7c074a58ec7c36",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/32002.png",
+      "local_sha256": "85e90a0986de1ee1f07f416902ef86314c5fd4920a1cda0038e717cd8d0589ae",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/32003.png",
+      "local_sha256": "b053e5190d0bb2bf1ffc48fe1f9756480cee1a47d4efaecd7e63bce0d56e8e5b",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/32004.png",
+      "local_sha256": "ebd2565e1c67c5cbc672a56799d5d321c1112a5896978443756b1c4ab8520251",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/32005.png",
+      "local_sha256": "afdf0f98cfb8f5cb65e6522b26f15fd9a470d4d6f11c58778d2cb91101f8d627",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/32006.png",
+      "local_sha256": "f063cc312efd572a05d61e8d28985a13c06bbb3f3dffc37461efeba33867df83",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/33001.png",
+      "local_sha256": "86ecbc89bcb9a4bbb4dbeac09404e25a33ce225466fe59815bbb505f38e4cf35",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/33002.png",
+      "local_sha256": "e3517219279f21407b0c6ce765b95f53038021244a14bfa31a08a585c51bbc68",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/33003.png",
+      "local_sha256": "3b4efd8ad91dea3a6bb308aa272941ef282e8845ef7a48da80d965bc6732e768",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/33004.png",
+      "local_sha256": "9a81f47ee82d947eb0c7463d02d256b4e67a58dd1206de50efeedc732223165c",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/33005.png",
+      "local_sha256": "51c5aae7a0cd2edc7e87dbd4128e2fc270df8dd429fd7cf295e11c2db3c8e960",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/33006.png",
+      "local_sha256": "14bfca7bf9742aa2f4138e1c42712a6e25061d281da2557d68a950db46cb4968",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/34001.png",
+      "local_sha256": "fe8004f8790d38a4a43f18add212cfad4d9263f2d9caa747b2badd0b21bc0fe5",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/34002.png",
+      "local_sha256": "21e4f2f2000373bf4401774145e8f39d9813732bc7c00b4e91052a42e87d9559",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/34003.png",
+      "local_sha256": "0d9b3f3680e63242f855b59c2e54cbfdbdfd868cd0e2de23a0d6796e10358e4a",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/34004.png",
+      "local_sha256": "b089d838e05c7d651712bcdb6e2c789188fdc95a90ac22bd138e61646926ece1",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/34005.png",
+      "local_sha256": "ad374cb50ff4b0a0892bd48152c54ca3a1c5f34d318aa336ed641cd162ae6451",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/34006.png",
+      "local_sha256": "7a0c7594beb727aaec9f1055180e488d77033f3e17aec40630d89e0e37e1aee3",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/35001.png",
+      "local_sha256": "0da28c0119b482a57fa712892a1d5b6bd28ee99ee87515f9126cae45bfadac8a",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/35002.png",
+      "local_sha256": "6e7fe872a357cdc111a26bee8ac1da651a7d9a595a42928ceb6842d30b94b2bf",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/35003.png",
+      "local_sha256": "ff5bb8599cc83b4b2ff9629739fa921d3d0c8511f1eb1a9271a217311f4c7d80",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/35004.png",
+      "local_sha256": "592cd9b97a7a18b0e646ce682a1082529039e827af94a485ec70bff4670eebfd",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/35005.png",
+      "local_sha256": "2959f82ba637091e0b50c403220e826f972b69244b165d66aba2bdae86820e8b",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/35006.png",
+      "local_sha256": "bb61142d5d31653d428bd39684c25dd56389d2157fcdd073533cc09dbd8f59b4",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/40001.png",
+      "local_sha256": "eecab85eae121d28cd865f2efd88d988786203cae644990e3b978ac2444087b7",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/40002.png",
+      "local_sha256": "744f172fc317a4f7c081f7b1fda66d02a733dead13eca6bb47bf938dc82e1a23",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/40003.png",
+      "local_sha256": "518480d8f39e0b1e847e3f2195f900293467a213589309a308dc0a45b34f9cf2",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/40004.png",
+      "local_sha256": "b5551efaf132b1aaa48a796549ca8cd821a623861944daaa95b6697f4b25b385",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/40005.png",
+      "local_sha256": "4f55b71c9959c80d102e174acfc956e6326d50e6ff060739cb2b86b39eded0b8",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/50001.png",
+      "local_sha256": "1480a683ae9974d03d03143a1a2c9fbd2129d4d79ed60267edbcee5fbed0a81f",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/50002.png",
+      "local_sha256": "4d71e11a302006e0e5fed01bf6d4c497f39404cbeffcc704e09612b709cf79b3",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/50003.png",
+      "local_sha256": "f64badfb879a5bea461f656e029702d5c3fd78d8a70c632f3c27667c1d835944",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/50004.png",
+      "local_sha256": "a4fe07f235108b1192d577a8bb5d7a4370d66ff3b4e5697282ff3025688154dd",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
+      "local": "assets/labyrinth/relic-pack/icons/50005.png",
+      "local_sha256": "575b79986682de082ce5d353cd471a023ce101b9f76294497838c51e8c1da1ca",
+      "kind": "resource-data-or-configuration",
+      "production_runtime": true
+    },
+    {
       "local": "src/pcr_maa/labyrinth/encounters.py",
       "local_sha256": "7f3b08d227168c03d6ddca0d400b8120066c109c13b2efef059dc1098651888e",
       "kind": "frozen-labyrinth-source-file",
@@ -8793,7 +9746,7 @@
   "live_two_run_cycle_verified": false,
   "documentation": {
     "current": "docs/LABYRINTH_INTEGRATION.md",
-    "current_sha256": "904e4ed84ff516036f8f6e45b175bf606ed7ea4bd29f48403ed63c3ee9ffc862",
+    "current_sha256": "5ae7907161c0deb182bdea17ea42f4e1148ae77028f26675315989db06f69683",
     "history": "docs/LABYRINTH_INTEGRATION_HISTORY.md",
     "history_sha256": "6b0cce9d25a4b0ce1600bd40699df01bd2efa411bb7cd4594d9998d57c5abfc4",
     "history_preserved_as_original_bytes": true,

@@ -1,3 +1,30 @@
+## 2026-11-07 遗物身份改为静态图标 + masterdata（原帧校准 + 合成帧离线回放）
+
+同日 `relic_result_mismatch`（见下一条）说明遗物身份仍落在“两帧名称 OCR 逐字一致”上：角色与 Boss 早已是图标/数据身份，遗物是最后一块 name-only identity。本轮把三选一遗物与结果确认改为“静态图标 + masterdata 事实 + 属性行 OCR”的混合身份。
+
+资源：`assets/labyrinth/relic-pack/icons/<id>.png`（91 张 128×128 RGBA，逐字节取自 B服 11.7.2 客户端 bundle `icon_labyrinth_icon_relic_<id>.unity3d`）、`relic-pack/PROVENANCE.json`（与 boss-pack 同构：逐张 sha256/bytes/尺寸/32bppArgb/sourceBundle，游戏图像权利保留）、`assets/labyrinth/labyrinth-relics.json`（master 202611021739 的 91 条 id/name/mark/bonus/rarity/effect/icon；mark 按 `strategies` 词表归一：削弱→弱体、暴击→会心；30001 元素涌动宝珠在 master 无 mark（`mark:null`、`bonus:0`），50005 采用 master 名「拉比林斯之主」而客户端图标文件名为旧名「迷宫大师」；11 张无 master 条目的客户端图标 40006-40010 / 50006-50010 / 999999 不收录）。发布侧 `scripts/build_release.py` 增加 payload 必需项与 `require_relic_payload`（catalog↔PROVENANCE↔源/副本 sha256 三向一致），来源登记在 `docs/LABYRINTH_SOURCES.json`。
+
+代码：
+
+- `src/pcr_maa/labyrinth/relic_recognition.py`：`load_catalog()` 要求 catalog 与 PROVENANCE 的图标清单互为全集，逐张 sha256/字节数/128×128/32bpp 校验后才进入匹配，缺失或漂移抛 `relic_resource_changed`。`RelicCatalog.match(frame, box)` 按相对坐标采样（12×12 颜色粗筛 → 20×20 颜色/亮度/梯度精筛，几何在 art span .60–1.0、偏移 ±.02 上搜索），输出 `RelicFacts` 与 score/rival/margin；`trusted` 需要 score ≥ .62 且 margin ≥ .08，否则 facts=None。
+- `relics.RelicStaticIconCapture`：只读 custom recognition，对结果弹窗 `RESULT_ICON_ROI` 与三卡 `ICON_ROIS` 用同一帧匹配；**始终返回 hit**（detail 内 trusted/relic），缺包或异常只降级为 `trusted=false`，因此观察节点不会因身份不可用而 miss。新增节点 `LabyRelicObtainedStaticIdentity` / `LabyRelicOfferedStaticIdentity`。
+- `MaaRelicReward` 构造时只加载/校验一次包并注册 custom recognition；`choose` 在选择前先读三卡静态身份：可信槽位与同帧属性行交叉校验，mark/bonus 冲突抛 `relic_identity_conflict`（不猜测、不把错误事实写进 stack 账本）；名称只采用 catalog 规范名，并把 `relic_id` 写入账本字段。结果确认改为“静态图标可信且与已记录的 relic_id 一致”**或**“分隔点容忍的文本身份”二选一（绝不要求两者同时通过）；图标不可信回到文本，缺包时行为与改动前完全一致。`relic_obtained` 新增 `static`/`relic_id` 参数与 `identity_method='static_icon'`。
+- 账本 `relic_reward_select` 增加 `relic_id`（有可信图标身份时）；`_trace_detail` 白名单未变，玩家日志仍不打印内部字段。
+
+验证（离线）：本次失败帧 `image-1bc45335…png` 的 `(355,150,95,95)` → 35004，score .7809 / rival .4957 / margin .2852 trusted；同一 run 的另一帧与随机 ROI 全部 untrusted（≤.25）。把该帧记录的回执（标题/说明/道具行/关闭 + 静态图标 detail）直接喂给 `relic_obtained(..., static=True)`：命中 `identity_method=static_icon`、`relic_id=35004`、catalog 名 `幽玄煌装·绝魔`（有/无已记录 relic_id 两条路径都通过；把已记录 id 换成 35003 仍抛 `relic_result_mismatch`）。合成卡面 3 槽 35004/35001/31006 命中，合成结果弹窗图标命中 35004；原生 SavedImages 回放（无设备）两个新节点 `completed=true` 且 detail 正确。Python 侧单帧 match 中位约 12.6 ms、三卡约 37 ms（91 模板，分层几何搜索）。测试：`tests/test_labyrinth_relic_identity.py` 15 项（含 native 回放、校验冲突、回退与缺包降级）、`tests/test_labyrinth_relic_pack.py` 6 项、`tests/test_labyrinth_relic_recognition.py` 19 项（2 项私有原帧缺环境变量时 skip）；`pytest -k labyrinth` 1835 passed / 123 skipped；`python -X utf8 -B scripts/verify.py public` 7285 passed / 398 skipped / 201 deselected（30:48）。
+
+未做/边界：GUI 尚未展示遗物图标（C# loader 未接）；新遗物/新版本必须同步图标包与 masterVersion，缺图标时该卡身份回退文本、不误停；`THIRD_PARTY_NOTICES.md` 已补 relic-pack 行；`docs/LABYRINTH_SOURCES.json` 的 `local_files` 冻结源码哈希在 HEAD 上已有 16 项既存过期（与本轮无关），本轮只更新 `documentation.current_sha256`；未实机复跑本局。
+
+## 2026-11-07 遗物结果校验仍逐字比较，分隔点不一致导致获得后停止（离线复现）
+
+实机失败记录 `run 87473868f7f74c2f9627750693b44117`（业务账本 `954368389b32431baba4d7fdb76dcc14`，`enter_id=13461`，玩家日志 run `8c4cbfcd70b349a687a9b945c57fb762`）：21:24:19 三选一遗物选择 slot 0（`幽玄煌装·绝魔`，守备+3）后，结果弹窗已出现 `获得道具 / 获得了以下道具。 / 幽玄煌装·绝魔×1 / 关闭`，`LabyRelicObtainedObserved` 与 `LabyRelicObtainedExactItem` 两个原生节点均 `hit=true`，随后 Python 复核拒绝该结果，批次以 `relic_result_mismatch` 停止（进程位置 `autoplay.py:792`、`relics.py:612`、`relics.py:500`），进度 3:0。奖励实际已获得，点击落在 slot 0 按钮内，没有误操作。
+
+原因：观察帧把名称行读成 `幽玄煌装`（0.985）+ `1`（0.141）+ `a`（0.327）+ `绝魔`（0.999），显示分隔点被读成独立低分 token 后丢弃，账本记 `relic_name=幽玄煌装绝魔`；结果帧同一行读成单个 `幽玄煌装·绝魔×1`（0.9787）。`relic_obtained` 的 identity 分支里，原生 `LabyRelicObtainedExactItem` 的 `expected` 已是 `_pattern(名称×1)`（分隔点可选）所以命中，但 Python 侧仍用 `_normalized(观测文本) != name+'×1'` 逐字比较，两个拼写必然不等。11-02 同类事故只修了选择守卫的 `_pattern`，结果校验这一处没有同步，"原生命中、Python 拒绝"的两层身份判据一直并列存在。
+
+修复：新增 `relics._item_identity_matches(observed,name)`，用与守卫/原生节点相同的 `_pattern(name+'×1')` 判定（分隔点可选、其它字符与数量仍逐字精确）；`relic_obtained` 的 `icon=True`（identity 为 `LabyRelicObtainedExactItem` 时）与 `icon=False` 两处逐字比较都改为调用它，`_normalized`、阈值、ROI、图标基准回退、未知结果不重发均未改。因为两层现在用同一个判据，原生命中的结果不会再被 Python 以另一套身份定义拒绝。
+
+验证：把这局记录到的原生回执（标题/说明/道具行/关闭/identity，含真实框与分数）与账本名称 `幽玄煌装绝魔` 组成 receipt，直接调用 `relic_obtained`：修复前 `icon=True` 与 `icon=False` 两条路径都稳定抛 `relic_result_mismatch`，修复后两条都 `verified=True`（`identity_method=exact_ocr`）。新增 `tests/test_labyrinth_relic_name_separator.py` 用例：两种拼写接受，替字 `破魔`、数量 `×2`、缺字 `幽玄煌装·绝×1`、尾随字符仍拒绝；`pytest tests/test_labyrinth_relic_name_separator.py tests/test_labyrinth_reward_shop_upstream.py tests/test_labyrinth_links.py` 248 passed / 24 skipped。未实机复跑本局。
+
 ## 2026-11-06 主页图标兜底落地（替代文字模板占位，现场截图 + 离线回放验证）
 
 现场实测补充（失败 run `40aa3ff2…` / 运行时 `2f4087bb…` 的导出帧 + 模拟器连续抓帧）：`HomeScheduleText` 的误读不是“永远错”，而是随主页背景/动画在「日程表 / 回程表」之间摇摆——亮色天空皮肤 13 帧中 6 帧读对（0.777–0.978）、7 帧读错（0.777–0.851）；宫子暗色皮肤 6/6 读成回程表（0.854–0.883）。分数都压在 threshold 0.8 附近，因此调阈值/ROI/换文字模板都不够稳。改为用主页右下角**图标行**做像素兜底：图标本身叠在白色圆盘上，两套皮肤上分辨率、位置和像素一致，与页面背景无关。
