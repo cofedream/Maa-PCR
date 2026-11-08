@@ -631,6 +631,11 @@ def _relic_catalog_state(tasker):
     return state
 
 
+def relic_catalog(tasker):
+    """The run's single validated relic pack, or None when the pack is absent."""
+    return _relic_catalog_state(tasker)['catalog']
+
+
 def relic_offer_facts(detail, offers):
     """Validated catalog facts per visible slot; None means "keep the text path".
 

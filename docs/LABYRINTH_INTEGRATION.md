@@ -1,3 +1,19 @@
+## 2026-11-08 商店遗物身份接入静态图鉴（完整购买序列原帧）
+
+背景：商店三格遗物此前只有 OCR 名称/属性身份（`visible-shop-item:<名称 sha256>`），没有图鉴身份；购买确认只用点击帧捕获图标做同 session 模板一致性校验。奖励三选一页已以图鉴图标为主身份，商店是最后一个 name-only 遗物入口。
+
+实机抓帧（2026-11-08 手动走到商店，随后手动购买一次）：`tests/data/labyrinth-shop-relics-20261108.png`（货架三件可购买遗物）、`…-confirm-20261108.png`（与 slot 2 配对的购买确认）、`…-complete-20261108.png`（购买完毕）、`…-after-20261108.png`（购买后同页：slot 0 当前 3、slot 1 当前 1、slot 2 变为职能印记，深渊蚀杖诅咒在底行已售罄）。manifest 记录 sha256、1280×720、来源/用途/期望值；画面不含玩家名、账号、设备或运行标识。
+
+改动：
+- `relics.relic_catalog(tasker)` 暴露运行内唯一已验证图鉴包（缺包返回 None，不重复加载）。
+- `ShopRecognition` 新增 `catalog`：`state=='shop'` 时对三格 `SHOP_ICON_ROIS` 做图鉴匹配；可信则写入 `catalog_id`/`catalog_name`/`identity_source='static_icon'`/`catalog_match`，并与同帧属性行 OCR 的 mark/bonus 交叉校验；冲突时返回 `shop_relic_identity_conflict`（整帧 unknown，停止而不是猜）；图标不可信或包缺失保持原 OCR 路径。
+- 购买确认：confirmation 帧对 `SHOP_DIALOG_ICON_ROI` 做图鉴匹配，payload 增加 `dialog_catalog`；`_item_identity` 新增 `expected_catalog_id`，命中返回 `native_observed_catalog`（图片证据优先于精确文本；捕获图标模板 `native_observed_icon` 仍是图鉴不可用时的图片兜底）；`MaaShop.run/purchase_once/purchase_readback/_input` 透传 `catalog_id` 与 identity_method。
+- 账本/策略：item 增加 catalog 字段，`item_id` 仍保留可见身份，不改写既有账本语义。
+
+验证（离线，真实帧）：pre 帧三格 trusted **12003/14003/32002**（score .90/.91/.88，margin .27/.39/.35），OCR 名称/价格/当前层数（0/1/0）与卡面一致；确认帧 `selected_icon_verified=true`、`dialog_catalog.id=32002`、价格 2850、系列「削弱+3/当前 0」与货架属性行一致；购买完毕 `2850`/深渊蚀杖诅咒；购买后余额 2735，slot 0 当前 3、slot 1 当前 1、slot 2 职能印记，底行已售罄的 32002 仍可被图鉴命中。合成帧反例：把 14003（强化+1）图标贴到 slot 2（卡面 削弱+3）→ 图鉴与属性行冲突，`_capture` 以 `shop_readback_unknown` 停止、零输入；抹掉图标 → 图鉴不可信，回退 OCR 文本路径；`relic_catalog` 返回 None → 同样回退。新增 `tests/test_labyrinth_shop_relic_identity.py`（6 项，含完整购买序列与反例）。`pytest -k shop` `238 passed / 28 skipped`；`pytest -k labyrinth` `1888 passed / 123 skipped / 5982 deselected`（18 subtests，4:28）。
+
+未做/边界：本局未实机复跑；商店 `item_id` 仍是可见身份（未改为 catalog id）；确认弹窗的 catalog 证据要求图鉴可信，不可信时仍用捕获图标模板/精确 OCR；商店以外的 name-only 路径（地图/物品读取、链接/角色奖励）未并入；阈值、ROI、图标包与 masterdata 未改。
+
 ## 2026-11-08 账本查询改为只读视图（奖励选择不再深拷贝整本账本）
 
 问题：`Batch.run` 整局持有 journal 锁（[batch.py:330](src/pcr_maa/labyrinth/batch.py#L330)），锁内 `Journal.events()` 为兼容历史调用方返回 `deepcopy(cache)`（[preset_execution.py:214](src/pcr_maa/preset_execution.py#L214)）。账本 `transactions.jsonl` 已 179.7 MB / 10,918 行（每条内嵌完整 native 回执，平均约 16 KB/行），本机实测：锁内一次 `events()` = **10.91 s**，每局首次全量读+逐条校验 = **15.06 s**；而 `last_event()` = **0.2 ms**，在缓存上做一次只读条件扫描 = **1.4 ms**。日志里 `[15:13:59] 读卡完成 → [15:14:09] 图鉴身份完成`、`[15:08:32] 角色奖励页 → [15:08:44] 选角已发出` 的 10–12 秒空档都是整本复制，与 ADB 截图无关。
