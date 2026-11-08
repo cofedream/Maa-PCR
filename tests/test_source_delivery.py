@@ -81,12 +81,17 @@ class SourceDeliveryTests(unittest.TestCase):
             fixtures = ['https://host/release?' + key + '=fixture'
                         for key in ('sig', 'X-Amz-Signature')]
             fixtures.append('/'.join(('C:', 'Users', 'private-user', 'Projects', 'fixture')))
+            fixtures.extend('/' + '/'.join((root, 'private-user', 'notes.txt'))
+                            for root in ('home', 'Users'))
             for data in fixtures:
                 path.write_text(data, encoding='utf-8')
                 with self.assertRaises(ValueError):
                     delivery.privacy_scan(path, 'notice.md')
-            path.write_text('https://github.com/example/project/tree/fixed\n', encoding='utf-8')
-            delivery.privacy_scan(path, 'notice.md')
+            for data in ('https://github.com/example/project/tree/fixed\n',
+                         'assets/resource/image/anchors/home/icons/schedule.png\n',
+                         '见 `assets/resource/image/anchors/home/{schedule,gift}.png`。\n'):
+                path.write_text(data, encoding='utf-8')
+                delivery.privacy_scan(path, 'notice.md')
 
     def test_pack_is_exact_and_changes_are_rejected(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -76,7 +76,7 @@ TEXT_SUFFIXES = frozenset((
     '.ps1', '.bat', '.sh', '.config', '.ini', '.rst', '.html', '.css', '.js', '.lock',
 ))
 PRIVATE = re.compile(
-    r'(?i)(?:[a-z]:[\\/]+Users[\\/]+[^\\/\s\"\']+|/(?:Users|home)/[^/\s\"\']+|'
+    r'(?i)(?:[a-z]:[\\/]+Users[\\/]+[^\\/\s\"\']+|(?<![\w./])/(?:Users|home)/[^/\s\"\']+|'
     r'https?://[^\s<>\"\']+[?&](?:sig|signature|x-amz-signature|x-goog-signature)=[^\s<>\"\']+|'
     r'\bgh[pousr]_[A-Za-z0-9]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b|\bAKIA[A-Z0-9]{16}\b)'
 )
