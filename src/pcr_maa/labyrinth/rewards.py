@@ -117,8 +117,9 @@ class MaaRoleReward:
         if type(enter_id) is not int or enter_id<=0 or not isinstance(reward_id,str) or not reward_id:
             raise BatchStopped('role_reward_identity_required')
         key=(enter_id,reward_id)
-        if key in self.attempted or any(e.get('operation','').startswith('event_free_role_') and
-                (e.get('enter_id'),e.get('reward_id'))==key for e in batch.journal.events()):
+        if key in self.attempted or batch.journal.any_event(
+                lambda e: e.get('operation','').startswith('event_free_role_')
+                and (e.get('enter_id'),e.get('reward_id'))==key):
             raise BatchStopped('role_reward_already_attempted')
         batch.checkpoint();self.attempted.add(key)
         optimizer=self._provided_optimizer or configured_optimizer(getattr(batch.settings,'strategy',None))
@@ -192,7 +193,9 @@ class MaaRoleReward:
     def choose(self,batch,enter_id,reward_id,acquired,context=Context(),*,defer_joined=False):
         if type(enter_id) is not int or enter_id<=0 or not isinstance(reward_id,str) or not reward_id:raise BatchStopped('role_reward_identity_required')
         key=(enter_id,reward_id)
-        if key in self.attempted or any(e.get('operation')=='role_reward_select' and (e.get('enter_id'),e.get('reward_id'))==key for e in batch.journal.events()):raise BatchStopped('role_reward_already_attempted')
+        if key in self.attempted or batch.journal.any_event(
+                lambda e: e.get('operation')=='role_reward_select'
+                and (e.get('enter_id'),e.get('reward_id'))==key):raise BatchStopped('role_reward_already_attempted')
         batch.checkpoint()
 
         strategy=getattr(batch.settings,'strategy',None)

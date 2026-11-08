@@ -200,23 +200,23 @@ class ProtocolAcquisitionPort:
                 self._fail('opening_creation_unknown')
             if batch is not None:
                 if (batch.port is not self or batch.binding!=self.binding
-                        or not any(event.get('state')=='settled' and event.get('operation')=='existing_opening'
+                        or not batch.journal.any_event(
+                            lambda event: event.get('state')=='settled' and event.get('operation')=='existing_opening'
                             and event.get('operation_id')==observed.operation_id and event.get('binding')==self.binding.payload()
                             and type(event.get('result')) is dict and event['result'].get('enter_id')==snapshot.enter_id
-                            and event['result'].get('source')=='protocol' and event['result'].get('opening_origin')=='observed_existing'
-                            for event in batch.journal.events())):
+                            and event['result'].get('source')=='protocol' and event['result'].get('opening_origin')=='observed_existing')):
                     self._fail('opening_creation_unknown')
             return snapshot
         ack=self._require_ack(snapshot.enter_id)
         if batch is not None:
-            try:events=batch.journal.events()
+            try:attempted=batch.journal.any_event(
+                lambda event: event.get('state')=='settled' and event.get('operation')=='enter'
+                and event.get('operation_id')==ack.operation_id and event.get('binding')==self.binding.payload()
+                and type(event.get('result')) is dict and event['result'].get('enter_id')==snapshot.enter_id)
             except Exception:self._fail('opening_creation_unknown')
             if (batch.port is not self or batch.binding!=self.binding
                     or type(ack.creation.get('frame')) is not int or not 0<ack.creation['frame']<=batch.last_frame
-                    or not any(event.get('state')=='settled' and event.get('operation')=='enter'
-                        and event.get('operation_id')==ack.operation_id and event.get('binding')==self.binding.payload()
-                        and type(event.get('result')) is dict and event['result'].get('enter_id')==snapshot.enter_id
-                        for event in events)):
+                    or not attempted):
                 self._fail('opening_creation_unknown')
         return snapshot
 

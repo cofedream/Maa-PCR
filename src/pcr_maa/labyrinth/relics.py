@@ -859,9 +859,10 @@ class MaaRelicReward:
                 or not reward_id or len(reward_id) > 128 or any(ord(c) < 32 for c in reward_id)):
             raise BatchStopped('relic_reward_identity_required')
         key = (enter_id, reward_id)
-        if key in self.attempted or any(e.get('operation')=='relic_reward_select'
+        if key in self.attempted or batch.journal.any_event(
+                lambda e: e.get('operation')=='relic_reward_select'
                 and e.get('binding')==batch.binding.payload()
-                and (e.get('enter_id'),e.get('reward_id'))==key for e in batch.journal.events()):
+                and (e.get('enter_id'),e.get('reward_id'))==key):
             raise BatchStopped('relic_reward_already_attempted')
         batch.checkpoint()
         if offers is None:offers = relic_offers(self._run('LabyRelicObserved'))

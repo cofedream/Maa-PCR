@@ -428,7 +428,7 @@ class MaaShop:
     def purchase_once(self,quote,operation_id,*,batch=None):
         if self.blocked or self.pending is None:raise BatchStopped('shop_purchase_unbound')
         stored,active=self.pending;batch=batch or active
-        events=batch.journal.events();intent=events[-1] if events else {}
+        intent=batch.journal.last_event() or {}
         if (batch is not active or quote!=stored or type(operation_id) is not str or operation_id in self.spent
             or intent.get('state')!='in_flight' or intent.get('operation')!='purchase' or intent.get('operation_id')!=operation_id
             or intent.get('item_id')!=quote.get('item_id') or intent.get('price')!=quote.get('price')):raise BatchStopped('shop_purchase_unbound')

@@ -216,6 +216,18 @@ class Journal:
         # Callers historically receive independent dictionaries, never the cache.
         return deepcopy(events) if self._locked else events
 
+    def any_event(self, predicate):
+        """Read-only scan of the validated history; never copies the cache.
+
+        The predicate runs against internal dictionaries, so it must not mutate
+        them or keep a reference. Use `events()` when an independent copy is
+        required and `last_event()` when only the newest event is needed. A
+        reward selection used to copy the whole ledger just to ask whether one
+        operation existed; on a multi-hundred-MB history that was seconds per
+        check.
+        """
+        return any(predicate(event) for event in self._current_events())
+
     def last_event(self):
         events = self._current_events()
         return deepcopy(events[-1]) if events else None

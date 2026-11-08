@@ -1,3 +1,21 @@
+## 2026-11-08 账本查询改为只读视图（奖励选择不再深拷贝整本账本）
+
+问题：`Batch.run` 整局持有 journal 锁（[batch.py:330](src/pcr_maa/labyrinth/batch.py#L330)），锁内 `Journal.events()` 为兼容历史调用方返回 `deepcopy(cache)`（[preset_execution.py:214](src/pcr_maa/preset_execution.py#L214)）。账本 `transactions.jsonl` 已 179.7 MB / 10,918 行（每条内嵌完整 native 回执，平均约 16 KB/行），本机实测：锁内一次 `events()` = **10.91 s**，每局首次全量读+逐条校验 = **15.06 s**；而 `last_event()` = **0.2 ms**，在缓存上做一次只读条件扫描 = **1.4 ms**。日志里 `[15:13:59] 读卡完成 → [15:14:09] 图鉴身份完成`、`[15:08:32] 角色奖励页 → [15:08:44] 选角已发出` 的 10–12 秒空档都是整本复制，与 ADB 截图无关。
+
+改动：`Journal.any_event(predicate)` 新增只读扫描（不 deepcopy、不暴露可变副本；predicate 内不得修改或保留事件字典）；`events()` 语义保留给确实需要独立副本的启动校验/恢复；`last_event()` 继续用于“只看最后一条”。替换热路径：
+
+- 遗物选择重复检查 [relics.py:862](src/pcr_maa/labyrinth/relics.py#L862)
+- 角色奖励重复检查（event-free 与普通两条）[rewards.py:120](src/pcr_maa/labyrinth/rewards.py#L120)、[rewards.py:196](src/pcr_maa/labyrinth/rewards.py#L196)
+- 连结印记重复检查与 in-flight 检查 [links.py:327](src/pcr_maa/labyrinth/links.py#L327)
+- 商店购买校验 [shop_execution.py:431](src/pcr_maa/labyrinth/shop_execution.py#L431)（原来为取 `events[-1]` 复制整本）
+- 旧局/开局/会话校验 [game_port.py:259](src/pcr_maa/labyrinth/game_port.py#L259)、[game_session.py:465](src/pcr_maa/labyrinth/game_session.py#L465)、[acquisition.py:203](src/pcr_maa/labyrinth/acquisition.py#L203)、[acquisition.py:212](src/pcr_maa/labyrinth/acquisition.py#L212)（最后一条改 `last_event()`，存在性改 `any_event()`）
+
+业务判定、账本格式、fsync、未知结果不重发规则均不变；只改读取方式。
+
+验证（同一本 179.7 MB 账本、本机）：`any_event` 扫描 1.4 ms vs `events()` 10.91 s vs `last_event()` 0.2 ms。`tests/test_journal_lock_cache.py` 新增 4 项：锁内 `any_event` 不触发 `deepcopy`（monkeypatch 计数）、锁外读文件、append 后可见、外部改动仍按原样拒绝；`test_labyrinth_relic_identity.py::test_choose_guards_with_the_trusted_catalog_identity` 现在把 `Journal.events` 打成失败，遗物选择仍正常（防止热路径回退到整本复制）。目标套件（journal 缓存、遗物帧/身份、free role、independent edges、reward/shop/event 上游、shop execution、links）`356 passed / 38 skipped`；`tests/test_preset_execution.py tests/test_preset_result_reconcile.py tests/test_guide_control_check.py tests/test_abyss.py tests/test_abyss_reconcile.py` 共 `234 passed / 35 skipped`；`pytest -k labyrinth` `1882 passed / 123 skipped / 5982 deselected`（18 subtests，4:22）。
+
+未做/边界：每局启动仍会做一次全量读+逐条校验（约 15 s），且 `owned_runtime` 的 `pending_intent` 与 `Batch.run` 在两次加锁中各读一次（合计约 30 s/局）；下一步可用 sidecar 记录已校验 offset/stamp 只校验新增行，或跨锁复用已验证缓存（本轮未做，避免改动校验语义）。账本体积本身（每条内嵌完整回执）未处理。日常/公会战共用 `Journal` 类，`events()` 行为未变。
+
 ## 2026-11-08 遗物点击守卫改为同帧图鉴身份（OCR 丢字不再拦截）
 
 实机失败记录 player-log run `cb977ae3ac554d2da0f01ce814e72313`（业务 run `489c2c929c68495ab0163ba396239c0d`，`enter_id=13475`，`reward_id=20701:relic_reward:1`）：15:13:58 进入第四次三选一遗物页，选择 slot 0「杀戮之矛」（`relic_id=13001`，会心+1，当前 4）。15:14:09 账本 `relic_reward_select` 已写入意图，15:14:13 以 `native_input_not_sent` 停止（`relics.py:851`、`relics.py:807`、`native.py:340`），进度 1:0，没有发出点击。

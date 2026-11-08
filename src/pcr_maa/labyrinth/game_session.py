@@ -461,14 +461,16 @@ class MaaGameSession:
             creation=getattr(batch.port,'creations',{}).get(snapshot.enter_id)
             if type(creation) is not dict or creation.get('operation_id')!=creation_operation_id:
                 raise BatchStopped('game_session_new_opening_required')
-        try:events=batch.journal.events()
-        except Exception:raise BatchStopped('game_session_journal_unknown') from None
-        if events and events[-1]['state']=='in_flight':raise BatchStopped('blocked_in_flight')
-        key=(snapshot.enter_id,creation_operation_id)
-        if key in self.used or any(event.get('operation') in _OPERATIONS
+        try:
+            last=batch.journal.last_event()
+            attempted=batch.journal.any_event(
+                lambda event: event.get('operation') in _OPERATIONS
                 and event.get('enter_id',event.get('protocol_enter_id'))==snapshot.enter_id
-                and (creation_operation_id is None or event.get('creation_operation_id')==creation_operation_id)
-                for event in events):
+                and (creation_operation_id is None or event.get('creation_operation_id')==creation_operation_id))
+        except Exception:raise BatchStopped('game_session_journal_unknown') from None
+        if last and last['state']=='in_flight':raise BatchStopped('blocked_in_flight')
+        key=(snapshot.enter_id,creation_operation_id)
+        if key in self.used or attempted:
             raise BatchStopped('game_session_already_attempted')
         self._checkpoint(batch);self.used.add(key);self.creation_operation_id=creation_operation_id;self.opening_snapshot=snapshot
         try:

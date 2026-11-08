@@ -351,6 +351,11 @@ def test_choose_guards_with_the_trusted_catalog_identity(monkeypatch, tmp_path):
     fact = dict(id=35003, name='白光辉铠·断壁', mark='守备', bonus=3, rarity=3)
     batch = Batch(Settings((Goal(1, 1),)), None, Journal(tmp_path),
                   Binding(123, 'synthetic-no-device'))
+
+    def no_copy(self):
+        raise AssertionError('reward choice must not copy the whole journal')
+
+    monkeypatch.setattr(Journal, 'events', no_copy)
     reward = object.__new__(R.MaaRelicReward)
     reward.attempted = set()
     reward.tasker = object()

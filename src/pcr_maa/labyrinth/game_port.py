@@ -256,8 +256,8 @@ class MaaGamePort:
         require=getattr(batch.port,'require_created_opening',None)
         if callable(require):require(snapshot,batch=batch)
         elif snapshot.protocol_current_block_id not in (None,0):raise BatchStopped('game_port_creation_unknown')
-        events=batch.journal.events()
-        if events and events[-1]['state']=='in_flight':raise BatchStopped('blocked_in_flight')
+        last=batch.journal.last_event()
+        if last and last['state']=='in_flight':raise BatchStopped('blocked_in_flight')
         key=(snapshot.enter_id,creation['operation_id'])
         if key in self.used:
             raise BatchStopped('game_port_opening_already_attempted')
