@@ -1,3 +1,17 @@
+## 2026-11-09 结果页静态图标成为独立身份证明；商店确认框可信 id 冲突即拒绝（PR #9 review 收口）
+
+背景：PR #9 review 提出两项 P2，都先按原帧/图鉴数据复算再定修法。
+
+1）奖励结果守卫仍强制旧身份。`obtained_guard(static=True)` 把 `LabyRelicObtainedStaticIdentity` 与 `LabyRelicObtainedIdentity`（`Or(ExactItem, Icon)`）同时放进 `LabyRelicObtainedObserved.all_of`，与本文件上一条"静态图标可信且与已记录 relic_id 一致**或**分隔点容忍文本身份二选一、绝不要求两者同时通过"矛盾：静态身份在原生层没有生效机会。原帧复算（`tests/data/labyrinth-relic-obtained-20261108.png`、离线 SavedImages）：正常名称 `completed=true`，`Identity` 只由 `ExactItem` 命中；把 `ExactItem` 的 `expected` 改成不可命中（守卫侧与"该行一个字符被读错"等价）后 `native_ok=false` / `recognition_failed=true`，而同一帧静态图鉴仍 trusted 35003（score .8073 / rival .4556 / margin .3517），模板子项在该弹窗上也不命中——即文字 OCR 实际是唯一证据，奖励已到手仍会以 `relic_result_unknown` 中止。
+
+修复（最小面 OR，不改回执行集合）：`RelicStaticIconCapture` 新增 `obtained_guard` 模式（`RESULT_ICON_ROI` + 期望 `relic_id`，仅 trusted 且 id 相等才命中，其余与 `guard` 同样返回不命中）；`relic_pipeline` 新增占位节点 `LabyRelicObtainedStaticGuard`，作为 `LabyRelicObtainedIdentity` 的第三个（最后）子项；`obtained_guard(..., relic_id=)` 在静态可用且记录 id 为整数时注入该参数，`MaaRelicReward.confirm` 传入 `selected_id`。账本 facts 仍取兄弟行 `LabyRelicObtainedStaticIdentity`（`_static_obtained_id` 未改），因此 `identity_method='static_icon'`、规范名、数量 `×1` 与 `relic_id` 校验都不变；静态不可信或包缺失时子项恒不命中，行为与改动前一致；可信静态指向另一 id 仍由 `_static_obtained_id` 抛 `relic_result_mismatch`，新增原帧用例把"静态不符仍拒绝"钉住。
+
+2）商店确认框可信图鉴 id 与意图冲突。复核结论：机制成立（`_item_identity` 在 `dialog_catalog.id != expected_catalog_id` 时继续走 `selected_icon_verified`/OCR，且首次确认把降级后的方法写进 quote，后续 `purchase_once` 与点击守卫的"期望方法"因此自我一致地放行），但 review 描述的"另一件同价同属性遗物被旧模板或文字误通过"缺依据：图鉴 91 条名称两两无子串/前缀关系（文字回退不可能命中另一件），91 张图标字节互不相同，`selected_icon_verified` 的 80×80 TM_CCOEFF_NORMED ≥ .85 连正确的弹窗图标在该真机帧上都不命中（本轮实测）。因此按方向修，只修有确证的一侧。
+
+修复：`_item_identity` 在 `kind='relic'`、帧上存在可信 `dialog_catalog` 且 persisted `expected_catalog_id` 已知时，id 不等直接抛 `shop_quote_changed`（不再回退）；只有一端已知时保持原回退（货架图标不可信仍走 OCR/模板，帧上无可信图鉴结果仍走旧路径）。`MaaShop.run` 首次确认处不再把该原因覆盖成 `shop_quote_unknown`（其余身份失败仍覆盖）。刻意不做"只要存在可信图鉴结果就判死"：`SHOP_DIALOG_ICON_ROI` 配错或 UI 变体会从"降级可用"变成"所有遗物购买全停"，超出评论给出的证据；`purchase_readback` 对 native 方法本就跳过文本复核，未改。
+
+验证：`tests/test_labyrinth_relic_obtained_frame.py` 新增两项（原帧上无记录 id 时同帧仍 `native_ok=false`，作为修复前行为对照；有记录 id 时 `Identity` 三子项且 `relic_obtained` 得 `static_icon` 35003；记录 id 换成 35004 时仍 `relic_result_mismatch`）。`tests/test_labyrinth_shop_relic_identity.py` 新增一项（同一确认帧：`catalog_id=32002` 照常购买并点击一次；`catalog_id=12003` 抛 `NativeInputNotSent`、`reason=shop_quote_changed`、零点击），并给原 `dialog_catalog` 用例补上拒绝原因断言。遗物/商店相关 7 个文件 `55 passed / 11 skipped`；`pytest -k labyrinth` `1881 passed / 130 skipped / 5982 deselected`（18 subtests，3:42），另有 3 项真实 ADB/SDK 用例失败（`test_labyrinth_app_version` 与 `test_labyrinth_channels_parity` 各 1/2 项），在未打本改动的干净工作树上同样 0.62 秒内失败，属本机无设备环境问题。`scripts/verify.py public` 在本机为 `7244 passed / 105 failed / 30 errors`，其中多出的 4 个文件（`test_schedule_onekey`、`test_sweep_skip`、`test_supported_daily`、`test_page_wait_deadlines`）全部以 `Native job exceeded 90 seconds`/`TimeoutError` 失败——本机 `.runtime/` 已 22 GB，`native.post_bundle` 起不来，与代码无关；把同一个 HEAD 放进干净 worktree 重跑得 `7338 passed / 38 failed / 0 errors`，剩余 38 项全是 Windows/CRT 打包、GUI、真实 ADB/SDK 用例（`test_inspect_daily` 16、`test_player_candidate` 12、`test_verify` 3、`test_labyrinth_channels_parity` 2 等），两次运行对全部 labyrinth 用例结论一致。
+
 ## 2026-11-08 商店遗物身份接入静态图鉴（完整购买序列原帧）
 
 背景：商店三格遗物此前只有 OCR 名称/属性身份（`visible-shop-item:<名称 sha256>`），没有图鉴身份；购买确认只用点击帧捕获图标做同 session 模板一致性校验。奖励三选一页已以图鉴图标为主身份，商店是最后一个 name-only 遗物入口。
