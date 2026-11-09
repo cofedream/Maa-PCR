@@ -66,8 +66,12 @@ def gui_commands(dotnet: str, gui: Path, output: Path) -> list[tuple[str, list[s
             command.extend([str(ROOT), str(output / "fixtures" / name), sys.executable])
         commands.append((name + "-run", command, binary))
         if name == "PcrUpdate.Tests":
+            # The startup-actions fixture also drives the labyrinth settings page, whose
+            # catalogs live in the checkout; pass the source root exactly like the
+            # PcrLabyrinth test projects receive it.
             commands.append((name + "-startup-actions-run",
-                [dotnet, str(binary / (name + ".dll")), str(output / "fixtures" / "startup-actions"), "--startup-actions-only"], binary))
+                [dotnet, str(binary / (name + ".dll")), str(output / "fixtures" / "startup-actions"),
+                 "--startup-actions-only", str(ROOT)], binary))
         if name == "PcrProfileSwitch.Tests":
             for mode in PROFILE_CHECK_MODES:
                 commands.append((name + "-" + mode + "-run",

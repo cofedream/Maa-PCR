@@ -64,12 +64,16 @@ def test_abyss_snapshot_waits_for_ready_frame():
 def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  import hashlib,json
  # Canonical guard fields from the frozen public R38 source, not a private R31 install.
+ # R75 removes only the retired name-only joined readers (character_details / local
+ # aliases, invite_gourmet and their legacy pipeline nodes); no remaining guard,
+ # input budget or OCR threshold changed, so only labyrinth.json's snapshot hash
+ # follows that deliberate node removal.
  baseline={
   'abyss.json':'c42bda29f1ff9a9f36b2e2b3aeb62be040f6c13331ef3ef948662ba3adaba7e1',
   'activity_navigation.json':'e788006f5682592dba1e60c1f6fa5f384e45f71808ff5769f547e04a3f744018',
   'alpha_entry.json':'daa650104cb85cccc363500fd7db5b1a850262d40bd9479013bf9857fce47991',
   'event.json':'5c2fd49da67729dd1452a34595ee9c54c6a51a14e6bd50d0f15fb3acab18fc0f',
-  'labyrinth.json':'ccb3ab5a528b5d84c05d6f496f47b9ed8090c43cfbe822e36d3ba4677e99d6f8',
+  'labyrinth.json':'9fe2caf187c2794d467e103dd85b9305ed989ca401a729f37b00d68e16f9ecb9',
   'presets.json':'6082ff2ad6c5d61651022e9511ae190907e30ac5d0a83baeaf3da5ec36dd9efc',
   'preset_execution.json':'10ad78382a01f774bd3162183e8fae364a83823494d5123a465e6d215467f936',
   'preset_scan.json':'3460d09b9369b26ba3262f2e30e241991a439fa2954f8a3a62afd7746514afaf',

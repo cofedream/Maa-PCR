@@ -9,7 +9,7 @@ prove a handoff, or settle any previous unknown consumption.
 from copy import deepcopy
 from dataclasses import dataclass
 import math,re,time
-from .. import native
+from .. import native, anchors
 from .batch import BatchStopped
 from .interruptions import date_changed_pipeline
 from .session import (title_pipeline,title_player_id,notice_pipeline,home_announcement_pipeline,
@@ -86,11 +86,16 @@ def game_session_pipeline(expected_player_id,*,server='cn-bilibili'):
     for local, common in (('LabyClientAdventureLabel','HomeAdventureText'),
                           ('LabyClientScheduleLabel','HomeScheduleText'),('LabyClientGiftLabel','HomeGiftText')):
         nodes[local]=deepcopy(shared[common])
-    home=['HomeTextLayout','HomeNoKnownLargePanel']
+    # OCR is the primary HOME proof and stays byte-identical to the shared
+    # document; `pcr_maa.anchors` adds the home button icon row as the pixel
+    # fallback for clients whose recognizer misreads the bottom words. The icon
+    # branch only proves the page; input keeps the sampled adventure word box.
+    nodes.update(deepcopy(anchors.nodes()))
+    home=[anchors.anchor_guard(),'HomeNoKnownLargePanel']
     nodes['LabyClientGameHomeObserved']=dict(recognition='And',all_of=home,
         action='DoNothing',next=[],timeout=5000,pre_delay=0,post_delay=0)
     nodes['LabyClientHomeToAdventure']=dict(recognition='And',all_of=home,
-        action='Click',target=True,max_hit=1,next=[],timeout=3000,rate_limit=250,pre_delay=0,post_delay=0)
+        action='Click',target=[693,685,53,33],max_hit=1,next=[],timeout=3000,rate_limit=250,pre_delay=0,post_delay=0)
     nodes['LabyClientAdventureObserved']=dict(recognition='And',all_of=['LabyAdventureIdentity','LabyDawnEntryLabel'],
         action='DoNothing',next=[],timeout=5000,pre_delay=0,post_delay=0)
     # These menu labels and targets were independently sampled. Menu's bottom
@@ -456,14 +461,16 @@ class MaaGameSession:
             creation=getattr(batch.port,'creations',{}).get(snapshot.enter_id)
             if type(creation) is not dict or creation.get('operation_id')!=creation_operation_id:
                 raise BatchStopped('game_session_new_opening_required')
-        try:events=batch.journal.events()
-        except Exception:raise BatchStopped('game_session_journal_unknown') from None
-        if events and events[-1]['state']=='in_flight':raise BatchStopped('blocked_in_flight')
-        key=(snapshot.enter_id,creation_operation_id)
-        if key in self.used or any(event.get('operation') in _OPERATIONS
+        try:
+            last=batch.journal.last_event()
+            attempted=batch.journal.any_event(
+                lambda event: event.get('operation') in _OPERATIONS
                 and event.get('enter_id',event.get('protocol_enter_id'))==snapshot.enter_id
-                and (creation_operation_id is None or event.get('creation_operation_id')==creation_operation_id)
-                for event in events):
+                and (creation_operation_id is None or event.get('creation_operation_id')==creation_operation_id))
+        except Exception:raise BatchStopped('game_session_journal_unknown') from None
+        if last and last['state']=='in_flight':raise BatchStopped('blocked_in_flight')
+        key=(snapshot.enter_id,creation_operation_id)
+        if key in self.used or attempted:
             raise BatchStopped('game_session_already_attempted')
         self._checkpoint(batch);self.used.add(key);self.creation_operation_id=creation_operation_id;self.opening_snapshot=snapshot
         try:

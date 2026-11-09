@@ -1,8 +1,12 @@
 """Run-coin relic shop; adapted upstream shop layout / commit semantics.
 
 CC BY-NC-SA 4.0 for adapted source. Cards, confirmation and completion are read
-from fresh Maa frames. Imprints and configured refresh share the same ACK/readback path.
-The final spend runs inside Batch.purchase's existing intent, never a nested one.
+from fresh Maa frames. A shelf relic is identified by the trusted static relic
+icon (id/name/mark/bonus, cross-checked with the same-frame attribute line);
+OCR text and the captured-icon template remain the fallback when that identity
+is unavailable. Imprints and configured refresh share the same ACK/readback
+path. The final spend runs inside Batch.purchase's existing intent, never a
+nested one.
 """
 from dataclasses import dataclass
 from hashlib import sha256
@@ -14,7 +18,7 @@ from .. import native
 from .batch import BatchStopped
 from .scene import MaaSceneRuntime,SceneRecognition,OBSERVATION_TIMEOUT_SECONDS,_primitive,_box,_checkpoint,runtime_resource,_RULES
 from .strategies import Relic,shop_relic,choose_relic
-from .relics import Word,_attribute,RelicIconCapture,THRESHOLD
+from .relics import Word,_attribute,RelicIconCapture,THRESHOLD,relic_catalog
 from .timing import Timings
 
 NODE='LabyShopStateObserved';NAME='LabyrinthShop'
@@ -178,8 +182,19 @@ def imprint_identity(text):
     if match:return dict(imprint_label='随机职能印记',choice_imprint=match[1]=='选择',role_class=None)
     return None
 
-def _item_identity(observation,name,kind=None):
+def _item_identity(observation,name,kind=None,*,expected_catalog_id=None):
     words=observation.get('words',{}).get('DialogBody',[])
+    if kind=='relic':
+        catalog=observation.get('dialog_catalog')
+        if type(catalog) is dict and type(catalog.get('id')) is int and expected_catalog_id is not None:
+            # A trusted same-frame catalog id is never downgraded: when the
+            # persisted intent already has one, a different id is a changed
+            # quote, not "no static identity". Letting the captured icon or the
+            # text fallback decide would spend run coins on a dialog whose own
+            # icon names another relic (same price, same series). Only a frame
+            # without a trusted catalog result keeps the legacy paths.
+            if catalog['id']!=expected_catalog_id:raise BatchStopped('shop_quote_changed')
+            return 'native_observed_catalog'
     if kind=='relic' and observation.get('selected_icon_verified') is True:return 'native_observed_icon'
     if _normalized(name) in _normalized(_text(words)):return 'exact_ocr'
     if kind=='role_imprint':
@@ -237,7 +252,30 @@ def _stock_state(words,buttons,items):
 
 
 class ShopRecognition(CustomRecognition):
-    def __init__(self,stopped=None,*,icon_capture=None):super().__init__();self.stopped=stopped;self.icon_capture=icon_capture
+    def __init__(self,stopped=None,*,icon_capture=None,catalog=None):
+        super().__init__();self.stopped=stopped;self.icon_capture=icon_capture;self.catalog=catalog
+    def _identify_shelf(self,items,image):
+        """Attach the trusted static relic identity to every shelf card.
+
+        A trusted icon whose catalog mark/bonus contradicts the same-frame
+        attribute line returns the conflict reason instead of letting a wrong
+        stack fact reach the strategy; an untrusted icon or an absent pack keeps
+        the OCR text path unchanged.
+        """
+        for item in items:
+            if item['kind']!='relic':continue
+            match=self.catalog.match(image,SHOP_ICON_ROIS[item['slot']])
+            facts=match.facts
+            if match.trusted is not True or facts is None:continue
+            if (facts.mark is not None
+                    and (facts.mark!=item['relic'].mark or facts.bonus!=item['relic'].bonus)):
+                return 'shop_relic_identity_conflict'
+            item['catalog_id']=facts.id
+            item['catalog_name']=facts.name
+            item['identity_source']='static_icon'
+            item['catalog_match']=dict(score=round(float(match.score),4),
+                rival=round(float(match.rival),4),margin=round(float(match.margin),4))
+        return None
     def analyze(self,context,argv):
         if self.stopped is not None and self.stopped():return self.AnalyzeResult(None,dict(status='unknown',reason='stopped'))
         words={k:_words(context.run_recognition('LabyShopRead_'+k,argv.image),k) for k in _READS}
@@ -284,6 +322,9 @@ class ShopRecognition(CustomRecognition):
         if state=='shop':
             try:
                 balance,items=parse_shop_inventory(words,buttons)
+                if self.catalog is not None:
+                    conflict=self._identify_shelf(items,argv.image)
+                    if conflict is not None:return self.AnalyzeResult(None,dict(payload,status='unknown',reason=conflict))
                 payload['stock_state']=_stock_state(words,buttons,items)
                 payload.update(balance=balance,items=[dict(i,relic=dict(relic_id=i['relic'].relic_id,mark=i['relic'].mark,bonus=i['relic'].bonus,recognized=True)) if i['kind']=='relic' else i for i in items])
             except BatchStopped:return self.AnalyzeResult(None,dict(payload,status='unknown'))
@@ -291,6 +332,11 @@ class ShopRecognition(CustomRecognition):
         if state=='confirmation' and self.icon_capture is not None and self.icon_capture.icon is not None:
             match=context.run_recognition('LabyShopConfirmedIcon',argv.image)
             payload['selected_icon_verified']=match is not None and match.hit is True
+        if state=='confirmation' and self.catalog is not None:
+            match=self.catalog.match(argv.image,SHOP_DIALOG_ICON_ROI);facts=match.facts
+            if match.trusted is True and facts is not None:
+                payload['dialog_catalog']=dict(id=facts.id,name=facts.name,mark=facts.mark,bonus=facts.bonus,
+                    score=round(float(match.score),4),margin=round(float(match.margin),4))
         param=json.loads(argv.custom_recognition_param or '{}')
         if type(param) is dict:
             if param.get('state') and param['state']!=state:return self.AnalyzeResult(None,payload)
@@ -304,9 +350,10 @@ class ShopRecognition(CustomRecognition):
                     if item is None or item['name']!=param['name'] or param.get('price') is not None and item['price']!=param['price']:return self.AnalyzeResult(None,payload)
                 else:
                     kind='relic' if param.get('mark') is not None else 'role_imprint' if imprint_identity(param['name']) else None
-                    try:identity=_item_identity(payload,param['name'],kind)
+                    expected=param.get('identity_method')
+                    try:identity=_item_identity(payload,param['name'],kind,expected_catalog_id=param.get('catalog_id'))
                     except BatchStopped:return self.AnalyzeResult(None,payload)
-                    if param.get('identity_method')=='native_observed_icon' and identity!='native_observed_icon':return self.AnalyzeResult(None,payload)
+                    if expected in ('native_observed_icon','native_observed_catalog') and identity!=expected:return self.AnalyzeResult(None,payload)
             if state=='shop' and param.get('state')=='shop' and self.icon_capture is not None:
                 # A new proposal/refresh cannot inherit a previous item's template.
                 self.icon_capture.icon=None
@@ -328,14 +375,16 @@ class MaaShop:
     def __init__(self,tasker,stamp,*,timings=None):
         self.tasker=tasker;self.stamp=stamp;self.timings=timings or Timings();self.blocked=False;self.pending=None;self.spent=set()
         resource=runtime_resource(tasker)
+        self.catalog=relic_catalog(tasker)
         self.observer=getattr(resource,'_labyrinth_shop_observer',None)
         if self.observer is None:
             icon=RelicIconCapture(icon_rois=SHOP_ICON_ROIS,image_name='LabyShopSelectedIcon.png',
                 match_node='LabyShopConfirmedIconNative',match_roi=SHOP_DIALOG_ICON_ROI)
-            self.observer=ShopRecognition(icon_capture=icon)
+            self.observer=ShopRecognition(icon_capture=icon,catalog=self.catalog)
             if (not resource.override_pipeline(shop_pipeline()) or not resource.register_custom_recognition(NAME,self.observer)
                 or not resource.register_custom_recognition('LabyShopSelectedIconCapture',icon)):raise BatchStopped('shop_install_failed')
             resource._labyrinth_shop_observer=self.observer
+        self.observer.catalog=self.catalog
         self.scene=MaaSceneRuntime(tasker,stamp,timings=self.timings)
 
     def _capture(self):
@@ -407,7 +456,7 @@ class MaaShop:
             batch.checkpoint();return None,None
         finally:native.RUN_DEADLINE.reset(token)
 
-    def _input(self,state,box,*,name=None,price=None,mark=None,bonus=None,identity_method=None):
+    def _input(self,state,box,*,name=None,price=None,mark=None,bonus=None,identity_method=None,catalog_id=None):
         if not _box(box):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='shop_input_unknown'))
         if state=='shop':
             slots=[i for i in range(3) if _box(box) and box[0]>=_READS[f'Buy{i}'][1][0] and box[0]+box[2]<=_READS[f'Buy{i}'][1][0]+_READS[f'Buy{i}'][1][2]]
@@ -416,7 +465,7 @@ class MaaShop:
         elif state=='refresh':roi=_READS['Refresh'][1]
         else:roi=_READS['Confirm'][1]
         nodes={'LabyShopActionControl':dict(recognition='OCR',expected=r'^购买$' if state=='shop' else _READS['Refresh'][0] if state=='refresh' else r'^确认$',roi=roi,threshold=.8,action='DoNothing',next=[]),
-          'LabyShopActionGuard':dict(recognition='Custom',custom_recognition=NAME,custom_recognition_param=dict(state='shop' if state=='refresh' else state,slot=slots[0] if state=='shop' else None,name=name,price=price,mark=mark,bonus=bonus,identity_method=identity_method),roi=[0,0,1280,720],action='DoNothing',next=[]),
+          'LabyShopActionGuard':dict(recognition='Custom',custom_recognition=NAME,custom_recognition_param=dict(state='shop' if state=='refresh' else state,slot=slots[0] if state=='shop' else None,name=name,price=price,mark=mark,bonus=bonus,identity_method=identity_method,catalog_id=catalog_id),roi=[0,0,1280,720],action='DoNothing',next=[]),
           'LabyShopActionOnce':dict(recognition='And',all_of=['LabyShopActionControl','LabyShopActionGuard'],action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)}
         if state=='shop':nodes['LabyShopSelectedIconCapture']=dict(custom_recognition_param=dict(slot=slots[0]))
         if not self.tasker.resource.override_pipeline(nodes):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='shop_input_unknown'))
@@ -428,7 +477,7 @@ class MaaShop:
     def purchase_once(self,quote,operation_id,*,batch=None):
         if self.blocked or self.pending is None:raise BatchStopped('shop_purchase_unbound')
         stored,active=self.pending;batch=batch or active
-        events=batch.journal.events();intent=events[-1] if events else {}
+        intent=batch.journal.last_event() or {}
         if (batch is not active or quote!=stored or type(operation_id) is not str or operation_id in self.spent
             or intent.get('state')!='in_flight' or intent.get('operation')!='purchase' or intent.get('operation_id')!=operation_id
             or intent.get('item_id')!=quote.get('item_id') or intent.get('price')!=quote.get('price')):raise BatchStopped('shop_purchase_unbound')
@@ -438,8 +487,9 @@ class MaaShop:
             try:
                 current,receipt=self._capture();body,price=confirmation_terms(current,mark=quote.get('mark'),bonus=quote.get('bonus'))
                 if current['state']!='confirmation' or price!=quote['price']:raise BatchStopped('shop_quote_changed')
-                identity=_item_identity(current,quote['name'],quote['kind'])
-                if quote.get('identity_method')=='native_observed_icon' and identity!='native_observed_icon':raise BatchStopped('shop_quote_changed')
+                identity=_item_identity(current,quote['name'],quote['kind'],expected_catalog_id=quote.get('catalog_id'))
+                expected_method=quote.get('identity_method')
+                if expected_method in ('native_observed_icon','native_observed_catalog') and identity!=expected_method:raise BatchStopped('shop_quote_changed')
                 confirms=current['words']['Confirm']
                 if len(confirms)!=1:raise BatchStopped('shop_quote_changed')
             except BatchStopped as error:
@@ -447,7 +497,7 @@ class MaaShop:
                 # Nothing has been submitted to the input node on this path.
                 raise native.NativeInputNotSent(dict(input_execution='not_sent',
                     pre_input_readback_failed=True,reason=str(error),observation=receipt)) from None
-            sent=self._input('confirmation',confirms[0]['box'],name=quote['name'],price=quote['price'],mark=quote.get('mark'),bonus=quote.get('bonus'),identity_method=quote.get('identity_method'))
+            sent=self._input('confirmation',confirms[0]['box'],name=quote['name'],price=quote['price'],mark=quote.get('mark'),bonus=quote.get('bonus'),identity_method=quote.get('identity_method'),catalog_id=quote.get('catalog_id'))
             self.pending=None
             return self.stamp(operation_id=operation_id,enter_id=quote['enter_id'],item_id=quote['item_id'],price=quote['price'],
                 name=quote['name'],mark=quote.get('mark'),bonus=quote.get('bonus'),currency='run_coins',native=sent,input_native=sent,input_action_verified=True,source='maa')
@@ -456,8 +506,8 @@ class MaaShop:
     def purchase_readback(self,batch,quote,clicked):
         batch.checkpoint();result,receipt=self._wait_state(batch,'complete');body,price=confirmation_terms(result)
         if '购买了' not in body or price!=quote['price']:raise BatchStopped('purchase_result_unknown')
-        if quote.get('identity_method')!='native_observed_icon':
-            try:_item_identity(result,quote['name'],quote['kind'])
+        if quote.get('identity_method') not in ('native_observed_icon','native_observed_catalog'):
+            try:_item_identity(result,quote['name'],quote['kind'],expected_catalog_id=quote.get('catalog_id'))
             except BatchStopped:raise BatchStopped('purchase_result_unknown') from None
         return self.stamp(operation_id=clicked['operation_id'],enter_id=quote['enter_id'],item_id=quote['item_id'],price=quote['price'],
             inventory_added=True,name=quote['name'],mark=quote.get('mark'),bonus=quote.get('bonus'),currency='run_coins',
@@ -638,13 +688,18 @@ class MaaShop:
                 clicked=batch.transaction('shop_proposal',fields,proposal)
                 batch.checkpoint();dialog,dialog_receipt=self._wait_state(batch,'confirmation')
                 body,amount=confirmation_terms(dialog)
-                try:identity_method=_item_identity(dialog,selected['name'],selected['kind'])
-                except BatchStopped:raise BatchStopped('shop_quote_unknown') from None
+                try:identity_method=_item_identity(dialog,selected['name'],selected['kind'],expected_catalog_id=selected.get('catalog_id'))
+                except BatchStopped as error:
+                    # A trusted icon that names another relic is a changed
+                    # quote in its own right; other identity failures stay
+                    # `shop_quote_unknown`.
+                    if error.args==('shop_quote_changed',):raise
+                    raise BatchStopped('shop_quote_unknown') from None
                 if amount!=selected['price']:raise BatchStopped('shop_quote_unknown')
                 batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,native=dialog_receipt,input_native=clicked['input_native'],source='maa'),**fields)
                 # Stamp actual card/confirmation observations, not configured money.
                 quote=self.stamp(enter_id=enter_id,item_id=identifier,kind=selected['kind'],currency='run_coins',price=selected['price'],balance=current['balance'],purchasable=True,
-                    name=selected['name'],identity_method=identity_method,mark=selected['relic'].mark if selected['kind']=='relic' else None,bonus=selected['relic'].bonus if selected['kind']=='relic' else None,slot=selected['slot'],native=receipt,source='maa')
+                    name=selected['name'],identity_method=identity_method,catalog_id=selected.get('catalog_id'),mark=selected['relic'].mark if selected['kind']=='relic' else None,bonus=selected['relic'].bonus if selected['kind']=='relic' else None,slot=selected['slot'],native=receipt,source='maa')
                 self.pending=(quote,batch)
                 if selected['kind']=='relic':
                     result=batch.purchase(enter_id,identifier,quote,readback=lambda clicked:self.purchase_readback(batch,quote,clicked))
@@ -661,7 +716,7 @@ class MaaShop:
                 complete=_readback(result['native'])
                 confirm=complete['words']['Confirm'][0]['box']
                 def close(oid):
-                    sent=self._input('complete',confirm,name=None if quote.get('identity_method')=='native_observed_icon' else quote['name'],price=quote['price'])
+                    sent=self._input('complete',confirm,name=None if quote.get('identity_method') in ('native_observed_icon','native_observed_catalog') else quote['name'],price=quote['price'])
                     return self.stamp(operation_id=oid,**close_fields,native=sent,input_native=sent,input_action_verified=True,source='maa')
                 clicked=batch.transaction('shop_purchase_close',close_fields,close)
                 if selected['kind']=='role_imprint':

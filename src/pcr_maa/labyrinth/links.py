@@ -324,12 +324,13 @@ class MaaLinkReward:
             raise BatchStopped('link_reward_identity_required')
         key = (enter_id, reward_id)
         batch.checkpoint()
-        events = batch.journal.events()
-        if key in self.attempted or any(e.get('operation') == 'link_reward_select'
+        if key in self.attempted or batch.journal.any_event(
+                lambda e: e.get('operation') == 'link_reward_select'
                 and e.get('binding') == batch.binding.payload()
-                and (e.get('enter_id'), e.get('reward_id')) == key for e in events):
+                and (e.get('enter_id'), e.get('reward_id')) == key):
             raise BatchStopped('link_reward_already_attempted')
-        if events and events[-1]['state'] == 'in_flight':
+        last = batch.journal.last_event()
+        if last and last['state'] == 'in_flight':
             raise BatchStopped('blocked_in_flight')
         offers = link_offers(self._run('LabyLinkObserved'))
         with self.timings.measure('strategy'):

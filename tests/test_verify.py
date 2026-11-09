@@ -122,7 +122,7 @@ def test_gui_plan_builds_before_checks_and_uses_matching_rids(tmp_path):
         if name == "PcrProfileSwitch.Tests-run":
             assert command[-3:] == [str(verify.ROOT), str(tmp_path / "fixtures/PcrProfileSwitch.Tests"), sys.executable]
         if name == "PcrUpdate.Tests-startup-actions-run":
-            assert command[-2:] == [str(tmp_path / "fixtures/startup-actions"), "--startup-actions-only"]
+            assert command[-3:] == [str(tmp_path / "fixtures/startup-actions"), "--startup-actions-only", str(verify.ROOT)]
             assert Path(command[1]).parent == cwd
         if name in ("PcrLabyrinthAccounts.Tests-run","PcrLabyrinthRatings.Tests-run"):
             project=name.removesuffix('-run')

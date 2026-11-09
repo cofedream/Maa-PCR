@@ -28,6 +28,7 @@ def save(path,value):
 class Journal:
     def __init__(self):self.values=[]
     def events(self):return self.values[:]
+    def any_event(self,predicate):return any(predicate(value) for value in self.values)
     def last_event(self):return self.values[-1] if self.values else None
     def append(self,value):self.values.append(value)
 def setup(tmp_path,label,images):

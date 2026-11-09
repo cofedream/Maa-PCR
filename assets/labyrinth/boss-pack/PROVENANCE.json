@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "pack": "labyrinth-boss-pack",
+  "masterVersion": "202611021739",
+  "origin": "本地整理的游戏资源包提取。原始目录的 _图标索引.csv 逐行记录 enemy_id、名称、文件、宽高、大小和 unit_icon_unit_*.unity3d 来源；本包只保留重命名为 ASCII ID 的 128x128 PNG，原 CSV 与预览图不进入运行包。",
+  "sourceIndex": {
+    "file": "_图标索引.csv",
+    "sha256": "6106c57da7df169f6916abeeca1857569ca14d39a7e9fc265b00245825bd8e5f",
+    "bytes": 981
+  },
+  "author": "MAA PCR contributors",
+  "image_rights": "Princess Connect Re:Dive game imagery; copyright belongs to the original rights holders (Cygames). Project and upstream code licenses do not grant image rights.",
+  "distribution_permission_not_inferred": true,
+  "private_captures_included": false,
+  "private_uid_included": false,
+  "icons": [
+    {
+      "path": "icons/301206.png",
+      "sha256": "4740341004430b5b5515b167c236513e94041d88ee9a21ba7ca9b2cd24490690",
+      "bytes": 23704,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_301206.unity3d"
+    },
+    {
+      "path": "icons/301701.png",
+      "sha256": "fe700b4e9e6fc06fcd6987ca23e7f1821d72662baa8f3aae6325ad208ac2d245",
+      "bytes": 25139,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_301701.unity3d"
+    },
+    {
+      "path": "icons/302501.png",
+      "sha256": "a8b6ca01f0bc73f41507e75ee24e8ffd7282983b2c140e345d2753b010f5a8e6",
+      "bytes": 25865,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_302501.unity3d"
+    },
+    {
+      "path": "icons/303306.png",
+      "sha256": "e325032c8f6444b9bef7a5b802d1178ba5e7b89a596b21bb3cf47f868e629de1",
+      "bytes": 23101,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_303306.unity3d"
+    },
+    {
+      "path": "icons/306604.png",
+      "sha256": "4d557166024d5c9003a351cf0e0facc1498722993d62d0b551dab1198f05d8c8",
+      "bytes": 22596,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_306604.unity3d"
+    },
+    {
+      "path": "icons/310103.png",
+      "sha256": "b12f65b97152571307b013bea17dd04b41c5bf448e4920fa91bfec87158aa465",
+      "bytes": 23156,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_310103.unity3d"
+    },
+    {
+      "path": "icons/312505.png",
+      "sha256": "1e66d2ecf8877c8a705e0fc6302f040e167aeb2f8326087f14efc7e97425b9b8",
+      "bytes": 23107,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_312505.unity3d"
+    },
+    {
+      "path": "icons/315004.png",
+      "sha256": "88ecf9483a7a1573489b01d36b77f27997377a2174def102ce733fcdb1180293",
+      "bytes": 21637,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_315004.unity3d"
+    },
+    {
+      "path": "icons/319401.png",
+      "sha256": "b6af03be1e121b58e4a00b6c39b25b9713f00ac7330097d333716c3e7ed33d59",
+      "bytes": 24776,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_319401.unity3d"
+    },
+    {
+      "path": "icons/319604.png",
+      "sha256": "456a58f3a92c9364f595849f1a89b7cccefe8f3e2b6879d6a73be7446ed3faa7",
+      "bytes": 23807,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "unit_icon_unit_319604.unity3d"
+    }
+  ]
+}

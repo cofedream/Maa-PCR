@@ -1,3 +1,138 @@
+## 2026-11-09 结果页静态图标成为独立身份证明；商店确认框可信 id 冲突即拒绝（PR #9 review 收口）
+
+背景：PR #9 review 提出两项 P2，都先按原帧/图鉴数据复算再定修法。
+
+1）奖励结果守卫仍强制旧身份。`obtained_guard(static=True)` 把 `LabyRelicObtainedStaticIdentity` 与 `LabyRelicObtainedIdentity`（`Or(ExactItem, Icon)`）同时放进 `LabyRelicObtainedObserved.all_of`，与本文件上一条"静态图标可信且与已记录 relic_id 一致**或**分隔点容忍文本身份二选一、绝不要求两者同时通过"矛盾：静态身份在原生层没有生效机会。原帧复算（`tests/data/labyrinth-relic-obtained-20261108.png`、离线 SavedImages）：正常名称 `completed=true`，`Identity` 只由 `ExactItem` 命中；把 `ExactItem` 的 `expected` 改成不可命中（守卫侧与"该行一个字符被读错"等价）后 `native_ok=false` / `recognition_failed=true`，而同一帧静态图鉴仍 trusted 35003（score .8073 / rival .4556 / margin .3517），模板子项在该弹窗上也不命中——即文字 OCR 实际是唯一证据，奖励已到手仍会以 `relic_result_unknown` 中止。
+
+修复（最小面 OR，不改回执行集合）：`RelicStaticIconCapture` 新增 `obtained_guard` 模式（`RESULT_ICON_ROI` + 期望 `relic_id`，仅 trusted 且 id 相等才命中，其余与 `guard` 同样返回不命中）；`relic_pipeline` 新增占位节点 `LabyRelicObtainedStaticGuard`，作为 `LabyRelicObtainedIdentity` 的第三个（最后）子项；`obtained_guard(..., relic_id=)` 在静态可用且记录 id 为整数时注入该参数，`MaaRelicReward.confirm` 传入 `selected_id`。账本 facts 仍取兄弟行 `LabyRelicObtainedStaticIdentity`（`_static_obtained_id` 未改），因此 `identity_method='static_icon'`、规范名、数量 `×1` 与 `relic_id` 校验都不变；静态不可信或包缺失时子项恒不命中，行为与改动前一致；可信静态指向另一 id 仍由 `_static_obtained_id` 抛 `relic_result_mismatch`，新增原帧用例把"静态不符仍拒绝"钉住。
+
+2）商店确认框可信图鉴 id 与意图冲突。复核结论：机制成立（`_item_identity` 在 `dialog_catalog.id != expected_catalog_id` 时继续走 `selected_icon_verified`/OCR，且首次确认把降级后的方法写进 quote，后续 `purchase_once` 与点击守卫的"期望方法"因此自我一致地放行），但 review 描述的"另一件同价同属性遗物被旧模板或文字误通过"缺依据：图鉴 91 条名称两两无子串/前缀关系（文字回退不可能命中另一件），91 张图标字节互不相同，`selected_icon_verified` 的 80×80 TM_CCOEFF_NORMED ≥ .85 连正确的弹窗图标在该真机帧上都不命中（本轮实测）。因此按方向修，只修有确证的一侧。
+
+修复：`_item_identity` 在 `kind='relic'`、帧上存在可信 `dialog_catalog` 且 persisted `expected_catalog_id` 已知时，id 不等直接抛 `shop_quote_changed`（不再回退）；只有一端已知时保持原回退（货架图标不可信仍走 OCR/模板，帧上无可信图鉴结果仍走旧路径）。`MaaShop.run` 首次确认处不再把该原因覆盖成 `shop_quote_unknown`（其余身份失败仍覆盖）。刻意不做"只要存在可信图鉴结果就判死"：`SHOP_DIALOG_ICON_ROI` 配错或 UI 变体会从"降级可用"变成"所有遗物购买全停"，超出评论给出的证据；`purchase_readback` 对 native 方法本就跳过文本复核，未改。
+
+验证：`tests/test_labyrinth_relic_obtained_frame.py` 新增两项（原帧上无记录 id 时同帧仍 `native_ok=false`，作为修复前行为对照；有记录 id 时 `Identity` 三子项且 `relic_obtained` 得 `static_icon` 35003；记录 id 换成 35004 时仍 `relic_result_mismatch`）。`tests/test_labyrinth_shop_relic_identity.py` 新增一项（同一确认帧：`catalog_id=32002` 照常购买并点击一次；`catalog_id=12003` 抛 `NativeInputNotSent`、`reason=shop_quote_changed`、零点击），并给原 `dialog_catalog` 用例补上拒绝原因断言。遗物/商店相关 7 个文件 `55 passed / 11 skipped`；`pytest -k labyrinth` `1881 passed / 130 skipped / 5982 deselected`（18 subtests，3:42），另有 3 项真实 ADB/SDK 用例失败（`test_labyrinth_app_version` 与 `test_labyrinth_channels_parity` 各 1/2 项），在未打本改动的干净工作树上同样 0.62 秒内失败，属本机无设备环境问题。`scripts/verify.py public` 本地首次为 `7244 passed / 105 failed / 30 errors`，其中多出的 4 个文件（`test_schedule_onekey` 63、`test_sweep_skip` 24、`test_supported_daily` 8、`test_page_wait_deadlines` 2，另有 30 errors）全部是下面这条 token 泄漏的连锁，与遗物/商店改动无关：新增商店用例是第一个在同一测试内建两个 shop 的用例，`replay` fixture 按插入顺序 reset `RUN_DEADLINE` token，ContextVar 反向解包后把 `time.monotonic()+120` 的有限 deadline 泄漏给同 session 之后的所有原生用例（`test_page_wait_deadlines` 读到 1052.1 而不是 `inf`，其余以 `Native job exceeded 90 seconds` 连锁）；fixture 改为逆序 reset 后，`test_labyrinth_shop_relic_identity` + `test_page_wait_deadlines` + 遗物身份/原帧套件 `33 passed`，`test_labyrinth_shop_relic_identity` + `test_schedule` + `test_sweep_skip` `47 passed / 38 skipped`。改动前的 HEAD 在干净 worktree 独立跑同一套为 `7338 passed / 38 failed / 0 errors`，剩余 38 项全是 Windows/CRT 打包、GUI、真实 ADB/SDK 用例（`test_inspect_daily` 16、`test_player_candidate` 12、`test_verify` 3、`test_labyrinth_channels_parity` 2 等），两次运行对全部 labyrinth 用例结论一致。
+
+## 2026-11-08 商店遗物身份接入静态图鉴（完整购买序列原帧）
+
+背景：商店三格遗物此前只有 OCR 名称/属性身份（`visible-shop-item:<名称 sha256>`），没有图鉴身份；购买确认只用点击帧捕获图标做同 session 模板一致性校验。奖励三选一页已以图鉴图标为主身份，商店是最后一个 name-only 遗物入口。
+
+实机抓帧（2026-11-08 手动走到商店，随后手动购买一次）：`tests/data/labyrinth-shop-relics-20261108.png`（货架三件可购买遗物）、`…-confirm-20261108.png`（与 slot 2 配对的购买确认）、`…-complete-20261108.png`（购买完毕）、`…-after-20261108.png`（购买后同页：slot 0 当前 3、slot 1 当前 1、slot 2 变为职能印记，深渊蚀杖诅咒在底行已售罄）。manifest 记录 sha256、1280×720、来源/用途/期望值；画面不含玩家名、账号、设备或运行标识。
+
+改动：
+- `relics.relic_catalog(tasker)` 暴露运行内唯一已验证图鉴包（缺包返回 None，不重复加载）。
+- `ShopRecognition` 新增 `catalog`：`state=='shop'` 时对三格 `SHOP_ICON_ROIS` 做图鉴匹配；可信则写入 `catalog_id`/`catalog_name`/`identity_source='static_icon'`/`catalog_match`，并与同帧属性行 OCR 的 mark/bonus 交叉校验；冲突时返回 `shop_relic_identity_conflict`（整帧 unknown，停止而不是猜）；图标不可信或包缺失保持原 OCR 路径。
+- 购买确认：confirmation 帧对 `SHOP_DIALOG_ICON_ROI` 做图鉴匹配，payload 增加 `dialog_catalog`；`_item_identity` 新增 `expected_catalog_id`，命中返回 `native_observed_catalog`（图片证据优先于精确文本；捕获图标模板 `native_observed_icon` 仍是图鉴不可用时的图片兜底）；`MaaShop.run/purchase_once/purchase_readback/_input` 透传 `catalog_id` 与 identity_method。
+- 账本/策略：item 增加 catalog 字段，`item_id` 仍保留可见身份，不改写既有账本语义。
+
+验证（离线，真实帧）：pre 帧三格 trusted **12003/14003/32002**（score .90/.91/.88，margin .27/.39/.35），OCR 名称/价格/当前层数（0/1/0）与卡面一致；确认帧 `selected_icon_verified=true`、`dialog_catalog.id=32002`、价格 2850、系列「削弱+3/当前 0」与货架属性行一致；购买完毕 `2850`/深渊蚀杖诅咒；购买后余额 2735，slot 0 当前 3、slot 1 当前 1、slot 2 职能印记，底行已售罄的 32002 仍可被图鉴命中。合成帧反例：把 14003（强化+1）图标贴到 slot 2（卡面 削弱+3）→ 图鉴与属性行冲突，`_capture` 以 `shop_readback_unknown` 停止、零输入；抹掉图标 → 图鉴不可信，回退 OCR 文本路径；`relic_catalog` 返回 None → 同样回退。新增 `tests/test_labyrinth_shop_relic_identity.py`（6 项，含完整购买序列与反例）。`pytest -k shop` `238 passed / 28 skipped`；`pytest -k labyrinth` `1888 passed / 123 skipped / 5982 deselected`（18 subtests，4:28）。
+
+未做/边界：本局未实机复跑；商店 `item_id` 仍是可见身份（未改为 catalog id）；确认弹窗的 catalog 证据要求图鉴可信，不可信时仍用捕获图标模板/精确 OCR；商店以外的 name-only 路径（地图/物品读取、链接/角色奖励）未并入；阈值、ROI、图标包与 masterdata 未改。
+
+## 2026-11-08 账本查询改为只读视图（奖励选择不再深拷贝整本账本）
+
+问题：`Batch.run` 整局持有 journal 锁（[batch.py:330](src/pcr_maa/labyrinth/batch.py#L330)），锁内 `Journal.events()` 为兼容历史调用方返回 `deepcopy(cache)`（[preset_execution.py:214](src/pcr_maa/preset_execution.py#L214)）。账本 `transactions.jsonl` 已 179.7 MB / 10,918 行（每条内嵌完整 native 回执，平均约 16 KB/行），本机实测：锁内一次 `events()` = **10.91 s**，每局首次全量读+逐条校验 = **15.06 s**；而 `last_event()` = **0.2 ms**，在缓存上做一次只读条件扫描 = **1.4 ms**。日志里 `[15:13:59] 读卡完成 → [15:14:09] 图鉴身份完成`、`[15:08:32] 角色奖励页 → [15:08:44] 选角已发出` 的 10–12 秒空档都是整本复制，与 ADB 截图无关。
+
+改动：`Journal.any_event(predicate)` 新增只读扫描（不 deepcopy、不暴露可变副本；predicate 内不得修改或保留事件字典）；`events()` 语义保留给确实需要独立副本的启动校验/恢复；`last_event()` 继续用于“只看最后一条”。替换热路径：
+
+- 遗物选择重复检查 [relics.py:862](src/pcr_maa/labyrinth/relics.py#L862)
+- 角色奖励重复检查（event-free 与普通两条）[rewards.py:120](src/pcr_maa/labyrinth/rewards.py#L120)、[rewards.py:196](src/pcr_maa/labyrinth/rewards.py#L196)
+- 连结印记重复检查与 in-flight 检查 [links.py:327](src/pcr_maa/labyrinth/links.py#L327)
+- 商店购买校验 [shop_execution.py:431](src/pcr_maa/labyrinth/shop_execution.py#L431)（原来为取 `events[-1]` 复制整本）
+- 旧局/开局/会话校验 [game_port.py:259](src/pcr_maa/labyrinth/game_port.py#L259)、[game_session.py:465](src/pcr_maa/labyrinth/game_session.py#L465)、[acquisition.py:203](src/pcr_maa/labyrinth/acquisition.py#L203)、[acquisition.py:212](src/pcr_maa/labyrinth/acquisition.py#L212)（最后一条改 `last_event()`，存在性改 `any_event()`）
+
+业务判定、账本格式、fsync、未知结果不重发规则均不变；只改读取方式。
+
+验证（同一本 179.7 MB 账本、本机）：`any_event` 扫描 1.4 ms vs `events()` 10.91 s vs `last_event()` 0.2 ms。`tests/test_journal_lock_cache.py` 新增 4 项：锁内 `any_event` 不触发 `deepcopy`（monkeypatch 计数）、锁外读文件、append 后可见、外部改动仍按原样拒绝；`test_labyrinth_relic_identity.py::test_choose_guards_with_the_trusted_catalog_identity` 现在把 `Journal.events` 打成失败，遗物选择仍正常（防止热路径回退到整本复制）。目标套件（journal 缓存、遗物帧/身份、free role、independent edges、reward/shop/event 上游、shop execution、links）`356 passed / 38 skipped`；`tests/test_preset_execution.py tests/test_preset_result_reconcile.py tests/test_guide_control_check.py tests/test_abyss.py tests/test_abyss_reconcile.py` 共 `234 passed / 35 skipped`；`pytest -k labyrinth` `1882 passed / 123 skipped / 5982 deselected`（18 subtests，4:22）。
+
+未做/边界：每局启动仍会做一次全量读+逐条校验（约 15 s），且 `owned_runtime` 的 `pending_intent` 与 `Batch.run` 在两次加锁中各读一次（合计约 30 s/局）；下一步可用 sidecar 记录已校验 offset/stamp 只校验新增行，或跨锁复用已验证缓存（本轮未做，避免改动校验语义）。账本体积本身（每条内嵌完整回执）未处理。日常/公会战共用 `Journal` 类，`events()` 行为未变。
+
+## 2026-11-08 遗物点击守卫改为同帧图鉴身份（OCR 丢字不再拦截）
+
+实机失败记录 player-log run `cb977ae3ac554d2da0f01ce814e72313`（业务 run `489c2c929c68495ab0163ba396239c0d`，`enter_id=13475`，`reward_id=20701:relic_reward:1`）：15:13:58 进入第四次三选一遗物页，选择 slot 0「杀戮之矛」（`relic_id=13001`，会心+1，当前 4）。15:14:09 账本 `relic_reward_select` 已写入意图，15:14:13 以 `native_input_not_sent` 停止（`relics.py:851`、`relics.py:807`、`native.py:340`），进度 1:0，没有发出点击。
+
+原因：卡面实际显示「杀戮之矛」，但原生 OCR 在该帧把名称读成「杀之矛」——复杂字形「戮」被检测器漏掉（在同一帧重放 offer 读取也得到「杀之矛」，属该卡面的稳定漏检）。13:51 的 `8f1a483` 把 fresh guard 的名称来源换成图鉴规范名且明确不加字符容错，于是守卫期望 `^\s*杀\s*[·・‧•]*\s*戮\s*...\s*矛\s*$`，点击帧不命中，`LabyRelicSelectOnce` 2.5 秒超时，没有点击也没有误操作。图鉴身份本身是正确的（静态图标 13001，离线复算 score .8987 / rival margin .2699），失败只发生在「用 OCR 名称做点击身份」这一步。
+
+修复：可信图鉴身份改为「同帧图标 id」判定，OCR 名称不再参与点击成立。`RelicStaticIconCapture` 新增 `guard` 模式：只匹配目标 slot 的 `ICON_ROIS[slot]`，`trusted` 且 catalog id 等于意图 `relic_id` 才返回 hit，否则 `box=None`（不点击；异常、缺包、坏帧同样不命中）；`relic_pipeline` 新增 `LabyRelicGuardIcon{slot}0` 占位节点（未提供 slot/relic_id 时恒不命中），`selection_override` 在 `offer.identity` 可信时用该图标守卫替换 `LabyRelicGuardName{slot}0`；图标不可信或包缺失时保持原精确（分隔点可选）OCR 名称守卫。属性行、`还剩N次`、按钮、Bright、`LabyRelicSelectedIconCapture` 与点击坐标均不变。同帧图标匹配单槽约 13 ms。
+
+验证（离线）：在实机失败原帧上，`LabyRelicObserved` 仍读出 `杀之矛/再生之手镯/暗至宝圣物`，静态图标识别 13001/15005/22001；新守卫在 slot 0 命中 `LabyRelicGuardIcon00` 并点击 `[239,614]`（落在按钮 ROI），原生回执 `action_started=true`；把意图换成 `13002` 后同一帧不命中、零点击、`require_native_input` 判为 `NativeInputNotSent`。新增公开测试资源 `tests/data/labyrinth-relic-ocr-drop-20261108.png` 与同名 `.json`（sha256、1280×720、来源用途；画面不含玩家名、账号、设备或运行标识），新增 `tests/test_labyrinth_relic_icon_guard_frame.py`。更新 `test_labyrinth_relic_offer_frame.py`（图鉴身份断言改为同帧图标守卫）、`test_labyrinth_relic_name_separator.py`（身份守卫使用图鉴图标、文本路径保留）、`test_labyrinth_relic_identity.py`（guard 模式命中/拒绝/缺包/坏帧与 pipeline 节点）。目标文件 `45 passed / 1 skipped`；遗物、链接、商店与奖励相关套件 `293 passed / 25 skipped`；`pytest -k labyrinth` `1882 passed / 123 skipped / 5979 deselected`（18 subtests，3:33）；识别审计/像素策略/回调/延迟套件 `72 passed / 29 skipped`。
+
+未做/边界：本局未实机复跑；守卫改为图标后，若点击帧图标低于图鉴可信阈值（遮挡/动画）会按「未发出输入」安全停止，不再回退 OCR 名称；offer 帧与点击帧若被图鉴以同一错误 id 命中，守卫会跟随同一误判（属性行仍与图鉴 mark/bonus 交叉校验）；商店 relic、地图/物品读取和链接/角色奖励的 name-only 守卫未并入本模块；阈值、ROI、超时、图标包与 masterdata 未改。
+
+## 2026-11-08 奖励页遗物身份收束到 RelicOffer.identity（离线原帧复现）
+
+实机失败记录 player-log run `65bdcc4e34b74c0b9d89707782ea4f74`（业务 run `11af6eafef224049ae87e287b82d8a58`，`enter_id=13473`，`reward_id=50501:relic_reward:1`）：11:17:18 进入第二次三选一遗物页，选择 slot 1「白光辉铠·断壁」（`relic_id=35003`，守备+3）。11:17:34 账本 `relic_reward_select` 已写入意图，11:17:37 以 `native_input_not_sent` 停止（`relics.py:795`、`relics.py:751`、`native.py:340`），进度 1:2，实际没有发出点击，游戏停留在原选择页。
+
+原因：观测帧把卡面名称读成 `自光辉铠` + `·断壁`（`白` 误读为 `自`），静态图鉴已可信识别为 35003 并把规范名 `白光辉铠·断壁` 写入账本；但 `MaaRelicReward.choose` 的 fresh guard 仍调用 `selection_guard(self.tasker, offers, selected.slot, icon=True)`，传的是 OCR 解析出的 `offers`，`selection_override` 用 `offer.name` 生成 `^\s*自\s*光\s*辉\s*铠\s*断\s*壁\s*$`。同一帧点击时行识别读回正确的 `白光辉铠·断壁`（0.9604），`Detected` 分支读成 `自光辉铠` + `·断壁` 碎块，两个分支都不命中，`LabyRelicSelectOnce` 2.5 秒超时，原生证据为 `recognition_failed=true`、`action_started=false`，没有点击也没有误操作。这是 2026-11-07 静态图标改动的遗留边界：图标身份只进入账本与结果校验，fresh guard 仍停在 name-only 文本身份。
+
+修复（奖励页身份收束）：`RelicOffer` 增加 `identity` 字段，唯一身份入口是 `identify_relic_offers(offers, detail)`（内部 `relic_offer_facts` 解析可信图鉴事实、`attach_offer_identity` 挂到对应 offer）：id/规范名/mark/bonus/rarity 随 offer 一起流动，`_catalog_fact` 在入口统一校验名称与属性冲突。`MaaRelicReward._identify_offers` 在读卡后只调用一次该入口；账本字段、`selection_override` 的 fresh 名称守卫、`_result_name` 与结果复核全部读取同一个 `offer.identity`，不再由调用方另传 `name`。图标不可信或包缺失时 `identity=None`，保持原 OCR 文本路径；属性行、`还剩N次`、按钮、Bright、`LabyRelicSelectedIconCapture` 与点击坐标均不变。没有给 `白/自` 或其他错字增加字符容错，避免放过真正选错卡的情况。
+
+验证（离线）：同一失败帧上，按 OCR 拼写 `自光辉铠·断壁` 构造守卫时 `LabyRelicSelectOnce` 不命中；同一帧挂上图鉴身份 `白光辉铠·断壁` 后命中并产生点击。新增公开测试资源 `tests/data/labyrinth-relic-offer-20261108.png` 与同名 `.json`（保存源、用途、1280×720、sha256；画面不含玩家名、账号、设备或运行标识），测试覆盖：原生 OCR 仍读出 `自光辉铠·断壁`、静态图标仍可信识别 25002/35003/15005、`identify_relic_offers` 把规范名挂到 offer、fresh guard 使用规范名并在该帧真实命中一次点击。另存手动选择后的 `tests/data/labyrinth-relic-obtained-20261108.png` 与同名 `.json`，新增 `tests/test_labyrinth_relic_obtained_frame.py`：从该 ADB 原帧识别 `获得道具 / 获得了以下道具。 / 白光辉铠·断壁×1 / 关闭`，静态图标可信命中 35003，`relic_obtained` 返回 `verified=true`、`identity_method=static_icon`、数量 1。新增测试覆盖：可信身份覆盖 OCR 错读、无事实时回退原文本路径、非法图鉴身份拒绝、`selection_guard` 读取 `offer.identity` 的实际安装，以及 `choose` 只把带身份的 offer 交给守卫且不修改调用方元组。`pytest tests/test_labyrinth_relic_offer_frame.py tests/test_labyrinth_relic_obtained_frame.py tests/test_labyrinth_relic_name_separator.py tests/test_labyrinth_relic_identity.py` 41 passed / 1 skipped；相关遗物、链接、商店与奖励套件 292 passed / 35 skipped；`pytest -k labyrinth` 1873 passed / 127 skipped / 5979 deselected（18 subtests，3:24）。
+
+未做/边界：本局未实机复跑；本次只收束奖励三选一页的身份（offer、账本、fresh guard、结果读取），商店 relic 身份、地图/物品读取和链接/角色奖励的 name-only 守卫仍未并入同一模块；阈值、ROI、超时、图标包与 masterdata 均未改。
+
+## 2026-11-07 遗物身份改为静态图标 + masterdata（原帧校准 + 合成帧离线回放）
+
+同日 `relic_result_mismatch`（见下一条）说明遗物身份仍落在“两帧名称 OCR 逐字一致”上：角色与 Boss 早已是图标/数据身份，遗物是最后一块 name-only identity。本轮把三选一遗物与结果确认改为“静态图标 + masterdata 事实 + 属性行 OCR”的混合身份。
+
+资源：`assets/labyrinth/relic-pack/icons/<id>.png`（91 张 128×128 RGBA，逐字节取自 B服 11.7.2 客户端 bundle `icon_labyrinth_icon_relic_<id>.unity3d`）、`relic-pack/PROVENANCE.json`（与 boss-pack 同构：逐张 sha256/bytes/尺寸/32bppArgb/sourceBundle，游戏图像权利保留）、`assets/labyrinth/labyrinth-relics.json`（master 202611021739 的 91 条 id/name/mark/bonus/rarity/effect/icon；mark 按 `strategies` 词表归一：削弱→弱体、暴击→会心；30001 元素涌动宝珠在 master 无 mark（`mark:null`、`bonus:0`），50005 采用 master 名「拉比林斯之主」而客户端图标文件名为旧名「迷宫大师」；11 张无 master 条目的客户端图标 40006-40010 / 50006-50010 / 999999 不收录）。发布侧 `scripts/build_release.py` 增加 payload 必需项与 `require_relic_payload`（catalog↔PROVENANCE↔源/副本 sha256 三向一致），来源登记在 `docs/LABYRINTH_SOURCES.json`。
+
+代码：
+
+- `src/pcr_maa/labyrinth/relic_recognition.py`：`load_catalog()` 要求 catalog 与 PROVENANCE 的图标清单互为全集，逐张 sha256/字节数/128×128/32bpp 校验后才进入匹配，缺失或漂移抛 `relic_resource_changed`。`RelicCatalog.match(frame, box)` 按相对坐标采样（12×12 颜色粗筛 → 20×20 颜色/亮度/梯度精筛，几何在 art span .60–1.0、偏移 ±.02 上搜索），输出 `RelicFacts` 与 score/rival/margin；`trusted` 需要 score ≥ .62 且 margin ≥ .08，否则 facts=None。
+- `relics.RelicStaticIconCapture`：只读 custom recognition，对结果弹窗 `RESULT_ICON_ROI` 与三卡 `ICON_ROIS` 用同一帧匹配；**始终返回 hit**（detail 内 trusted/relic），缺包或异常只降级为 `trusted=false`，因此观察节点不会因身份不可用而 miss。新增节点 `LabyRelicObtainedStaticIdentity` / `LabyRelicOfferedStaticIdentity`。
+- `MaaRelicReward` 构造时只加载/校验一次包并注册 custom recognition；`choose` 在选择前先读三卡静态身份：可信槽位与同帧属性行交叉校验，mark/bonus 冲突抛 `relic_identity_conflict`（不猜测、不把错误事实写进 stack 账本）；名称只采用 catalog 规范名，并把 `relic_id` 写入账本字段。结果确认改为“静态图标可信且与已记录的 relic_id 一致”**或**“分隔点容忍的文本身份”二选一（绝不要求两者同时通过）；图标不可信回到文本，缺包时行为与改动前完全一致。`relic_obtained` 新增 `static`/`relic_id` 参数与 `identity_method='static_icon'`。
+- 账本 `relic_reward_select` 增加 `relic_id`（有可信图标身份时）；`_trace_detail` 白名单未变，玩家日志仍不打印内部字段。
+
+验证（离线）：本次失败帧 `image-1bc45335…png` 的 `(355,150,95,95)` → 35004，score .7809 / rival .4957 / margin .2852 trusted；同一 run 的另一帧与随机 ROI 全部 untrusted（≤.25）。把该帧记录的回执（标题/说明/道具行/关闭 + 静态图标 detail）直接喂给 `relic_obtained(..., static=True)`：命中 `identity_method=static_icon`、`relic_id=35004`、catalog 名 `幽玄煌装·绝魔`（有/无已记录 relic_id 两条路径都通过；把已记录 id 换成 35003 仍抛 `relic_result_mismatch`）。合成卡面 3 槽 35004/35001/31006 命中，合成结果弹窗图标命中 35004；原生 SavedImages 回放（无设备）两个新节点 `completed=true` 且 detail 正确。Python 侧单帧 match 中位约 12.6 ms、三卡约 37 ms（91 模板，分层几何搜索）。测试：`tests/test_labyrinth_relic_identity.py` 15 项（含 native 回放、校验冲突、回退与缺包降级）、`tests/test_labyrinth_relic_pack.py` 6 项、`tests/test_labyrinth_relic_recognition.py` 19 项（2 项私有原帧缺环境变量时 skip）；`pytest -k labyrinth` 1835 passed / 123 skipped；`python -X utf8 -B scripts/verify.py public` 7285 passed / 398 skipped / 201 deselected（30:48）。
+
+未做/边界：GUI 尚未展示遗物图标（C# loader 未接）；新遗物/新版本必须同步图标包与 masterVersion，缺图标时该卡身份回退文本、不误停；`THIRD_PARTY_NOTICES.md` 已补 relic-pack 行；`docs/LABYRINTH_SOURCES.json` 的 `local_files` 冻结源码哈希在 HEAD 上已有 16 项既存过期（与本轮无关），本轮只更新 `documentation.current_sha256`；未实机复跑本局。
+
+## 2026-11-07 遗物结果校验仍逐字比较，分隔点不一致导致获得后停止（离线复现）
+
+实机失败记录 `run 87473868f7f74c2f9627750693b44117`（业务账本 `954368389b32431baba4d7fdb76dcc14`，`enter_id=13461`，玩家日志 run `8c4cbfcd70b349a687a9b945c57fb762`）：21:24:19 三选一遗物选择 slot 0（`幽玄煌装·绝魔`，守备+3）后，结果弹窗已出现 `获得道具 / 获得了以下道具。 / 幽玄煌装·绝魔×1 / 关闭`，`LabyRelicObtainedObserved` 与 `LabyRelicObtainedExactItem` 两个原生节点均 `hit=true`，随后 Python 复核拒绝该结果，批次以 `relic_result_mismatch` 停止（进程位置 `autoplay.py:792`、`relics.py:612`、`relics.py:500`），进度 3:0。奖励实际已获得，点击落在 slot 0 按钮内，没有误操作。
+
+原因：观察帧把名称行读成 `幽玄煌装`（0.985）+ `1`（0.141）+ `a`（0.327）+ `绝魔`（0.999），显示分隔点被读成独立低分 token 后丢弃，账本记 `relic_name=幽玄煌装绝魔`；结果帧同一行读成单个 `幽玄煌装·绝魔×1`（0.9787）。`relic_obtained` 的 identity 分支里，原生 `LabyRelicObtainedExactItem` 的 `expected` 已是 `_pattern(名称×1)`（分隔点可选）所以命中，但 Python 侧仍用 `_normalized(观测文本) != name+'×1'` 逐字比较，两个拼写必然不等。11-02 同类事故只修了选择守卫的 `_pattern`，结果校验这一处没有同步，"原生命中、Python 拒绝"的两层身份判据一直并列存在。
+
+修复：新增 `relics._item_identity_matches(observed,name)`，用与守卫/原生节点相同的 `_pattern(name+'×1')` 判定（分隔点可选、其它字符与数量仍逐字精确）；`relic_obtained` 的 `icon=True`（identity 为 `LabyRelicObtainedExactItem` 时）与 `icon=False` 两处逐字比较都改为调用它，`_normalized`、阈值、ROI、图标基准回退、未知结果不重发均未改。因为两层现在用同一个判据，原生命中的结果不会再被 Python 以另一套身份定义拒绝。
+
+验证：把这局记录到的原生回执（标题/说明/道具行/关闭/identity，含真实框与分数）与账本名称 `幽玄煌装绝魔` 组成 receipt，直接调用 `relic_obtained`：修复前 `icon=True` 与 `icon=False` 两条路径都稳定抛 `relic_result_mismatch`，修复后两条都 `verified=True`（`identity_method=exact_ocr`）。新增 `tests/test_labyrinth_relic_name_separator.py` 用例：两种拼写接受，替字 `破魔`、数量 `×2`、缺字 `幽玄煌装·绝×1`、尾随字符仍拒绝；`pytest tests/test_labyrinth_relic_name_separator.py tests/test_labyrinth_reward_shop_upstream.py tests/test_labyrinth_links.py` 248 passed / 24 skipped。未实机复跑本局。
+
+## 2026-11-06 主页图标兜底落地（替代文字模板占位，现场截图 + 离线回放验证）
+
+现场实测补充（失败 run `40aa3ff2…` / 运行时 `2f4087bb…` 的导出帧 + 模拟器连续抓帧）：`HomeScheduleText` 的误读不是“永远错”，而是随主页背景/动画在「日程表 / 回程表」之间摇摆——亮色天空皮肤 13 帧中 6 帧读对（0.777–0.978）、7 帧读错（0.777–0.851）；宫子暗色皮肤 6/6 读成回程表（0.854–0.883）。分数都压在 threshold 0.8 附近，因此调阈值/ROI/换文字模板都不够稳。改为用主页右下角**图标行**做像素兜底：图标本身叠在白色圆盘上，两套皮肤上分辨率、位置和像素一致，与页面背景无关。
+
+实现：
+
+- 资源：`assets/resource/image/anchors/home/icons/{schedule,gift,shop,mission}.png`，来自维护者从已安装 CN 客户端 via adb 拉取的原始 UI 图标（`日程表_icon_schedulebutton.png`、`礼物_common_mypage_icon_present.png`、`商店_common_mypage_icon_shop.png`、`任务_common_mypage_icon_mission.png`，30 个候选图标中筛选出的 4 个主页专属按钮）。原始 PNG 带 alpha，而 MaaFw 的 `TemplateMatch` 不按 alpha 掩码（实测原图直接匹配仅 0.42–0.58），所以统一把透明区域垫白（`bgr*alpha + 255*(1-alpha)`；游戏图标渲染在白色圆盘上）后再入库，1:1 对应 1280×720。
+- 来源与许可：`assets/resource/image/anchors/home/icons/SOURCE_NOTICE.json` 记录原始文件名、sha256、尺寸、变换、本地路径与本地 sha256；游戏图像权利保留，不并入项目 MIT 许可。活动/主题相关的 `美食嘉年华_main_icon_seasonpass.png`（0.9651 可用）与绶带、特效类图标没有进入必须项，避免活动下线或换图标造成误杀。
+- 代码：`src/pcr_maa/anchors.py` 新增 `Icon`、`Page.icons`、`icon_template_path()`、`icon_pixel_nodes()` 与 `HomeIconPixelsLayout = And[HomeIconSchedulePixels, HomeIconGiftPixels, HomeIconShopPixels, HomeIconMissionPixels]`（threshold 0.85、pad 15 搜索窗）；`HomeAnchorLayout = Or[HomeTextLayout, HomeIconPixelsLayout]`，OCR 分支仍在首位。删除上一版 5 个 0 字节文字模板占位与对应 `HomeDefaultPixelsLayout`/`HomeEdgePixelsLayout`；文字 OCR 布局保留为第一判据。
+- 输入点击：图标兜底只用于“证明是主页”，`LabyClientHomeToAdventure` 的 `target` 从 `True` 改为固定 `[693,685,53,33]`（冒险词框），否则图标分支命中时会把 And 的点击目标带到图标上。
+- ROI：schedule `(989,549,56,49)`、gift `(1188,548,53,53)`、shop `(893,549,54,53)`、mission `(1090,550,52,52)`。
+
+离线验证：两套主页皮肤 + 失败帧上 4 枚图标均命中（0.9156 / 0.9316 / 0.9521 / 0.9382，两皮肤同分），迷宫大厅同 ROI 全部 miss。端到端回放：5 张主页帧 + 3 张失败帧的 `HomeIconPixelsLayout` / `HomeAnchorLayout` / `LabyClientGameHomeObserved` / `LabyClientHomeToAdventure` 全通过，点击落在冒险词框内（如 `[697,710]`）；迷宫大厅帧全部判负且零点击；`LabyGameSessionAfterTitleObserved` 在 8s 预算内主页通过、大厅失败。相关单测 76 passed / 79 skipped（跳过项均为缺私有夹具），`tests/test_home_guard_safety.py` 覆盖图标布局、模板非空、无 alpha、尺寸与词框包含。
+
+现场三主题复测（每主题 20/13/20 帧）：宫子暗色 / 亮色旧 / 亮色当前三个主题上，文字 OCR 首页布局成功率 **0% / 38% / 50%**（`日程表` 仍随背景在“日程表/回程表”之间摇摆），图标布局 **100% / 100% / 100%**；守卫成功率均 100%，耗时约 103 ms（OCR 分支一次尝试 ~51 ms + 图标分支 ~51 ms）。纯推理耗时：OCR 约 8–9 ms/词、图标 <1 ms/个（节点级 ~51 ms 主要是 MaaFw 任务/SDK 固定开销）。
+
+**阈值余量提示（当前保持 `ICON_THRESHOLD=0.85` 不调整）**：三主题实测每枚图标 score 范围——schedule 0.914–0.927、gift **0.859**–0.950、shop 0.896–0.965、mission 0.876–0.942；gift 最低 0.859，距阈值只有约 9 分，是本方案最薄的一处。迷宫大厅负例 0.14–0.26，与阈值仍有一个数量级的差距。若未来主题/活动把某枚图标压到 0.85 以下，优先给该主题追加模板变体（`template` 支持列表，可在 `anchors.py` 的 `Icon` 里扩展路径列表），其次才考虑把阈值降到 0.82；任何调整都必须在三主题 + 大厅负例上重跑，不能只改阈值不验证。
+
+未验证边界：标题页/公告页/副本页/角色页等更多负例、1080p 分辨率（图标位置/尺寸会变）、节日主题皮肤与活动图标替换；上线前仍按 `docs/OCR_STABILITY.md` 补门槛，并把现场抓帧脚本与证据留在本机 `.live-analysis/`（不进发行包）。
+
+## 2026-11-06 主页锚点公共模块，“日程表”被稳定读成“回程表”后由图片兜底（占位验证）
+
+实机失败记录 `run 40aa3ff2f9f7472b97ac7e9fd5674182`（另两次 `f35556797ef044d5a7c985ceb9e872b4`、`cecc59d10cf04c808978b8f9942256cf` 同因）：12:05:27 关闭“通知”并确认为 `client_notice_close` 后，`_after_title` 连续 75 秒探测主页全部未命中，最后一次探测以 `recognition_failed=true` 结束，`_root` 拒绝该回执，批次以 `game_session_readback_unknown` 停止（位置 `game_session.py:556/282/190`，对应 `_close_startup_popup` → `_after_title` → `_root`）。
+
+原因：屏幕确实是主页，`HomeAdventureText`（冒险 0.986）与 `HomeGiftText`（礼物 0.997）每帧命中，但 `HomeScheduleText`（ROI `[986,594,68,34]`、`^日程表$`、0.8）被 v4 识别器读成 `回程表`（0.82–0.90）；扩大 ROI、`only_rec:false`、锐化、1.5 倍放大、JPEG 压缩均不改结果。三次运行合计 217 帧读成“回程表”、2 帧“固程表”、0 帧“日程表”。同一帧整条底栏的其它词（商店 0.999、任务 0.947、礼物 0.999、主菜单 0.989、公会之家 0.997）都正常，所以不是 ROI、阈值、分辨率或加载中的问题；用仓库同一份 pipeline 与模型回放导出原帧即可稳定复现。共享 `assets/resource/pipeline/home_text.json` 的 sha256 与仓库一致。
+
+修复：新增公共模块 `src/pcr_maa/anchors.py` 作为**唯一份锚点定义**（词、紧裁剪词框、所属布局、模板路径），输出三种节点：OCR 叶子与布局（必须与共享 `home_text.json` 逐字段相等，由 `tests/test_home_guard_safety.py::test_shared_anchor_module_owns_the_daily_document` 断言）、`TemplateMatch` 叶子（同词框 + 十余像素搜索窗、阈值 0.9）、以及 `HomeAnchorLayout = Or[HomeTextLayout, HomeDefaultPixelsLayout, HomeEdgePixelsLayout]`。模板资源按页面分目录：`assets/resource/image/anchors/home/{adventure,schedule,gift,edge_schedule,edge_gift}.png`。每套布局只认自己那三个词，OCR 分支永远在前，不做 OCR 与图片的跨布局或跨词拼接。
+
+接入方式（调用方各自决定信任哪个守卫，模块不改任何既有 document）：黎明界在 `game_session_pipeline()` 内 `nodes.update(anchors.nodes())` 并令 `LabyClientGameHomeObserved` / `LabyClientHomeToAdventure` / `LabyClientAfterTitleHomeObserved` 使用 `HomeAnchorLayout`；日常若要启用，只需在 Owner 侧 `anchors.install(resource)` 加 `resource.override_pipeline(anchors.guard_override('EnterAdventure'))` 两行，`home_text.json` 与 `presets.json` 一个字都不用改（`ObserveHome` 仍引用 `EnterAdventure`）。日常默认**不启用**：`docs/SOURCE_AND_LICENSES.md` 规定日常只用有页面约束的文字、颜色和形状识别，游戏图像仅随黎明界集成按 `docs/LABYRINTH_SOURCES.json`、`licenses/labyrinth/` 与资源包 NOTICE 记录许可；`tests/test_pixel_free_resources.py` 把这条落成断言（日常 pipeline 不得声明模板，`image/` 命名空间限定），`scripts/source_delivery.py` 还把旧的主页模板（`home_schedule.png` 等）列为禁止再入公开源码。要日常也启用，需一并处理这三处政策与授权登记。
+
+模板只取文字字形，不取按钮图标或含白底的整块：同一失败帧实测文字紧裁跨帧（另一次运行的主页帧，动画与对话不同）0.951，含白底边框的 84×46 降到 0.866，而按钮整图会被“开放/新内容”角标与选中高亮破坏。负例（黎明界迷宫页、遮住日程表）在 0.8/0.9 阈值下均无命中，±2px 整体平移仍为 1.0。
+
+**当前落地状态：五个模板文件是 0 字节占位**，兜底分支尚未生效，行为与修改前完全一致（不可读的模板只产生 `TemplateResMgr` 加载错误并判定未命中，资源加载、任务与既有守卫都不受影响）。真机取样后直接替换同名 PNG 即可：`adventure.png` `(693,685,746,718)`、`schedule.png` `(986,594,1054,628)`、`gift.png` `(1188,596,1239,626)`、`edge_schedule.png` `(1028,598,1090,622)`、`edge_gift.png` `(1230,596,1280,626)`，全部取 1280×720 原帧、逐字紧裁、同一画面、不含白底/角标/选中高亮；另需补迷宫页、副本页、标题页、遮住底栏四类负例与至少两帧跨帧正例，按 `docs/OCR_STABILITY.md` 门槛记录后再签发。图片属游戏画面，替换时需按 `assets/resource/image/labyrinth/SOURCE_NOTICE.json` 的方式登记来源与权利，不把游戏图像授予项目许可证。
+
+验证：`tests/test_home_guard_safety.py` 覆盖共享定义一致性、同布局三词、词框包含关系、占位状态与 `guard_override` 形态；`tests/test_labyrinth_home_ocr.py` 的入口守卫名同步为 `HomeAnchorLayout`；`tests/test_pixel_free_resources.py` 增加 `anchors` 命名空间与“无孤立模板”检查（日常 pipeline 仍不得声明模板）。相关用例 23 项通过、77 项按私有夹具跳过；黎明界/公会战/引导相关 452 项通过、2 项因缺少设备 shell 原有失败、2 项跳过。离线回放同一原帧确认占位时 `LabyClientGameHomeObserved` 仍失败（行为不变）；临时投放真实裁剪后，同一帧与另一帧的日常 `ObserveHome`、黎明界 `LabyClientGameHomeObserved` 均通过，迷宫页两者都拒绝，验证后已还原为 0 字节占位。未实机复跑本局。
+
 ## 2026-11-02 遗物名称分隔点识别不一致导致选择停止（离线复现）
 
 实机失败记录 `run f161b1717150451ab5fc31f02c4f505f`（业务账本 `59a631199d944da7870e4fb9ac06bf84`，`enter_id=13439`，第三次尝试）：三选一遗物页选择 slot 0 时，`LabyRelicSelectOnce` 的 `And` 在 `LabyRelicGuardName00` 未命中，点击未开始，账本把 `relic_reward_select` 结为 `input_execution=not_sent`，批次以 `native_input_not_sent` 停止（进程位置 `relics.py:583`、`relics.py:546`、`native.py:336`）。GUI 的“操作 relic_reward_select 已发出”只是 intent 已落盘，没有发出输入。

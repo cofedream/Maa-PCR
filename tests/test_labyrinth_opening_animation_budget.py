@@ -30,21 +30,21 @@ def test_three_opening_animations_finish_with_slow_guards_and_respect_parent(mon
     monkeypatch.setattr(scene,'MaaSceneRuntime',lambda *a,**kw:runtime)
     monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:advance(.5))
     port=opening.MaaOpening(NS(),lambda **fields:fields)
-    def joined(node):
-        assert node=='joined-reader'
+    def joined(batch,page,*,stable,timeout):
+        assert page=='joined' and stable is False and timeout==opening.JOINED_CONFIRMATION_TIMEOUT_SECONDS
         advance(1.);state.confirmed=True
-        return receipt()
-    port._run=joined
+        return receipt(),receipt()
+    port._characters=NS(read=joined)
     batch=NS(stopped=lambda:False,checkpoint=lambda:None,
              transaction=lambda operation,fields,send:send('owned-invitation'))
     token=native.RUN_DEADLINE.set(parent)
     try:
         if parent==float('inf'):
-            assert port._wait_invitation_joined(batch,1,dict(operation_id='invitation'),'joined-reader')['native_ok']
+            assert port._wait_invitation_joined(batch,1,dict(operation_id='invitation'))['native_ok']
             assert state.clicks==3 and state.confirmed and 12<state.now<30
         else:
             with pytest.raises(scene.BatchStopped,match='opening_readback_unknown'):
-                port._wait_invitation_joined(batch,1,dict(operation_id='invitation'),'joined-reader')
+                port._wait_invitation_joined(batch,1,dict(operation_id='invitation'))
             assert not state.confirmed and state.clicks<3
         assert native.RUN_DEADLINE.get()==parent
     finally:native.RUN_DEADLINE.reset(token)

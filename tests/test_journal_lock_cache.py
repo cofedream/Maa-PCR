@@ -116,3 +116,41 @@ def test_failed_flush_cannot_leave_a_trusted_cache(tmp_path, monkeypatch):
         with pytest.raises(ValueError, match='changed'):
             journal.last_event()
     assert Journal(tmp_path).events()[-1]['state'] == 'in_flight'
+
+
+def test_locked_any_event_scans_the_cache_without_copying(tmp_path, monkeypatch):
+    journal = Journal(tmp_path)
+    seed(journal, 1000)
+    from pcr_maa import preset_execution
+    copies = []
+    real = preset_execution.deepcopy
+    monkeypatch.setattr(preset_execution, 'deepcopy',
+                        lambda value: copies.append(1) or real(value))
+    with journal.locked():
+        assert journal.any_event(lambda event: event.get('operation') == 'synthetic')
+        assert not journal.any_event(lambda event: event.get('operation') == 'missing')
+        assert copies == []
+        journal.append(dict(state='in_flight', operation='appended'))
+        assert journal.any_event(lambda event: event.get('operation') == 'appended')
+        assert copies == []
+        assert journal.events()  # the compatibility copy is still available
+        assert copies == [1]
+
+
+def test_any_event_reads_the_file_outside_a_lock(tmp_path):
+    journal = Journal(tmp_path)
+    seed(journal, 2)
+    assert journal.any_event(lambda event: event.get('state') == 'settled')
+    assert not journal.any_event(lambda event: event.get('state') == 'historical_unknown')
+    assert Journal(tmp_path).any_event(lambda event: event.get('operation') == 'synthetic')
+
+
+def test_any_event_refuses_an_external_change_like_the_other_reads(tmp_path):
+    journal = Journal(tmp_path)
+    seed(journal, 2)
+    with journal.locked():
+        assert journal.any_event(lambda event: True)
+        journal.path.write_text('', encoding='utf-8')
+        with pytest.raises(ValueError, match='changed'):
+            journal.any_event(lambda event: True)
+

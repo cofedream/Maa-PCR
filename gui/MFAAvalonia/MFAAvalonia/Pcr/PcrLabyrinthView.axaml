@@ -100,10 +100,24 @@
      <TextBlock Text="价值容差（0–3）" /><TextBox Text="{Binding LabyrinthSettings.Allowance, Mode=TwoWay}" />
      <TextBlock Text="第三区域与第五区域遗物／事件偏好" />
      <ComboBox ItemsSource="{Binding LabyrinthSettings.ThirdChoices}" SelectedItem="{Binding LabyrinthSettings.ThirdChoice}" HorizontalAlignment="Stretch" />
-     <TextBlock Text="第三区域 Boss ID（逗号分隔，留空不限）" /><TextBox Text="{Binding LabyrinthSettings.Area3BossIds, Mode=TwoWay}" />
-     <TextBlock Text="厄勒克特拉夫人 312505；冰霜魔狼 319604；滴水嘴兽 303306；魔像 301206；沙鳗蛇 306604" TextWrapping="Wrap" FontSize="12" />
-     <TextBlock Text="第五区域 Boss ID（逗号分隔，留空不限）" /><TextBox Text="{Binding LabyrinthSettings.Area5BossIds, Mode=TwoWay}" />
-     <TextBlock Text="愤怒巨龙 310103；炸脖龙 301701；究极守护者 319401；领主哥布林 315004；奇美拉 302501" TextWrapping="Wrap" FontSize="12" />
+     <TextBlock Text="Boss 筛选：勾选要接受的首领（名称后为 ID）；全部不勾表示不限制。" TextWrapping="Wrap" FontSize="12" />
+     <TextBlock Text="第三区域" /><ItemsControl Name="Area3BossInput" ItemsSource="{Binding LabyrinthSettings.Area3Bosses}" HorizontalAlignment="Left"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="pcr:PcrLabyrinthBossChoice">
+       <CheckBox IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+         <Image Width="24" Height="24" Source="{Binding Icon}" Stretch="Uniform" />
+         <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+        </StackPanel>
+       </CheckBox>
+     </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+     <TextBlock Text="第五区域" /><ItemsControl Name="Area5BossInput" ItemsSource="{Binding LabyrinthSettings.Area5Bosses}" HorizontalAlignment="Left"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="pcr:PcrLabyrinthBossChoice">
+       <CheckBox IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+         <Image Width="24" Height="24" Source="{Binding Icon}" Stretch="Uniform" />
+         <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+        </StackPanel>
+       </CheckBox>
+     </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+     <TextBlock Text="{Binding LabyrinthSettings.BossFilterStatus}" TextWrapping="Wrap" FontSize="12" Foreground="OrangeRed" IsVisible="{Binding LabyrinthSettings.HasBossFilterStatus}" />
     </StackPanel></Expander>
     <Expander Name="TeamSettings" Header="高级队伍策略" IsExpanded="False"><StackPanel Spacing="10" Margin="0,8">
      <Button Name="RoleRatingsButton" Content="编辑个人角色评分" Click="RatingsClick" HorizontalAlignment="Left" />

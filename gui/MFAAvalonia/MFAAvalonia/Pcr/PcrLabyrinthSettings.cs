@@ -26,6 +26,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private PcrLabyrinthAccounts? accountLibrary;
     private PcrLabyrinthAccount? selectedAccount;
     private bool switchingAccount;
+    private PcrLabyrinthBossCatalog? bossCatalog;
+    private string bossCatalogError = "";
     public ObservableCollection<PcrLabyrinthAccount> Accounts { get; } = new();
     public IReadOnlyList<PcrLabyrinthServer> Servers => PcrLabyrinthServer.All;
     [ObservableProperty] private string accountName = "账号 1";
@@ -82,8 +84,12 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string allowance = "1";
     [ObservableProperty] private string thirdChoice = "必须遗物";
     [ObservableProperty] private bool perfectStart = true;
-    [ObservableProperty] private string area3BossIds = "312505,319604";
-    [ObservableProperty] private string area5BossIds = "310103";
+    public IReadOnlyList<PcrLabyrinthBossChoice> Area3Bosses { get; }
+    public IReadOnlyList<PcrLabyrinthBossChoice> Area5Bosses { get; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBossFilterStatus))]
+    private string bossFilterStatus = "";
+    public bool HasBossFilterStatus => BossFilterStatus.Length>0;
     public string[] BossModes { get; } = { "多队", "单队" };
     [ObservableProperty] private string bossMode = "多队";
     [ObservableProperty] private string deploymentWeights = "1,0.35,0.2";
@@ -146,6 +152,13 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             new PcrLabyrinthGoal(1,"美食殿堂",this), new PcrLabyrinthGoal(2,"破晓之星",this), new PcrLabyrinthGoal(3,"咲恋救济院",this),
             new PcrLabyrinthGoal(4,"王宫骑士团",this),new PcrLabyrinthGoal(5,"拉比林斯",this) });
         Goals[0].Enabled=true;
+        try { bossCatalog=PcrLabyrinthBossCatalog.Load(); }
+        catch (Exception ex) { bossCatalogError=ex.Message; }
+        Area3Bosses=bossCatalog is null ? new List<PcrLabyrinthBossChoice>() : bossCatalog.Choices(3,this);
+        Area5Bosses=bossCatalog is null ? new List<PcrLabyrinthBossChoice>() : bossCatalog.Choices(5,this);
+        // 先按目录里的默认勾选：账号库读取失败，或载入中途抛错而没走到本轮筛选时，
+        // 界面仍保持默认限制（312505,319604／310103），而不是静默变成不限制。
+        ApplyBossFilters(null);
         LoadEventChoices();
         try {
             accountLibrary=new PcrLabyrinthAccounts(vm.Processor.InstanceConfiguration);
@@ -178,6 +191,32 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (!ready) return;
         vm.NotifyPcrSelectionChanged();
         SaveCore(automatic:true);
+    }
+    internal void BossSelectionEdited() {
+        if (!ready) return;
+        // 用户已重新勾选，本次保存会写入清洗后的 ID；载入时的“已忽略”提示不再成立。
+        BossFilterStatus="";
+        vm.NotifyPcrSelectionChanged();
+        SaveCore(automatic:true);
+    }
+    // 读回时只保留表中仍存在的 ID：陌生 ID 逐个丢弃，全部丢弃即视为不限制（空选择）。
+    private void ApplyBossFilters(JObject? route) {
+        // 目录加载失败时保持可见错误；不把“无法读取目录”静默当成“不限制”。
+        if (bossCatalog is null) {
+            BossFilterStatus="Boss 目录加载失败，Boss 筛选暂不可用："+bossCatalogError;
+            return;
+        }
+        var ignored=new List<int>();
+        ApplyBossSelection(Area3Bosses,3,route?["area3_bosses"],ignored);
+        ApplyBossSelection(Area5Bosses,5,route?["area5_bosses"],ignored);
+        BossFilterStatus=ignored.Count==0 ? "" : $"已忽略不再支持的 Boss ID：{string.Join(",",ignored)}。";
+    }
+    private void ApplyBossSelection(IReadOnlyList<PcrLabyrinthBossChoice> choices,int area,JToken? token,List<int> ignored) {
+        var requested=token is JArray array
+            ? array.OfType<JValue>().Where(value=>value.Type==JTokenType.Integer).Select(value=>value.Value<int>()).ToArray()
+            : bossCatalog!.DefaultIds(area);
+        foreach (var choice in choices) choice.Selected=requested.Contains(choice.Id);
+        ignored.AddRange(requested.Where(id=>choices.All(choice=>choice.Id!=id)));
     }
     private void ApplyAccount(PcrLabyrinthAccount account) {
         var wasReady=ready; ready=false; switchingAccount=true;
@@ -248,8 +287,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         ThirdChoice=(string?)d["route"]?["third_choice"] switch { "event"=>ThirdChoices[1],"either"=>ThirdChoices[2],_=>ThirdChoices[0] };
         Allowance=d["route"]?["allowance"]?.ToString() ?? "1";
         PerfectStart=(bool?)d["route"]?["perfect_start"] ?? true;
-        Area3BossIds=d["route"]?["area3_bosses"] is JArray b3 ? string.Join(",",b3.Values<int>()) : "312505,319604";
-        Area5BossIds=d["route"]?["area5_bosses"] is JArray b5 ? string.Join(",",b5.Values<int>()) : "310103";
+        ApplyBossFilters(d["route"] as JObject);
         foreach (var g in Goals) { var row=(d["draft_goals"] ?? d["goals"])?.FirstOrDefault(x=>(int?)x["guild_id"]==g.GuildId); g.Enabled=(bool?)row?["enabled"] ?? (row!=null || d["draft_goals"] is null && d["goals"] is null && g.GuildId==1); g.Clears=row?["clears"]?.ToString() ?? "1"; g.TargetMode=(string?)row?["mode"]=="attempts" ? g.TargetModes[1]:g.TargetModes[0]; }
     }
     private bool SaveBeforeAccountChange() {
@@ -329,7 +367,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (!ready || e.PropertyName is nameof(ShowCredentials) or nameof(CredentialMask) or nameof(CredentialsVisibilityText) or nameof(CredentialsStatus)
                 or nameof(RosterStatus) or nameof(HasRosterStatus) or nameof(AccountSummary) or nameof(SaveButtonText)
                 or nameof(SelectedAccount) or nameof(SelectedServer) or nameof(LoginLabel) or nameof(PasswordLabel) or nameof(LoginHint)
-                or nameof(IsPaused) or nameof(PausePending) or nameof(PauseLabel) or nameof(DeleteAccountPending) or nameof(DeleteAccountText)) return;
+                or nameof(IsPaused) or nameof(PausePending) or nameof(PauseLabel) or nameof(DeleteAccountPending) or nameof(DeleteAccountText)
+                or nameof(BossFilterStatus) or nameof(HasBossFilterStatus)) return;
         vm.NotifyPcrSelectionChanged();
         if (e.PropertyName is nameof(ExpectedPlayerId) or nameof(Username) or nameof(Password)) {
             credentialsDirty=true;
@@ -386,12 +425,6 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private static int Number(string s,int min,int max,string label) {
         if (!int.TryParse(s,NumberStyles.None,CultureInfo.InvariantCulture,out var n) || n<min || n>max) throw new InvalidOperationException($"{label}请输入 {min}–{max} 的整数。");
         return n;
-    }
-    private static JArray Bosses(string text, int[] allowed) {
-        if (string.IsNullOrWhiteSpace(text)) return new JArray();
-        var ids=text.Split(',',StringSplitOptions.TrimEntries).Select(s=>Number(s,1,999999,"Boss ID")).ToArray();
-        if (ids.Distinct().Count()!=ids.Length || ids.Any(x=>!allowed.Contains(x))) throw new InvalidOperationException("Boss ID 不在当前支持列表中。");
-        return new JArray(ids);
     }
     private static double Weight(string text,double max,string label) {
         if (!double.TryParse(text,NumberStyles.AllowDecimalPoint,CultureInfo.InvariantCulture,out var value)
@@ -491,13 +524,14 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         var goals=new JArray(Goals.Where(g=>g.Enabled).Select(g=>new JObject { ["guild_id"]=g.GuildId,["clears"]=Number(g.Clears,1,999,g.Name+"目标次数"),["mode"]=g.TargetMode==g.TargetModes[0] ? "clears":"attempts" }));
         if (goals.Count==0) throw new InvalidOperationException("请至少选择一个目标公会。");
         if (!RouteModes.Contains(RouteMode) || !ThirdChoices.Contains(ThirdChoice)) throw new InvalidOperationException("路线设置无效。");
+        if (bossCatalog is null) throw new InvalidOperationException("Boss 目录加载失败，无法保存或开始："+bossCatalogError);
         return new JObject { ["version"]=1,["goals"]=goals,["difficulty"]=Number(Difficulty,1,5,"难度"),["reroll"]=Reroll,
             ["max_attempts"]=Number(MaxAttempts,1,100,"刷取次数"),["max_seconds"]=loadedMaxSeconds is >=1 and <=1800 && MaxMinutes==loadedMaxMinutes ? loadedMaxSeconds.Value:Number(MaxMinutes,1,30,"刷取分钟")*60,
             ["buy_relics"]=BuyRelics,["refresh_shop"]=RefreshShop,["strategy"]=StrategySnapshot(),["route"]=new JObject {
                 ["mode"]=RouteMode==RouteModes[0] ? "value":"template",["perfect_start"]=PerfectStart,["allowance"]=Number(Allowance,0,3,"价值容差"),
                 ["third_choice"]=ThirdChoice==ThirdChoices[0] ? "relic":ThirdChoice==ThirdChoices[1] ? "event":"either",
-                ["area3_bosses"]=Bosses(Area3BossIds,new[]{301206,303306,319604,312505,306604}),
-                ["area5_bosses"]=Bosses(Area5BossIds,new[]{302501,301701,310103,315004,319401}) } };
+                ["area3_bosses"]=new JArray(bossCatalog.SelectedIds(3,Area3Bosses)),
+                ["area5_bosses"]=new JArray(bossCatalog.SelectedIds(5,Area5Bosses)) } };
     }
     [RelayCommand] public void Save() => SaveCore(automatic:false);
     private void SaveCore(bool automatic) {

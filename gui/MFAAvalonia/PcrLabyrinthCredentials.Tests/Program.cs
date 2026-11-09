@@ -42,6 +42,7 @@ try
     const BindingFlags fields = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic;
     typeof(AppPaths).GetField("_configDirectory", fields)!.SetValue(null, Path.Combine(root, "config"));
     typeof(AppPaths).GetField("_initialized", fields)!.SetValue(null, true);
+    PcrLabyrinthBossCatalog.UseRepositoryRoot(args[1]);
     TaskQueueViewModel Owner(InstanceConfiguration config)
     {
         var processor = (MaaProcessor)RuntimeHelpers.GetUninitializedObject(typeof(MaaProcessor));
