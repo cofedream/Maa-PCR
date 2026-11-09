@@ -83,7 +83,10 @@ def replay(tmp_path, monkeypatch):
         return controller, tasker, S.MaaShop(tasker, stamp)
 
     yield build
-    for tasker, token in started:
+    # ContextVar tokens unwrap last-in-first-out: a test that builds two shops
+    # must restore the outer deadline first, or a finite one leaks into every
+    # later native test in the session.
+    for tasker, token in reversed(started):
         try:
             native.stop_tasker(tasker)
         finally:
