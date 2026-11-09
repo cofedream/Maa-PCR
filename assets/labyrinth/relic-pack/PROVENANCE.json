@@ -1,0 +1,837 @@
+{
+  "schemaVersion": 1,
+  "pack": "labyrinth-relic-pack",
+  "masterVersion": "202611021739",
+  "origin": "本地整理的 B服 11.7.2 客户端资源包提取（adb root 后从 /data/data/com.bilibili.priconne/files/a/ 拉出）。原始目录的 索引.csv 逐行记录分类、文件、大小与说明；遗物图标 bundle 名为 icon_labyrinth_icon_relic_<id>.unity3d，原始落盘文件名形如 icon_labyrinth_icon_relic_<id>__labyrinth_icon_relic_<id>.png，本包只保留重命名为 ASCII 遗物 ID 的 128x128 PNG，中文名、原 CSV 与预览图不进入运行包。本地 50005 图标沿用了旧名「迷宫大师」，线上 master（202611021739）为「拉比林斯之主」；本包按遗物 ID 收录，中文名不参与打包。另有 40006-40010、50006-50010、999999 共 11 张图标在线上 masterdata 的 labyrinth_relic 表里没有对应条目（可能是未上线或占位），不收录进本包。",
+  "sourceIndex": {
+    "file": "索引.csv",
+    "sha256": "c0d742eeb122bbb301ab75890b11a9ad7add99698b7c027d8d48303a1f2cb3f8",
+    "bytes": 83146
+  },
+  "author": "MAA PCR contributors",
+  "image_rights": "Princess Connect Re:Dive game imagery; copyright belongs to the original rights holders (Cygames). Project and upstream code licenses do not grant image rights.",
+  "distribution_permission_not_inferred": true,
+  "private_captures_included": false,
+  "private_uid_included": false,
+  "icons": [
+    {
+      "path": "icons/11001.png",
+      "sha256": "fdd2b685125988b45b526eff46af7bf652ca8f5dbcabe8f7e7682280eb710f1c",
+      "bytes": 17400,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_11001.unity3d"
+    },
+    {
+      "path": "icons/11002.png",
+      "sha256": "971767ac5b742c362e9573570008b4dc31cbfa1b5b9e8f68d84330799f20608b",
+      "bytes": 17399,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_11002.unity3d"
+    },
+    {
+      "path": "icons/11003.png",
+      "sha256": "860c1f65cbc82ad52e985edd56c38ae37ebc20ec5f282fd9ebf16bc6123e8a94",
+      "bytes": 16403,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_11003.unity3d"
+    },
+    {
+      "path": "icons/11004.png",
+      "sha256": "747713cc3215ee108f6770d3cc1252290b3c72ce9e7c7bb1fe41581716ae6153",
+      "bytes": 14839,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_11004.unity3d"
+    },
+    {
+      "path": "icons/11005.png",
+      "sha256": "8b3ad94c53288a32e9d4709a1b788d1755933a8d7d7024787db1d0277d08c340",
+      "bytes": 16229,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_11005.unity3d"
+    },
+    {
+      "path": "icons/12001.png",
+      "sha256": "28455365cc49debb6d213d0d6e06b06bca20fd1f463c23b5a22d706ca0f817df",
+      "bytes": 17341,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_12001.unity3d"
+    },
+    {
+      "path": "icons/12002.png",
+      "sha256": "2be6ffdc6f3111816a3dda087dc3621024446b565ad5e0f4880ec267bd7535c3",
+      "bytes": 14909,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_12002.unity3d"
+    },
+    {
+      "path": "icons/12003.png",
+      "sha256": "3d36f8930f6dd36814ee6b1bd453a3e70390322dfc3d82df259100ab7b4b2d36",
+      "bytes": 15900,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_12003.unity3d"
+    },
+    {
+      "path": "icons/12004.png",
+      "sha256": "aeef3ff737a76c24868643cbc5244a4e43813143732aab5976ff816e0a93947d",
+      "bytes": 18047,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_12004.unity3d"
+    },
+    {
+      "path": "icons/12005.png",
+      "sha256": "0a0d582c8a5ff957629d9f0ae683c000ba8bb09b29cd837f08630ac77260c763",
+      "bytes": 14929,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_12005.unity3d"
+    },
+    {
+      "path": "icons/13001.png",
+      "sha256": "8d8b469b6a2809fa31b91286319f2b81604e1c569d23b4d1ddfdc88f910abccd",
+      "bytes": 13848,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_13001.unity3d"
+    },
+    {
+      "path": "icons/13002.png",
+      "sha256": "ba38adbfd7c4a360b431dc25efdfa1d639259d7748cfb2e0f8a59e6b62df2bb5",
+      "bytes": 16067,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_13002.unity3d"
+    },
+    {
+      "path": "icons/13003.png",
+      "sha256": "127c281ba6c77bcf1e7d586fa07cae7f837a3ff5f4006e122bde29df4e9ae10e",
+      "bytes": 19305,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_13003.unity3d"
+    },
+    {
+      "path": "icons/13004.png",
+      "sha256": "84b06d060d6e5381cec991b9cbf1e82ed9a0bc76b87f17622f4fc8705dcf7177",
+      "bytes": 16254,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_13004.unity3d"
+    },
+    {
+      "path": "icons/13005.png",
+      "sha256": "5d570cc86968079238ba17880dadb6ae8a03814956be304edb14bc3382d9679b",
+      "bytes": 17766,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_13005.unity3d"
+    },
+    {
+      "path": "icons/14001.png",
+      "sha256": "dede10c865dbeac1b0a22bd890a1e725429ebe9c84f6e42bfe1107386333cadf",
+      "bytes": 16717,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_14001.unity3d"
+    },
+    {
+      "path": "icons/14002.png",
+      "sha256": "d532fcf5f2cf33a6f691c9941e6d8c2713ab5e709b8022d21cb5ae798b406f4e",
+      "bytes": 19677,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_14002.unity3d"
+    },
+    {
+      "path": "icons/14003.png",
+      "sha256": "c843b6652c91c0df8b02175df32206e4904e1a524a68dfaaa497579c0572ae3b",
+      "bytes": 19159,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_14003.unity3d"
+    },
+    {
+      "path": "icons/14004.png",
+      "sha256": "5772b09ef2770fadb498bb4a8cf8bf46279dbc79b5708a3b0da54594f8b41bb7",
+      "bytes": 15592,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_14004.unity3d"
+    },
+    {
+      "path": "icons/14005.png",
+      "sha256": "7f72188fe25de5d6394c6d826542e1a4e348c48181d0af04fbd43ae4629ed2a7",
+      "bytes": 18712,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_14005.unity3d"
+    },
+    {
+      "path": "icons/15001.png",
+      "sha256": "bda74846d5dab67cff164cf466ee1c841f4ce2e4bbabfd663073a03f424416d1",
+      "bytes": 14161,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_15001.unity3d"
+    },
+    {
+      "path": "icons/15002.png",
+      "sha256": "f5a13125592c3e6f10759c744ea6ee56a50b703187bda0d2021f92b1419a76a3",
+      "bytes": 16762,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_15002.unity3d"
+    },
+    {
+      "path": "icons/15003.png",
+      "sha256": "b0e8279d3f33c6ad7428840f20a8d1d823dd15d4db456b2850b3f6572260283c",
+      "bytes": 19242,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_15003.unity3d"
+    },
+    {
+      "path": "icons/15004.png",
+      "sha256": "42cd981fe303c7f02eb3a72ee1d1bbafb745ffcd77b69001ee69e04339aaa2c1",
+      "bytes": 18261,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_15004.unity3d"
+    },
+    {
+      "path": "icons/15005.png",
+      "sha256": "41d91b6abc7e060e0aafaa67d5f7261bab86cdc98acbb6639d1f3c1e1214f41e",
+      "bytes": 17093,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_15005.unity3d"
+    },
+    {
+      "path": "icons/21001.png",
+      "sha256": "c81a8c11f23dae4732832414b38a0593207cd5f6e3ded5ba58cf45360e490390",
+      "bytes": 20483,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_21001.unity3d"
+    },
+    {
+      "path": "icons/21002.png",
+      "sha256": "a1c3f6dfcf5b00bd00a44c08074904223b8b9aa946dc0c61062b02dc84cff7a2",
+      "bytes": 20633,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_21002.unity3d"
+    },
+    {
+      "path": "icons/21003.png",
+      "sha256": "d8105a2c3590135dd5dc7d710b1c6af6b219c0a9f1e86ed41368d011348cafe6",
+      "bytes": 20919,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_21003.unity3d"
+    },
+    {
+      "path": "icons/21004.png",
+      "sha256": "e72054a4938b93c8061f5b846a1abd60ad948cc247e325f14418d7bc8ed8148b",
+      "bytes": 20010,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_21004.unity3d"
+    },
+    {
+      "path": "icons/21005.png",
+      "sha256": "0e02610cf633effaad08ad578d00d074f53dddc99f39d342683d7dcece4984c4",
+      "bytes": 21852,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_21005.unity3d"
+    },
+    {
+      "path": "icons/22001.png",
+      "sha256": "4b0d2a44f32ebc00202c4829432697da31a607ea565f3ca87f63f1ae6024dc9a",
+      "bytes": 21813,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_22001.unity3d"
+    },
+    {
+      "path": "icons/22002.png",
+      "sha256": "ab1fa8c84ac6ec4c2e68944a6d286bc145c403f45819837712634d99f53fcef5",
+      "bytes": 20005,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_22002.unity3d"
+    },
+    {
+      "path": "icons/22003.png",
+      "sha256": "17ad783edb21454191180257e8401b94723797ffac1e49a6009dbcd5bdb078d9",
+      "bytes": 19680,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_22003.unity3d"
+    },
+    {
+      "path": "icons/22004.png",
+      "sha256": "cd67d70ad8dd0e748680a597e0797c5c9add667cabfeec4000c80a485764d093",
+      "bytes": 20360,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_22004.unity3d"
+    },
+    {
+      "path": "icons/22005.png",
+      "sha256": "d82e32d04261cecb85f886b20e3c5d6c861abf105845abc98d16940488df2063",
+      "bytes": 21003,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_22005.unity3d"
+    },
+    {
+      "path": "icons/23001.png",
+      "sha256": "67d4895c48e887c10d7e256fa89cdb9805222e92f7ba372e3c2bd102fbdafc64",
+      "bytes": 19474,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_23001.unity3d"
+    },
+    {
+      "path": "icons/23002.png",
+      "sha256": "80412656bc7c34ab980ab57ba8a94b6bd86467d8f58fbde5fc27c6ba90759e13",
+      "bytes": 19968,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_23002.unity3d"
+    },
+    {
+      "path": "icons/23003.png",
+      "sha256": "4a4fc60918277cf530e45b3ce465e6bdfe2249bc0f53e494f971dcc72f2a354d",
+      "bytes": 21805,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_23003.unity3d"
+    },
+    {
+      "path": "icons/23004.png",
+      "sha256": "6f2ef47f1f7ac6242662a7dd83511001f936ed409b315f1e725c96011fee3ac4",
+      "bytes": 20953,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_23004.unity3d"
+    },
+    {
+      "path": "icons/23005.png",
+      "sha256": "ccedb7e399a55b21a7c5454851476cfb71c3d535397254b49afa8c9d113a06f2",
+      "bytes": 22056,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_23005.unity3d"
+    },
+    {
+      "path": "icons/24001.png",
+      "sha256": "5d95589c6fadb46681aa4c433696bac83a6998678ee2e3a4f72a9820d4ee31bc",
+      "bytes": 22235,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_24001.unity3d"
+    },
+    {
+      "path": "icons/24002.png",
+      "sha256": "7f551fe49a14f2b542f7ac9d7de1ddb093bf7aa8576553a99ff74f28aff6f0da",
+      "bytes": 21328,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_24002.unity3d"
+    },
+    {
+      "path": "icons/24003.png",
+      "sha256": "84242caa367266283a7465b44890fa4199a4795a9e3b3345e9dae050563591f5",
+      "bytes": 21337,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_24003.unity3d"
+    },
+    {
+      "path": "icons/24004.png",
+      "sha256": "215dc2c4e9fb2f6663e5f93867fdd3228352c61270948004e64bbcbec4c4348f",
+      "bytes": 20190,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_24004.unity3d"
+    },
+    {
+      "path": "icons/24005.png",
+      "sha256": "087c8c63c34a4ab6b1fef4948f52c99967a24cfac35f3db64a75553fdb79c470",
+      "bytes": 22097,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_24005.unity3d"
+    },
+    {
+      "path": "icons/25001.png",
+      "sha256": "13f60f8dd782137a1f12e1955050b05270cebff89facc691045e567c2b77b244",
+      "bytes": 21289,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_25001.unity3d"
+    },
+    {
+      "path": "icons/25002.png",
+      "sha256": "e203a8eddbc4073fdc8d00117ce0ea46d4bdf2d0180688bcdcec10f1db272338",
+      "bytes": 20901,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_25002.unity3d"
+    },
+    {
+      "path": "icons/25003.png",
+      "sha256": "22204fb1a2e49aa866f8968d47f193e3d51f57182dd39902dd27d6cdeb7b0935",
+      "bytes": 21075,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_25003.unity3d"
+    },
+    {
+      "path": "icons/25004.png",
+      "sha256": "f423cefef79b7b5f0a3a044e445c824648916a7d586918ffe277cf56333f9948",
+      "bytes": 22421,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_25004.unity3d"
+    },
+    {
+      "path": "icons/25005.png",
+      "sha256": "54968cac191a8098889028f29965ba69289da78e365c637be352c481320d80b5",
+      "bytes": 20890,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_25005.unity3d"
+    },
+    {
+      "path": "icons/30001.png",
+      "sha256": "9858c80db5b5830a34a7107d12d665b393ef66a67b1004c55b679d2db998b83b",
+      "bytes": 23005,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_30001.unity3d"
+    },
+    {
+      "path": "icons/31001.png",
+      "sha256": "a91a84c76513fa19cc7f923f08b9a987bf73f5508513a9765cbffaa6aee26336",
+      "bytes": 21467,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_31001.unity3d"
+    },
+    {
+      "path": "icons/31002.png",
+      "sha256": "9de13de903e5868e7c6332b0b3782eb8a6cd110396ebdd2d58e74d233e5ccdde",
+      "bytes": 21235,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_31002.unity3d"
+    },
+    {
+      "path": "icons/31003.png",
+      "sha256": "5472005154a17837612a5e3e725ba1c25a91fe28853ea9553fb09507a6accfab",
+      "bytes": 21213,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_31003.unity3d"
+    },
+    {
+      "path": "icons/31004.png",
+      "sha256": "d6f7ef9c185454f47ebf509240d528dc4fc49b8cb9f0957b008971b1b401f7fe",
+      "bytes": 21253,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_31004.unity3d"
+    },
+    {
+      "path": "icons/31005.png",
+      "sha256": "378ce762cf54a49c1e0ae56927327c8845a5b8dbce817ecb6fb7110eaaac3bed",
+      "bytes": 22278,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_31005.unity3d"
+    },
+    {
+      "path": "icons/31006.png",
+      "sha256": "59f212dc44ed1712fc50ede0bd54ee96aaa10cce5d1fe522d4bb1991b111193a",
+      "bytes": 22275,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_31006.unity3d"
+    },
+    {
+      "path": "icons/32001.png",
+      "sha256": "c8a13f9fe0f4db50c3a8207ab9a4cb6eb6bb7e1e01d0f3c0da7c074a58ec7c36",
+      "bytes": 21875,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_32001.unity3d"
+    },
+    {
+      "path": "icons/32002.png",
+      "sha256": "85e90a0986de1ee1f07f416902ef86314c5fd4920a1cda0038e717cd8d0589ae",
+      "bytes": 21296,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_32002.unity3d"
+    },
+    {
+      "path": "icons/32003.png",
+      "sha256": "b053e5190d0bb2bf1ffc48fe1f9756480cee1a47d4efaecd7e63bce0d56e8e5b",
+      "bytes": 20508,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_32003.unity3d"
+    },
+    {
+      "path": "icons/32004.png",
+      "sha256": "ebd2565e1c67c5cbc672a56799d5d321c1112a5896978443756b1c4ab8520251",
+      "bytes": 21655,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_32004.unity3d"
+    },
+    {
+      "path": "icons/32005.png",
+      "sha256": "afdf0f98cfb8f5cb65e6522b26f15fd9a470d4d6f11c58778d2cb91101f8d627",
+      "bytes": 21062,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_32005.unity3d"
+    },
+    {
+      "path": "icons/32006.png",
+      "sha256": "f063cc312efd572a05d61e8d28985a13c06bbb3f3dffc37461efeba33867df83",
+      "bytes": 22075,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_32006.unity3d"
+    },
+    {
+      "path": "icons/33001.png",
+      "sha256": "86ecbc89bcb9a4bbb4dbeac09404e25a33ce225466fe59815bbb505f38e4cf35",
+      "bytes": 20748,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_33001.unity3d"
+    },
+    {
+      "path": "icons/33002.png",
+      "sha256": "e3517219279f21407b0c6ce765b95f53038021244a14bfa31a08a585c51bbc68",
+      "bytes": 20920,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_33002.unity3d"
+    },
+    {
+      "path": "icons/33003.png",
+      "sha256": "3b4efd8ad91dea3a6bb308aa272941ef282e8845ef7a48da80d965bc6732e768",
+      "bytes": 21749,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_33003.unity3d"
+    },
+    {
+      "path": "icons/33004.png",
+      "sha256": "9a81f47ee82d947eb0c7463d02d256b4e67a58dd1206de50efeedc732223165c",
+      "bytes": 23545,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_33004.unity3d"
+    },
+    {
+      "path": "icons/33005.png",
+      "sha256": "51c5aae7a0cd2edc7e87dbd4128e2fc270df8dd429fd7cf295e11c2db3c8e960",
+      "bytes": 21905,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_33005.unity3d"
+    },
+    {
+      "path": "icons/33006.png",
+      "sha256": "14bfca7bf9742aa2f4138e1c42712a6e25061d281da2557d68a950db46cb4968",
+      "bytes": 21445,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_33006.unity3d"
+    },
+    {
+      "path": "icons/34001.png",
+      "sha256": "fe8004f8790d38a4a43f18add212cfad4d9263f2d9caa747b2badd0b21bc0fe5",
+      "bytes": 23575,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_34001.unity3d"
+    },
+    {
+      "path": "icons/34002.png",
+      "sha256": "21e4f2f2000373bf4401774145e8f39d9813732bc7c00b4e91052a42e87d9559",
+      "bytes": 21520,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_34002.unity3d"
+    },
+    {
+      "path": "icons/34003.png",
+      "sha256": "0d9b3f3680e63242f855b59c2e54cbfdbdfd868cd0e2de23a0d6796e10358e4a",
+      "bytes": 21341,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_34003.unity3d"
+    },
+    {
+      "path": "icons/34004.png",
+      "sha256": "b089d838e05c7d651712bcdb6e2c789188fdc95a90ac22bd138e61646926ece1",
+      "bytes": 21378,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_34004.unity3d"
+    },
+    {
+      "path": "icons/34005.png",
+      "sha256": "ad374cb50ff4b0a0892bd48152c54ca3a1c5f34d318aa336ed641cd162ae6451",
+      "bytes": 23574,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_34005.unity3d"
+    },
+    {
+      "path": "icons/34006.png",
+      "sha256": "7a0c7594beb727aaec9f1055180e488d77033f3e17aec40630d89e0e37e1aee3",
+      "bytes": 21669,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_34006.unity3d"
+    },
+    {
+      "path": "icons/35001.png",
+      "sha256": "0da28c0119b482a57fa712892a1d5b6bd28ee99ee87515f9126cae45bfadac8a",
+      "bytes": 22505,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_35001.unity3d"
+    },
+    {
+      "path": "icons/35002.png",
+      "sha256": "6e7fe872a357cdc111a26bee8ac1da651a7d9a595a42928ceb6842d30b94b2bf",
+      "bytes": 22146,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_35002.unity3d"
+    },
+    {
+      "path": "icons/35003.png",
+      "sha256": "ff5bb8599cc83b4b2ff9629739fa921d3d0c8511f1eb1a9271a217311f4c7d80",
+      "bytes": 20354,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_35003.unity3d"
+    },
+    {
+      "path": "icons/35004.png",
+      "sha256": "592cd9b97a7a18b0e646ce682a1082529039e827af94a485ec70bff4670eebfd",
+      "bytes": 21320,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_35004.unity3d"
+    },
+    {
+      "path": "icons/35005.png",
+      "sha256": "2959f82ba637091e0b50c403220e826f972b69244b165d66aba2bdae86820e8b",
+      "bytes": 21547,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_35005.unity3d"
+    },
+    {
+      "path": "icons/35006.png",
+      "sha256": "bb61142d5d31653d428bd39684c25dd56389d2157fcdd073533cc09dbd8f59b4",
+      "bytes": 23118,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_35006.unity3d"
+    },
+    {
+      "path": "icons/40001.png",
+      "sha256": "eecab85eae121d28cd865f2efd88d988786203cae644990e3b978ac2444087b7",
+      "bytes": 21657,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_40001.unity3d"
+    },
+    {
+      "path": "icons/40002.png",
+      "sha256": "744f172fc317a4f7c081f7b1fda66d02a733dead13eca6bb47bf938dc82e1a23",
+      "bytes": 22448,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_40002.unity3d"
+    },
+    {
+      "path": "icons/40003.png",
+      "sha256": "518480d8f39e0b1e847e3f2195f900293467a213589309a308dc0a45b34f9cf2",
+      "bytes": 21013,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_40003.unity3d"
+    },
+    {
+      "path": "icons/40004.png",
+      "sha256": "b5551efaf132b1aaa48a796549ca8cd821a623861944daaa95b6697f4b25b385",
+      "bytes": 20966,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_40004.unity3d"
+    },
+    {
+      "path": "icons/40005.png",
+      "sha256": "4f55b71c9959c80d102e174acfc956e6326d50e6ff060739cb2b86b39eded0b8",
+      "bytes": 21367,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_40005.unity3d"
+    },
+    {
+      "path": "icons/50001.png",
+      "sha256": "1480a683ae9974d03d03143a1a2c9fbd2129d4d79ed60267edbcee5fbed0a81f",
+      "bytes": 21827,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_50001.unity3d"
+    },
+    {
+      "path": "icons/50002.png",
+      "sha256": "4d71e11a302006e0e5fed01bf6d4c497f39404cbeffcc704e09612b709cf79b3",
+      "bytes": 21934,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_50002.unity3d"
+    },
+    {
+      "path": "icons/50003.png",
+      "sha256": "f64badfb879a5bea461f656e029702d5c3fd78d8a70c632f3c27667c1d835944",
+      "bytes": 21334,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_50003.unity3d"
+    },
+    {
+      "path": "icons/50004.png",
+      "sha256": "a4fe07f235108b1192d577a8bb5d7a4370d66ff3b4e5697282ff3025688154dd",
+      "bytes": 21656,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_50004.unity3d"
+    },
+    {
+      "path": "icons/50005.png",
+      "sha256": "575b79986682de082ce5d353cd471a023ce101b9f76294497838c51e8c1da1ca",
+      "bytes": 22494,
+      "width": 128,
+      "height": 128,
+      "pixelFormat": "32bppArgb",
+      "sourceBundle": "icon_labyrinth_icon_relic_50005.unity3d"
+    }
+  ]
+}

@@ -111,7 +111,7 @@ internal static class SettingsUxChecks
             window.Show();
             Dispatcher.UIThread.RunJobs();
             var reroll = view.GetLogicalDescendants().OfType<CheckBox>()
-                .Single(control => ((string?)control.Content)?.StartsWith("启用刷开局") == true);
+                .Single(control => (control.Content as string)?.StartsWith("启用刷开局") == true);
             require(reroll.IsChecked == true, "settings_reroll_checkbox_initially_checked");
             reroll.SetCurrentValue(CheckBox.IsCheckedProperty, false);
             Dispatcher.UIThread.RunJobs();

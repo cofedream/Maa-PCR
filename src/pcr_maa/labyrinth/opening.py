@@ -3,7 +3,6 @@ Each input belongs to a locked Batch intent; actual joined identities and final 
 are read independently. Private SDK creation/account qualification remains
 with the caller. Generic card resources come from the pinned upstream pack.
 """
-import time
 from collections.abc import Mapping
 from .. import native
 from .batch import BatchStopped
@@ -43,7 +42,7 @@ class MaaOpening:
         if input and not any(n['name']==node and n.get('action') and n['action']['success'] for n in receipt['nodes']):
             raise BatchStopped('opening_input_unknown')
         return receipt
-    def _wait_invitation_joined(self,batch,enter_id,invited,node=None):
+    def _wait_invitation_joined(self,batch,enter_id,invited):
         from .scene import MaaSceneRuntime
         # Three entrances plus fresh click guards share a budget capped by the caller.
         deadline=min(native.RUN_DEADLINE.get(),native.active_now()+INVITATION_TRANSITION_TIMEOUT_SECONDS)
@@ -53,10 +52,9 @@ class MaaOpening:
                 batch,{'joined','role_reward','free_role_reward','map'},timeout=INVITATION_TRANSITION_TIMEOUT_SECONDS,
                 reason='opening_readback_unknown',acquisition_fields=dict(
                     enter_id=enter_id,invitation_operation_id=invited['operation_id']))
-            # A MAP background supplies no identities; the shared joined reader
-            # must independently confirm the actual arrivals.
+            # A MAP background supplies no identities; the shared fullpack joined
+            # reader must independently confirm the actual arrivals.
             batch.checkpoint()
-            if node is not None:return self._run(node) # Legacy saved-receipt readers remain available offline.
             _,receipt=self.characters.read(batch,'joined',stable=False,timeout=JOINED_CONFIRMATION_TIMEOUT_SECONDS)
             return receipt
         finally:native.RUN_DEADLINE.reset(token)
@@ -231,51 +229,9 @@ class MaaOpening:
         actual=dict(joined,granted=dict(source='maa',enter_id=enter_id,joined=joined,closed=closed))
         self.grants[key]=actual
         return actual
-    def invite_gourmet(self,batch,enter_id,*,guild_id):
-        if guild_id!=1 or type(guild_id) is not int or batch.settings.difficulty!=5 or type(enter_id) is not int or enter_id<=0:
-            raise BatchStopped('opening_scope_not_qualified')
-        if enter_id in self.used: raise BatchStopped('opening_already_attempted')
-        self.used.add(enter_id)
-        batch.checkpoint()
-        empty=self.stamp(source='maa',enter_id=enter_id,page='opening_empty',native=self._run('LabyOpeningEmptyObserved'))
-        batch.observation(empty,enter_id=enter_id,page='opening_empty')
-        for role,node,readback in (
-            ('1075','LabyOpeningSelect1075Once','LabyOpening1075Selected'),
-            ('1351','LabyOpeningSelect1351Once','LabyOpeningFirstTwoSelected'),
-            ('1059','LabyOpeningSelect1059Once','LabyOpeningThreeSelected')):
-            fields=dict(enter_id=enter_id,role_id=role)
-            def send(oid,node=node,readback=readback,fields=fields):
-                sent=self._run(node,input=True)
-                return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
-            clicked=batch.transaction('opening_select',fields,send)
-            batch.checkpoint();receipt=self._run(readback)
-            batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,native=receipt,input_native=clicked['input_native'],selection_verified=True),**fields)
-        fields=dict(enter_id=enter_id,expected_roles=['1075','1351','1059'])
-        def invite(oid):
-            sent=self._run('LabyOpeningInviteOnce',input=True)
-            return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
-        clicked=batch.transaction('opening_invite',fields,invite)
-        batch.checkpoint();receipt=self._wait_invitation_joined(batch,enter_id,clicked,'LabyOpeningJoinedObserved')
-        from .portrait_cache import joined_portrait_readback
-        _,actual=joined_portrait_readback(receipt);ids=[person.character_id for person in actual]
-        if sorted(ids)!=sorted(fields['expected_roles']):raise BatchStopped('opening_joined_unknown')
-        joined=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,roles_joined=ids,native=receipt,input_native=clicked['input_native']),**fields)
-        close_fields=dict(enter_id=enter_id,navigation_target='map')
-        def close(oid):
-            sent=self._run('LabyOpeningJoinedCloseOnce',input=True)
-            return self.stamp(source='maa',operation_id=oid,**close_fields,native=sent,input_native=sent,input_action_verified=True)
-        clicked=batch.transaction('opening_close',close_fields,close)
-        batch.checkpoint();receipt=self._run('LabyMapObserved')
-        closed=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**close_fields,page='map',native=receipt,input_native=clicked['input_native']),**close_fields)
-        # Protocol current0 belongs before invitation; the later map position
-        # is observed independently by the caller, never filled here as 0.
-        return dict(joined,invitation=dict(source='maa',enter_id=enter_id,
-            empty=empty,joined=joined,closed=closed))
 def opening_catalog_pipeline():
-    from .arrivals import NAME_ROIS,_ocr
-    nodes={f'LabyOpeningJoinedName{i}':_ocr('.+',roi) for i,roi in enumerate(NAME_ROIS)}
-    nodes['LabyOpeningAnyJoinedObserved']=dict(recognition='And',all_of=['LabyJoinedTitle']+[f'LabyOpeningJoinedName{i}' for i in range(3)],
-        action='DoNothing',next=[],timeout=3000,pre_delay=0,post_delay=0)
-    nodes['LabyOpeningAnyJoinedCloseOnce']=dict(recognition='And',all_of=['LabyJoinedCloseLabel','LabyJoinedTitle'],
-        action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)
-    return nodes
+    # Only the dedicated close input remains; joined identity is always read by
+    # the shared fullpack reader above.
+    return {'LabyOpeningAnyJoinedCloseOnce':dict(recognition='And',
+        all_of=['LabyJoinedCloseLabel','LabyJoinedTitle'],
+        action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)}

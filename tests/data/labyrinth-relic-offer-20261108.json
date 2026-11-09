@@ -1,0 +1,47 @@
+{
+  "source": "2026-11-08 local MuMu ADB capture of the three-card relic offer page, 1280x720. Full frame retained; no player name, account ID, device ID or run ID is visible.",
+  "purpose": "Relic reward offer regression: native OCR evidence, static icon catalog identity and the fresh selection guard. Does not establish live-game acceptance.",
+  "page": "relic_reward",
+  "frames": {
+    "labyrinth-relic-offer-20261108.png": {
+      "sha256": "d6cbb1eec5047e552ade575de2de12a729dcdef050f18735262aa649639f038d",
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "expected": {
+    "remaining": 1,
+    "observed_ocr_names": [
+      "空命护珠",
+      "自光辉铠·断壁",
+      "再生之手镯"
+    ],
+    "offers": [
+      {
+        "slot": 0,
+        "relic_id": 25002,
+        "name": "空命护珠",
+        "mark": "守备",
+        "bonus": 2,
+        "current": 6
+      },
+      {
+        "slot": 1,
+        "relic_id": 35003,
+        "name": "白光辉铠·断壁",
+        "mark": "守备",
+        "bonus": 3,
+        "current": 6
+      },
+      {
+        "slot": 2,
+        "relic_id": 15005,
+        "name": "再生之手镯",
+        "mark": "守备",
+        "bonus": 1,
+        "current": 6
+      }
+    ],
+    "notes": "The middle card's 白 is OCR-misread as 自 in the observed name; the trusted static icon is 35003 and the canonical name is 白光辉铠·断壁. This frame is the 2026-11-08 native_input_not_sent reproduction."
+  }
+}

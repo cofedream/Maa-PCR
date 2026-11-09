@@ -1,12 +1,18 @@
-"""Maa three-card relic observations and a fresh, exact one-shot input guard.
+"""Maa three-card relic observations and a fresh image-identity input guard.
 
-Card names identify only this visible offer; they are not protocol item IDs.
-The upstream strategy is reused without assuming unobserved mark stacks are zero.
-Acquisition matches the current selected icon and a new quantity result; the native click ACK commits
-only the input, before that independent business observation.
+A visible offer carries one identity: OCR evidence plus, when the static icon is
+trusted, the catalog fact. The journal, fresh guard and result reader all read
+`RelicOffer.identity`; OCR spelling is only the fallback when that fact is
+missing. A trusted identity gates the click with the same-frame catalog icon id,
+so OCR glyph loss can neither block nor widen the intended card; only an
+untrusted icon (or an absent pack) keeps the exact text identity. Card names
+identify only this visible offer; they are not protocol item IDs. The upstream
+strategy is reused without assuming unobserved mark stacks are zero. Acquisition
+matches the current selected icon and a new quantity result; the native click
+ACK commits only the input, before that independent business observation.
 """
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from itertools import product
 import math
 import re
@@ -25,6 +31,9 @@ ATTRIBUTE_ROIS = tuple((x, 432, 238, 38) for x in (125, 494, 864))
 BUTTON_ROIS = tuple((x + 50, 574, 193, 83) for x in (125, 494, 864))
 BRIGHT_ROIS = tuple((x, 583, 100, 14) for x in (225, 595, 964))
 THRESHOLD = .85
+# Static catalog identity: one read-only custom recognition feeds the offer page
+# and the obtained modal from the same frame instead of the OCR name.
+STATIC_ICON = 'LabyRelicStaticIconCapture'
 # Display-only separators inside a name. OCR can split one into its own
 # low-confidence token, so an observed name may lose it while the same card
 # reads back with it in the click frame. It never carries identity.
@@ -119,20 +128,39 @@ def relic_pipeline():
             name = f'LabyRelicGuard{kind}{slot}0'
             if kind == 'Name':nodes.update(_name_nodes(name, '^__qualified_relic_offer_required__$', TITLE_ROI))
             else:nodes[name] = _ocr('^__qualified_relic_offer_required__$', TITLE_ROI)
+        # Same-frame catalog identity of the intended card. Unusable until the
+        # selection guard supplies slot and relic_id; then it is the click's
+        # identity proof instead of the exact OCR card name.
+        nodes[f'LabyRelicGuardIcon{slot}0'] = dict(recognition='Custom', custom_recognition=STATIC_ICON,
+            custom_recognition_param=dict(mode='guard'), action='DoNothing', next=[],
+            timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicSelectedIconCapture'] = dict(recognition='Custom', custom_recognition='LabyRelicSelectedIconCapture',
         action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicObtainedIcon'] = dict(recognition='Custom', custom_recognition='LabyRelicSelectedIconCapture',
         custom_recognition_param=dict(mode='obtained'), action='DoNothing', next=[],
         timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicObtainedExactItem'] = _ocr(_pattern('__qualified_relic_name_required__×1'), RESULT_ITEM_ROI)
+    # Same-frame catalog id proof for the obtained modal. Unusable until the
+    # result guard supplies the persisted `relic_id`; then it satisfies the
+    # identity Or on its own, so a character-level name misread cannot veto a
+    # result the icon already proves. A missing pack leaves it a miss and the
+    # text/template children stay authoritative.
+    nodes['LabyRelicObtainedStaticGuard'] = dict(recognition='Custom',
+        custom_recognition=STATIC_ICON, custom_recognition_param=dict(mode='obtained_guard'),
+        action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicObtainedIdentity'] = dict(recognition='Or',
-        any_of=['LabyRelicObtainedExactItem','LabyRelicObtainedIcon'],
+        any_of=['LabyRelicObtainedExactItem','LabyRelicObtainedIcon','LabyRelicObtainedStaticGuard'],
         action='DoNothing',next=[],timeout=1500,pre_delay=0,post_delay=0)
     nodes['LabyRelicObtainedIconNative'] = dict(recognition='TemplateMatch', template=_ICON_IMAGE,
         roi=list(RESULT_ICON_ROI), method=5, threshold=THRESHOLD, action='DoNothing',
         next=[], timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicObserved'] = dict(recognition='And', all_of=names,
         action='DoNothing', next=[], timeout=3000, pre_delay=0, post_delay=0)
+    # Same-frame static catalog identity; a missing pack leaves `trusted=false`
+    # so the existing text path stays authoritative.
+    nodes['LabyRelicOfferedStaticIdentity'] = dict(recognition='Custom',
+        custom_recognition=STATIC_ICON, custom_recognition_param=dict(mode='offers'),
+        action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
     # Deliberately unusable until all three offers are supplied to the exact guard.
     nodes['LabyRelicSelectOnce'] = dict(recognition='And', all_of=['LabyRelicGuardRequired'],
         action='Click', target=True, max_hit=1, next=[], timeout=2500, rate_limit=250,
@@ -159,6 +187,10 @@ class RelicOffer:
     attribute_words: tuple[Word, ...]
     button_words: tuple[Word, ...]
     remaining: int = 1
+    # One trusted catalog fact when the static icon identified this slot; the
+    # journal, fresh guard and result reader all read this one identity instead
+    # of rebuilding a second, OCR-spelled one.
+    identity: dict | None = None
 
 
 def _normalized(text):
@@ -214,14 +246,32 @@ def _attribute(words, *, require_current=True):
     return mark, int(marks[0][1]), int(current[0]) if len(current)==1 else None
 
 
-def _offer(slot, name_words, attribute_words, button_words, remaining=1):
+def _catalog_fact(value):
+    """The one validated catalog identity shape carried by a RelicOffer."""
+    if (type(value) is not dict or type(value.get('id')) is not int
+            or type(value.get('name')) is not str or not value['name'].strip()
+            or len(value['name']) > 48 or '×' in value['name']
+            or any(ord(c) < 32 for c in value['name'])
+            or value.get('mark') is not None and value.get('mark') not in MARKS
+            or type(value.get('bonus')) is not int or type(value.get('rarity')) is not int):
+        raise BatchStopped('relic_identity_unknown')
+    return dict(id=value['id'], name=value['name'], mark=value.get('mark'),
+                bonus=value['bonus'], rarity=value['rarity'])
+
+
+def _offer(slot, name_words, attribute_words, button_words, remaining=1, *, identity=None):
     name = _normalized(''.join(w.text for w in name_words))
     if not name or len(name) > 48 or any(ord(c) < 32 for c in name):
         raise BatchStopped('relic_name_unknown')
     if _normalized(''.join(w.text for w in button_words)) != '选择':
         raise BatchStopped('relic_button_unknown')
     mark, bonus, current = _attribute(attribute_words)
-    return RelicOffer(slot, name, mark, bonus, current, name_words, attribute_words, button_words, remaining)
+    if identity is not None:
+        identity = _catalog_fact(identity)
+        if identity['mark'] is not None and (identity['mark'] != mark or identity['bonus'] != bonus):
+            raise BatchStopped('relic_identity_conflict')
+    return RelicOffer(slot, name, mark, bonus, current, name_words, attribute_words,
+                      button_words, remaining, identity)
 
 
 def _validate_offers(offers):
@@ -243,7 +293,8 @@ def _validate_offers(offers):
                 for w in words]), roi, maximum=maximum))
         if (type(offer.name) is not str or type(offer.mark) is not str
                 or type(offer.bonus) is not int or type(offer.current) is not int
-                or _offer(slot, *groups, remaining=offer.remaining) != offer):
+                or _offer(slot, *groups, remaining=offer.remaining,
+                          identity=offer.identity) != offer):
             raise BatchStopped('relic_offers_unknown')
         parsed.append(offer)
     if len({o.remaining for o in parsed}) != 1:
@@ -256,6 +307,22 @@ def _validate_offers(offers):
             raise BatchStopped('relic_stacks_conflicting')
         observed[offer.mark] = offer.current
     return tuple(parsed), observed
+
+
+def attach_offer_identity(offers, facts):
+    """Attach the trusted catalog facts to the offers they describe.
+
+    This is the reward page's single identity step: every later reader (journal,
+    fresh guard, result) uses `offer.identity`, so an OCR spelling can never be
+    reintroduced by a caller as a second source of truth.
+    """
+    offers, _ = _validate_offers(offers)
+    if type(facts) not in (tuple, list) or len(facts) != 3:
+        raise BatchStopped('relic_identity_unknown')
+    attached = []
+    for offer, fact in zip(offers, facts):
+        attached.append(offer if fact is None else replace(offer, identity=_catalog_fact(fact)))
+    return _validate_offers(tuple(attached))[0]
 
 
 def relic_offers(receipt):
@@ -368,21 +435,55 @@ def _pattern(text):
     return r'^\s*' + gap.join(characters) + r'\s*$'
 
 
+def _item_identity_matches(observed, name):
+    """Same separator-optional identity as the guard and the native OCR node.
+
+    The two frames may disagree on a display separator (the offer frame can
+    split it into a sub-threshold token), so a verbatim comparison of the
+    result line against the observed name rejects the acquisition the game
+    actually completed. This predicate is the only identity the result layer
+    may apply to text; it never becomes a broad "any relic" match.
+    """
+    return re.fullmatch(_pattern(name + '×1'), _normalized(observed)) is not None
+
+
+def _name_identity_matches(observed, name):
+    """Name-only form of the same predicate; separators are display only."""
+    return re.fullmatch(_pattern(name), _normalized(observed)) is not None
+
+
 def selection_override(offers, slot):
-    """Build current identity guards for the selected offer; does not reset a spent Maa hit budget."""
+    """Build current identity and page guards for the selected offer.
+
+    A trusted catalog identity proves the card with the same-frame icon id, so
+    the click no longer depends on the card-name OCR: a dropped glyph must not
+    block the intended card, and a wrong catalog id must still refuse input.
+    Only an untrusted icon (or an absent pack) keeps the exact, separator-
+    tolerant OCR name pattern. Attribute line, count, button and Bright checks
+    always stay exact.
+    """
     offers, _ = _validate_offers(offers)
     if type(slot) is not int or slot not in (0, 1, 2):
         raise BatchStopped('relic_guard_invalid')
-    overrides = {'LabyRelicRemaining': _ocr(_pattern(f'还剩{offers[slot].remaining}次'), REMAINING_ROI)};guards = []
-    for offer in (offers[slot],):
-        marks='|'.join(re.escape(mark) for mark in sorted({offer.mark}|{raw for raw,mark in ALIASES.items() if mark==offer.mark}))
-        attribute=(r'^[^0-9]*(?:'+marks+r')\s*[+＋]\s*'+str(offer.bonus)
-            +r'[^0-9]*当前[^0-9+\-]{0,5}'+str(offer.current)+r'(?![0-9])[^0-9]*$')
-        for kind,pattern,roi in (('Name',_pattern(offer.name),NAME_ROIS[slot]),('Attribute',attribute,ATTRIBUTE_ROIS[slot])):
-            name=f'LabyRelicGuard{kind}{offer.slot}0'
-            if kind == 'Name':overrides.update(_name_nodes(name, pattern, roi))
-            else:overrides[name]=dict(_ocr(pattern,roi), only_rec=True)
-            guards.append(name)
+    offer = offers[slot]
+    overrides = {'LabyRelicRemaining': _ocr(_pattern(f'还剩{offer.remaining}次'), REMAINING_ROI)};guards = []
+    marks='|'.join(re.escape(mark) for mark in sorted({offer.mark}|{raw for raw,mark in ALIASES.items() if mark==offer.mark}))
+    attribute=(r'^[^0-9]*(?:'+marks+r')\s*[+＋]\s*'+str(offer.bonus)
+        +r'[^0-9]*当前[^0-9+\-]{0,5}'+str(offer.current)+r'(?![0-9])[^0-9]*$')
+    guard=f'LabyRelicGuardAttribute{offer.slot}0'
+    overrides[guard]=dict(_ocr(attribute,ATTRIBUTE_ROIS[slot]), only_rec=True)
+    guards.append(guard)
+    if offer.identity is not None:
+        guard=f'LabyRelicGuardIcon{offer.slot}0'
+        overrides[guard]=dict(recognition='Custom', custom_recognition=STATIC_ICON,
+            custom_recognition_param=dict(mode='guard', slot=offer.slot,
+                                          relic_id=offer.identity['id']),
+            action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
+        guards.insert(0, guard)
+    else:
+        guard=f'LabyRelicGuardName{offer.slot}0'
+        overrides.update(_name_nodes(guard, _pattern(offer.name), NAME_ROIS[slot]))
+        guards.insert(0, guard)
     first = f'LabyRelicButton{slot}'
     rest = ['LabyRelicTitle', 'LabyRelicSubtitle', 'LabyRelicRemaining'] + guards
     rest += [f'LabyRelicBright{slot}']
@@ -425,7 +526,10 @@ RESULT_CLOSE_ROI = (500, 608, 278, 65)
 
 
 def _result_name(selected):
-    value = selected.name if type(selected) is RelicOffer else selected
+    if type(selected) is RelicOffer:
+        value = selected.identity['name'] if selected.identity is not None else selected.name
+    else:
+        value = selected
     if (type(value) is not str or not value.strip() or len(value) > 48
             or any(ord(c) < 32 for c in value) or '×' in value):
         raise BatchStopped('relic_identity_required')
@@ -452,10 +556,191 @@ def result_pipeline(selected=None):
         all_of=['LabyRelicObtainedClose']+observed[:-1], action='Click', target=True,
         max_hit=1, next=[], timeout=2500, rate_limit=250, pre_delay=0, post_delay=0)
     nodes['LabyRelicResultCloseOnce']=dict(recognition='And',all_of=['LabyRelicObtainedClose','LabyRelicObtainedTitle','LabyRelicObtainedMessage'],action='Click',target=True,max_hit=1,next=[],timeout=2500,pre_delay=0,post_delay=0)
+    # Same-frame catalog identity of the obtained icon; only the guard adds it
+    # to the observed And, so older receipts without the pack stay valid.
+    nodes['LabyRelicObtainedStaticIdentity'] = dict(recognition='Custom',
+        custom_recognition=STATIC_ICON, custom_recognition_param=dict(mode='obtained'),
+        action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
     return nodes
 
 
-def relic_obtained(receipt, selected, *, icon=False):
+class RelicStaticIconCapture(CustomRecognition):
+    """Read-only catalog identity for the offer cards, the obtained icon and the guard.
+
+    The observation modes always return a hit so an And/observation stays
+    stable; `trusted` decides whether callers may use the facts. The `guard`
+    modes are the exception: they return a hit only when this frame's catalog
+    id equals the intended relic id, because an identity proof must not depend
+    on OCR spelling — `guard` proves the selected card on the click frame,
+    `obtained_guard` proves the result icon on the obtained frame. A missing
+    pack is not a frame error: it degrades to the existing text identity, while
+    a corrupt pack is refused at load time, never guessed around.
+    """
+    def __init__(self, catalog=None):
+        super().__init__()
+        self.catalog = catalog
+
+    @staticmethod
+    def _detail(match):
+        facts = match.facts
+        return dict(trusted=match.trusted, score=float(match.score), rival=float(match.rival),
+            margin=float(match.margin), relic=None if facts is None else dict(id=facts.id,
+                name=facts.name, mark=facts.mark, bonus=facts.bonus, rarity=facts.rarity))
+
+    def _guard(self, image, params):
+        """One same-frame catalog id check for the fresh selection guard."""
+        slot, expected = params.get('slot'), params.get('relic_id')
+        if type(slot) is not int or slot not in (0, 1, 2) or type(expected) is not int:
+            return self.AnalyzeResult(None, dict(trusted=False, matched=False,
+                reason='guard_param_unknown', slot=slot, expected_id=expected))
+        detail = self._detail(self.catalog.match(image, ICON_ROIS[slot]))
+        relic = detail['relic']
+        matched = bool(detail['trusted'] and relic is not None and relic['id'] == expected)
+        detail.update(mode='guard', slot=slot, expected_id=expected, matched=matched)
+        return self.AnalyzeResult(list(ICON_ROIS[slot]) if matched else None, detail)
+
+    def _obtained_guard(self, image, params):
+        """One same-frame catalog id check for the obtained modal.
+
+        The identity proof of the result is this frame's icon id, never the
+        item-line spelling: a named OCR misread must not veto an acquisition
+        the catalog already identified. Because the id must equal the
+        persisted selection, a different relic still misses.
+        """
+        expected = params.get('relic_id')
+        if type(expected) is not int:
+            return self.AnalyzeResult(None, dict(trusted=False, matched=False,
+                reason='guard_param_unknown', expected_id=expected))
+        detail = self._detail(self.catalog.match(image, RESULT_ICON_ROI))
+        relic = detail['relic']
+        matched = bool(detail['trusted'] and relic is not None and relic['id'] == expected)
+        detail.update(mode='obtained_guard', expected_id=expected, matched=matched)
+        return self.AnalyzeResult(list(RESULT_ICON_ROI) if matched else None, detail)
+
+    def analyze(self, context, argv):
+        import json
+        mode = None
+        guards = ('guard', 'obtained_guard')
+        try:
+            params = json.loads(argv.custom_recognition_param or '{}')
+            mode = params.get('mode')
+            image = argv.image
+            miss = None if mode in guards else [0, 0, 1280, 720]
+            if self.catalog is None:
+                return self.AnalyzeResult(miss, dict(trusted=False, reason='resource_missing'))
+            if getattr(image, 'shape', None) is None or tuple(image.shape[:2]) != (720, 1280):
+                return self.AnalyzeResult(miss, dict(trusted=False, reason='frame_unknown'))
+            if mode == 'obtained':
+                return self.AnalyzeResult(list(RESULT_ICON_ROI),
+                    self._detail(self.catalog.match(image, RESULT_ICON_ROI)))
+            if mode == 'guard':
+                return self._guard(image, params)
+            if mode == 'obtained_guard':
+                return self._obtained_guard(image, params)
+            if mode != 'offers':
+                return self.AnalyzeResult(miss, dict(trusted=False, reason='mode_unknown'))
+            slots = [self._detail(self.catalog.match(image, roi)) for roi in ICON_ROIS]
+            return self.AnalyzeResult([0, 0, 1280, 720], dict(mode='offers', slots=slots))
+        except Exception:
+            return self.AnalyzeResult(None if mode in guards else [0, 0, 1280, 720],
+                                      dict(trusted=False, reason='recognition_error'))
+
+
+def _relic_catalog_state(tasker):
+    """One validated pack per run; absent pack is a text fallback, bad pack stops."""
+    from .scene import runtime_resource
+    resource = runtime_resource(tasker)
+    state = getattr(resource, '_labyrinth_relic_catalog', None)
+    if state is not None:
+        return state
+    from .relic_recognition import CATALOG, PACK, load_catalog
+    state = dict(catalog=None)
+    if CATALOG.is_file() and (PACK / 'PROVENANCE.json').is_file():
+        state['catalog'] = load_catalog()
+    resource._labyrinth_relic_catalog = state
+    return state
+
+
+def relic_catalog(tasker):
+    """The run's single validated relic pack, or None when the pack is absent."""
+    return _relic_catalog_state(tasker)['catalog']
+
+
+def relic_offer_facts(detail, offers):
+    """Validated catalog facts per visible slot; None means "keep the text path".
+
+    A trusted icon whose catalog mark/bonus contradicts the same-frame
+    attribute line is not guessed around: the stack ledger would take a wrong
+    fact, so the batch stops on `relic_identity_conflict`.
+    """
+    offers, _ = _validate_offers(offers)
+    slots = detail.get('slots') if type(detail) is dict else None
+    if type(slots) is not list or len(slots) != 3:
+        raise BatchStopped('relic_identity_unknown')
+    facts = []
+    for slot, offer in enumerate(offers):
+        item = slots[slot]
+        if type(item) is not dict or item.get('trusted') is not True:
+            facts.append(None)
+            continue
+        relic = _catalog_fact(item.get('relic'))
+        if relic['mark'] is not None and (relic['mark'] != offer.mark or relic['bonus'] != offer.bonus):
+            raise BatchStopped('relic_identity_conflict')
+        facts.append(relic)
+    known = [fact['id'] for fact in facts if fact]
+    if len(known) != len(set(known)):
+        raise BatchStopped('relic_identity_conflict')
+    return tuple(facts)
+
+
+def identify_relic_offers(offers, detail):
+    """The reward page's one identity entry: catalog facts attached to offers.
+
+    `MaaRelicReward` calls this once after reading the three cards. Callers that
+    only need the raw per-slot facts can still use `relic_offer_facts`; the
+    journal, guard and result path use the returned offers, never a second name.
+    """
+    return attach_offer_identity(offers, relic_offer_facts(detail, offers))
+
+
+def _custom_detail(detail):
+    """Raw custom-recognition detail from a native node receipt.
+
+    Native wraps a custom result as `{all, best, filtered}`, one entry per
+    observation, with the recognition's own dictionary under `detail`.
+    """
+    rows = detail.get('filtered') if type(detail) is dict else None
+    if type(rows) is list and len(rows) == 1 and type(rows[0]) is dict:
+        inner = rows[0].get('detail')
+        if type(inner) is dict:
+            return inner
+    return None
+
+
+def _static_obtained_id(detail, relic_id, name):
+    """Trusted catalog identity of the obtained icon, or None to use the text path.
+
+    A trusted icon that names another relic than the persisted selection is a
+    wrong result, never a reason to keep reading; a trusted icon whose name
+    only differs from the OCR spelling (display separators) still agrees.
+    """
+    if type(detail) is not dict or detail.get('trusted') is not True:
+        return None
+    relic = detail.get('relic')
+    if (type(relic) is not dict or type(relic.get('id')) is not int
+            or type(relic.get('name')) is not str or not relic['name']
+            or relic.get('mark') is not None and relic.get('mark') not in MARKS
+            or type(relic.get('bonus')) is not int or type(relic.get('rarity')) is not int):
+        raise BatchStopped('relic_result_unknown')
+    if relic_id is not None:
+        if relic['id'] != relic_id:
+            raise BatchStopped('relic_result_mismatch')
+    elif not _name_identity_matches(relic['name'], name):
+        return None
+    return relic
+
+
+def relic_obtained(receipt, selected, *, icon=False, static=False, relic_id=None):
     """Independent same-frame identity and item ×1 proof."""
     name = _result_name(selected)
     if type(receipt) is not dict or receipt.get('native_ok') is not True:
@@ -469,6 +754,7 @@ def relic_obtained(receipt, selected, *, icon=False):
     raw = found[0].get('recognition')
     expected = set(result_pipeline()['LabyRelicObtainedObserved']['all_of'])
     if icon:expected.add('LabyRelicObtainedIdentity')
+    if static:expected.add('LabyRelicObtainedStaticIdentity')
     if (type(raw) is not list or any(type(r) is not dict or type(r.get('name')) is not str for r in raw)
             or len(raw) != len(expected) or {r['name'] for r in raw} != expected):
         raise BatchStopped('relic_result_unknown')
@@ -485,6 +771,15 @@ def relic_obtained(receipt, selected, *, icon=False):
     except BatchStopped:
         raise BatchStopped('relic_result_unknown') from None
     text = _normalized(''.join(w.text for w in item))
+    if static:
+        confirmed = _static_obtained_id(_custom_detail(rows.get('LabyRelicObtainedStaticIdentity')),
+                                        relic_id, name)
+        if confirmed is not None:
+            if re.fullmatch(r'.+×1', text) is None:
+                raise BatchStopped('relic_result_mismatch')
+            return dict(verified=True, relic_name=_normalized(confirmed['name']),
+                        relic_id=confirmed['id'], observed_result_text=text, quantity=1,
+                        inventory_added=True, identity_method='static_icon', native=receipt)
     identity_method = 'exact_ocr'
     if icon:
         identity = rows['LabyRelicObtainedIdentity']
@@ -496,7 +791,7 @@ def relic_obtained(receipt, selected, *, icon=False):
             raise BatchStopped('relic_result_unknown')
         if identity[-1]['name'] == names[0]:
             exact = _words(identity[-1].get('detail'), RESULT_ITEM_ROI, maximum=2)
-            if _normalized(''.join(w.text for w in exact)) != name+'×1':
+            if not _item_identity_matches(''.join(w.text for w in exact), name):
                 raise BatchStopped('relic_result_mismatch')
         else:
             identity_method = 'native_observed_icon'
@@ -512,18 +807,26 @@ def relic_obtained(receipt, selected, *, icon=False):
                 raise BatchStopped('relic_result_mismatch')
         if re.fullmatch(r'.+×1', text) is None:
             raise BatchStopped('relic_result_mismatch')
-    elif text != name+'×1':
+    elif not _item_identity_matches(text, name):
         raise BatchStopped('relic_result_mismatch')
-    return dict(verified=True, relic_name=name, observed_result_text=text, quantity=1,
+    return dict(verified=True, relic_name=name, relic_id=relic_id,
+                observed_result_text=text, quantity=1,
                 inventory_added=True, identity_method=identity_method, native=receipt)
 
 
 @contextmanager
-def obtained_guard(tasker, selected, *, icon=False):
+def obtained_guard(tasker, selected, *, icon=False, static=False, relic_id=None):
     overrides = {'LabyRelicObtainedItem':dict(expected=r'^.+[×]\s*1$' if icon else _pattern(_result_name(selected)+'×1'))}
     if icon:
         overrides['LabyRelicObtainedExactItem'] = dict(expected=_pattern(_result_name(selected)+'×1'))
-        overrides['LabyRelicObtainedObserved'] = dict(all_of=result_pipeline()['LabyRelicObtainedObserved']['all_of']+['LabyRelicObtainedIdentity'])
+        observed = result_pipeline()['LabyRelicObtainedObserved']['all_of']
+        if static:observed = observed+['LabyRelicObtainedStaticIdentity']
+        overrides['LabyRelicObtainedObserved'] = dict(all_of=observed+['LabyRelicObtainedIdentity'])
+    if static and type(relic_id) is int:
+        # The icon id alone proves the result; the text/template children only
+        # decide when no trusted catalog identity was recorded for the choice.
+        overrides['LabyRelicObtainedStaticGuard'] = dict(
+            custom_recognition_param=dict(mode='obtained_guard', relic_id=relic_id))
     resource = tasker.resource
     original = {key:resource.get_node_data(key) for key in overrides}
     if any(not value for value in original.values()) or not resource.override_pipeline(overrides):
@@ -561,6 +864,22 @@ class MaaRelicReward:
             if not resource.register_custom_recognition('LabyRelicSelectedIconCapture', self.icon_capture):
                 raise BatchStopped('relic_runtime_unavailable')
             resource._labyrinth_relic_icon_capture = self.icon_capture
+        self.catalog = _relic_catalog_state(tasker)['catalog']
+        static = getattr(resource, '_labyrinth_relic_static_capture', None)
+        if static is None:
+            static = RelicStaticIconCapture(self.catalog)
+            if not resource.register_custom_recognition(STATIC_ICON, static):
+                raise BatchStopped('relic_runtime_unavailable')
+            resource._labyrinth_relic_static_capture = static
+
+    def _identify_offers(self, offers):
+        """Attach one trusted catalog identity to every visible offer."""
+        receipt = self._run('LabyRelicOfferedStaticIdentity')
+        node = next((n for n in receipt['nodes'] if n.get('name') == 'LabyRelicOfferedStaticIdentity'), None)
+        detail = _custom_detail(node.get('recognition') if type(node) is dict else None)
+        if detail is None:
+            return offers
+        return identify_relic_offers(offers, detail)
 
     def _run(self, node, *, input=False):
         from .. import native
@@ -580,13 +899,16 @@ class MaaRelicReward:
                 or not reward_id or len(reward_id) > 128 or any(ord(c) < 32 for c in reward_id)):
             raise BatchStopped('relic_reward_identity_required')
         key = (enter_id, reward_id)
-        if key in self.attempted or any(e.get('operation')=='relic_reward_select'
+        if key in self.attempted or batch.journal.any_event(
+                lambda e: e.get('operation')=='relic_reward_select'
                 and e.get('binding')==batch.binding.payload()
-                and (e.get('enter_id'),e.get('reward_id'))==key for e in batch.journal.events()):
+                and (e.get('enter_id'),e.get('reward_id'))==key):
             raise BatchStopped('relic_reward_already_attempted')
         batch.checkpoint()
         if offers is None:offers = relic_offers(self._run('LabyRelicObserved'))
         else:offers,_ = _validate_offers(offers)
+        if self.catalog is not None:
+            offers = self._identify_offers(offers)
         from .roles import strategy_value
         strategy=getattr(batch.settings,'strategy',None)
         policy={key:strategy_value(strategy,key,default) for key,default in (('baseline_last_area',3),('baseline_target',4),('debuff_pivot_minimum',12),('debuff_pivot_tolerance',2))}
@@ -596,9 +918,14 @@ class MaaRelicReward:
                                     locked_focus=locked_focus, priority=priority, **policy)
         if selected is None:
             raise BatchStopped('relic_stacks_incomplete')
+        identity = selected.identity
         fields = dict(enter_id=enter_id, reward_id=reward_id, slot=selected.slot,
-                      relic_name=selected.name, mark=selected.mark, bonus=selected.bonus,
-                      quantity=1)
+                      relic_name=identity['name'] if identity is not None else selected.name,
+                      mark=selected.mark, bonus=selected.bonus, quantity=1)
+        # The catalog identity is the display identity; the strategy keeps the
+        # observed mark/bonus, which the same-frame attribute line confirmed.
+        if identity is not None:
+            fields['relic_id'] = identity['id']
         self.attempted.add(key)
         def send(operation_id):
             batch.checkpoint()
@@ -608,8 +935,11 @@ class MaaRelicReward:
         with selection_guard(self.tasker, offers, selected.slot, icon=True):
             clicked=batch.transaction('relic_reward_select',fields,send)
         batch.checkpoint()
-        with obtained_guard(self.tasker, selected, icon=True):
-            obtained = relic_obtained(self._run('LabyRelicObtainedObserved'), selected, icon=True)
+        static = self.catalog is not None
+        selected_id = identity['id'] if identity is not None else None
+        with obtained_guard(self.tasker, selected, icon=True, static=static, relic_id=selected_id):
+            obtained = relic_obtained(self._run('LabyRelicObtainedObserved'), selected,
+                                      icon=True, static=static, relic_id=selected_id)
         confirmed=batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,
             inventory_added=True,input_native=clicked['input_native'],input_action_verified=True,
             native=dict(selection=clicked['native'],obtained=obtained)),**fields,inventory_added=True)

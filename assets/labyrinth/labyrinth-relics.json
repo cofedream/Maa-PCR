@@ -1,0 +1,826 @@
+{
+  "schemaVersion": 1,
+  "masterVersion": "202611021739",
+  "note": "遗物目录：name/effect/rarity 取自 data/labyrinth/master-cn 的 labyrinth_relic（master 202611021739）；mark 由 labyrinth_relic_mark_series 的 1加速/2削弱/3暴击/4强化/5守备 按 src/pcr_maa/labyrinth/strategies.py 的 ALIASES 映射为 加速/会心/守备/强化/弱体；bonus 是遗物固有的 relic_mark_count（例如实机【守备+3】对应 3），不是运行时堆叠数。icon 相对 assets/labyrinth，由 relic-pack/PROVENANCE.json 记录来源与摘要。30001 元素涌动宝珠 在 master 里 relic_mark_id=0、relic_mark_count=0，没有标记归类，mark 记为 null。此文件只描述“有哪些遗物”，选择策略仍在代码中。",
+  "relics": [
+    {
+      "id": 11001,
+      "name": "加速玉饰",
+      "mark": "加速",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "技能值上升量＋5",
+      "icon": "relic-pack/icons/11001.png"
+    },
+    {
+      "id": 11002,
+      "name": "水莲之盾",
+      "mark": "加速",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "每次受到伤害时技能值回复100（最多1次）",
+      "icon": "relic-pack/icons/11002.png"
+    },
+    {
+      "id": 11003,
+      "name": "青辉之环",
+      "mark": "加速",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "战斗开始时技能值回复100",
+      "icon": "relic-pack/icons/11003.png"
+    },
+    {
+      "id": 11004,
+      "name": "冷玉之杖",
+      "mark": "加速",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "技能值消耗减轻＋2",
+      "icon": "relic-pack/icons/11004.png"
+    },
+    {
+      "id": 11005,
+      "name": "踏风鞋",
+      "mark": "加速",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "行动速度＋10％（可叠加）",
+      "icon": "relic-pack/icons/11005.png"
+    },
+    {
+      "id": 12001,
+      "name": "紫晶琉璃",
+      "mark": "弱体",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "异常状态命中＋20",
+      "icon": "relic-pack/icons/12001.png"
+    },
+    {
+      "id": 12002,
+      "name": "魔杖咒术",
+      "mark": "弱体",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "赋予敌方全体诅咒状态（每秒【削弱】数×500伤害）",
+      "icon": "relic-pack/icons/12002.png"
+    },
+    {
+      "id": 12003,
+      "name": "暗剑毒药",
+      "mark": "弱体",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "赋予敌方全体中毒状态（每秒【削弱】数×500伤害）",
+      "icon": "relic-pack/icons/12003.png"
+    },
+    {
+      "id": 12004,
+      "name": "破守帽退散",
+      "mark": "弱体",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "敌人的物理/魔法攻击力－10％",
+      "icon": "relic-pack/icons/12004.png"
+    },
+    {
+      "id": 12005,
+      "name": "崩刀山月",
+      "mark": "弱体",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "敌人的物理/魔法防御力－10％",
+      "icon": "relic-pack/icons/12005.png"
+    },
+    {
+      "id": 13001,
+      "name": "杀戮之矛",
+      "mark": "会心",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "敌人受到物理/魔法暴击时的伤害＋10％",
+      "icon": "relic-pack/icons/13001.png"
+    },
+    {
+      "id": 13002,
+      "name": "赏花之刀",
+      "mark": "会心",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "物理/魔法暴击伤害＋10％",
+      "icon": "relic-pack/icons/13002.png"
+    },
+    {
+      "id": 13003,
+      "name": "裂空拳套",
+      "mark": "会心",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "普通攻击强化＋30",
+      "icon": "relic-pack/icons/13003.png"
+    },
+    {
+      "id": 13004,
+      "name": "暴击弧弓",
+      "mark": "会心",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "物理/魔法暴击＋10％",
+      "icon": "relic-pack/icons/13004.png"
+    },
+    {
+      "id": 13005,
+      "name": "噬魂手斧",
+      "mark": "会心",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "生命值吸收＋10",
+      "icon": "relic-pack/icons/13005.png"
+    },
+    {
+      "id": 14001,
+      "name": "强化宝石",
+      "mark": "强化",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "增益强化＋30",
+      "icon": "relic-pack/icons/14001.png"
+    },
+    {
+      "id": 14002,
+      "name": "抗铁护甲",
+      "mark": "强化",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "物理/魔法攻击力提升\\n（前排角色的物理防御力×5）",
+      "icon": "relic-pack/icons/14002.png"
+    },
+    {
+      "id": 14003,
+      "name": "抗魔战裙",
+      "mark": "强化",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "物理/魔法攻击力提升\\n（前排角色的魔法防御力×5）",
+      "icon": "relic-pack/icons/14003.png"
+    },
+    {
+      "id": 14004,
+      "name": "蛇纹之剑",
+      "mark": "强化",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "物理/魔法攻击力＋20％",
+      "icon": "relic-pack/icons/14004.png"
+    },
+    {
+      "id": 14005,
+      "name": "防守铠甲",
+      "mark": "强化",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "物理/魔法防御力＋10％",
+      "icon": "relic-pack/icons/14005.png"
+    },
+    {
+      "id": 15001,
+      "name": "回生杖",
+      "mark": "守备",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "回复强化＋10",
+      "icon": "relic-pack/icons/15001.png"
+    },
+    {
+      "id": 15002,
+      "name": "丰命指环",
+      "mark": "守备",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "生命值＋10％",
+      "icon": "relic-pack/icons/15002.png"
+    },
+    {
+      "id": 15003,
+      "name": "铁防甲",
+      "mark": "守备",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "每20秒展开物理攻击无效化屏障（【守备】数×500无效）",
+      "icon": "relic-pack/icons/15003.png"
+    },
+    {
+      "id": 15004,
+      "name": "魔封衣",
+      "mark": "守备",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "每20秒展开魔法攻击无效化屏障（【守备】数×500无效）",
+      "icon": "relic-pack/icons/15004.png"
+    },
+    {
+      "id": 15005,
+      "name": "再生之手镯",
+      "mark": "守备",
+      "bonus": 1,
+      "rarity": 1,
+      "effect": "持续回复生命值（每秒回复【守备】数×500）",
+      "icon": "relic-pack/icons/15005.png"
+    },
+    {
+      "id": 21001,
+      "name": "流烈耳饰",
+      "mark": "加速",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "技能值上升量＋10",
+      "icon": "relic-pack/icons/21001.png"
+    },
+    {
+      "id": 21002,
+      "name": "星泪辉盾",
+      "mark": "加速",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "每次受到伤害时技能值回复100（最多2次）",
+      "icon": "relic-pack/icons/21002.png"
+    },
+    {
+      "id": 21003,
+      "name": "苍珠手镯",
+      "mark": "加速",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "战斗开始时技能值回复200",
+      "icon": "relic-pack/icons/21003.png"
+    },
+    {
+      "id": 21004,
+      "name": "星明仪杖",
+      "mark": "加速",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "技能值消耗减轻＋4",
+      "icon": "relic-pack/icons/21004.png"
+    },
+    {
+      "id": 21005,
+      "name": "疾风翼靴",
+      "mark": "加速",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "行动速度＋20％（可叠加）",
+      "icon": "relic-pack/icons/21005.png"
+    },
+    {
+      "id": 22001,
+      "name": "暗至宝圣物",
+      "mark": "弱体",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "异常状态命中＋40",
+      "icon": "relic-pack/icons/22001.png"
+    },
+    {
+      "id": 22002,
+      "name": "终焉邪眼杖",
+      "mark": "弱体",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "赋予敌方全体诅咒状态（每秒【削弱】数×1000伤害）",
+      "icon": "relic-pack/icons/22002.png"
+    },
+    {
+      "id": 22003,
+      "name": "影刃剑幽影",
+      "mark": "弱体",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "赋予敌方全体中毒状态（每秒【削弱】数×1000伤害）",
+      "icon": "relic-pack/icons/22003.png"
+    },
+    {
+      "id": 22004,
+      "name": "空灵玫瑰饰帽",
+      "mark": "弱体",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "敌人的物理/魔法攻击力－20％",
+      "icon": "relic-pack/icons/22004.png"
+    },
+    {
+      "id": 22005,
+      "name": "霹雳斩赤刃",
+      "mark": "弱体",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "敌人的物理/魔法防御力－20％",
+      "icon": "relic-pack/icons/22005.png"
+    },
+    {
+      "id": 23001,
+      "name": "致命烈矛",
+      "mark": "会心",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "敌人受到物理/魔法暴击时的伤害＋20％",
+      "icon": "relic-pack/icons/23001.png"
+    },
+    {
+      "id": 23002,
+      "name": "绯红太刀",
+      "mark": "会心",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "物理/魔法暴击伤害＋20％",
+      "icon": "relic-pack/icons/23002.png"
+    },
+    {
+      "id": 23003,
+      "name": "爆裂手甲",
+      "mark": "会心",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "普通攻击强化＋60",
+      "icon": "relic-pack/icons/23003.png"
+    },
+    {
+      "id": 23004,
+      "name": "苍穹飞弓",
+      "mark": "会心",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "物理/魔法暴击＋20％",
+      "icon": "relic-pack/icons/23004.png"
+    },
+    {
+      "id": 23005,
+      "name": "炼狱战斧",
+      "mark": "会心",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "生命值吸收＋20",
+      "icon": "relic-pack/icons/23005.png"
+    },
+    {
+      "id": 24001,
+      "name": "进化之耳环",
+      "mark": "强化",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "增益强化＋60",
+      "icon": "relic-pack/icons/24001.png"
+    },
+    {
+      "id": 24002,
+      "name": "红反钢护甲",
+      "mark": "强化",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "物理/魔法攻击力提升\\n（前排角色的物理防御力×10）",
+      "icon": "relic-pack/icons/24002.png"
+    },
+    {
+      "id": 24003,
+      "name": "圣减术次元战裙",
+      "mark": "强化",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "物理/魔法攻击力提升\\n（前排角色的魔法防御力×10）",
+      "icon": "relic-pack/icons/24003.png"
+    },
+    {
+      "id": 24004,
+      "name": "炎王巨剑",
+      "mark": "强化",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "物理/魔法攻击力＋40％",
+      "icon": "relic-pack/icons/24004.png"
+    },
+    {
+      "id": 24005,
+      "name": "樱坚牢战衣",
+      "mark": "强化",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "物理/魔法防御力＋20％",
+      "icon": "relic-pack/icons/24005.png"
+    },
+    {
+      "id": 25001,
+      "name": "创世绿杖",
+      "mark": "守备",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "回复强化＋20",
+      "icon": "relic-pack/icons/25001.png"
+    },
+    {
+      "id": 25002,
+      "name": "空命护珠",
+      "mark": "守备",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "生命值＋20％",
+      "icon": "relic-pack/icons/25002.png"
+    },
+    {
+      "id": 25003,
+      "name": "钢铁坚铠",
+      "mark": "守备",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "每20秒展开物理攻击无效化屏障（【守备】数×1000无效）",
+      "icon": "relic-pack/icons/25003.png"
+    },
+    {
+      "id": 25004,
+      "name": "魔护灵装",
+      "mark": "守备",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "每20秒展开魔法攻击无效化屏障（【守备】数×1000无效）",
+      "icon": "relic-pack/icons/25004.png"
+    },
+    {
+      "id": 25005,
+      "name": "绿护之盾戒",
+      "mark": "守备",
+      "bonus": 2,
+      "rarity": 2,
+      "effect": "持续回复生命值（每秒【守备】数×1000回复）",
+      "icon": "relic-pack/icons/25005.png"
+    },
+    {
+      "id": 30001,
+      "name": "元素涌动宝珠",
+      "mark": null,
+      "bonus": 0,
+      "rarity": 3,
+      "effect": "属性加成＋100％",
+      "icon": "relic-pack/icons/30001.png"
+    },
+    {
+      "id": 31001,
+      "name": "瞬闪蝶月饰",
+      "mark": "加速",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "技能值上升量＋15",
+      "icon": "relic-pack/icons/31001.png"
+    },
+    {
+      "id": 31002,
+      "name": "海宝华辉盾",
+      "mark": "加速",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "每次受到伤害时技能值回复100（最多3次）",
+      "icon": "relic-pack/icons/31002.png"
+    },
+    {
+      "id": 31003,
+      "name": "碧贵石圣戒",
+      "mark": "加速",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "战斗开始时技能值回复300",
+      "icon": "relic-pack/icons/31003.png"
+    },
+    {
+      "id": 31004,
+      "name": "永天镜王笏",
+      "mark": "加速",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "技能值消耗减轻＋6",
+      "icon": "relic-pack/icons/31004.png"
+    },
+    {
+      "id": 31005,
+      "name": "炽天使翔靴",
+      "mark": "加速",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "行动速度＋30％（可叠加）",
+      "icon": "relic-pack/icons/31005.png"
+    },
+    {
+      "id": 31006,
+      "name": "风神的护风恩宠",
+      "mark": "加速",
+      "bonus": 5,
+      "rarity": 3,
+      "effect": "技能值上升量＋100",
+      "icon": "relic-pack/icons/31006.png"
+    },
+    {
+      "id": 32001,
+      "name": "幻兽饰诱惑",
+      "mark": "弱体",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "异常状态命中＋60",
+      "icon": "relic-pack/icons/32001.png"
+    },
+    {
+      "id": 32002,
+      "name": "深渊蚀杖诅咒",
+      "mark": "弱体",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "赋予敌方全体诅咒状态（每秒【削弱】数×1500伤害）",
+      "icon": "relic-pack/icons/32002.png"
+    },
+    {
+      "id": 32003,
+      "name": "灭刻凶刃剧毒",
+      "mark": "弱体",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "赋予敌方全体中毒状态（每秒【削弱】数×1500伤害）",
+      "icon": "relic-pack/icons/32003.png"
+    },
+    {
+      "id": 32004,
+      "name": "灿然御缠阿诺拉·贝拉",
+      "mark": "弱体",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "敌人的物理/魔法攻击力－30％",
+      "icon": "relic-pack/icons/32004.png"
+    },
+    {
+      "id": 32005,
+      "name": "断壁锁刃粉碎",
+      "mark": "弱体",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "敌人的物理/魔法防御力－30％",
+      "icon": "relic-pack/icons/32005.png"
+    },
+    {
+      "id": 32006,
+      "name": "霜影虚装深渊君主",
+      "mark": "弱体",
+      "bonus": 5,
+      "rarity": 3,
+      "effect": "敌方造成的物理/魔法伤害－25％\\n敌方受到的物理/魔法伤害＋25％",
+      "icon": "relic-pack/icons/32006.png"
+    },
+    {
+      "id": 33001,
+      "name": "绝杀战戟",
+      "mark": "会心",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "敌人受到物理/魔法暴击时的伤害＋30％",
+      "icon": "relic-pack/icons/33001.png"
+    },
+    {
+      "id": 33002,
+      "name": "凤凰利刃",
+      "mark": "会心",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "物理/魔法暴击伤害＋30％",
+      "icon": "relic-pack/icons/33002.png"
+    },
+    {
+      "id": 33003,
+      "name": "地脉陨灭",
+      "mark": "会心",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "普通攻击强化＋90",
+      "icon": "relic-pack/icons/33003.png"
+    },
+    {
+      "id": 33004,
+      "name": "审判弓矢",
+      "mark": "会心",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "物理/魔法暴击＋30％",
+      "icon": "relic-pack/icons/33004.png"
+    },
+    {
+      "id": 33005,
+      "name": "收获之刻",
+      "mark": "会心",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "生命值吸收＋30",
+      "icon": "relic-pack/icons/33005.png"
+    },
+    {
+      "id": 33006,
+      "name": "天启纪元",
+      "mark": "会心",
+      "bonus": 5,
+      "rarity": 3,
+      "effect": "普通攻击强化＋500\\n生命值吸收＋50",
+      "icon": "relic-pack/icons/33006.png"
+    },
+    {
+      "id": 34001,
+      "name": "极醒护身符",
+      "mark": "强化",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "增益强化＋90",
+      "icon": "relic-pack/icons/34001.png"
+    },
+    {
+      "id": 34002,
+      "name": "拒断之刃白银",
+      "mark": "强化",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "物理/魔法攻击力提升\\n（前排角色的物理防御力×15）",
+      "icon": "relic-pack/icons/34002.png"
+    },
+    {
+      "id": 34003,
+      "name": "绯华荣华石榴石",
+      "mark": "强化",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "物理/魔法攻击力提升\\n（前排角色的魔法防御力×15）",
+      "icon": "relic-pack/icons/34003.png"
+    },
+    {
+      "id": 34004,
+      "name": "霸光帝龙之荣耀",
+      "mark": "强化",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "物理/魔法攻击力＋60％",
+      "icon": "relic-pack/icons/34004.png"
+    },
+    {
+      "id": 34005,
+      "name": "华舞玲珑春抚子",
+      "mark": "强化",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "物理/魔法防御力＋30％",
+      "icon": "relic-pack/icons/34005.png"
+    },
+    {
+      "id": 34006,
+      "name": "天戴冠巅峰之剑",
+      "mark": "强化",
+      "bonus": 5,
+      "rarity": 3,
+      "effect": "战斗开始时，展开提升物理/魔法攻击力的领域\\n（当前值＋50％）",
+      "icon": "relic-pack/icons/34006.png"
+    },
+    {
+      "id": 35001,
+      "name": "妖精灵杖·愈光",
+      "mark": "守备",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "回复强化＋30",
+      "icon": "relic-pack/icons/35001.png"
+    },
+    {
+      "id": 35002,
+      "name": "泉涌命环·丰饶",
+      "mark": "守备",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "生命值＋30％",
+      "icon": "relic-pack/icons/35002.png"
+    },
+    {
+      "id": 35003,
+      "name": "白光辉铠·断壁",
+      "mark": "守备",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "每20秒展开物理攻击无效化屏障（【守备】数×1500无效）",
+      "icon": "relic-pack/icons/35003.png"
+    },
+    {
+      "id": 35004,
+      "name": "幽玄煌装·绝魔",
+      "mark": "守备",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "每20秒展开魔法攻击无效化屏障（【守备】数×1500无效）",
+      "icon": "relic-pack/icons/35004.png"
+    },
+    {
+      "id": 35005,
+      "name": "轮回之翡翠珠戒",
+      "mark": "守备",
+      "bonus": 3,
+      "rarity": 3,
+      "effect": "持续回复生命值（每秒回复【守备】数×1500）",
+      "icon": "relic-pack/icons/35005.png"
+    },
+    {
+      "id": 35006,
+      "name": "天命授环·伊邪那",
+      "mark": "守备",
+      "bonus": 5,
+      "rarity": 3,
+      "effect": "生命值＋100％",
+      "icon": "relic-pack/icons/35006.png"
+    },
+    {
+      "id": 40001,
+      "name": "公主之力",
+      "mark": "守备",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "生命值＋15％\\n物理/魔法造成伤害＋15％",
+      "icon": "relic-pack/icons/40001.png"
+    },
+    {
+      "id": 40002,
+      "name": "星幽增幅",
+      "mark": "强化",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "属性加成＋50％",
+      "icon": "relic-pack/icons/40002.png"
+    },
+    {
+      "id": 40003,
+      "name": "咲恋救济院誓约",
+      "mark": "加速",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "商店的贩卖价格－10％",
+      "icon": "relic-pack/icons/40003.png"
+    },
+    {
+      "id": 40004,
+      "name": "信仰骑士",
+      "mark": "会心",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "物理/魔法暴击伤害＋50％\\n物理/魔法暴击－25％",
+      "icon": "relic-pack/icons/40004.png"
+    },
+    {
+      "id": 40005,
+      "name": "拉比林斯权能",
+      "mark": "弱体",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "挑战开始时，菈比莉斯塔加入",
+      "icon": "relic-pack/icons/40005.png"
+    },
+    {
+      "id": 50001,
+      "name": "公主魅惑",
+      "mark": "强化",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "物理/魔法攻击力提升（加入角色数×4％、最高100％）",
+      "icon": "relic-pack/icons/50001.png"
+    },
+    {
+      "id": 50002,
+      "name": "星辉吐息",
+      "mark": "守备",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "除首领战外，免除一次战斗败北",
+      "icon": "relic-pack/icons/50002.png"
+    },
+    {
+      "id": 50003,
+      "name": "咲恋救济院贵族",
+      "mark": "会心",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "普通攻击强化提升（阿尔法金币持有数×0.01、最多100）",
+      "icon": "relic-pack/icons/50003.png"
+    },
+    {
+      "id": 50004,
+      "name": "女君庆典",
+      "mark": "弱体",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "敌方受到的物理/魔法伤害＋25％\\n我方受到的物理/魔法伤害＋25％",
+      "icon": "relic-pack/icons/50004.png"
+    },
+    {
+      "id": 50005,
+      "name": "拉比林斯之主",
+      "mark": "加速",
+      "bonus": 1,
+      "rarity": 3,
+      "effect": "挑战开始时随机获得1个★1的迷宫遗物",
+      "icon": "relic-pack/icons/50005.png"
+    }
+  ]
+}

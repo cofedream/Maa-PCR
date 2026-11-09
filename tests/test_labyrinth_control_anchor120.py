@@ -201,37 +201,6 @@ def test_run127_actual_retry_pages_native_zero_input(tmp_path,monkeypatch,offlin
     finally:assert native.wait_job(tasker.post_stop(),seconds=10).succeeded
 
 
-@pytest.mark.parametrize('node',['LabyOpeningAnyJoinedObserved','LabyOpeningJoinedObserved'])
-def test_owned_opening_map_hands_off_immediately_to_original_name_read(monkeypatch,node):
-    from test_labyrinth_autoplay import receipt
-    from pcr_maa.labyrinth import opening,autoplay
-    pages=iter([s.Scene('map',receipt(),dict(area=1)),s.Scene('joined',receipt(2),{})]);waits=[];names=[]
-    runtime=NS(tasker=NS(),observe=lambda **kw:next(pages),perform=lambda *a,**kw:pytest.fail('MAP background only observes'))
-    wait=s.MaaSceneRuntime.wait_for;runtime.wait_for=lambda *a,**kw:wait(runtime,*a,**kw)
-    monkeypatch.setattr(s,'MaaSceneRuntime',lambda *a,**kw:runtime)
-    monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:waits.append(1))
-    port=opening.MaaOpening(NS(),lambda **kw:kw);port._run=lambda name:names.append(name) or receipt(3)
-    actual=port._wait_invitation_joined(NS(checkpoint=lambda:None,stopped=lambda:False),129,dict(operation_id='already-confirmed-invitation'),node)
-    assert actual['native_ok'] and waits==[] and names==[node]
-
-
-def test_owned_opening_map_cannot_supply_names_and_keeps_confirmation_budget(monkeypatch):
-    from test_labyrinth_autoplay import receipt
-    from pcr_maa.labyrinth import opening,autoplay
-    calls=[];clock=iter([0,0,0,0]);monkeypatch.setattr(s.time,'monotonic',lambda:next(clock,0))
-    runtime=NS(tasker=NS(),observe=lambda **kw:s.Scene('map',receipt(),dict(area=1)),perform=lambda *a,**kw:pytest.fail('no map input'))
-    wait=s.MaaSceneRuntime.wait_for;runtime.wait_for=lambda *a,**kw:wait(runtime,*a,**kw)
-    monkeypatch.setattr(s,'MaaSceneRuntime',lambda *a,**kw:runtime);monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:pytest.fail('must hand off to original name reader'))
-    port=opening.MaaOpening(NS(),lambda **kw:kw)
-    def names(node):
-        calls.append(node);assert native.RUN_DEADLINE.get()==opening.INVITATION_TRANSITION_TIMEOUT_SECONDS
-        raise s.BatchStopped('opening_joined_unknown')
-    port._run=names
-    with pytest.raises(s.BatchStopped,match='^opening_joined_unknown$'):
-        port._wait_invitation_joined(NS(checkpoint=lambda:None,stopped=lambda:False),130,dict(operation_id='already-confirmed-invitation'),'LabyOpeningAnyJoinedObserved')
-    assert calls==['LabyOpeningAnyJoinedObserved']
-
-
 @pytest.mark.parametrize('kind',['date_changed','disconnected'])
 def test_owned_opening_background_wait_keeps_terminal_pages_fail_closed(monkeypatch,kind):
     from test_labyrinth_autoplay import receipt
@@ -239,61 +208,9 @@ def test_owned_opening_background_wait_keeps_terminal_pages_fail_closed(monkeypa
     runtime=NS(tasker=NS(),observe=lambda **kw:s.Scene(kind,receipt(),{}))
     wait=s.MaaSceneRuntime.wait_for;runtime.wait_for=lambda *a,**kw:wait(runtime,*a,**kw)
     monkeypatch.setattr(s,'MaaSceneRuntime',lambda *a,**kw:runtime);monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:pytest.fail('terminal page stops immediately'))
-    port=opening.MaaOpening(NS(),lambda **kw:kw);port._run=lambda name:pytest.fail('terminal cannot supply joined names')
+    port=opening.MaaOpening(NS(),lambda **kw:kw)
     with pytest.raises(s.BatchStopped,match='^'+kind+'$'):
-        port._wait_invitation_joined(NS(checkpoint=lambda:None,stopped=lambda:False),129,dict(operation_id='already-confirmed-invitation'),'LabyOpeningAnyJoinedObserved')
-
-
-@pytest.mark.parametrize('node',['LabyOpeningAnyJoinedObserved','LabyOpeningJoinedObserved'])
-def test_run129_actual_joined_names_in_confirmation_budget_zero_input(tmp_path,monkeypatch,offline,node):
-    from pcr_maa.labyrinth.opening import MaaOpening,opening_catalog_pipeline
-    from pcr_maa.labyrinth.portrait_cache import joined_portrait_readback
-    screen=Path(__file__).resolve().parents[1]/'.runtime/acceptance-after109/.runtime/labyrinth-work/runs/aa73ebfd5d5c4470a79c7ac7447a53e7/acceptance-ending/screen.png'
-    if not screen.is_file():pytest.skip('private129 frame excluded from public source')
-    monkeypatch.setattr(native,'RUNTIME',tmp_path/'native');controller=SavedImages([[native.read_image(screen)]])
-    resource=native.load_resource();assert resource.override_pipeline(opening_catalog_pipeline());tasker=native.bind(resource,controller)
-    try:
-        actual=MaaOpening(tasker,lambda **kw:kw)._wait_invitation_joined(NS(checkpoint=lambda:None,stopped=lambda:False),129,dict(operation_id='offline already-confirmed-invitation'),node)
-        _,people=joined_portrait_readback(actual);assert sorted(p.character_id for p in people)==['1059','1075','1351']
-        assert not controller.clicks and not controller.swipes
-    finally:assert native.wait_job(tasker.post_stop(),seconds=10).succeeded
-
-
-def test_run130_prior_map_then_actual_joined_confirmation_budget_zero_input(tmp_path,monkeypatch,offline):
-    from pcr_maa.labyrinth.opening import MaaOpening,opening_catalog_pipeline
-    from pcr_maa.labyrinth.portrait_cache import joined_portrait_readback
-    root=Path(__file__).resolve().parents[1];source=root.parent/'evidence/opening-sample/close-joined-after.png'
-    joined=root/'.runtime/acceptance-after109/.runtime/labyrinth-work/runs/d828ee9ba945410f9af4ffcf10db8a22/acceptance-ending/screen.png'
-    if not source.is_file() or not joined.is_file():pytest.skip('private prior MAP and actual130 joined frames excluded from public source')
-    monkeypatch.setattr(native,'RUNTIME',tmp_path/'native');controller=SavedImages([[native.read_image(source),native.read_image(joined)]])
-    resource=native.load_resource();assert resource.override_pipeline(opening_catalog_pipeline());tasker=native.bind(resource,controller);reads=[];original=s.MaaSceneRuntime.observe
-    def record(self,**kw):
-        value=original(self,**kw);reads.append(value.kind);return value
-    monkeypatch.setattr(s.MaaSceneRuntime,'observe',record)
-    from pcr_maa.labyrinth import autoplay
-    monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:pytest.fail('MAP source hands off to names'))
-    try:
-        actual=MaaOpening(tasker,lambda **kw:kw)._wait_invitation_joined(NS(checkpoint=lambda:None,stopped=lambda:False),130,dict(operation_id='offline already-confirmed-invitation'),'LabyOpeningAnyJoinedObserved')
-        _,people=joined_portrait_readback(actual);assert sorted(p.character_id for p in people)==['1059','1075','1351']
-        assert reads==['map'] and not controller.clicks and not controller.swipes
-    finally:assert native.wait_job(tasker.post_stop(),seconds=10).succeeded
-
-
-
-def test_opening_map_alone_cannot_supply_native_joined_identities(tmp_path,monkeypatch,offline):
-    from pcr_maa.labyrinth.opening import MaaOpening,opening_catalog_pipeline
-    root=Path(__file__).resolve().parents[1];screen=root.parent/'evidence/opening-sample/close-joined-after.png'
-    if not screen.is_file():pytest.skip('private MAP frame excluded from public source')
-    monkeypatch.setattr(native,'RUNTIME',tmp_path/'native');controller=SavedImages([[native.read_image(screen)]])
-    resource=native.load_resource();assert resource.override_pipeline(opening_catalog_pipeline());tasker=native.bind(resource,controller);calls=[];run=native.run
-    def record(owner,node,**kw):calls.append(node);return run(owner,node,**kw)
-    monkeypatch.setattr(native,'run',record)
-    try:
-        with pytest.raises((s.BatchStopped,RuntimeError)):
-            MaaOpening(tasker,lambda **kw:kw)._wait_invitation_joined(NS(checkpoint=lambda:None,stopped=lambda:False),130,dict(operation_id='offline already-confirmed-invitation'),'LabyOpeningAnyJoinedObserved')
-        assert calls==['LabySceneObserved','LabyOpeningAnyJoinedObserved']
-        assert not controller.clicks and not controller.swipes
-    finally:assert native.wait_job(tasker.post_stop(),seconds=10).succeeded
+        port._wait_invitation_joined(NS(checkpoint=lambda:None,stopped=lambda:False),129,dict(operation_id='already-confirmed-invitation'))
 
 
 

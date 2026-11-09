@@ -119,3 +119,29 @@ def test_repeated_invalid_receipts_never_gain_trust(monkeypatch):
         altered=deepcopy(data)
         altered['portraits'][i%3]['rival_margin']=0
         with pytest.raises(BatchStopped):joined_portrait_readback(receipt(altered))
+
+
+@pytest.mark.parametrize('name',['LabyOpeningJoinedObserved','LabyOpeningAnyJoinedObserved',
+    'LabyCharactersArrivedObserved','LabyPortraitJoined3Observed',
+    'LabyRoleRewardJoinedObserved','LabyRecruitJoinedObserved','LabyOpeningJoinedCloseOnce'])
+def test_legacy_name_only_joined_receipts_are_rejected(name):
+    # The name-only readers are retired; an old receipt must stop instead of
+    # being inferred from OCR names or a page-local alias table.
+    legacy=dict(native_ok=True,tasker_inited=True,task_id=1,
+        nodes=[dict(name=name,completed=True,recognition=[])])
+    with pytest.raises(BatchStopped):
+        joined_portrait_readback(legacy)
+
+
+def test_handoff_rejects_legacy_joined_node_name():
+    from pcr_maa.labyrinth.acquisition import ProtocolAcquisitionPort
+    binding=Binding(123,'offline-joined')
+    def fail(reason):raise BatchStopped(reason)
+    port=NS(binding=binding,_fail=fail)
+    def step(frame,name):
+        return dict(verified=True,binding=binding.payload(),source='maa',enter_id=1,frame=frame,
+            native=dict(native_ok=True,tasker_inited=True,task_id=1,nodes=[dict(name=name,completed=True)]))
+    value=dict(source='maa',enter_id=1,empty=step(2,'LabyOpeningEmptyObserved'),
+        joined=step(3,'LabyOpeningAnyJoinedObserved'),closed=step(4,'LabyMapObserved'))
+    with pytest.raises(BatchStopped):
+        ProtocolAcquisitionPort._invitation(port,value,NS(enter_id=1),5,1)

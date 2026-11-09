@@ -1,0 +1,28 @@
+{
+  "source": "2026-11-08 local MuMu ADB capture after manually selecting the middle card. Full frame retained; no player name, account ID, device ID or run ID is visible.",
+  "purpose": "Relic obtained-modal regression: native OCR, exact item x1, static icon identity and result verification. Does not establish live-game acceptance.",
+  "page": "relic_obtained",
+  "frames": {
+    "labyrinth-relic-obtained-20261108.png": {
+      "sha256": "5c3b3bed9420d04de1886f9c5372e5f7262aa01b0dced615c39356fe85b1b56a",
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "selected": {
+    "slot": 1,
+    "relic_id": 35003,
+    "name": "白光辉铠·断壁",
+    "mark": "守备",
+    "bonus": 3,
+    "current": 6,
+    "rarity": 3
+  },
+  "expected": {
+    "title": "获得道具",
+    "message": "获得了以下道具。",
+    "item_text": "白光辉铠·断壁×1",
+    "close": "关闭",
+    "identity_method": "static_icon"
+  }
+}

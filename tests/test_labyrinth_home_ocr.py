@@ -14,7 +14,7 @@ from pcr_maa.replay import SavedImages
 
 def test_home_observation_and_input_share_layout_and_obstruction_guards():
     nodes = game_session_pipeline(123)
-    guards = ['HomeTextLayout', 'HomeNoKnownLargePanel']
+    guards = ['HomeAnchorLayout', 'HomeNoKnownLargePanel']
     assert nodes['LabyClientGameHomeObserved']['all_of'] == guards
     assert nodes['LabyClientHomeToAdventure']['all_of'] == guards
     for name, word in zip(('LabyClientAdventureLabel','LabyClientScheduleLabel','LabyClientGiftLabel'), ('冒险', '日程表', '礼物')):

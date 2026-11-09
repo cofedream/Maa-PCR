@@ -1,0 +1,99 @@
+{
+  "source": "2026-11-08 local MuMu ADB captures of the run-coin relic shop at 1280x720: shop page with three purchasable relics, the paired purchase confirmation, the purchase-complete modal and the same shop page after the purchase. No player name, account ID, device ID or run ID is visible.",
+  "purpose": "Shop relic identity regression: the three shelf cards must be identified by the trusted static relic icon (id/name/mark/bonus), cross-checked against the same-frame attribute line, then paired with the confirmation dialog icon and the obtained result. OCR text only remains the fallback when the icon is untrusted. Offline replay; not live-game acceptance.",
+  "page": "shop",
+  "frames": {
+    "labyrinth-shop-relics-20261108.png": {
+      "sha256": "fdc671b43c09064cbc7709aad85fcf55986db4715aadad509cb3688e2023ea5a",
+      "width": 1280,
+      "height": 720
+    },
+    "labyrinth-shop-relics-confirm-20261108.png": {
+      "sha256": "9bcb3e25adbcf647670e5a847e16094be6a5d5c87a16e1853f66cbfbca22b6ef",
+      "width": 1280,
+      "height": 720
+    },
+    "labyrinth-shop-relics-complete-20261108.png": {
+      "sha256": "435a59ca1428683f7da5db3b2898fa1b4dc2f0da39cbf3f72e9eb5bb32f28ae1",
+      "width": 1280,
+      "height": 720
+    },
+    "labyrinth-shop-relics-after-20261108.png": {
+      "sha256": "79ac6d2f1973e6de5cdfa77b15535eddd746d9f60a422087f8cfb25ea912cc34",
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "expected": {
+    "shop": {
+      "balance": 5585,
+      "refresh_price": 300,
+      "items": [
+        {
+          "slot": 0,
+          "kind": "relic",
+          "name": "暗剑毒药",
+          "price": 1350,
+          "current": 0,
+          "mark": "弱体",
+          "bonus": 1,
+          "relic_id": 12003,
+          "icon_score": 0.9021,
+          "icon_margin": 0.2688
+        },
+        {
+          "slot": 1,
+          "kind": "relic",
+          "name": "抗魔战裙",
+          "price": 1350,
+          "current": 1,
+          "mark": "强化",
+          "bonus": 1,
+          "relic_id": 14003,
+          "icon_score": 0.9084,
+          "icon_margin": 0.3854
+        },
+        {
+          "slot": 2,
+          "kind": "relic",
+          "name": "深渊蚀杖诅咒",
+          "price": 2850,
+          "current": 0,
+          "mark": "弱体",
+          "bonus": 3,
+          "relic_id": 32002,
+          "icon_score": 0.8831,
+          "icon_margin": 0.3536
+        }
+      ]
+    },
+    "confirmation": {
+      "relic_id": 32002,
+      "name": "深渊蚀杖诅咒",
+      "price": 2850,
+      "series_mark": "弱体",
+      "series_bonus": 3,
+      "series_current": 0,
+      "selected_icon_verified": true,
+      "dialog_icon_id": 32002,
+      "dialog_icon_score": 0.8663
+    },
+    "complete": {
+      "price": 2850,
+      "name": "深渊蚀杖诅咒"
+    },
+    "after": {
+      "balance": 2735,
+      "refresh_price": 300,
+      "items": [
+        {"slot": 0, "kind": "relic", "name": "暗剑毒药", "price": 1350, "current": 3,
+         "mark": "弱体", "bonus": 1, "relic_id": 12003},
+        {"slot": 1, "kind": "relic", "name": "抗魔战裙", "price": 1350, "current": 1,
+         "mark": "强化", "bonus": 1, "relic_id": 14003},
+        {"slot": 2, "kind": "role_imprint", "name": "治疗型职能的随机印记", "price": 900}
+      ],
+      "sold_out_relic": {"relic_id": 32002, "name": "深渊蚀杖诅咒", "slot_roi": [836, 460, 103, 103]}
+    },
+    "notes": "The pre-purchase frame is the 15:14 run's shop page; the confirmation and complete frames are the paired purchase of slot 2 (深渊蚀杖诅咒, 2850). After the purchase the same shelf shows slot 0 at 3 stacks, slot 1 at 1 stack, and slot 2 replaced by a role imprint; 深渊蚀杖诅咒 appears sold out in the lower row. The three role imprints in the lower shelf row are the untrusted-icon negatives."
+  }
+}

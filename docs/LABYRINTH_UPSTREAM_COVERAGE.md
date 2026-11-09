@@ -188,7 +188,7 @@
 | RESUME_DAWN_REALM | LabyrinthEntryActionPlanner.kt:80 | ProtocolPort.observe_existing_opening → GamePort.restore | 真实匹配未推进开局或新创建自己的enter；半途旧局实际撤退替代 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
 | SELECT_INITIAL_CHARACTER | LabyrinthEntryActionPlanner.kt:81 | opening.MaaOpening.invite → Characters ToggleOnce | 公会自定义三人候选/原评分择优；明确角色身份及已选读回 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
 | SCROLL_INITIAL_CHARACTERS | LabyrinthEntryActionPlanner.kt:82 | opening.invite → character_recognition candidates/scroll | 复用已有角色列表导航和有界扫描；不用首卡盲选 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
-| INVITE_INITIAL_CHARACTERS | LabyrinthEntryActionPlanner.kt:83 | opening.invite / invite_gourmet | 真实选满3→InviteOnce ACK→原3秒内actual joined读回 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
+| INVITE_INITIAL_CHARACTERS | LabyrinthEntryActionPlanner.kt:83 | opening.invite | 真实选满3→InviteOnce ACK→原3秒内actual joined读回 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
 | ADVANCE_CHARACTER_ACQUISITION | LabyrinthEntryActionPlanner.kt:84 | opening._wait_invitation_joined → scene.wait_for | 拥有邀请ACK后按固定safe-area驱动，原等待不延长 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
 | CLOSE_CHARACTER_JOINED | LabyrinthEntryActionPlanner.kt:85 | opening.consume_granted / invite → original native close | 实际角色加入/赠送身份→一次关闭→地图/继续邀请 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
 | CLOSE_ITEM_REWARD | LabyrinthEntryActionPlanner.kt:86 | game_port restore departure reward / opening native successor | 仅明确奖励→关闭→actual opening/map，不伪造库存 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
