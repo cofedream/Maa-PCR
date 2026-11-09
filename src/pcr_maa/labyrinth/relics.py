@@ -140,8 +140,16 @@ def relic_pipeline():
         custom_recognition_param=dict(mode='obtained'), action='DoNothing', next=[],
         timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicObtainedExactItem'] = _ocr(_pattern('__qualified_relic_name_required__×1'), RESULT_ITEM_ROI)
+    # Same-frame catalog id proof for the obtained modal. Unusable until the
+    # result guard supplies the persisted `relic_id`; then it satisfies the
+    # identity Or on its own, so a character-level name misread cannot veto a
+    # result the icon already proves. A missing pack leaves it a miss and the
+    # text/template children stay authoritative.
+    nodes['LabyRelicObtainedStaticGuard'] = dict(recognition='Custom',
+        custom_recognition=STATIC_ICON, custom_recognition_param=dict(mode='obtained_guard'),
+        action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
     nodes['LabyRelicObtainedIdentity'] = dict(recognition='Or',
-        any_of=['LabyRelicObtainedExactItem','LabyRelicObtainedIcon'],
+        any_of=['LabyRelicObtainedExactItem','LabyRelicObtainedIcon','LabyRelicObtainedStaticGuard'],
         action='DoNothing',next=[],timeout=1500,pre_delay=0,post_delay=0)
     nodes['LabyRelicObtainedIconNative'] = dict(recognition='TemplateMatch', template=_ICON_IMAGE,
         roi=list(RESULT_ICON_ROI), method=5, threshold=THRESHOLD, action='DoNothing',
@@ -561,11 +569,12 @@ class RelicStaticIconCapture(CustomRecognition):
 
     The observation modes always return a hit so an And/observation stays
     stable; `trusted` decides whether callers may use the facts. The `guard`
-    mode is the one exception: it returns a hit only when this frame's catalog
-    id for the requested slot equals the intended relic id, because the click's
-    identity proof must not depend on OCR card-name spelling. A missing pack is
-    not a frame error: it degrades to the existing text identity, while a
-    corrupt pack is refused at load time, never guessed around.
+    modes are the exception: they return a hit only when this frame's catalog
+    id equals the intended relic id, because an identity proof must not depend
+    on OCR spelling — `guard` proves the selected card on the click frame,
+    `obtained_guard` proves the result icon on the obtained frame. A missing
+    pack is not a frame error: it degrades to the existing text identity, while
+    a corrupt pack is refused at load time, never guessed around.
     """
     def __init__(self, catalog=None):
         super().__init__()
@@ -590,14 +599,33 @@ class RelicStaticIconCapture(CustomRecognition):
         detail.update(mode='guard', slot=slot, expected_id=expected, matched=matched)
         return self.AnalyzeResult(list(ICON_ROIS[slot]) if matched else None, detail)
 
+    def _obtained_guard(self, image, params):
+        """One same-frame catalog id check for the obtained modal.
+
+        The identity proof of the result is this frame's icon id, never the
+        item-line spelling: a named OCR misread must not veto an acquisition
+        the catalog already identified. Because the id must equal the
+        persisted selection, a different relic still misses.
+        """
+        expected = params.get('relic_id')
+        if type(expected) is not int:
+            return self.AnalyzeResult(None, dict(trusted=False, matched=False,
+                reason='guard_param_unknown', expected_id=expected))
+        detail = self._detail(self.catalog.match(image, RESULT_ICON_ROI))
+        relic = detail['relic']
+        matched = bool(detail['trusted'] and relic is not None and relic['id'] == expected)
+        detail.update(mode='obtained_guard', expected_id=expected, matched=matched)
+        return self.AnalyzeResult(list(RESULT_ICON_ROI) if matched else None, detail)
+
     def analyze(self, context, argv):
         import json
         mode = None
+        guards = ('guard', 'obtained_guard')
         try:
             params = json.loads(argv.custom_recognition_param or '{}')
             mode = params.get('mode')
             image = argv.image
-            miss = None if mode == 'guard' else [0, 0, 1280, 720]
+            miss = None if mode in guards else [0, 0, 1280, 720]
             if self.catalog is None:
                 return self.AnalyzeResult(miss, dict(trusted=False, reason='resource_missing'))
             if getattr(image, 'shape', None) is None or tuple(image.shape[:2]) != (720, 1280):
@@ -607,12 +635,14 @@ class RelicStaticIconCapture(CustomRecognition):
                     self._detail(self.catalog.match(image, RESULT_ICON_ROI)))
             if mode == 'guard':
                 return self._guard(image, params)
+            if mode == 'obtained_guard':
+                return self._obtained_guard(image, params)
             if mode != 'offers':
                 return self.AnalyzeResult(miss, dict(trusted=False, reason='mode_unknown'))
             slots = [self._detail(self.catalog.match(image, roi)) for roi in ICON_ROIS]
             return self.AnalyzeResult([0, 0, 1280, 720], dict(mode='offers', slots=slots))
         except Exception:
-            return self.AnalyzeResult(None if mode == 'guard' else [0, 0, 1280, 720],
+            return self.AnalyzeResult(None if mode in guards else [0, 0, 1280, 720],
                                       dict(trusted=False, reason='recognition_error'))
 
 
@@ -785,13 +815,18 @@ def relic_obtained(receipt, selected, *, icon=False, static=False, relic_id=None
 
 
 @contextmanager
-def obtained_guard(tasker, selected, *, icon=False, static=False):
+def obtained_guard(tasker, selected, *, icon=False, static=False, relic_id=None):
     overrides = {'LabyRelicObtainedItem':dict(expected=r'^.+[×]\s*1$' if icon else _pattern(_result_name(selected)+'×1'))}
     if icon:
         overrides['LabyRelicObtainedExactItem'] = dict(expected=_pattern(_result_name(selected)+'×1'))
         observed = result_pipeline()['LabyRelicObtainedObserved']['all_of']
         if static:observed = observed+['LabyRelicObtainedStaticIdentity']
         overrides['LabyRelicObtainedObserved'] = dict(all_of=observed+['LabyRelicObtainedIdentity'])
+    if static and type(relic_id) is int:
+        # The icon id alone proves the result; the text/template children only
+        # decide when no trusted catalog identity was recorded for the choice.
+        overrides['LabyRelicObtainedStaticGuard'] = dict(
+            custom_recognition_param=dict(mode='obtained_guard', relic_id=relic_id))
     resource = tasker.resource
     original = {key:resource.get_node_data(key) for key in overrides}
     if any(not value for value in original.values()) or not resource.override_pipeline(overrides):
@@ -902,7 +937,7 @@ class MaaRelicReward:
         batch.checkpoint()
         static = self.catalog is not None
         selected_id = identity['id'] if identity is not None else None
-        with obtained_guard(self.tasker, selected, icon=True, static=static):
+        with obtained_guard(self.tasker, selected, icon=True, static=static, relic_id=selected_id):
             obtained = relic_obtained(self._run('LabyRelicObtainedObserved'), selected,
                                       icon=True, static=static, relic_id=selected_id)
         confirmed=batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,

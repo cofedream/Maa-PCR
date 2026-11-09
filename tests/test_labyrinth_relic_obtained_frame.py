@@ -14,6 +14,7 @@ import pytest
 
 from pcr_maa import native
 from pcr_maa.labyrinth import relics as R
+from pcr_maa.labyrinth.batch import BatchStopped
 from pcr_maa.labyrinth.relic_recognition import load_catalog
 from pcr_maa.replay import SavedImages
 
@@ -89,3 +90,50 @@ def test_relic_obtained_frame_is_recognized_and_verified(obtained_offline):
     assert value['observed_result_text'] == '白光辉铠·断壁×1'
     assert value['quantity'] == 1 and value['inventory_added'] is True
     assert value['identity_method'] == expected['identity_method']
+
+
+def test_trusted_static_id_alone_proves_the_result_when_the_name_ocr_cannot(obtained_offline):
+    """The recorded icon id proves the modal; the item-line spelling cannot veto it.
+
+    A character-level name misread is indistinguishable, from the guard's side,
+    from the exact-item OCR simply not matching this frame — the template child
+    does not hit on this modal either (see the test above). Before the static
+    guard was part of the identity Or, that combination aborted with
+    `relic_result_unknown` after the reward had already been granted.
+    """
+    tasker, selected = obtained_offline, _selected()
+    unprovable = dict(expected=r'^__character_misread__$')
+
+    # Control: with no recorded id the static child cannot hit, so the identity
+    # Or is left to the text/template children and the modal stays unproven.
+    with R.obtained_guard(tasker, selected, icon=True, static=True, relic_id=None):
+        tasker.resource.override_pipeline({'LabyRelicObtainedExactItem': unprovable})
+        assert native.run(tasker, 'LabyRelicObtainedObserved')['native_ok'] is False
+
+    with R.obtained_guard(tasker, selected, icon=True, static=True, relic_id=35003):
+        tasker.resource.override_pipeline({'LabyRelicObtainedExactItem': unprovable})
+        receipt = native.run(tasker, 'LabyRelicObtainedObserved')
+        node = next(n for n in receipt['nodes'] if n['name'] == 'LabyRelicObtainedObserved')
+        assert node['completed'] is True
+        rows = {row['name']: row for row in node['recognition']}
+        assert [row['name'] for row in rows['LabyRelicObtainedIdentity']['detail']] == [
+            'LabyRelicObtainedExactItem', 'LabyRelicObtainedIcon',
+            'LabyRelicObtainedStaticGuard']
+        value = R.relic_obtained(receipt, selected, icon=True, static=True, relic_id=35003)
+    assert value['verified'] is True and value['identity_method'] == 'static_icon'
+    assert value['relic_id'] == 35003 and value['relic_name'] == '白光辉铠·断壁'
+    assert value['observed_result_text'] == '白光辉铠·断壁×1' and value['quantity'] == 1
+
+
+def test_a_trusted_static_id_for_another_relic_is_still_refused(obtained_offline):
+    """An alternative proof never turns a contradicted icon into a pass."""
+    tasker, selected = obtained_offline, _selected()
+    with R.obtained_guard(tasker, selected, icon=True, static=True, relic_id=35004):
+        receipt = native.run(tasker, 'LabyRelicObtainedObserved')
+        node = next(n for n in receipt['nodes'] if n['name'] == 'LabyRelicObtainedObserved')
+        # The text child still proves the modal, so the refusal is the id check.
+        rows = {row['name']: row for row in node['recognition']}
+        assert [row['name'] for row in rows['LabyRelicObtainedIdentity']['detail']] == [
+            'LabyRelicObtainedExactItem']
+        with pytest.raises(BatchStopped, match='relic_result_mismatch'):
+            R.relic_obtained(receipt, selected, icon=True, static=True, relic_id=35004)
