@@ -1,14 +1,128 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 77,
   "expected_version": "v0.1.30",
+  "verified_at_utc": "2026-11-09T06:40:03.239037+00:00",
   "base_release_manifest_sha256": "16610f8aa288551b30f2e764ed1aa3b6a96a643d329b4247c02f2b11d940ebd4",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
+  "accepted_owned_payload_sha256": "6a6cb2e42a4d460d5904aa11b3a16485599e7f4c06992b22a68ae0ed5e5907f6",
+  "accepted_staging_manifest_sha256": "f741edf98bea956a710ba13d69ab3f8185e821fc33bb6c1eea81645b3939c087",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 42568370546,
+    "run_attempt": 1,
+    "artifact_id": 13653561639,
+    "source_commit": "db64119b75a185667b7956b0d9dfe3296d2377a8",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.30-win-x64.zip",
+      "size": 350082653,
+      "sha256": "2f87b0d944296709a71d92fc32e45fd1452e28ec7a8b481d8d6851f6d878d8d4"
+    }
+  },
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 7426,
+    "skipped": 395,
+    "failed": 0,
+    "errors": 0
+  },
+  "required_regressions": {
+    "test_release_build": 180,
+    "test_release_promotion": 123,
+    "test_player_update": 77,
+    "test_player_delta_update": 31,
+    "test_player_online_update": 79,
+    "test_player_process_filter": 11,
+    "test_source_delivery": 15,
+    "test_runtime_workflows": 13,
+    "test_labyrinth_relic_obtained_frame": 3,
+    "test_labyrinth_shop_relic_identity": 7,
+    "test_labyrinth_captcha": 13,
+    "test_guide_snapshot": 77,
+    "test_page_wait_deadlines": 4
+  },
+  "required_skipped": 0,
+  "bundled_runtime_tests_passed": 3,
+  "gui_core_sha256": "021ee3b9fc9b5fa05e0ef53db9e9ed0cdabd96c295de4406c42ef7d14b595b36",
+  "local_exact_payload_gui_cases": 8,
+  "source_alignment": {
+    "schema_version": 1,
+    "passed": true,
+    "verified_at": "2026-11-09T06:40:03.186950+00:00",
+    "revision": 77,
+    "source_inventory_sha256": "f1842123894b45a4f134323cbdf130ef6dc6f20ad4f3dde59884f8d331ebd4c4",
+    "source_payload_count": 2928,
+    "source_payload_bytes": 194629943,
+    "staged_player_manifest_sha256": "f741edf98bea956a710ba13d69ab3f8185e821fc33bb6c1eea81645b3939c087",
+    "owned_program_source_alignment_count": 1622,
+    "gui_build_input_source_alignment_count": 945,
+    "sealed_runtime_manifest_snapshot_present_and_matching": true,
+    "source_privacy_and_extra_file_checks_passed": true,
+    "no_archive_or_publication_performed": true,
+    "scope": "owned source bytes, exact public inventory and optional sealed runtime manifest",
+    "deterministic_dependency_rebuild_claimed": false,
+    "formal_legal_opinion": false
+  },
+  "isolated_update_routes": [
+    {
+      "base_revision": 76,
+      "archive_kind": "delta",
+      "preserved_synthetic_files": 20
+    },
+    {
+      "base_revision": 76,
+      "archive_kind": "full",
+      "preserved_synthetic_files": 20
+    }
+  ],
+  "original_r76_maintenance_full_and_delta_verified": true,
+  "dotnet_bundled_priority_and_system_fallback_verified": true,
+  "local_installation_updated": false,
+  "device_connected": false,
+  "game_task_started": false,
+  "live_verification_performed": false,
+  "real_account_state_read": false,
+  "game_inputs": 0,
+  "previous_release_acceptance": {
+    "revision": 76,
+    "sha256": "55aa64112866ee00e2e650053be0e899133a0538a474cfdf258d8276eaac9274",
+    "evidence_scope": "R76 and earlier live/offline results retain their original payload and scope; no new live claim."
+  },
+  "evidence_sha256": {
+    "SOURCE_COMMIT.json": "2415084a7e3a01a7e8ed50295ffe3e869e49156298924090452421068df285ca",
+    "CI_BINDING.json": "d6f6c3544e53805275c26efe7e01d344b307681d123e7dd43caf3a81028fd0f9",
+    "metadata/run.json": "a1f78fce0c693317637299713422c0ed2126b0dc465998a81c1ce9602f6924af",
+    "metadata/artifact.json": "52af78b5967f259cecdd04d808d0e25a545d045a95097cbd8ee3f6311bd5f14c",
+    "metadata/jobs.json": "5a4eaa5b86cba34d434c87e1a6d1ab8b11a05a1ea8df338bafdc776201aec4a1",
+    "metadata/windows.log": "bd085832a912d303223887fb84873fb21e46ae4c39971f6b476844a0fb1866c7",
+    "ci-artifact/public-tests.xml": "6c9ab9535effb37bd8fe2f0e575c0c1205cd023896bcc21e8622eb93cb8818f3",
+    "ci-artifact/bundled-runtime.xml": "06d7ac44360b831a94fbcb8c039c47facf72f3a76e5a4dda7c4e6441faf2fcb4",
+    "fresh-runtime-retry01.xml": "a3609705bb64d9a067f6ad748b5d1d2c50c7373cfd2317cba2f9d9e50180f302",
+    "package-checks/final-ci/PACKAGE_CHECKS.json": "3f53553ea63e59a048f5374b65fe1e6df18a82e3fa6020b181643ac6c2a3f95b",
+    "packaged-gui-retry01/RESULT.json": "64cecf1cb7b2831ab0508199979224ac887dac9f1057ee4cc78d5d1c6eb4ed80",
+    "dotnet-gui/RESULT.json": "43dcc8faf01ab3cd1c2198778cb00c86ff3727ad86d2a3b0a76515376f2bfdfa",
+    "ORIGINAL_UPDATER.json": "519e09b776c326ec658cb5dc0c9b7fcab5529cd14d3997a718f11717f4f3fe78",
+    "package-native/result.json": "f3d5ce07b1374b6616cd0b19e53475c5dad1256f6fcbe6c906ceb492e18de42b",
+    "packaged-gui-native-retry01/result.json": "776c2e607eae3df5c4dab09ea9b9a610d8b22fa50a9debed6d0e28d281130fb0",
+    "fresh-runtime-retry01/result.json": "d813d4ed502ede013a3292f95f342b6569da5dfed23e9869cb9c17715605fde6",
+    "dotnet-gui-native/result.json": "c48c706a14ded7e7356c9ff1200a78bc4b162435f39fd5bdf5d0d1c8b7cd564b",
+    "original-updater-native-retry01/result.json": "d24276856d3a105353782b3f980cde276ca79dac11b0d0c123d3025085ec115b",
+    "packaged-gui-retry01/checks/update/result.json": "225170ab78af9c292a1583ca8e0e7b6b59d141cb4534bde363d79e792651a2a1",
+    "packaged-gui-retry01/checks/update-controls/result.json": "215d84cff9a750ed97bbe24b5e3183552f789a71d6a8879a0a8ba35596e94f97",
+    "packaged-gui-retry01/checks/credentials/result.json": "f9d994be2acd3657534e3648670c6dbc8d6723e0d36326f3fc39ab55563f757b",
+    "packaged-gui-retry01/bin/PcrProfileSwitch.Tests/.runtime/checks/runbar/result.json": "17188328a5ccdaa9aba57d60039e1968772f0702c8b66f6f8803963d5d2cc7e7",
+    "packaged-gui-retry01/bin/PcrProfileSwitch.Tests/.runtime/checks/agent-shutdown/result.json": "d125ab1a1b345e63b0e2829f006a4cce59918d6b5c074a82595c21d02b13d8e4",
+    "packaged-gui-retry01/checks/startup-actions-apphost/result.json": "c6ee4839533a36994531262d9bae54e4caaecd269f5c25d6a4f5c370fb8ae2bb",
+    "packaged-gui-retry01/checks/startup-actions-dotnet/result.json": "75f8c84b1731fa2ca40cbe908d3e2bbe387eaf6201733ad6ceca640734bb8f77",
+    "packaged-gui-retry01/bin/PcrProfileSwitch.Tests/.runtime/checks/profile-default/result.json": "2be47b066a8631306f548e280d1a1b8ef71b44d058ac1b97f8dc12e32c8660f0"
+  },
+  "acceptance_recorder_sha256": "647df965234a99db85b952579f22bbd330f0977f417765f22eda93ba83646f3e",
   "limits": [
-    "R77 exact CI candidate acceptance is pending; R76 evidence is historical."
+    "No new live game or real-device acceptance was performed.",
+    "Upgrade checks preserve synthetic private files; no installed player, real credentials or ledger was changed.",
+    "Historical live results remain valid only for their originally verified payload and scope."
   ]
 }
