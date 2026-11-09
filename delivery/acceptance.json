@@ -1,135 +1,14 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "revision": 76,
-  "expected_version": "v0.1.29",
-  "verified_at_utc": "2026-11-08T05:35:01.901148+00:00",
-  "base_release_manifest_sha256": "04adf05df7b9dd91de533dcd00827477c60eea2b3f129a52847c90df16f4afb7",
-  "accepted_owned_payload_sha256": "221217b211ab2d8e69a7c37cb6a6792f6e87ac60d58b0e15adc5bce754a17870",
-  "accepted_staging_manifest_sha256": "6ffdafe0d5f98c168162484b98c99237fc3386588ec2517df2194ac4bbddbe6f",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 42446506701,
-    "run_attempt": 1,
-    "artifact_id": 13604827679,
-    "source_commit": "4a6397c85261d9e99cc126c1871d85a2352c99a2",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.29-win-x64.zip",
-      "size": 353316600,
-      "sha256": "d967bc9d660c18d20dc95795f72e7808385175418d6228415b14ee227031d44e"
-    }
-  },
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "clean_build_verified": true,
-  "public_tests": {
-    "passed": 7316,
-    "skipped": 395,
-    "failed": 0,
-    "errors": 0
-  },
-  "required_regressions": {
-    "test_release_build": 173,
-    "test_release_promotion": 123,
-    "test_player_update": 77,
-    "test_player_delta_update": 31,
-    "test_player_online_update": 78,
-    "test_source_delivery": 15,
-    "test_labyrinth_opening_animation_budget": 2,
-    "test_labyrinth_confirmation_budgets": 15,
-    "test_native_stop_bounds": 20
-  },
-  "required_skipped": 0,
-  "bundled_runtime_tests_passed": 3,
-  "gui_core_sha256": "625adc9061d75424ea648135762b00958198c42ba416f885431540349b2daa12",
-  "local_exact_payload_gui_cases": 8,
-  "source_alignment": {
-    "schema_version": 1,
-    "passed": true,
-    "verified_at": "2026-11-08T05:35:01.851521+00:00",
-    "revision": 76,
-    "source_inventory_sha256": "7a2e0922c530cbb0cd009b6bb88aa1972657b1ac78c57a01779720ef664fcde4",
-    "source_payload_count": 2794,
-    "source_payload_bytes": 194653815,
-    "staged_player_manifest_sha256": "6ffdafe0d5f98c168162484b98c99237fc3386588ec2517df2194ac4bbddbe6f",
-    "owned_program_source_alignment_count": 1511,
-    "gui_build_input_source_alignment_count": 943,
-    "sealed_runtime_manifest_snapshot_present_and_matching": true,
-    "source_privacy_and_extra_file_checks_passed": true,
-    "no_archive_or_publication_performed": true,
-    "scope": "owned source bytes, exact public inventory and optional sealed runtime manifest",
-    "deterministic_dependency_rebuild_claimed": false,
-    "formal_legal_opinion": false
-  },
-  "isolated_update_routes": [
-    {
-      "base_revision": 75,
-      "archive_kind": "delta",
-      "preserved_synthetic_files": 20
-    },
-    {
-      "base_revision": 75,
-      "archive_kind": "full",
-      "preserved_synthetic_files": 20
-    }
-  ],
-  "local_trial_full_update_verified": true,
-  "dotnet_bundled_priority_and_system_fallback_verified": true,
-  "supplied_failure_frame_replay_verified": true,
-  "wrong_link_attribute_and_quantity_rejected": true,
-  "local_installation_updated": false,
-  "device_connected": false,
-  "game_task_started": false,
-  "live_verification_performed": false,
-  "real_account_state_read": false,
-  "game_inputs": 0,
-  "previous_release_acceptance": {
-    "revision": 75,
-    "sha256": "cbdae5a8d04bfc681bb966fa2b1ae1c7e02fbfcb0b826373f07c64f1a55130d9",
-    "prior_candidate_live_validation": {
-      "manifest_sha256": "18d828950ffb9f18796cf2a1bb3d596cdbedf0320205d5f5196d77c9fd1a39aa",
-      "guild_id": 3,
-      "difficulty": 3,
-      "completed_runs": 1,
-      "final_ci_binary_replayed": false,
-      "scope": "Earlier local audit candidate completed one full Labyrinth run; connection logging and defaults were subsequently verified offline."
-    }
-  },
-  "evidence_sha256": {
-    "SOURCE_COMMIT.json": "5ee5888d332e12a7498c70f1f06add6847d5e1bbcda9e368c22e33787b6903e2",
-    "CI_BINDING.json": "49dacbab64559303c721d4fea09acf847ad5800b076c55592f530e00eb0cd163",
-    "metadata/run.json": "91e77828f3d2a829687766fd41ad7a6422a74b8677bc7f48a8ce9b4803a32eb5",
-    "metadata/artifact.json": "3ebcbd8e49c91f4764505acd1384070d25e81f4d6195f7353cae926d7bb6bd63",
-    "metadata/jobs.json": "198b3771bfbcc7ea797c7ad059d6461626afb6b7b284e38ced37e8bbfc158acd",
-    "metadata/windows.log": "d0895ab46c531622703cbe5ce6c4a851197bc5d9457252c3c90f64330ae8951a",
-    "ci-artifact/public-tests.xml": "bf54d235abc5e9e8c934c4aafb16e65c684ca6fcd342c01f1687eceb05b40fe0",
-    "ci-artifact/bundled-runtime.xml": "3a3ffbb3ab1da7d69ca5ab4c0e727d4b76b4936becdbfb27a98a4984d9143589",
-    "fresh-runtime.xml": "0fe56aa45b51d2213fe88fd230720b89acab717f00de05c99035fb1ffb8ab656",
-    "package-checks/final-ci/PACKAGE_CHECKS.json": "960dd6130728f540fcc4f89e744978ffe6abdf9ed6fc369a605f5a8582761c3e",
-    "packaged-gui/RESULT.json": "bccb4258fdc0f2f90e1efde4d4a0861ebd3a532baf1ef28d07e1e6f64df50ab7",
-    "dotnet-gui/RESULT.json": "6559f0a20a4bd0601a6d9d3a9ffea71d0c02e0646adbb4e73b1288eeeafa7b16",
-    "TRIAL_UPGRADE.json": "6a0eaccfd6f75ccbadc6b91c1a8c0ce284100baba9f96d38f7c38d933085d8c8",
-    "package-native/result.json": "a006b98e43afc980a9d1822ef59a653d8e1fd44b3fd36afcef5c1d25d002545f",
-    "packaged-gui-native/result.json": "4279d135fbf9f4fbaafebf9ccd1291ff5fea0f7a96beb4f6eff7b1a164b7b915",
-    "fresh-runtime/result.json": "5954e003b7c55a70891d4b611f7ddae4391da3fc3cc4667042e092689b9c87cf",
-    "link-replay/result.json": "9f799e8822f2dcead728735bb63c549bfc87f89ea76f6924d8ad003836cfc7b8",
-    "trial-upgrade-native/result.json": "3b06e70403f627fc7b7e9ebf2ebb32a44bf1ff25c3c3fac2b7779c8e2fef3d49",
-    "dotnet-gui-native/result.json": "3b9624f4b5228605c9bd2ac7b1431a88e2b8929f8aa4062b28827e7d49e1077e",
-    "packaged-gui/checks/update/result.json": "30270b230d0ea5fd9df56dd555f11872f2777a8139dd0b9d6c2053c72867cf16",
-    "packaged-gui/checks/update-controls/result.json": "02554c32694949392751fab2bad72996c3e0f2401d8030393e86b54e0ea544fc",
-    "packaged-gui/checks/credentials/result.json": "910117daade3118cf3adb557b57504b6d2155c45484e6c07c477bb3e8ca130a8",
-    "packaged-gui/bin/PcrProfileSwitch.Tests/.runtime/checks/runbar/result.json": "db1a5bf4e53b21f0ca88573698270ff40b535c35df788c09ad652f803b629689",
-    "packaged-gui/bin/PcrProfileSwitch.Tests/.runtime/checks/agent-shutdown/result.json": "98871bbb82d51ad11b913c708fb21b8f6607256fb3f6a89b10a6b4470b4d49a2",
-    "packaged-gui/checks/startup-actions-apphost/result.json": "ad349a1ea893344477f4abbf913d2dbfad8fe3c2649a7c88f0bbb26db6cc8240",
-    "packaged-gui/checks/startup-actions-dotnet/result.json": "2298a8ac17e5a5a6abe382b70edd68c516696d17e4f8f0071e66aaf77fefdc74",
-    "packaged-gui/bin/PcrProfileSwitch.Tests/.runtime/checks/profile-default/result.json": "70bddb4750b3046f630fa5f572a3d1ec6ad9824dd5ade037c9defb90a972b35f"
-  },
-  "acceptance_recorder_sha256": "ab04181f09e90e2a0fd4640d2d4406e31b2c1b24343f5cf49acfe9f57b90d01f",
+  "status": "pending",
+  "revision": 77,
+  "expected_version": "v0.1.30",
+  "base_release_manifest_sha256": "16610f8aa288551b30f2e764ed1aa3b6a96a643d329b4247c02f2b11d940ebd4",
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
   "limits": [
-    "No new live game or real-device acceptance was performed.",
-    "System .NET fallback is verified when bundled hostfxr is absent; a found but damaged runtime is outside this fix.",
-    "Upgrade checks preserve synthetic private files; no real installation, credentials or ledger was changed.",
-    "Earlier release live results remain valid for their originally tested payload and scope."
+    "R77 exact CI candidate acceptance is pending; R76 evidence is historical."
   ]
 }
