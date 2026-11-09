@@ -13,13 +13,13 @@ import json
 import socket
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import cv2
 import numpy as np
 import pytest
 
 from pcr_maa import native
-from pcr_maa.labyrinth import relics as R
 from pcr_maa.labyrinth import shop_execution as S
 from pcr_maa.labyrinth.batch import BatchStopped
 from pcr_maa.labyrinth.relic_recognition import load_catalog
@@ -183,5 +183,48 @@ def test_dialog_catalog_identity_is_available_without_the_template():
                  dialog_catalog=dict(id=32002, name='深渊蚀杖诅咒'))
     assert S._item_identity(value, '深渊蚀杖退咒', 'relic',
                             expected_catalog_id=32002) == 'native_observed_catalog'
-    with pytest.raises(BatchStopped):
+    # A different trusted id is a changed quote even before any fallback.
+    with pytest.raises(BatchStopped, match='shop_quote_changed'):
         S._item_identity(value, '深渊蚀杖退咒', 'relic', expected_catalog_id=12003)
+
+
+def test_a_trusted_dialog_catalog_conflict_refuses_with_zero_input(replay):
+    """The dialog's own icon id outranks the captured template and the OCR text.
+
+    Two relics can share price and series, so the icon id is the only field that
+    can contradict the intent. A trusted contradiction must not be downgraded to
+    "static identity unavailable": the old paths would still accept this frame.
+    """
+    observation = dict(state='confirmation', selected_icon_verified=True,
+                       words={'DialogBody': [dict(text='购买了深渊蚀杖诅咒',
+                                                  box=[0, 0, 10, 10], score=.99)]},
+                       dialog_catalog=dict(id=32002, name='深渊蚀杖诅咒'))
+    assert S._item_identity(observation, '深渊蚀杖诅咒', 'relic',
+                            expected_catalog_id=32002) == 'native_observed_catalog'
+    # No trusted catalog result keeps the documented captured-icon fallback.
+    assert S._item_identity(dict(observation, dialog_catalog=None), '深渊蚀杖诅咒', 'relic',
+                            expected_catalog_id=12003) == 'native_observed_icon'
+    with pytest.raises(BatchStopped, match='shop_quote_changed'):
+        S._item_identity(observation, '深渊蚀杖诅咒', 'relic', expected_catalog_id=12003)
+
+    confirm = _image(CONFIRM)
+    for catalog_id, clicks in ((32002, 1), (12003, 0)):
+        controller, _, shop = replay([confirm])
+        quote = shop.stamp(enter_id=1, item_id='visible-shop-item:dialog', kind='relic',
+                           currency='run_coins', price=2850, balance=5585, purchasable=True,
+                           name='深渊蚀杖诅咒', identity_method='native_observed_catalog',
+                           catalog_id=catalog_id, mark='弱体', bonus=3, source='maa')
+        batch = SimpleNamespace(checkpoint=lambda: None,
+            journal=SimpleNamespace(last_event=lambda: dict(
+                state='in_flight', operation='purchase', operation_id='a' * 32,
+                item_id=quote['item_id'], price=quote['price'])))
+        shop.pending = (quote, batch)
+        if clicks:
+            assert shop.purchase_once(quote, 'a' * 32, batch=batch)['verified'] is True
+        else:
+            with pytest.raises(native.NativeInputNotSent) as refused:
+                shop.purchase_once(quote, 'a' * 32, batch=batch)
+            receipt = refused.value.receipt
+            assert receipt['reason'] == 'shop_quote_changed'
+            assert receipt['input_execution'] == 'not_sent'
+        assert len(controller.clicks) == clicks

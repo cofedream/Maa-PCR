@@ -184,9 +184,16 @@ def imprint_identity(text):
 
 def _item_identity(observation,name,kind=None,*,expected_catalog_id=None):
     words=observation.get('words',{}).get('DialogBody',[])
-    if kind=='relic' and expected_catalog_id is not None:
+    if kind=='relic':
         catalog=observation.get('dialog_catalog')
-        if type(catalog) is dict and catalog.get('id')==expected_catalog_id:
+        if type(catalog) is dict and type(catalog.get('id')) is int and expected_catalog_id is not None:
+            # A trusted same-frame catalog id is never downgraded: when the
+            # persisted intent already has one, a different id is a changed
+            # quote, not "no static identity". Letting the captured icon or the
+            # text fallback decide would spend run coins on a dialog whose own
+            # icon names another relic (same price, same series). Only a frame
+            # without a trusted catalog result keeps the legacy paths.
+            if catalog['id']!=expected_catalog_id:raise BatchStopped('shop_quote_changed')
             return 'native_observed_catalog'
     if kind=='relic' and observation.get('selected_icon_verified') is True:return 'native_observed_icon'
     if _normalized(name) in _normalized(_text(words)):return 'exact_ocr'
@@ -682,7 +689,12 @@ class MaaShop:
                 batch.checkpoint();dialog,dialog_receipt=self._wait_state(batch,'confirmation')
                 body,amount=confirmation_terms(dialog)
                 try:identity_method=_item_identity(dialog,selected['name'],selected['kind'],expected_catalog_id=selected.get('catalog_id'))
-                except BatchStopped:raise BatchStopped('shop_quote_unknown') from None
+                except BatchStopped as error:
+                    # A trusted icon that names another relic is a changed
+                    # quote in its own right; other identity failures stay
+                    # `shop_quote_unknown`.
+                    if error.args==('shop_quote_changed',):raise
+                    raise BatchStopped('shop_quote_unknown') from None
                 if amount!=selected['price']:raise BatchStopped('shop_quote_unknown')
                 batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,native=dialog_receipt,input_native=clicked['input_native'],source='maa'),**fields)
                 # Stamp actual card/confirmation observations, not configured money.
