@@ -325,10 +325,12 @@ NATIVE_DEADLINE = 'Native task exceeded 90 seconds or inspection deadline'
 def channel_session(monkeypatch, clock, script, *, miss_seconds=10):
     """A channel session driving the real `_channel_observe` window loop.
 
-    `script` entries are page names, ``miss`` (a clean empty window step) or
-    ``deadline`` (the SDK reporting its own deadline because the task outlived
-    the window it was dispatched in, which is what a live channel server does
-    when the last 500 ms task of a window straddles its end).
+    `script` entries are page names, ``miss`` (a clean empty window step),
+    ``bad`` (an unproven receipt), ``deadline`` (the SDK reporting its own
+    deadline because the task outlived the window it was dispatched in, which is
+    what a live channel server does when the last 500 ms task of a window
+    straddles its end), ``fault`` (a real native failure) or ``(page, advance)``
+    for a page that lands ``advance`` seconds later.
     """
     monkeypatch.setattr('pcr_maa.labyrinth.game_session.time.monotonic', lambda: clock[0])
     resource = NS(override_pipeline=lambda value: True,
@@ -346,7 +348,13 @@ def channel_session(monkeypatch, clock, script, *, miss_seconds=10):
             return dict(tasker_inited=True, task_id=1, native_ok=True,
                         nodes=[dict(name=WAIT, completed=True, recognition=[])])
         step = steps.pop(0)
+        advance = None
+        if type(step) is tuple:
+            step, advance = step
         calls.append(step)
+        if advance is not None:
+            clock[0] += advance
+            return receipt(node, step)
         if step == 'miss':
             clock[0] += miss_seconds
             return miss_receipt()
@@ -395,6 +403,49 @@ def test_channel_incomplete_receipt_stops_instead_of_polling(monkeypatch):
     finally:
         native.RUN_DEADLINE.reset(token)
     assert batch.operations == ['client_data_download_confirm']
+
+
+def test_channel_incomplete_receipt_at_the_window_end_still_stops(monkeypatch):
+    """A bad receipt that lands on the window end must not become an expiry.
+
+    The receipt is the evidence; the window only decides what a *proved* empty
+    read may do next. Here ``bad`` returns exactly at the window end (t=31 of a
+    window that closes at 31), which used to be classified as a clean expiry and
+    let the following Home frames be accepted.
+    """
+    clock = [0.]
+    adapter, clock, calls = channel_session(monkeypatch, clock, [
+        'LabyClientDataDownloadObserved', 'bad',
+        'LabyClientAfterTitleHomeObserved', 'LabyClientAfterTitleHomeObserved'],
+        miss_seconds=30)
+    batch = FakeBatch()
+    token = native.RUN_DEADLINE.set(2000.)
+    try:
+        with pytest.raises(BatchStopped, match='^game_session_readback_unknown$'):
+            adapter._after_title(batch)
+    finally:
+        native.RUN_DEADLINE.reset(token)
+    assert calls == ['LabyClientDataDownloadObserved', 'bad']
+    assert batch.operations == ['client_data_download_confirm']
+
+
+def test_channel_late_page_is_still_refused_by_the_window(monkeypatch):
+    """The window rule still rejects a page that arrives after it closed."""
+    clock = [0.]
+    adapter, clock, calls = channel_session(monkeypatch, clock, [
+        'LabyClientDataDownloadObserved', ('LabyClientAfterTitleHomeObserved', 30),
+        'LabyClientAfterTitleHomeObserved', 'LabyClientAfterTitleHomeObserved'])
+    token = native.RUN_DEADLINE.set(2000.)
+    try:
+        page, _ = adapter._after_title(FakeBatch())
+    finally:
+        native.RUN_DEADLINE.reset(token)
+    assert page == 'client_home'
+    # The late Home is discarded by the window rule; two fresh frames then count.
+    assert calls == ['LabyClientDataDownloadObserved',
+                     'LabyClientAfterTitleHomeObserved',
+                     'LabyClientAfterTitleHomeObserved',
+                     'LabyClientAfterTitleHomeObserved']
 
 
 def test_channel_native_fault_is_not_swallowed_as_a_window_end(monkeypatch):

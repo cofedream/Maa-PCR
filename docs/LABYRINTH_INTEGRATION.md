@@ -14,11 +14,14 @@
 - 原生截止时间：只对仓库既有那三个 deadline 参数（与 `game_port._wait`、shop 相同的 tuple，新增 `_DEADLINE_ERRORS`）且“窗口确实已经走完”（`active_now()>=deadline`）时才转成 `_WaitWindowElapsed`，其余 `RuntimeError` 原样上抛——不吞真正的原生异常。
 - 调用点：`_after_title` 只捕获 `_WaitWindowElapsed`，`downloading=False` 时转回 `game_session_readback_unknown`；`_entry` 捕获后同样转回该码，两个调用点的用户可见停止原因与改动前一致，不新增 reason。B 服路径与既有“下载错误/重试”、预算、未知输入不重发规则未改。
 
+review 二次收口（`b6927c1` 之后）：上面把“到期”和“坏回执”拆成两种信号后，`_channel_observe` 里 `native.run` 返回后的判定顺序仍是“先看窗口是否走完、再校验回执”，于是一个**恰好落在窗口终点返回**的不完整回执会绕过证据校验被当成干净到期继续轮询——也就是同一个 fail-open 只剩一个时序窗口未堵。review 用本次新增的 `channel_session` + `miss_seconds=30` 复现：`page=client_home`、`calls=[prompt, bad, home, home]`、`pytest.raises(BatchStopped)` 为 `DID NOT RAISE`。修复：先校验已返回的失败回执的 native proof（不完整即停），只有证明为空读之后才让窗口判定到期；成功页面超过窗口终点时仍按原“过期拒绝”规则处理（未放宽）。新增 2 项回归：窗口终点返回的坏回执必须 `game_session_readback_unknown`（且后续 Home 帧不再被读取）；迟到页面仍被窗口拒绝（4 次读回里第一个迟到 Home 被丢弃，后两个新鲜帧才计数）。
+
 验证（离线，无设备）：
 
-- 新增 3 项用**真实** `_channel_observe`（不再注入替代实现）：① 干净空窗 → 窗口末尾 `native.run` 抛 deadline RuntimeError → 仍继续下一窗口并拿到 `client_home`，确认只点击一次；② `miss_receipt(complete=False)` → 立刻 `game_session_readback_unknown` 停止，不再继续轮询到页面；③ 非 deadline 的 `RuntimeError`（`Native tasker stopped or blocked…`）不被吞、原样上抛。修复前在 `3b9a806` 上复跑前两项为红（① `RuntimeError` 穿出、② `DID NOT RAISE`），第三项两版都绿，证明新增用例非空过。
+- 新增 5 项用**真实** `_channel_observe`（不再注入替代实现）：① 干净空窗 → 窗口末尾 `native.run` 抛 deadline RuntimeError → 仍继续下一窗口并拿到 `client_home`，确认只点击一次；② `miss_receipt(complete=False)` → 立刻 `game_session_readback_unknown` 停止，不再继续轮询到页面；③ 非 deadline 的 `RuntimeError`（`Native tasker stopped or blocked…`）不被吞、原样上抛。修复前在 `3b9a806` 上复跑前两项为红（① `RuntimeError` 穿出、② `DID NOT RAISE`），第三项两版都绿，证明新增用例非空过。
+- 第二轮新增：`test_channel_incomplete_receipt_at_the_window_end_still_stops`、`test_channel_late_page_is_still_refused_by_the_window`。
 - 原“channel 窗口过期可重试”用例改为注入 `_WaitWindowElapsed`（原先直接注入 `BatchStopped`，测不到真实窗口路径）；“非到期失败不重试”用例继续用 `game_session_pipeline_unavailable`。
-- `pytest tests/test_labyrinth_start_data_download.py` 18 passed；相邻套件（通知/公告、channel、预算、重启策略）`188 passed / 2 skipped`，其中 2 项为真实 ADB/SDK 用例，在本机无设备环境失败（与本次改动无关）；`pytest -k labyrinth` `1912 passed / 130 skipped / 5995 deselected`（18 subtests，3:52），另有同样 3 项环境用例失败（`test_labyrinth_app_version` 1、`test_labyrinth_channels_parity` 2）。
+- `pytest tests/test_labyrinth_start_data_download.py` 20 passed；相邻套件（通知/公告、channel、预算、重启策略）`190 passed / 2 skipped`，其中 2 项为真实 ADB/SDK 用例，在本机无设备环境失败（与本次改动无关）；`pytest -k labyrinth` `1914 passed / 130 skipped / 5995 deselected`（18 subtests，3:52），另有同样 3 项环境用例失败（`test_labyrinth_app_version` 1、`test_labyrinth_channels_parity` 2）。
 
 未做/边界：仍无渠道服实机复跑（本机为 B 服环境，review 的复现是离线帧回放 + 模拟回执）；`_entry` 在窗口 >90 s 时“90 s 原生上限先到”的旧洞保持原样（fail-closed，未在本次范围内改动）；下载中途通信错误的处理仍未采样。
 

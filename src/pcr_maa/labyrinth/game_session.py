@@ -304,8 +304,11 @@ class MaaGameSession:
                         raise
                     raise _WaitWindowElapsed() from None
                 self._checkpoint(batch)
-                if native.active_now()>=deadline:raise _WaitWindowElapsed()
-                if receipt.get('native_ok') is True:return receipt
+                if receipt.get('native_ok') is True:
+                    # A page that lands after the window ended is still refused
+                    # by the window rule.
+                    if native.active_now()>=deadline:raise _WaitWindowElapsed()
+                    return receipt
                 proof=receipt.get('native_evidence',{})
                 if (receipt.get('tasker_inited') is not True or type(receipt.get('task_id')) is not int
                         or proof.get('source')!='native_task_events' or proof.get('task_id')!=receipt['task_id']
@@ -313,6 +316,10 @@ class MaaGameSession:
                         or proof.get('complete') is not True or proof.get('recognition_failed') is not True
                         or proof.get('action_started') is not False):
                     raise BatchStopped('game_session_readback_unknown')
+                # The receipt is proved empty before the window may call it an
+                # expiry: a broken receipt that returns exactly on the window end
+                # is still broken evidence, never a clean wait.
+                if native.active_now()>=deadline:raise _WaitWindowElapsed()
         finally:
             native.RUN_DEADLINE.reset(token)
             if original is not None and not self.tasker.resource.override_pipeline({entry:original}):
