@@ -22,7 +22,8 @@ import pytest
 from pcr_maa import native
 from pcr_maa.labyrinth.batch import BatchStopped
 from pcr_maa.labyrinth.game_session import (
-    _DATA_DOWNLOAD_WAIT_SECONDS, _OPERATIONS, MaaGameSession, game_session_pipeline)
+    _DATA_DOWNLOAD_WAIT_SECONDS, _OPERATIONS, MaaGameSession, _WaitWindowElapsed,
+    game_session_pipeline)
 from pcr_maa.labyrinth.restart import _CLIENT_NAVIGATION
 from pcr_maa.labyrinth.snapshots import OpeningSnapshot
 from pcr_maa.labyrinth.timing import Timings
@@ -318,6 +319,97 @@ def test_unsent_confirm_click_stops_without_retry(monkeypatch):
     assert batch.operations == ['client_data_download_confirm']
 
 
+NATIVE_DEADLINE = 'Native task exceeded 90 seconds or inspection deadline'
+
+
+def channel_session(monkeypatch, clock, script, *, miss_seconds=10):
+    """A channel session driving the real `_channel_observe` window loop.
+
+    `script` entries are page names, ``miss`` (a clean empty window step) or
+    ``deadline`` (the SDK reporting its own deadline because the task outlived
+    the window it was dispatched in, which is what a live channel server does
+    when the last 500 ms task of a window straddles its end).
+    """
+    monkeypatch.setattr('pcr_maa.labyrinth.game_session.time.monotonic', lambda: clock[0])
+    resource = NS(override_pipeline=lambda value: True,
+                  get_node_data=lambda name: dict(timeout=20000))
+    adapter = MaaGameSession(NS(stopping=False, resource=resource), lambda **v: dict(v),
+                             timings=Timings(), server='cn-xiaomi')
+    adapter.opening_snapshot = OpeningSnapshot(ACCOUNT, 169, 1, 1, ())
+    adapter.channel_prompts = NS(poll=lambda batch, fields: False)
+    adapter._input = lambda batch, node: dict(native_ok=True, node=node)
+    steps = list(script)
+    calls = []
+
+    def run(tasker, node, **_):
+        if node == WAIT:
+            return dict(tasker_inited=True, task_id=1, native_ok=True,
+                        nodes=[dict(name=WAIT, completed=True, recognition=[])])
+        step = steps.pop(0)
+        calls.append(step)
+        if step == 'miss':
+            clock[0] += miss_seconds
+            return miss_receipt()
+        if step == 'bad':
+            clock[0] += miss_seconds
+            return miss_receipt(complete=False)
+        if step == 'deadline':
+            clock[0] += miss_seconds
+            raise RuntimeError(NATIVE_DEADLINE)
+        if step == 'fault':
+            raise RuntimeError('Native tasker stopped or blocked; outcome unknown, no retry')
+        clock[0] += 1
+        return receipt(node, step)
+    monkeypatch.setattr(native, 'run', run)
+    return adapter, clock, calls
+
+
+def test_channel_download_window_survives_the_native_deadline(monkeypatch):
+    """The window end is a business boundary, not a native fault to crash on."""
+    clock = [0.]
+    adapter, clock, calls = channel_session(monkeypatch, clock, [
+        'LabyClientDataDownloadObserved', 'miss', 'miss', 'deadline',
+        'LabyClientAfterTitleHomeObserved', 'LabyClientAfterTitleHomeObserved'])
+    token = native.RUN_DEADLINE.set(2000.)
+    try:
+        page, _ = adapter._after_title(FakeBatch())
+    finally:
+        native.RUN_DEADLINE.reset(token)
+    assert page == 'client_home'
+    # Two clean steps and the deadline came from the first download window.
+    assert calls[:4] == ['LabyClientDataDownloadObserved', 'miss', 'miss', 'deadline']
+
+
+def test_channel_incomplete_receipt_stops_instead_of_polling(monkeypatch):
+    """An unproven receipt is not a window end: it must stop the wait."""
+    clock = [0.]
+    adapter, clock, calls = channel_session(monkeypatch, clock, [
+        'LabyClientDataDownloadObserved', 'bad',
+        'LabyClientAfterTitleHomeObserved', 'LabyClientAfterTitleHomeObserved'])
+
+    batch = FakeBatch()
+    token = native.RUN_DEADLINE.set(2000.)
+    try:
+        with pytest.raises(BatchStopped, match='^game_session_readback_unknown$'):
+            adapter._after_title(batch)
+    finally:
+        native.RUN_DEADLINE.reset(token)
+    assert batch.operations == ['client_data_download_confirm']
+
+
+def test_channel_native_fault_is_not_swallowed_as_a_window_end(monkeypatch):
+    """Only the SDK's own deadline is this window; real faults stay fatal."""
+    clock = [0.]
+    adapter, clock, calls = channel_session(monkeypatch, clock, [
+        'LabyClientDataDownloadObserved', 'fault'])
+    token = native.RUN_DEADLINE.set(2000.)
+    try:
+        with pytest.raises(RuntimeError, match='Native tasker stopped or blocked'):
+            adapter._after_title(FakeBatch())
+    finally:
+        native.RUN_DEADLINE.reset(token)
+
+
 def _channel_adapter(monkeypatch, clock):
     adapter = MaaGameSession(NS(stopping=False, resource=NS(override_pipeline=lambda _: True)),
         lambda **v: dict(v), timings=Timings(), server='cn-xiaomi')
@@ -342,7 +434,7 @@ def test_channel_download_window_expiry_is_retried(monkeypatch):
         # expired window consumes the whole requested window.
         clock[0] += 1 if kind != 'expire' else seconds
         if kind == 'expire':
-            raise BatchStopped('game_session_readback_unknown')
+            raise _WaitWindowElapsed()
         return receipt(entry, kind)
     monkeypatch.setattr(adapter, '_channel_observe', observe)
     token = native.RUN_DEADLINE.set(float('inf'))

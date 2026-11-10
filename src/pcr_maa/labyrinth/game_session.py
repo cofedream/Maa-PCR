@@ -35,6 +35,12 @@ _DATA_DOWNLOAD_WAIT_SECONDS=300
 # Maa rejects one native task after 90 s, so the download wait polls in windows
 # shorter than that. An ordinary startup wait is already bounded by 75/120 s.
 _DATA_DOWNLOAD_POLL_SECONDS=30
+# The SDK reports its own deadline when a task outlives the window it was
+# dispatched in (same tuple the shop and game-port polls convert). A window end
+# is not a native fault, but nothing else may be swallowed as "still waiting".
+_DEADLINE_ERRORS=('Native task exceeded 90 seconds or inspection deadline',
+                  'Inspection deadline exceeded before task input',
+                  'Context deadline exceeded after synchronous return; outcome unknown')
 # Only these sampled startup popups may be closed. Nothing generic is confirmed.
 _STARTUP_POPUP_CLOSE={
     'notice':('client_notice_close','LabyClientNoticeCloseOnce'),
@@ -225,6 +231,18 @@ def _root(receipt,name):
     return nodes[0]
 
 
+class _WaitWindowElapsed(Exception):
+    """A channel-server polling window ended with no page of ours on screen.
+
+    Not a stop reason: the caller decides whether the wait may continue inside
+    its own budget (the client's data fetch) or has to report an unknown
+    readback. Only `_channel_observe` raises it, and only for a clean expiry —
+    a receipt whose native proof is incomplete stays
+    `BatchStopped('game_session_readback_unknown')`, because retrying that would
+    accept a page the SDK never proved.
+    """
+
+
 def _clean_wait_miss(receipt):
     """A read-only page wait that ended with no page, not a broken receipt.
 
@@ -257,7 +275,14 @@ class MaaGameSession:
         self.cold_start_required=False
 
     def _channel_observe(self,batch,entry,*,seconds):
-        """SDK windows must advance while Unity frames are still unavailable."""
+        """SDK windows must advance while Unity frames are still unavailable.
+
+        A clean expiry raises `_WaitWindowElapsed` (the caller may retry inside
+        its own budget); a receipt whose own proof is incomplete raises
+        `game_session_readback_unknown` and must never be retried. The last task
+        of a window may straddle its end, where the SDK reports its deadline
+        instead; that is this window expiring, not a native failure.
+        """
         deadline=min(native.RUN_DEADLINE.get(),native.active_now()+seconds)
         original=self.tasker.resource.get_node_data(entry)
         token=native.RUN_DEADLINE.set(deadline)
@@ -266,14 +291,20 @@ class MaaGameSession:
                 raise BatchStopped('game_session_pipeline_unavailable')
             while True:
                 self._checkpoint(batch)
-                if native.active_now()>=deadline:raise BatchStopped('game_session_readback_unknown')
+                if native.active_now()>=deadline:raise _WaitWindowElapsed()
                 snapshot=self.opening_snapshot
                 fields=self._fields(snapshot) if snapshot is not None else dict(enter_id=0,protocol_enter_id=0)
                 if self.channel_prompts.poll(batch,fields):
                     time.sleep(.05);continue
-                with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)
+                try:
+                    with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)
+                except RuntimeError as error:
+                    if (len(error.args)!=1 or error.args[0] not in _DEADLINE_ERRORS
+                            or native.active_now()<deadline):
+                        raise
+                    raise _WaitWindowElapsed() from None
                 self._checkpoint(batch)
-                if native.active_now()>=deadline:raise BatchStopped('game_session_readback_unknown')
+                if native.active_now()>=deadline:raise _WaitWindowElapsed()
                 if receipt.get('native_ok') is True:return receipt
                 proof=receipt.get('native_evidence',{})
                 if (receipt.get('tasker_inited') is not True or type(receipt.get('task_id')) is not int
@@ -344,8 +375,11 @@ class MaaGameSession:
                     raise BatchStopped('game_session_pipeline_unavailable')
                 if self.server.channel:
                     try:receipt=self._channel_observe(batch,entry,seconds=window)
-                    except BatchStopped as error:
-                        if not downloading or error.args!=('game_session_readback_unknown',):raise
+                    except _WaitWindowElapsed:
+                        # Only a clean expiry is retryable, and only while the
+                        # client is fetching its own data. An incomplete receipt
+                        # is a different signal and still stops below.
+                        if not downloading:raise BatchStopped('game_session_readback_unknown') from None
                         self._checkpoint(batch);continue
                 else:
                     with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)
@@ -460,7 +494,9 @@ class MaaGameSession:
         survived=0;deadline=min(native.RUN_DEADLINE.get(),native.active_now()+(120 if self.server.transient_rotation else 30))
         try:
             while True:
-                if self.server.channel:receipt=self._channel_observe(batch,entry,seconds=max(0,deadline-native.active_now()))
+                if self.server.channel:
+                    try:receipt=self._channel_observe(batch,entry,seconds=max(0,deadline-native.active_now()))
+                    except _WaitWindowElapsed:raise BatchStopped('game_session_readback_unknown') from None
                 else:
                     with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)
                 self._checkpoint(batch);raw=_root(receipt,entry).get('recognition')
