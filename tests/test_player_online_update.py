@@ -4,6 +4,8 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import subprocess
+import sys
 from types import SimpleNamespace
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -524,6 +526,7 @@ def test_launch_uses_external_worker_and_does_not_start_gui(online_case, monkeyp
 
     def popen(args, **kwargs):
         calls.append((args, kwargs))
+        Path(args[args.index('-c') + 3]).write_text('ready', encoding='ascii')
         return SimpleNamespace(pid=456)
 
     monkeypatch.setattr(updater, 'prepare_worker', prepare)
@@ -535,6 +538,79 @@ def test_launch_uses_external_worker_and_does_not_start_gui(online_case, monkeyp
     assert not Path(calls[0][0][0]).is_relative_to(case['player'])
     assert all('MFAAvalonia.exe' not in str(argument) for argument in calls[0][0])
     assert_original(case)
+
+
+@pytest.mark.parametrize('source,exit_code', [
+    ('raise SystemExit(42)\n', 42),
+    ("raise ImportError('synthetic missing runtime dependency')\n", 1),
+    ('main = None\n', 1),
+])
+def test_worker_exiting_before_initialization_does_not_report_started(online_case, monkeypatch, source, exit_code):
+    work = online_case['tmp_path'] / 'external worker'
+    work.mkdir()
+    script = work / 'failed-start.py'
+    script.write_text(source, encoding='utf-8')
+    monkeypatch.setattr(updater, 'prepare_worker', lambda *args, **kwargs: {
+        'python': sys.executable, 'script': str(script), 'workspace': str(work),
+        'archive': str(work / 'unused.zip'), 'archive_sha256': 'a' * 64})
+    children = []
+    def spawn(*args, **kwargs):
+        child = subprocess.Popen(*args, **kwargs)
+        children.append(child)
+        return child
+    try:
+        with pytest.raises(ValueError, match='installer_startup_failed'):
+            updater.launch_update(online_case['player'], work / 'unused.zip', popen=spawn)
+    finally:
+        assert children[0].wait(timeout=10) == exit_code
+    assert_original(online_case)
+
+
+def test_legacy_worker_receives_unchanged_arguments_after_readiness(online_case, monkeypatch):
+    work = online_case['tmp_path'] / 'legacy worker'
+    work.mkdir()
+    script = work / 'player-update.py'
+    script.write_text("import json, sys\nfrom pathlib import Path\n"
+        "def main():\n    Path('arguments.json').write_text(json.dumps(sys.argv))\n    return 0\n"
+        "if __name__ == '__main__':\n    raise SystemExit(main())\n", encoding='utf-8')
+    monkeypatch.setattr(updater, 'prepare_worker', lambda *args, **kwargs: {
+        'python': sys.executable, 'script': str(script), 'workspace': str(work),
+        'archive': str(work / 'unused.zip'), 'archive_sha256': 'a' * 64})
+    children = []
+    def spawn(*args, **kwargs):
+        child = subprocess.Popen(*args, **kwargs)
+        children.append(child)
+        return child
+    result = updater.launch_update(online_case['player'], work / 'unused.zip', popen=spawn)
+    assert children[0].wait(timeout=10) == 0
+    assert result['status'] == 'installer_started'
+    assert Path(result['log_path']).with_suffix('.ready').read_text() == 'ready'
+    assert json.loads((work / 'arguments.json').read_text()) == [str(script), 'worker',
+        '--player', str(online_case['player']), '--archive', str(work / 'unused.zip'),
+        '--archive-sha256', 'a' * 64, '--parent-pid', str(updater.os.getpid())]
+    assert_original(online_case)
+
+
+@pytest.mark.parametrize('invalid_ready', [False, True])
+def test_unready_or_wrong_worker_is_stopped_without_handoff(online_case, monkeypatch, invalid_ready):
+    work = online_case['tmp_path'] / 'unready worker'
+    work.mkdir()
+    monkeypatch.setattr(updater, 'prepare_worker', lambda *args, **kwargs: {
+        'python': 'unused', 'script': 'unused', 'workspace': str(work),
+        'archive': 'unused', 'archive_sha256': 'a' * 64})
+    clock = iter([0, 31])
+    monkeypatch.setattr(updater.time, 'monotonic', lambda: next(clock))
+    stopped = []
+    def spawn(args, **kwargs):
+        if invalid_ready:
+            Path(args[args.index('-c') + 3]).write_text('wrong-pid', encoding='ascii')
+        return SimpleNamespace(pid=456, poll=lambda: None,
+            kill=lambda: stopped.append('killed'), wait=lambda timeout: stopped.append('waited'))
+    error = 'invalid_installer_readiness' if invalid_ready else 'installer_startup_timeout'
+    with pytest.raises(ValueError, match=error):
+        updater.launch_update(online_case['player'], work / 'unused.zip', popen=spawn)
+    assert stopped == ['killed', 'waited']
+    assert_original(online_case)
 
 
 @pytest.mark.parametrize('entry', ['prepare_worker', 'launch_update'])

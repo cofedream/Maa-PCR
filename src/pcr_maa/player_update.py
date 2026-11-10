@@ -30,6 +30,23 @@ BOOTSTRAP = ('scripts/player-update.py', 'scripts/player-maintenance.py',
     'src/pcr_maa/__init__.py', 'src/pcr_maa/player_update.py',
     'src/pcr_maa/player_maintenance.py')
 
+# Load even older verified workers before acknowledging the GUI handoff.
+WORKER_BOOTSTRAP = '''
+import runpy, sys
+from pathlib import Path
+script, ready_name, *arguments = sys.argv[1:]
+sys.argv = [script, *arguments]
+main = runpy.run_path(script, run_name='pcr_update_worker')['main']
+if not callable(main):
+    raise TypeError('invalid_worker_entry')
+ready = Path(ready_name)
+pending = ready.with_suffix('.tmp')
+with pending.open('x', encoding='ascii') as stream:
+    stream.write('ready')
+pending.replace(ready)
+raise SystemExit(main())
+'''
+
 
 def _require(condition, error):
     maintenance._require(condition, error)
@@ -359,6 +376,7 @@ def validate_external_worker(player):
 def launch_update(player, archive=None, *, recover=False, parent_pid=None, popen=None,
         archive_sha256=None):
     _require(parent_pid is None or type(parent_pid) is int and parent_pid > 0, 'invalid_parent_pid')
+    parent_pid = os.getpid() if parent_pid is None else parent_pid
     _require(not recover or archive is None and archive_sha256 is None, 'conflicting_update_arguments')
     player = maintenance._root(player)
     if recover:
@@ -368,19 +386,33 @@ def launch_update(player, archive=None, *, recover=False, parent_pid=None, popen
     bootstrap = (validate_external_worker(player) if recover and external.exists()
         else prepare_worker(player, archive, recover=recover, parent_pid=parent_pid,
             archive_sha256=archive_sha256))
-    command = [bootstrap['python'], '-X', 'utf8', '-B', bootstrap['script'], 'worker',
+    log_path = Path(bootstrap['workspace']) / ('worker-' + uuid4().hex + '.log')
+    ready = log_path.with_suffix('.ready')
+    command = [bootstrap['python'], '-X', 'utf8', '-B', '-c', WORKER_BOOTSTRAP,
+        bootstrap['script'], str(ready), 'worker',
         '--player', str(maintenance._root(player))]
     if recover:
         command.append('--recover')
     else:
         command.extend(['--archive', bootstrap['archive'], '--archive-sha256', bootstrap['archive_sha256']])
-    if parent_pid is not None:
-        command.extend(['--parent-pid', str(parent_pid)])
-    log_path = Path(bootstrap['workspace']) / ('worker-' + uuid4().hex + '.log')
+    command.extend(['--parent-pid', str(parent_pid)])
     with log_path.open('xb') as log:
         process = (popen or subprocess.Popen)(command, cwd=bootstrap['workspace'], stdin=subprocess.DEVNULL,
             stdout=log, stderr=log, close_fds=True,
             creationflags=0x08000000 if os.name == 'nt' else 0)
+    try:
+        deadline = time.monotonic() + 30
+        while not ready.exists():
+            _require(process.poll() is None, 'installer_startup_failed')
+            _require(time.monotonic() < deadline, 'installer_startup_timeout')
+            time.sleep(0.05)
+        _require(maintenance._plain(ready).st_size == 5
+            and ready.read_bytes() == b'ready', 'invalid_installer_readiness')
+    except Exception:
+        if process.poll() is None:
+            process.kill()
+        process.wait(timeout=10)
+        raise
     return {'status': 'installer_started', 'worker_pid': process.pid,
         'log_path': str(log_path), 'gui_started': False}
 

@@ -303,8 +303,12 @@ def test_persisted_external_receipt_recovery_never_loads_damaged_installed_runti
     (case['player'] / 'runtime/python/python.exe').write_bytes(b'damaged after abrupt update')
     monkeypatch.setattr(updater, 'prepare_worker', lambda *_args, **_kwargs: pytest.fail('must reuse verified external runtime'))
     launches = []
+    def popen(args, **kwargs):
+        launches.append(args)
+        Path(args[args.index('-c') + 3]).write_text('ready', encoding='ascii')
+        return SimpleNamespace(pid=456)
     result = updater.launch_update(case['player'], recover=True, parent_pid=123,
-        popen=lambda args, **kwargs: launches.append(args) or SimpleNamespace(pid=456))
+        popen=popen)
     assert result['status'] == 'installer_started'
     assert launches[0][0] == worker['python'] and '--recover' in launches[0]
 
