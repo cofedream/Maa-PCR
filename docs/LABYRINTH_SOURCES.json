@@ -9746,7 +9746,7 @@
   "live_two_run_cycle_verified": false,
   "documentation": {
     "current": "docs/LABYRINTH_INTEGRATION.md",
-    "current_sha256": "6d00c6a69d28ea625a5bd175db77eebbaef77ec42494218c0e4b0a6384a137ff",
+    "current_sha256": "1f4ed8b55f58bb78113c6b3171fcd7db41bf010c56d76fdcdca21365f8a45805",
     "history": "docs/LABYRINTH_INTEGRATION_HISTORY.md",
     "history_sha256": "6b0cce9d25a4b0ce1600bd40699df01bd2efa411bb7cd4594d9998d57c5abfc4",
     "history_preserved_as_original_bytes": true,

@@ -1,0 +1,57 @@
+{
+  "source": "2026-11-08 local MuMu ADB capture of the B-client 11.7.2 startup 数据下载 prompt, 1280x720. Top system-message band and the bottom-right version/player-ID corner are blacked out; no player name, account ID, device ID or run ID remains visible.",
+  "purpose": "Labyrinth startup regression: after 开始游戏 the client showed 数据下载 / 即将下载新增数据。(98.42 MB) / 取消 / 确认 instead of a known startup page, so LabyGameSessionAfterTitleObserved timed out with game_session_readback_unknown. The startup wait must report the prompt with all four sampled words and click only 确认 (word box 756,476,61,35 -> 786,493). Does not establish live-game acceptance.",
+  "page": "startup_data_download",
+  "frames": {
+    "labyrinth-start-data-download-20261108.png": {
+      "sha256": "4c85c93a64ef7cf613e3b4e5ede541e8a28edf3e5a5d4dfc6fa0e57481197316",
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "expected": {
+    "ocr": {
+      "LabyClientDataDownloadTitle": {
+        "text": "数据下载",
+        "box": [
+          582,
+          179,
+          114,
+          34
+        ]
+      },
+      "LabyClientDataDownloadPrompt": {
+        "text": "即将下载新增数据。",
+        "box": [
+          542,
+          331,
+          182,
+          19
+        ]
+      },
+      "LabyClientDataDownloadConfirmLabel": {
+        "text": "确认",
+        "box": [
+          756,
+          476,
+          61,
+          35
+        ]
+      },
+      "LabyClientDataDownloadCancelLabel": {
+        "text": "取消",
+        "box": [
+          465,
+          479,
+          57,
+          32
+        ]
+      }
+    },
+    "click": [
+      786,
+      493
+    ],
+    "notes": "Scores measured on the unsanitized original: 0.9988 / 0.9951 / 0.9981 / 0.9997. The 下载错误/重试 dialog is a different page and must not match."
+  }
+}

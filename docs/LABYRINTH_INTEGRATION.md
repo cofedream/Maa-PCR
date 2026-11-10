@@ -1,3 +1,30 @@
+## 2026-11-09 渠道服启动轮询：窗口到期与坏回执拆开（PR #10 review 收口）
+
+背景：PR #10 的 `_after_title` 在“数据下载”扩展里用 30 秒原生窗口轮询，只捕获 `BatchStopped('game_session_readback_unknown')` 作为“窗口到期继续”。review 指出这条只覆盖渠道服（`self.server.channel`）路径，并给出一条 fail-open 和一条原生截止时间问题；按代码与本次新增测试逐条复核后两条都成立。
+
+复核（`game_session.py`、`native.py`）：
+
+1）窗口到期会被原生截止时间先打断。`_channel_observe` 把 `RUN_DEADLINE` 设成窗口终点，循环里连发 500 ms 任务，而 `native.run` 的等待是 `deadline=min(now+90, RUN_DEADLINE.get())`，越过即 `raise RuntimeError('Native task exceeded 90 seconds or inspection deadline')`；新 catch 只接 `BatchStopped`，所以窗口末尾正在飞的那个任务会让 RuntimeError 直接穿出 `_after_title`。实测时间线（确认后 ~26–29 s 下载 + ~3 s 黑屏 + ~33 s 通知）正好卡在第一个 30 秒窗口内，渠道服上该扩展必然在 ~30 s 处退出；B 服（非 channel）走 `native.run` + `_clean_wait_miss(receipt)`，不受影响。`_entry` 的同类调用在窗口 >90 s 时也有同一旧洞。
+
+2）坏回执与窗口到期同码，被一并当成“还在下载”。`_channel_observe` 在窗口到期（循环头/循环尾）与回执证据不完整（`proof.complete` 等）三处抛同一个 `game_session_readback_unknown`，新 catch 只看错误码，于是坏回执也会被重试——与 PR 自己写的“其它回执仍按未知停止”矛盾，且相对改动前是方向性回归（坏证据之后仍然接受页面）。
+
+修复：
+
+- `_channel_observe` 拆开两种信号：干净到期抛模块私有控制信号 `_WaitWindowElapsed`（不是停止原因），回执证据不完整仍抛 `BatchStopped('game_session_readback_unknown')`。只有前者可重试。
+- 原生截止时间：只对仓库既有那三个 deadline 参数（与 `game_port._wait`、shop 相同的 tuple，新增 `_DEADLINE_ERRORS`）且“窗口确实已经走完”（`active_now()>=deadline`）时才转成 `_WaitWindowElapsed`，其余 `RuntimeError` 原样上抛——不吞真正的原生异常。
+- 调用点：`_after_title` 只捕获 `_WaitWindowElapsed`，`downloading=False` 时转回 `game_session_readback_unknown`；`_entry` 捕获后同样转回该码，两个调用点的用户可见停止原因与改动前一致，不新增 reason。B 服路径与既有“下载错误/重试”、预算、未知输入不重发规则未改。
+
+review 二次收口（`b6927c1` 之后）：上面把“到期”和“坏回执”拆成两种信号后，`_channel_observe` 里 `native.run` 返回后的判定顺序仍是“先看窗口是否走完、再校验回执”，于是一个**恰好落在窗口终点返回**的不完整回执会绕过证据校验被当成干净到期继续轮询——也就是同一个 fail-open 只剩一个时序窗口未堵。review 用本次新增的 `channel_session` + `miss_seconds=30` 复现：`page=client_home`、`calls=[prompt, bad, home, home]`、`pytest.raises(BatchStopped)` 为 `DID NOT RAISE`。修复：先校验已返回的失败回执的 native proof（不完整即停），只有证明为空读之后才让窗口判定到期；成功页面超过窗口终点时仍按原“过期拒绝”规则处理（未放宽）。新增 2 项回归：窗口终点返回的坏回执必须 `game_session_readback_unknown`（且后续 Home 帧不再被读取）；迟到页面仍被窗口拒绝（4 次读回里第一个迟到 Home 被丢弃，后两个新鲜帧才计数）。
+
+验证（离线，无设备）：
+
+- 新增 5 项用**真实** `_channel_observe`（不再注入替代实现）：① 干净空窗 → 窗口末尾 `native.run` 抛 deadline RuntimeError → 仍继续下一窗口并拿到 `client_home`，确认只点击一次；② `miss_receipt(complete=False)` → 立刻 `game_session_readback_unknown` 停止，不再继续轮询到页面；③ 非 deadline 的 `RuntimeError`（`Native tasker stopped or blocked…`）不被吞、原样上抛。修复前在 `3b9a806` 上复跑前两项为红（① `RuntimeError` 穿出、② `DID NOT RAISE`），第三项两版都绿，证明新增用例非空过。
+- 第二轮新增：`test_channel_incomplete_receipt_at_the_window_end_still_stops`、`test_channel_late_page_is_still_refused_by_the_window`。
+- 原“channel 窗口过期可重试”用例改为注入 `_WaitWindowElapsed`（原先直接注入 `BatchStopped`，测不到真实窗口路径）；“非到期失败不重试”用例继续用 `game_session_pipeline_unavailable`。
+- `pytest tests/test_labyrinth_start_data_download.py` 20 passed；相邻套件（通知/公告、channel、预算、重启策略）`190 passed / 2 skipped`，其中 2 项为真实 ADB/SDK 用例，在本机无设备环境失败（与本次改动无关）；`pytest -k labyrinth` `1914 passed / 130 skipped / 5995 deselected`（18 subtests，3:52），另有同样 3 项环境用例失败（`test_labyrinth_app_version` 1、`test_labyrinth_channels_parity` 2）。
+
+未做/边界：仍无渠道服实机复跑（本机为 B 服环境，review 的复现是离线帧回放 + 模拟回执）；`_entry` 在窗口 >90 s 时“90 s 原生上限先到”的旧洞保持原样（fail-closed，未在本次范围内改动）；下载中途通信错误的处理仍未采样。
+
 ## 2026-11-09 结果页静态图标成为独立身份证明；商店确认框可信 id 冲突即拒绝（PR #9 review 收口）
 
 背景：PR #9 review 提出两项 P2，都先按原帧/图鉴数据复算再定修法。
@@ -27,6 +54,27 @@
 验证（离线，真实帧）：pre 帧三格 trusted **12003/14003/32002**（score .90/.91/.88，margin .27/.39/.35），OCR 名称/价格/当前层数（0/1/0）与卡面一致；确认帧 `selected_icon_verified=true`、`dialog_catalog.id=32002`、价格 2850、系列「削弱+3/当前 0」与货架属性行一致；购买完毕 `2850`/深渊蚀杖诅咒；购买后余额 2735，slot 0 当前 3、slot 1 当前 1、slot 2 职能印记，底行已售罄的 32002 仍可被图鉴命中。合成帧反例：把 14003（强化+1）图标贴到 slot 2（卡面 削弱+3）→ 图鉴与属性行冲突，`_capture` 以 `shop_readback_unknown` 停止、零输入；抹掉图标 → 图鉴不可信，回退 OCR 文本路径；`relic_catalog` 返回 None → 同样回退。新增 `tests/test_labyrinth_shop_relic_identity.py`（6 项，含完整购买序列与反例）。`pytest -k shop` `238 passed / 28 skipped`；`pytest -k labyrinth` `1888 passed / 123 skipped / 5982 deselected`（18 subtests，4:28）。
 
 未做/边界：本局未实机复跑；商店 `item_id` 仍是可见身份（未改为 catalog id）；确认弹窗的 catalog 证据要求图鉴可信，不可信时仍用捕获图标模板/精确 OCR；商店以外的 name-only 路径（地图/物品读取、链接/角色奖励）未并入；阈值、ROI、图标包与 masterdata 未改。
+
+## 2026-11-08 开局前“数据下载”提示导致黎明界启动等待超时（实机原帧复现 + 现场探测）
+
+实机失败：GUI 日志 2026-11-08 20:40:02（`gui/MFAAvalonia/bin/x64/Release/logs/log-20261108.log`，实例“黎明界bot/pcr-labyrinth-v1”）记录“游戏客户端页面未通过校验，本次已停止”；同一时刻导出的识别快照 `.runtime/ocr-failures/442a883b.../cc3da090...json` 显示 `entry=LabyGameSessionAfterTitleObserved` 的最后读回是“数据下载”（词框 583,180,114,31，0.9987）与“确认”（756,477,60,34，0.9944），其余通知/公告/主页/下载错误/6002 分支全部未命中（`hit=false`）。现有启动等待只认识已采样页面，所以既不能关闭也不能点击，75 秒预算用完后由 `_root` 以 `game_session_readback_unknown` 停止。
+
+现场探测（同一 MuMu 设备，1280x720，`.runtime/start-download-live/` 35 帧）：在“数据下载 / 即将下载新增数据。(98.42 MB) / 取消 / 确认”上点“确认”（786,496）后，客户端在弹窗内下载（8.7 s 25.79 MB 26.20% → 26.6 s 95.30 MB 96.83%，98.42 MB 约 26–29 s、约 3.5–3.8 MB/s），28.7–30.7 s 为黑屏 + 右上“正在进行数据连接”，约 33 s 直接回到主页并弹出“通知”（独立 activity `com.gsc.announcement.AnnouncementActivity`，更新信息/活动日历/关闭，关闭框约 x502–778、y608–660）；约 97 s 手动关闭“通知”后主页稳定。全程同一进程 PID/窗口，客户端没有重启，也没有再次出现标题 START。因此确认后必须继续轮询同一只读端点，而不是等标题或再点 START；下载页（数据下载中…）不属于任何已知页面。
+
+修复：
+
+- 识别：`game_session_pipeline()` 新增 4 个同帧 OCR 锚点（`^数据下载$` ROI 470,160,340,70；`^即将下载新增数据[。.]?$` ROI 400,290,480,90；`^确认$` ROI 660,440,290,100；`^取消$` ROI 400,440,290,100，阈值 .8）与 `And` 观察节点 `LabyClientDataDownloadObserved`、点击节点 `LabyClientDataDownloadConfirmOnce`；点击节点把“确认”放 `all_of[0]`（box_index 0），目标只能是“确认”词框，永不点标题、说明或“取消”（[game_session.py:152](src/pcr_maa/labyrinth/game_session.py#L152)）。`LabyGameSessionAfterTitleObserved` 增加该页上报（[game_session.py:175](src/pcr_maa/labyrinth/game_session.py#L175)）。
+- 处理：`_after_title` 命中该页时只确认一次（独立意图 `client_data_download_confirm`，同时加入 `_OPERATIONS` 与 `restart._CLIENT_NAVIGATION`），然后在一次性扩展 `_DATA_DOWNLOAD_WAIT_SECONDS=300 s` 内用 `_DATA_DOWNLOAD_POLL_SECONDS=30 s` 的短原生窗口继续轮询；只有原生回执证明“任务完成、识别失败、没有开始任何动作”的干净空窗（`_clean_wait_miss`）才视为“仍在下载”并继续，其它回执仍按未知停止（[game_session.py:310](src/pcr_maa/labyrinth/game_session.py#L310)）。任何已知页面返回后恢复原 75/120 秒启动预算；重复出现同一提示只等待、不再次点击；Stop/暂停检查点每个窗口执行。返回的“通知”由既有采样关闭路径处理，主页随后按原流程进入冒险→主菜单→简介。
+- 既有“下载错误 / 通信超时 / 重试”页面、通知/公告关闭、75 秒标题交接预算、未知输入不重发与重启旧局规则均不变。
+
+验证（离线，无设备）：
+
+- 公开失败原帧（脱敏后 `tests/data/labyrinth-start-data-download-20261108.png`，顶部系统消息带与右下版本/玩家 ID 角已涂黑）回放：`LabyGameSessionAfterTitleObserved` / `LabyClientDataDownloadObserved` 命中，`下载错误` / `主页` 分支不命中；四词分 0.9988/0.9951/0.9981/0.9997；`ConfirmOnce` 点击 (789,485) 落在“确认”词框 756,476,61,35 内。
+- 下载中帧（`...-progress-...png`，25.79 MB 26.20%）不属于任何已知页面，一次窗口必须以干净空窗结束而不是停止；下载后“通知”帧（`...-notice-...png`）命中既有通知页而主页被大面板守卫拒绝，`LabyClientNoticeCloseOnce` 点击落在关闭框内。
+- 新增 `tests/test_labyrinth_start_data_download.py` 15 项：节点/ROI/锚点顺序、操作名与重开集合、确认一次后穿过多窗口、重复提示不重点、预算耗尽/坏回执/停止/未发出输入反例、channel 窗口过期可重试而非过期错误不重试；三张原帧回放。另对 `tests/data` 与探测目录的 18 张 1280x720 帧做误报扫描：只有真实提示帧命中，下载中/通知/主页/遗物/Boss 等帧均不命中。
+- 回归：`pytest tests/test_labyrinth_start_data_download.py` 15 passed；相邻套件（通知/公告、channel、预算、重启策略/记录、公会战恢复、主页 OCR/守卫）350 passed / 50 skipped；`pytest -k labyrinth` 1893 passed / 127 skipped / 5982 deselected（18 subtests，4:13）；`python -X utf8 -B scripts/verify.py public` 7403 passed / 398 skipped / 201 deselected（34:01）。
+
+未做/边界：客户端冷启动时若在第一次 START 之前就弹“数据下载”，本轮没有采样，`_entry` 仍按未知停止（本次实机快照与探测都发生在 START 之后）；`_after_title` 的扩展仍受 `_startup_home` 既有 120 秒启动窗口约束，更大的数据包可能仍超时；下载中途出现通信错误/其它弹窗未采样，“下载错误/重试”只按既有页面处理一次；本次未再实机复跑新代码（探测时已手动确认并下载完该数据），真实整局验收仍待后续。
 
 ## 2026-11-08 账本查询改为只读视图（奖励选择不再深拷贝整本账本）
 

@@ -1,0 +1,18 @@
+{
+  "source": "2026-11-08 local MuMu ADB capture of the B-client 11.7.2 startup data fetch, 1280x720. The frame contains no player name, account ID, device ID or run ID.",
+  "purpose": "数据下载中 25.79MB/98.42MB 26.20% + progress bar. Not one of the startup pages the session wait knows, so the wait has to treat a clean recognition miss as \"still fetching\" for a bounded window instead of stopping. Does not establish live-game acceptance.",
+  "page": "startup_data_download",
+  "frames": {
+    "labyrinth-start-data-download-progress-20261108.png": {
+      "sha256": "2498b135ac995082809c867b0fa429ebf44217e0b20c8bf5f3550d17bf8bdeb2",
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "expected": {
+    "data_download_observed": false,
+    "notice_observed": false,
+    "home_observed": false,
+    "startup_wait_hit": false
+  }
+}
