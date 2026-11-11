@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -93,11 +94,20 @@ internal sealed class PcrWindowsChild : IDisposable
         if (!member) throw new InvalidOperationException("Created Agent is not in its private Job");
         _ = Active;
     }
-    internal void Start(string exe, string root, params string[] args)
+    internal void Start(string exe, string root, params string[] args) =>
+        StartWithEnvironment(exe, root, null, args);
+
+    /// <summary>
+    /// Launch with this child's own environment. A null value removes the
+    /// inherited variable; a null map keeps today's inherit-everything path.
+    /// The map is private to the child and never enters the command line.
+    /// </summary>
+    internal void StartWithEnvironment(string exe, string root,
+        IReadOnlyDictionary<string, string?>? environment, params string[] args)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("PCR Alpha requires Windows JobList");
         if (job != IntPtr.Zero || released) throw new InvalidOperationException("Child launch is single use");
-        IntPtr attrs = IntPtr.Zero, jobs = IntPtr.Zero, handles = IntPtr.Zero;
+        IntPtr attrs = IntPtr.Zero, jobs = IntPtr.Zero, handles = IntPtr.Zero, environmentBlock = IntPtr.Zero;
         IntPtr stdinChild = IntPtr.Zero, stdoutChild = IntPtr.Zero, stderrChild = IntPtr.Zero;
         bool initialized = false;
         try
@@ -125,11 +135,13 @@ internal sealed class PcrWindowsChild : IDisposable
             Check(UpdateProcThreadAttribute(attrs, 0, 0x2000d, jobs, (nuint)IntPtr.Size, IntPtr.Zero, IntPtr.Zero), "JOB_LIST");
             Check(UpdateProcThreadAttribute(attrs, 0, 0x20002, handles, (nuint)(3 * IntPtr.Size), IntPtr.Zero, IntPtr.Zero), "HANDLE_LIST");
             checkpoint("attributes");
+            if (environment != null) environmentBlock = BuildEnvironmentBlock(environment);
             var si = new StartupEx { Attributes = attrs, Info = new Startup { Size = (uint)Marshal.SizeOf<StartupEx>(),
                 Flags = 0x100, Input = stdinChild, Output = stdoutChild, Error = stderrChild } };
             var command = new StringBuilder(string.Join(" ", new[] { exe }.Concat(args).Select(Quote)));
-            Check(CreateProcessW(exe, command, IntPtr.Zero, IntPtr.Zero, true, 0x08080004,
-                IntPtr.Zero, root, ref si, out var pi), "CreateProcessW JOB_LIST");
+            var flags = 0x08080004u | (environmentBlock != IntPtr.Zero ? 0x00000400u : 0u);
+            Check(CreateProcessW(exe, command, IntPtr.Zero, IntPtr.Zero, true, flags,
+                environmentBlock, root, ref si, out var pi), "CreateProcessW JOB_LIST");
             process = pi.Process; thread = pi.Thread; Id = (int)pi.Id;
             VerifyMembership(); // original creation handle, before any user code
             var previous = ResumeThread(operationHandle("resume", thread));
@@ -141,11 +153,31 @@ internal sealed class PcrWindowsChild : IDisposable
         {
             // Child copies are now the only writers. Do this even when creation fails.
             Close(ref stdinChild); Close(ref stdoutChild); Close(ref stderrChild); Close(ref thread);
+            if (environmentBlock != IntPtr.Zero) Marshal.FreeHGlobal(environmentBlock);
             if (initialized) DeleteProcThreadAttributeList(attrs);
             if (attrs != IntPtr.Zero) Marshal.FreeHGlobal(attrs);
             if (jobs != IntPtr.Zero) Marshal.FreeHGlobal(jobs);
             if (handles != IntPtr.Zero) Marshal.FreeHGlobal(handles);
         }
+    }
+    // Unicode block: "NAME=VALUE\0NAME2=VALUE2\0"; the native copy ends the list.
+    private static IntPtr BuildEnvironmentBlock(IReadOnlyDictionary<string, string?> overrides)
+    {
+        var merged = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+        {
+            if (entry.Key is not string name || string.IsNullOrEmpty(name) || name.Contains('=')) continue;
+            merged[name] = entry.Value as string ?? string.Empty;
+        }
+        foreach (var pair in overrides)
+        {
+            if (string.IsNullOrEmpty(pair.Key) || pair.Key.Contains('=')) continue;
+            if (pair.Value is null) merged.Remove(pair.Key);
+            else merged[pair.Key] = pair.Value;
+        }
+        var block = new StringBuilder();
+        foreach (var pair in merged) block.Append(pair.Key).Append('=').Append(pair.Value).Append('\0');
+        return Marshal.StringToHGlobalUni(block.ToString());
     }
     private Task Drain(Stream stream, bool error) => Task.Run(async () =>
     {

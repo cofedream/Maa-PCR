@@ -187,6 +187,7 @@ public static class ConfigurationKeys
     public const string GitHubToken = "GitHubToken";
     public const string ProxyAddress = "ProxyAddress";
     public const string ProxyType = "ProxyType";
+    public const string UpdateProxyMode = "UpdateProxyMode";
     public const string CurrentTasks = "CurrentTasks";
     public const string ResourceUpdateChannelInitialized = "ResourceUpdateChannelInitialized";
 

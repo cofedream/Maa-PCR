@@ -684,6 +684,7 @@ public static partial class Instances
                     version.ProxyAddress = ConfigurationManager.Current.GetValue(ConfigurationKeys.ProxyAddress, string.Empty);
                     version.ProxyType = ConfigurationManager.Current.GetValue(ConfigurationKeys.ProxyType, VersionUpdateSettingsUserControlModel.UpdateProxyType.Http, VersionUpdateSettingsUserControlModel.UpdateProxyType.Http,
                         new Converters.UniversalEnumConverter<VersionUpdateSettingsUserControlModel.UpdateProxyType>());
+                    version.ProxyMode = VersionUpdateSettingsUserControlModel.LoadProxyMode();
                     if (ConfigurationManager.Current.TryGetValue<bool>("Debug", out var debugValue))
                     {
                         version.ShowLocalPackageUpdate = debugValue;

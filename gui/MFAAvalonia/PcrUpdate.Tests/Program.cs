@@ -50,6 +50,7 @@ if (args.Length == 2)
 }
 var count = 0;
 AppPathsChecks.Run();
+count += NetworkProxyChecks.Run();
 void Require(bool value, string test)
 {
     if (!value) throw new InvalidOperationException(test);
@@ -67,25 +68,52 @@ Require(!PcrSoftwareUpdateService.InstallConfirmed(SukiMessageBoxResult.No), "no
 Require(!PcrSoftwareUpdateService.InstallConfirmed(SukiMessageBoxResult.Close), "close_cancels_install");
 Require(!PcrSoftwareUpdateService.InstallConfirmed("Yes"), "untyped_confirmation_is_not_authorization");
 var configureProxy = typeof(PcrSoftwareUpdateService).GetMethod("ConfigureProxy", BindingFlags.Static | BindingFlags.NonPublic)!;
+var proxyModeType = typeof(VersionUpdateSettingsUserControlModel.UpdateProxyMode);
+object Mode(string name) => Enum.Parse(proxyModeType, name);
 foreach (var command in new[] { "inspect", "launch" })
 {
     var process = new ProcessStartInfo();
     process.Environment["HTTPS_PROXY"] = "unchanged";
-    configureProxy.Invoke(null, new object[] { process, command, "broken-offline-proxy", VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5 });
+    configureProxy.Invoke(null, new object[] { process, command, Mode("Custom"), "broken-offline-proxy", VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5 });
     Require(process.Environment["HTTPS_PROXY"] == "unchanged", command + "_ignores_online_proxy_settings");
 }
 foreach (var command in new[] { "check", "download" })
 {
-    var process = new ProcessStartInfo();
-    configureProxy.Invoke(null, new object[] { process, command, "127.0.0.1:7890", VersionUpdateSettingsUserControlModel.UpdateProxyType.Http });
-    Require(process.Environment["HTTPS_PROXY"] == "http://127.0.0.1:7890"
-        && process.Environment["HTTP_PROXY"] == "http://127.0.0.1:7890", command + "_honors_http_proxy");
+    // 无代理：显式直连，并清掉可能继承的桌面代理。
+    var none = new ProcessStartInfo();
+    none.Environment["HTTPS_PROXY"] = "http://system.invalid:1";
+    none.Environment["HTTP_PROXY"] = "http://system.invalid:1";
+    configureProxy.Invoke(null, new object[] { none, command, Mode("None"), "127.0.0.1:7890", VersionUpdateSettingsUserControlModel.UpdateProxyType.Http });
+    Require(!none.Environment.ContainsKey("HTTPS_PROXY") && !none.Environment.ContainsKey("HTTP_PROXY")
+        && none.Environment["NO_PROXY"] == "*", command + "_no_proxy_forces_direct");
+
+    // 跟随系统：不改动子进程环境，由系统代理决定。
+    var follow = new ProcessStartInfo();
+    follow.Environment.Remove("NO_PROXY");
+    follow.Environment["HTTPS_PROXY"] = "system-unchanged";
+    configureProxy.Invoke(null, new object[] { follow, command, Mode("FollowSystem"), "127.0.0.1:7890", VersionUpdateSettingsUserControlModel.UpdateProxyType.Http });
+    Require(follow.Environment["HTTPS_PROXY"] == "system-unchanged" && !follow.Environment.ContainsKey("NO_PROXY"),
+        command + "_follow_system_keeps_environment");
+
+    // 自定义代理：写入 HTTP 与 HTTPS 两个环境变量。
+    var custom = new ProcessStartInfo();
+    configureProxy.Invoke(null, new object[] { custom, command, Mode("Custom"), "127.0.0.1:7890", VersionUpdateSettingsUserControlModel.UpdateProxyType.Http });
+    Require(custom.Environment["HTTPS_PROXY"] == "http://127.0.0.1:7890"
+        && custom.Environment["HTTP_PROXY"] == "http://127.0.0.1:7890", command + "_custom_proxy_honors_http");
+
     try
     {
-        configureProxy.Invoke(null, new object[] { process, command, "socks5://127.0.0.1:7890", VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5 });
+        configureProxy.Invoke(null, new object[] { custom, command, Mode("Custom"), "socks5://127.0.0.1:7890", VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5 });
         throw new InvalidOperationException("unsupported_online_proxy_accepted");
     }
     catch (TargetInvocationException ex) when (ex.InnerException is InvalidOperationException { Message: "unsupported_proxy_use_http_https" }) { count++; }
+
+    try
+    {
+        configureProxy.Invoke(null, new object[] { custom, command, Mode("Custom"), "   ", VersionUpdateSettingsUserControlModel.UpdateProxyType.Http });
+        throw new InvalidOperationException("empty_custom_proxy_accepted");
+    }
+    catch (TargetInvocationException ex) when (ex.InnerException is InvalidOperationException { Message: var message } && message.Contains("自定义代理")) { count++; }
 }
 var inspected = new JObject {
     ["status"] = "validated", ["current_revision"] = 52, ["current_version"] = "v0.1.8",

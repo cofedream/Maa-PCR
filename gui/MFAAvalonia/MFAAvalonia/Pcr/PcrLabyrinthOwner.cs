@@ -198,7 +198,8 @@ internal static class PcrLabyrinthOwner
             run.Child=new PcrWindowsChild();
             var arguments = new[] { "-X", "utf8", "-B", "-u", script };
             if (vm.PlayerLog is { } playerLog) arguments = arguments.Concat(new[] { "--player-log", playerLog.RunId }).ToArray();
-            run.Child.Start(PcrRuntimePaths.ResolvePython(root),root,arguments);
+            run.Child.StartWithEnvironment(PcrRuntimePaths.ResolvePython(root),root,
+                PcrNetworkProxy.DirectEnvironment(),arguments);
             await run.Child.Send(request.ToString(Formatting.None)).WaitAsync(cancel.Token);
             request.Remove("credentials");
             bool receipt=false;

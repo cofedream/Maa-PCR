@@ -208,6 +208,7 @@ internal static class StartupActionsChecks
             "no_real_controller_agent_or_grant");
         PlayerLogChecks.Run(directory, id => Owner(manager, id));
         CheckUnreadableGlobalRestart(Owner(manager, "pcr-alpha-v1"));
+        CheckUpdateProxySettings(root);
         Console.WriteLine($"PCR startup/completion actions checks passed: {checks}; two fresh processes, real harmless launch marker; game inputs=0; OS shutdowns=0");
     }
 
@@ -417,6 +418,43 @@ internal static class StartupActionsChecks
             using var frame = new RenderTargetBitmap(new PixelSize(960, 720));
             frame.Render(view);
             frame.Save(Path.Combine(root, "restarted-start-settings.png"));
+        }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+    }
+
+    private static void CheckUpdateProxySettings(string root)
+    {
+        var view = new VersionUpdateSettingsUserControl { Background = Brushes.White };
+        var window = new Window { Content = view, Width = 720, Height = 840, ShowActivated = false,
+            ShowInTaskbar = false, Position = new PixelPoint(-12000, -12000) };
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var mode = view.GetLogicalDescendants().OfType<ComboBox>().Single();
+            var address = view.GetLogicalDescendants().OfType<TextBox>().Single();
+            Require(mode.ItemCount == 3
+                && (VersionUpdateSettingsUserControlModel.UpdateProxyMode?)mode.SelectedValue
+                == VersionUpdateSettingsUserControlModel.UpdateProxyMode.FollowSystem,
+                "update_proxy_defaults_to_follow_system");
+            Require(!address.IsEnabled, "follow_system_disables_custom_address");
+            mode.SetCurrentValue(ComboBox.SelectedValueProperty, VersionUpdateSettingsUserControlModel.UpdateProxyMode.Custom);
+            Dispatcher.UIThread.RunJobs();
+            Require(address.IsEnabled
+                && ConfigurationManager.Current.GetValue(ConfigurationKeys.UpdateProxyMode, string.Empty)
+                == nameof(VersionUpdateSettingsUserControlModel.UpdateProxyMode.Custom),
+                "custom_proxy_enables_address_and_saves_mode");
+            mode.SetCurrentValue(ComboBox.SelectedValueProperty, VersionUpdateSettingsUserControlModel.UpdateProxyMode.None);
+            Dispatcher.UIThread.RunJobs();
+            Require(!address.IsEnabled
+                && ConfigurationManager.Current.GetValue(ConfigurationKeys.UpdateProxyMode, string.Empty)
+                == nameof(VersionUpdateSettingsUserControlModel.UpdateProxyMode.None),
+                "no_proxy_disables_custom_address_and_saves_mode");
+            mode.SetCurrentValue(ComboBox.SelectedValueProperty, VersionUpdateSettingsUserControlModel.UpdateProxyMode.FollowSystem);
+            Dispatcher.UIThread.RunJobs();
+            using var frame = new RenderTargetBitmap(new PixelSize(720, 840));
+            frame.Render(view);
+            frame.Save(Path.Combine(root, "update-proxy-settings.png"));
         }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     }

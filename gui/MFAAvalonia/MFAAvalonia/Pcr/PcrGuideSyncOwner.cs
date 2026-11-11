@@ -92,7 +92,8 @@ internal static class PcrGuideSyncOwner
             var script = Path.Combine(root, "scripts", "read-guide-snapshot.py");
             if (!File.Exists(script)) throw new InvalidOperationException("账号读取组件缺失，请使用完整候选包。");
             run.Child = new PcrWindowsChild();
-            run.Child.Start(PcrRuntimePaths.ResolvePython(root), root, "-X", "utf8", "-B", "-u", script);
+            run.Child.StartWithEnvironment(PcrRuntimePaths.ResolvePython(root), root,
+                PcrNetworkProxy.DirectEnvironment(), "-X", "utf8", "-B", "-u", script);
             await run.Child.Send(request.ToString(Formatting.None)).WaitAsync(cancel.Token);
             request.Remove("credentials");
             await foreach (var line in run.Child.Lines.Reader.ReadAllAsync(cancel.Token))

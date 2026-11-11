@@ -396,7 +396,7 @@ public static class PcrSoftwareUpdateService
         foreach (var argument in new[] { "-X", "utf8", "-B", "-u", script, command, "--player", Player })
             start.ArgumentList.Add(argument);
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
-        ConfigureProxy(start, command, ViewModel.ProxyAddress, ViewModel.ProxyType);
+        ConfigureProxy(start, command, ViewModel.ProxyMode, ViewModel.ProxyAddress, ViewModel.ProxyType);
         if (command != "launch") shutdown.Token.ThrowIfCancellationRequested();
         using var process = Process.Start(start) ?? throw new InvalidOperationException("updater_process_not_started");
         using var timeout = new CancellationTokenSource(command == "download" ? TimeSpan.FromMinutes(30) : TimeSpan.FromMinutes(3));
@@ -432,11 +432,23 @@ public static class PcrSoftwareUpdateService
         }
     }
 
-    internal static void ConfigureProxy(ProcessStartInfo start, string command, string? address,
+    internal static void ConfigureProxy(ProcessStartInfo start, string command,
+        VersionUpdateSettingsUserControlModel.UpdateProxyMode mode, string? address,
         VersionUpdateSettingsUserControlModel.UpdateProxyType type)
     {
         // Local inspection, installation and recovery never depend on a network proxy.
-        if (command is not ("check" or "download") || string.IsNullOrWhiteSpace(address)) return;
+        if (command is not ("check" or "download")) return;
+        // Follow the same system configuration as the GUI check path.
+        if (mode == VersionUpdateSettingsUserControlModel.UpdateProxyMode.FollowSystem) return;
+        if (mode == VersionUpdateSettingsUserControlModel.UpdateProxyMode.None)
+        {
+            // Do not let the updater inherit a desktop proxy either.
+            foreach (var key in new[] { "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY" }) start.Environment.Remove(key);
+            start.Environment["NO_PROXY"] = "*";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(address))
+            throw new InvalidOperationException("更新代理选择“自定义代理”时需要填写代理地址，格式为 [<用户名>:<密码>@]<主机>:<端口>。");
         var proxy = address.Trim();
         if (!proxy.Contains("://", StringComparison.Ordinal))
         {

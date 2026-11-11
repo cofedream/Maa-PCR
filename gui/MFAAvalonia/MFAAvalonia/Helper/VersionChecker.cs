@@ -4119,6 +4119,7 @@ public static class VersionChecker
     {
         bool disableSSL = File.Exists(Path.Combine(AppContext.BaseDirectory, "NO_SSL"));
 
+        var _proxyMode = Instances.VersionUpdateSettingsUserControlModel.ProxyMode;
         var _proxyAddress = Instances.VersionUpdateSettingsUserControlModel.ProxyAddress;
         NetworkCredential? credentials = null;
 
@@ -4166,9 +4167,22 @@ public static class VersionChecker
             SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
         };
 
-        // 如果没有代理地址，直接返回带SSL 处理的 HttpClient
-        if (string.IsNullOrWhiteSpace(_proxyAddress))
+        // 无代理：显式直连。跟随系统：保留 HttpClientHandler 默认系统代理（Windows 读取系统代理设置）。
+        if (_proxyMode == VersionUpdateSettingsUserControlModel.UpdateProxyMode.None)
         {
+            handler.UseProxy = false;
+            return new HttpClient(handler)
+            {
+                Timeout = TimeSpan.FromSeconds(60),
+                DefaultRequestVersion = HttpVersion.Version11
+            };
+        }
+
+        // 自定义代理未填写地址时按跟随系统处理，避免更新入口因配置为空直接失败。
+        if (_proxyMode != VersionUpdateSettingsUserControlModel.UpdateProxyMode.Custom || string.IsNullOrWhiteSpace(_proxyAddress))
+        {
+            if (_proxyMode == VersionUpdateSettingsUserControlModel.UpdateProxyMode.Custom)
+                LoggerHelper.Warning("更新代理已选择自定义但地址为空，本次跟随系统代理。");
             return new HttpClient(handler)
             {
                 Timeout = TimeSpan.FromSeconds(60),

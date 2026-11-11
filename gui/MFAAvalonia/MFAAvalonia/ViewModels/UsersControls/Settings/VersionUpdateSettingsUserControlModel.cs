@@ -28,6 +28,14 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
         Socks5
     }
 
+    /// <summary>How online update checks and downloads reach the network.</summary>
+    public enum UpdateProxyMode
+    {
+        FollowSystem,
+        Custom,
+        None
+    }
+
     protected override void Initialize()
     {
         try
@@ -291,19 +299,32 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
     {
         ConfigurationManager.Current.SetValue(ConfigurationKeys.EnableAutoUpdateMFA, value);
     }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCustomProxy))]
+    private UpdateProxyMode _proxyMode = LoadProxyMode();
     [ObservableProperty] private string _proxyAddress = ConfigurationManager.Current.GetValue(ConfigurationKeys.ProxyAddress, string.Empty);
     [ObservableProperty] private UpdateProxyType _proxyType = ConfigurationManager.Current.GetValue(ConfigurationKeys.ProxyType, UpdateProxyType.Http, UpdateProxyType.Http, new UniversalEnumConverter<UpdateProxyType>());
-    public ObservableCollection<LocalizationViewModel> ProxyTypeList =>
-        PcrAlphaPolicy.Enabled ? [new("HTTP / HTTPS") { Other = UpdateProxyType.Http }] : [
-        new("HTTP Proxy")
-        {
-            Other = UpdateProxyType.Http
-        },
-        new("SOCKS5 Proxy")
-        {
-            Other = UpdateProxyType.Socks5
-        },
+
+    /// <summary>Saved mode; a legacy proxy address means the player had chosen a custom proxy.</summary>
+    internal static UpdateProxyMode LoadProxyMode()
+    {
+        var configured = ConfigurationManager.Current.GetValue(ConfigurationKeys.UpdateProxyMode, string.Empty);
+        if (!string.IsNullOrWhiteSpace(configured) && Enum.TryParse<UpdateProxyMode>(configured, true, out var mode))
+            return mode;
+        return string.IsNullOrWhiteSpace(ConfigurationManager.Current.GetValue(ConfigurationKeys.ProxyAddress, string.Empty))
+            ? UpdateProxyMode.FollowSystem
+            : UpdateProxyMode.Custom;
+    }
+
+    public bool IsCustomProxy => ProxyMode == UpdateProxyMode.Custom;
+
+    public ObservableCollection<LocalizationViewModel> ProxyModeList => [
+        new("跟随系统") { Other = UpdateProxyMode.FollowSystem },
+        new("自定义代理") { Other = UpdateProxyMode.Custom },
+        new("无代理") { Other = UpdateProxyMode.None }
     ];
+
+    partial void OnProxyModeChanged(UpdateProxyMode value) => HandlePropertyChanged(ConfigurationKeys.UpdateProxyMode, value.ToString());
 
     partial void OnProxyAddressChanged(string value) => HandlePropertyChanged(ConfigurationKeys.ProxyAddress, value);
 
