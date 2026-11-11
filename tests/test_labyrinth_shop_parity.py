@@ -125,6 +125,19 @@ def test_category_only_imprint_never_becomes_a_purchase(enabled,expected):
     balance,items=shops.parse_shop_inventory(words,buttons)
     assert balance==1200 and not items
     assert shops._stock_state(words,buttons,items)==expected
+    words['Attribute0']=[word('无系列')]
+    assert shops._stock_state(words,buttons,items)==expected
+
+
+def test_unmarked_relic_is_known_stock_without_a_series_purchase(monkeypatch):
+    words = {'Name0': [dict(text='元素涌动宝珠')], 'Attribute0': [dict(text='无系列')]}
+    buttons = {slot: dict(enabled=slot == 0) for slot in range(3)}
+    state = shops._stock_state(words, buttons, [])
+    assert state == 'exhausted'
+    run, actions, _, _, _ = make_shop(monkeypatch, [shelf(state=state)], refresh=False)
+    assert run()['purchases'] == [] and actions == ['leave_shop']
+    words['Attribute0'] = [dict(text='系列')]
+    assert shops._stock_state(words, buttons, []) == 'unknown'
 
 
 def test_partial_stock_does_not_buy_known_imprint_before_other_slots_settle(monkeypatch):

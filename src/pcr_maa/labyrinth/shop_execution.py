@@ -244,8 +244,12 @@ def _stock_state(words,buttons,items):
         if button is None:unknown=True;continue
         if not button['enabled']:continue
         item=known.get(slot)
+        name=_text(words.get(f'Name{slot}',[]))
         if (item is not None and item['kind']=='role_imprint'
-                or imprint_identity(_text(words.get(f'Name{slot}',[]))) is not None):continue
+                or imprint_identity(name) is not None):continue
+        # An incomplete imprint can still be worth buying even without a series.
+        if (item is None and name.strip() and '印记' not in name and '职能' not in name
+                and _text(words.get(f'Attribute{slot}',[]))=='无系列'):continue
         if item is not None:available=True
         else:unknown=True
     return 'unknown' if unknown else 'ready' if available else 'exhausted'

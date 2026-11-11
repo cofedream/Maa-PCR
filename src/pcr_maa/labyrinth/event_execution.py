@@ -47,7 +47,8 @@ class MaaEvent:
         # same recognized event. Each replacement has its own transaction;
         # the original thirty-second result budget still bounds the whole set.
         rejected=set();sent=set();refusals=[]
-        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+30)
+        parent_deadline=native.RUN_DEADLINE.get()
+        deadline=min(parent_deadline,native.active_now()+30)
         token=native.RUN_DEADLINE.set(deadline)
         allowed={'event','event_animation','free_role_reward','role_reward','joined','relic_reward','link_reward','item_reward','map','normal_challenge','ex_challenge','boss_challenge','chest','area_transition'}
         try:
@@ -81,6 +82,10 @@ class MaaEvent:
                 sent.add(selected.choice_id)
                 clicked=batch.transaction('event_choose',fields,send)
                 batch.checkpoint();committed=native.active_now()
+                # Keep the first dispatch bounded; replacements share one post-click window.
+                if len(sent)==1:
+                    deadline=min(parent_deadline,committed+30)
+                    native.RUN_DEADLINE.set(deadline)
                 def advanced(value):
                     if value.kind!='event':return True
                     event=value.payload.get('event',{})

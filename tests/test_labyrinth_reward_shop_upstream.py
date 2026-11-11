@@ -356,6 +356,34 @@ def test_fixed_upstream_event_timeout_retires_once_then_new_transaction(monkeypa
  assert len({e['operation_id'] for e in settled})==2 and not adapter.blocked
 
 
+@pytest.mark.parametrize('parent,expected_wait', [(100., 30.), (24., 9.)])
+def test_event_result_budget_starts_at_first_confirmed_choice(monkeypatch, parent, expected_wait):
+ from pcr_maa import native
+ adapter,batch,_,selected,_,_=event_retry_harness(monkeypatch)
+ now=[0.]
+ monkeypatch.setattr(native,'active_now',lambda:now[0])
+ dispatch=native.run
+ def slow_choice(*args,**kwargs):
+  assert native.RUN_DEADLINE.get()==min(parent,30.)
+  now[0]=15.
+  return dispatch(*args,**kwargs)
+ monkeypatch.setattr(native,'run',slow_choice)
+ def wait_for(batch,allowed,**kwargs):
+  assert kwargs['timeout']==expected_wait
+  assert native.RUN_DEADLINE.get()==now[0]+expected_wait
+  next_event=Scene('event',{},dict(event=dict(event_id=2315,trusted=True)))
+  now[0]+=expected_wait-1
+  assert kwargs['accept'](next_event)
+  return next_event
+ adapter.scene.wait_for=wait_for
+ token=native.RUN_DEADLINE.set(parent)
+ try:
+  result=adapter.run(batch,1,20303,stacks={})
+  assert result['page']=='event' and result['inventory_added'] is False and selected==[0]
+  assert native.RUN_DEADLINE.get()==parent
+ finally:native.RUN_DEADLINE.reset(token)
+
+
 @pytest.mark.parametrize('following',['unknown','stop','wrong_identity'])
 def test_fixed_upstream_event_replacement_requires_same_identity_and_no_stop(monkeypatch,following):
  adapter,batch,current,selected,captured,waits=event_retry_harness(monkeypatch,following)
