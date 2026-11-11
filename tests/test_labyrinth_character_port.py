@@ -34,8 +34,8 @@ def offline(monkeypatch):
 
 def test_all_original_icons_hashed_and_variants_retained():
     entries,images,names=load_character_pack()
-    assert len(entries)==801 and images.shape==(801,128,128,3)
-    assert len({e['unit_icon_id'] for e in entries})==801
+    assert len(entries)==800 and images.shape==(800,128,128,3)
+    assert len({e['unit_icon_id'] for e in entries})==800
     assert all(len(e['unit_icon_id'])==6 for e in entries)
     assert {e['variant'] for e in entries if e['character_id']=='1001'}>={'11','31','61'}
     assert '1807' in names and canonical_id('100101')=='100101'
@@ -52,6 +52,18 @@ def test_matcher_star_variants_not_cross_character_rivals():
         match=matcher.match(frame,(206,206,116,116))
         assert match.trusted and match.character_id=='1001' and match.variant==variant
         assert all(c.character_id!='1001' for c in match.candidates[1:])
+
+def test_djeeta_six_star_and_kanna_keep_separate_identities():
+    matcher=IconMatcher()
+    entries,images,_=load_character_pack()
+    for icon_id in ('105761','170111','170131'):
+        index=next(i for i,row in enumerate(entries) if row['unit_icon_id']==icon_id)
+        frame=np.zeros((720,1280,3),np.uint8)
+        frame[206:322,206:322]=cv2.resize(images[index][...,::-1],(116,116))
+        for roster in (None,['1057','1701']):
+            result=matcher.match(frame,(206,206,116,116),roster=roster)
+            assert result.trusted and result.character_id==icon_id[:4]
+            assert result.variant==icon_id[4:]
 
 def test_full_names_do_not_collapse_seasonal_variants_or_unknown():
     assert resolve_character_name('可可萝')=='1059'

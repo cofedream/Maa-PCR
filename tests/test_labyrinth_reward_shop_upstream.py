@@ -216,8 +216,8 @@ def test_imprint_actual_joined_is_read_and_shop_return_required(monkeypatch,choi
  shop.scene.wait_for=lambda *a,**kw:returned
  with pytest.raises(BatchStopped,match='shop_imprint_result_unknown'):shop._imprint_following(batch,1,'other',[],characters,selected)
 
-@pytest.mark.parametrize('current_stacks,expected',[(8,10),(30,30)])
-def test_shared_shop_loop_refreshes_exhausted_cycle_then_buys_fresh_relic(monkeypatch,current_stacks,expected):
+@pytest.mark.parametrize('current_stacks,expected,purchases',[(8,10,1),(30,30,1),(8,10,3)])
+def test_shared_shop_loop_refreshes_exhausted_cycle_then_buys_fresh_relic(monkeypatch,current_stacks,expected,purchases):
  batch,stamp=harness(NS(refresh_from_area=5));shop=shops.MaaShop.__new__(shops.MaaShop)
  shop.stamp=stamp;shop.blocked=False;shop.pending=None;shop.spent=set();shop.observer=NS();shop.timings=NS()
  stock=[dict(kind='role_imprint',slot=i,item_id=str(i),name='攻击型职能的随机印记',price=780,purchasable=True,choice_imprint=False,box=[233+i*384,320,100,40]) for i in range(3)]
@@ -234,9 +234,21 @@ def test_shared_shop_loop_refreshes_exhausted_cycle_then_buys_fresh_relic(monkey
   log.append(state)
   if state=='shop':phase[0]='confirmation'
   elif state=='confirmation':phase[0]='complete';current['balance']-=400
-  elif state=='complete':phase[0]='shop';current['items']=[]
+  elif state=='complete':
+   phase[0]='shop'
+   if log.count('complete')==purchases:
+    current['items']=[]
+    if purchases==3:
+     current.update(stock_state='unknown',refresh_known=True,words={'Name0':[word('职能印记')]})
   return {}
- shop._capture=capture;shop._wait_state=lambda *a:capture();shop._input=input_once;shop._refresh=refresh
+ def wait_state(*args,accept=None):
+  if accept is not None:
+   assert not accept(current)
+   log.append('recheck')
+   current.update(stock_state='exhausted')
+   assert accept(current)
+  return capture()
+ shop._capture=capture;shop._wait_state=wait_state;shop._input=input_once;shop._refresh=refresh
  # Preserve the business state receipt rather than manufacturing Maa structure in this test.
  shop.purchase_readback=lambda b,q,c:stamp(operation_id=c['operation_id'],enter_id=q['enter_id'],item_id=q['item_id'],price=q['price'],inventory_added=True,native=capture()[0],input_native=c['input_native'])
  monkeypatch.setattr(shops,'_readback',lambda value:value)
@@ -247,9 +259,9 @@ def test_shared_shop_loop_refreshes_exhausted_cycle_then_buys_fresh_relic(monkey
   def wait_for(self,*a,**kw):return Scene('map',{}, {'area':5})
  shop.scene=Runtime();batch.port.buy_relic=lambda q,oid:shop.purchase_once(q,oid,batch=batch)
  actual=shop.run(batch,1,50601,stacks=dict.fromkeys(MARKS,0),area=5,refresh_shop=True)
- assert log==['refresh','shop','confirmation','complete']
- assert actual['refresh_performed'] and actual['stacks']['会心']==expected and len(actual['purchases'])==1
- assert current['balance']==1300 and actual['focus']==('会心' if current_stacks<15 else '加速')
+ assert log==['refresh']+['shop','confirmation','complete']*purchases+(['recheck'] if purchases==3 else [])
+ assert actual['refresh_performed'] and actual['stacks']['会心']==expected and len(actual['purchases'])==purchases
+ assert current['balance']==1700-400*purchases and actual['focus']==('会心' if current_stacks<15 else '加速')
  assert actual['calibrated_marks']==['会心']
 
 @pytest.mark.parametrize('page',['battle','boss'])

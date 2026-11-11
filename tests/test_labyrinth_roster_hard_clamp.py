@@ -33,7 +33,7 @@ VISIBLE = ['1044', '1045', '1031', '1022', '1120', '1215']
 @pytest.fixture(scope='module')
 def matcher():
     value = c.IconMatcher()
-    assert len(value.entries) == 801
+    assert value.entries
     return value
 
 

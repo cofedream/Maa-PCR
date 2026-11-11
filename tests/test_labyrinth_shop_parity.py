@@ -116,6 +116,17 @@ def test_imprint_category_can_prove_stock_exhausted_without_purchase_quote():
     assert shops._stock_state(words, buttons, []) == 'unknown'
 
 
+@pytest.mark.parametrize('enabled,expected', [(True,'unknown'),(False,'exhausted')])
+def test_category_only_imprint_never_becomes_a_purchase(enabled,expected):
+    from test_labyrinth_reward_shop_upstream import word
+    words=dict(Currency=[word('持有阿尔法金币')],Balance=[word('1200')],
+               Name0=[word('职能印记')],Price0=[word('900')])
+    buttons={slot:dict(enabled=(slot==0 and enabled),box=[0,0,1,1]) for slot in range(3)}
+    balance,items=shops.parse_shop_inventory(words,buttons)
+    assert balance==1200 and not items
+    assert shops._stock_state(words,buttons,items)==expected
+
+
 def test_partial_stock_does_not_buy_known_imprint_before_other_slots_settle(monkeypatch):
     initial = shelf(state='unknown')
     initial['items'] = [dict(kind='role_imprint', purchasable=True)]

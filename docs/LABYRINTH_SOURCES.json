@@ -875,13 +875,13 @@
     {
       "local_root": "assets/labyrinth/character-pack",
       "kind": "mixed-source-character-pack-with-local-name-correction",
-      "file_count": 807,
-      "icon_count": 801,
+      "file_count": 806,
+      "icon_count": 800,
       "icon_formats": {
-        "png": 797,
+        "png": 796,
         "webp": 4
       },
-      "inventory_sha256": "76cc254c599ff79062e3de81489e28e74727cbd8a8c9f438d8803d340dfee4db",
+      "inventory_sha256": "a9da3fe387784640c528dd01777d477b05ff8a7e25005c51f63805b3d1a5880f",
       "inventory_sha256_format": "sorted local path TAB local_sha256 LF, UTF-8",
       "local_edits": [
         {
@@ -897,15 +897,20 @@
           "before": "upstream redive.estertion.win WebP-derived PNG/WebP",
           "after": "744 icons replaced with lossless 128x128 PNGs from the B-server client; the 57 icons for unit ids absent from the client keep the upstream bytes",
           "reason": "Use the B-server client as the icon source for everything the client actually ships; keep the upstream cache only for unit ids the client does not contain. Catalog names, aliases and rating data are unchanged."
+        },
+        {
+          "path": "assets/labyrinth/character-pack/icons/characters/icon_unit_170161.png",
+          "reason": "Removed duplicate of 105761 from Kanna recognition candidates.",
+          "reference": "https://github.com/SatenRuiko10032/limingjie-assistant/commit/7111b366fc70f85c6837ca52576fa8fcfdf014e6"
         }
       ],
       "provenance": {
         "local": "assets/labyrinth/character-pack/PROVENANCE.json",
-        "sha256": "e80143dde505e61f44e442d49215e981a598352ae63a05d6894821d5400de88e"
+        "sha256": "8f82d40d166b8cd00c394ada2c7e512316807f12e5f6ff18a17c3bf2d98b58fb"
       },
       "catalog_license": "LandosolRoster-derived GPL-3.0; scope per upstream notice",
       "code_license": "CC-BY-NC-SA-4.0 for upstream own contributions",
-      "image_rights": "Game imagery retains respective rights. 744 unit icons are lossless 128x128 PNGs extracted from the Bilibili (B服) client bundles (APK preinstall plus downloaded DLC); 57 icons retain the upstream redive.estertion.win cache bytes because those unit ids are absent from the B-server client. Redistribution permission is not established.",
+      "image_rights": "Game imagery retains respective rights. 743 unit icons are lossless 128x128 PNGs extracted from the Bilibili (B服) client bundles (APK preinstall plus downloaded DLC); 57 icons retain the upstream redive.estertion.win cache bytes because those unit ids are absent from the B-server client. Redistribution permission is not established.",
       "distribution_status": "permission-and-combination-compatibility-review-pending",
       "files": [
         {
@@ -6975,14 +6980,6 @@
           "rights": "Princess Connect Re:Dive game imagery; respective rights retained; redistribution permission not established"
         },
         {
-          "local": "assets/labyrinth/character-pack/icons/characters/icon_unit_170161.png",
-          "local_sha256": "c1f879fa939ebfceacad048913f8b084126f0babb492a7a23afb3f9ef4f71627",
-          "source": "bilibili-client",
-          "client_channel": "downloaded-dlc",
-          "client_bundle": "unit_icon_unit_170161",
-          "rights": "Princess Connect Re:Dive game imagery; respective rights retained; redistribution permission not established"
-        },
-        {
           "local": "assets/labyrinth/character-pack/icons/characters/icon_unit_170211.png",
           "local_sha256": "6d2270a53477c5588a354fcace8eadcda6167de627aa5d066051c3d9ea094737",
           "source": "bilibili-client",
@@ -7270,7 +7267,7 @@
         },
         {
           "local": "assets/labyrinth/character-pack/icons.json",
-          "local_sha256": "9e2bd7376cde7ff9c7d82525843d182dc3453a715194c6eea807f9cedd1e1cf1",
+          "local_sha256": "0880e102f73b0415256780a23b8fd392eb4e7b815077b091238bd53967abc6f1",
           "upstream": {
             "path": "android/app/src/main/assets/resource-packs/cn-bilibili/icons.json",
             "sha256": "7557e3f76ef45b816241007de6373c5505452e6b4ed197675ae9cb2d24272308"
@@ -7298,7 +7295,7 @@
         },
         {
           "local": "assets/labyrinth/character-pack/PROVENANCE.json",
-          "local_sha256": "e80143dde505e61f44e442d49215e981a598352ae63a05d6894821d5400de88e",
+          "local_sha256": "8f82d40d166b8cd00c394ada2c7e512316807f12e5f6ff18a17c3bf2d98b58fb",
           "local_edit": "mixed-source icon derivation recorded (B-server client extraction plus retained upstream cache)"
         },
         {
@@ -7311,11 +7308,11 @@
         }
       ],
       "icon_sources": {
-        "bilibili-client": 744,
+        "bilibili-client": 743,
         "upstream-cache": 57,
         "by_channel": {
           "apk-preinstall": 227,
-          "downloaded-dlc": 517
+          "downloaded-dlc": 516
         },
         "client_package": "com.bilibili.priconne",
         "captured": "2026-11-07"

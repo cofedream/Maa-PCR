@@ -645,7 +645,9 @@ class MaaShop:
             return (relic_cycle>=3 or value.get('stock_state')=='exhausted'
                 or len(value['items'])==3 and all(i['kind']=='role_imprint' for i in value['items']))
         def ready(value):
-            if exhausted(value) and refresh_permitted:return value.get('refresh_known',True)
+            if exhausted(value) and refresh_permitted:
+                if not value.get('refresh_known',True):return False
+                if not refresh_unavailable and value.get('refresh_allowed'):return True
             return (any(i['kind']=='relic' and i['purchasable'] for i in value['items'])
                 or value.get('stock_state')!='unknown')
         try:

@@ -3,7 +3,7 @@
   "author": "wbero and project contributors",
   "code_license": "CC BY-NC-SA 4.0; see LICENSE",
   "catalog_license": "LandosolRoster-derived catalog: GPL-3.0; upstream THIRD_PARTY_NOTICES applies",
-  "image_rights": "Princess Connect Re:Dive game imagery, original rights holders. 744 unit icons extracted from the Bilibili (B服) client bundles on a local emulator (APK preinstall + downloaded DLC, lossless 128x128 PNG); 57 icons retained from the upstream cached redive.estertion.win unit icons because those unit ids are absent from the B-server client. The catalog remains the pinned upstream LandosolRoster-derived document.",
+  "image_rights": "Princess Connect Re:Dive game imagery, original rights holders. 743 unit icons extracted from the Bilibili (B服) client bundles on a local emulator (APK preinstall + downloaded DLC, lossless 128x128 PNG); 57 icons retained from the upstream cached redive.estertion.win unit icons because those unit ids are absent from the B-server client. The catalog remains the pinned upstream LandosolRoster-derived document.",
   "distribution_permission_not_inferred": true,
   "private_captures_included": false,
   "private_uid_included": false,
@@ -5353,13 +5353,6 @@
       "source": "bilibili-client"
     },
     {
-      "path": "icons/characters/icon_unit_170161.png",
-      "sha256": "c1f879fa939ebfceacad048913f8b084126f0babb492a7a23afb3f9ef4f71627",
-      "owner_id": "1701",
-      "variant": "61",
-      "source": "bilibili-client"
-    },
-    {
       "path": "icons/characters/icon_unit_170211.png",
       "sha256": "6d2270a53477c5588a354fcace8eadcda6167de627aa5d066051c3d9ea094737",
       "owner_id": "1702",
@@ -5621,7 +5614,7 @@
   ],
   "icon_derivation": {
     "bilibili_client": {
-      "count": 744,
+      "count": 743,
       "package": "com.bilibili.priconne",
       "sources": [
         "base.apk!assets/PreinAssetBundle/{a,b,m,s,v}",
@@ -5630,7 +5623,10 @@
       "captured": "2026-11-07",
       "format": "128x128 PNG (lossless Texture2D)",
       "tool": "pcr-adb-assets pull_char_assets.py (scan/pull/apk/unpack/index)",
-      "verification": "1724 client icon bundles = 372 APK + 1402 device, disjoint, all exported; 744 of the catalog icon ids covered"
+      "verification": "1724 client icon bundles = 372 APK + 1402 device, disjoint, all exported; 744 of the catalog icon ids covered",
+      "excluded": {
+        "170161": "Pixel-identical to Djeeta 105761. No verified six-star Kanna replacement."
+      }
     },
     "upstream_cache_retained": {
       "count": 57,

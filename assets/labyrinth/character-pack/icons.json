@@ -3,12 +3,12 @@
   "source": {
     "characters": "redive.estertion.win 角色图标的本地缓存；只导入可与角色目录 ID 对应的 PNG/WebP。",
     "relics": "共识 Excel 数据源的“迷宫遗物”工作表 B 列内嵌 PNG。",
-    "note": "角色图标：744 个来自 B服客户端无损提取（APK 预装 assets/PreinAssetBundle 与设备 DLC files/{a,b,m,s,v} 合并，全部 128x128 PNG）；57 个保留上游 redive.estertion.win 缓存（B服客户端不存在的日服先行/NPC 头像）。"
+    "note": "角色图标：743 个来自 B服客户端无损提取（APK 预装 assets/PreinAssetBundle 与设备 DLC files/{a,b,m,s,v} 合并，全部 128x128 PNG）；57 个保留上游 redive.estertion.win 缓存（B服客户端不存在的日服先行/NPC 头像）。"
   },
   "coverage": {
     "catalogCharacters": 373,
     "coveredCharacters": 369,
-    "characterIconFiles": 801,
+    "characterIconFiles": 800,
     "unmatchedCharacterSourceFiles": 7,
     "catalogRelics": 109,
     "coveredRelics": 109,
@@ -6881,15 +6881,6 @@
       "width": 128,
       "height": 128,
       "sha256": "d80456048fc70efb36bd25f5ce894017d0b4d94065990f38d28f3199c2696666"
-    },
-    {
-      "ownerId": "1701",
-      "variant": "61",
-      "file": "icons/characters/icon_unit_170161.png",
-      "format": "png",
-      "width": 128,
-      "height": 128,
-      "sha256": "c1f879fa939ebfceacad048913f8b084126f0babb492a7a23afb3f9ef4f71627"
     },
     {
       "ownerId": "1702",

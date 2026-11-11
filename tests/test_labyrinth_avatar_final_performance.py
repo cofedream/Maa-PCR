@@ -11,7 +11,7 @@ from test_labyrinth_vision_performance import original_scores, art_frame
 @pytest.fixture(scope='module')
 def matcher():
     value = c.IconMatcher()
-    assert len(value.entries) == 801
+    assert value.entries
     return value
 
 
@@ -30,16 +30,16 @@ def test_default_full_scores_and_requested_fine_rows_are_byte_equal(matcher, mas
     for width in (12, 20):
         expected = original_scores(matcher, frame, box, mask, width)
         actual = matcher._scores(frame, box, mask, width, _prepared=prepared)
-        assert actual.shape == expected.shape == (801,)
+        assert actual.shape == expected.shape == (len(matcher.entries),)
         assert actual.dtype == expected.dtype == np.float64
         assert actual.tobytes() == expected.tobytes()
     # Full shape preserves the original-index consumer and existing formula replacement tests.
     # Unrequested private rows are neither consumed by match nor published as diagnostics.
-    for indices in (np.array([800, 0, 42]), np.arange(512), np.array([], dtype=int)):
+    for indices in (np.array([len(matcher.entries) - 1, 0, 42]), np.arange(512), np.array([], dtype=int)):
         selected = matcher._scores(frame, box, mask, 20, _prepared=prepared, _indices=indices)
-        assert selected.shape == (801,)
+        assert selected.shape == (len(matcher.entries),)
         assert selected[indices].tobytes() == expected[indices].tobytes()
-        omitted = np.ones(801, dtype=bool)
+        omitted = np.ones(len(matcher.entries), dtype=bool)
         omitted[indices] = False
         assert not selected[omitted].any()
 
@@ -70,10 +70,10 @@ def test_stable_ties_keep_order_variant_merge_and_rival(matcher, monkeypatch):
 
     def fixed(frame, box, mask, width, *, _prepared=None, _indices=None):
         if width == 12:
-            return np.zeros(801)
+            return np.zeros(len(matcher.entries))
         assert _indices is not None
         requested.append(_indices.copy())
-        out = np.zeros(801)
+        out = np.zeros(len(matcher.entries))
         out[_indices] = .5
         return out
 
