@@ -1,5 +1,6 @@
 """Stable Maa-PCR Release updates; stdout is one JSON result, never game input."""
 import argparse
+from base64 import b64encode
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
@@ -15,7 +16,7 @@ import time
 import traceback
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import BaseHandler, ProxyHandler, Request, build_opener, urlopen
 from uuid import uuid4
 import zipfile
 
@@ -123,6 +124,28 @@ def validate_index(index, old_manifest_bytes):
         'revision': index['revision'], 'version': index['version'], 'tag': index['tag'],
         'target_manifest_sha256': index['target_manifest_sha256'], 'asset': selected,
         'recovery_required': False}
+
+
+class _SystemUpdateProxy(BaseHandler):
+    """Resolve each HTTPS request through the GUI, including GitHub redirects."""
+
+    def https_request(self, request):
+        print('PCR_UPDATE_PROXY ' + request.full_url, file=sys.stderr, flush=True)
+        reply = sys.stdin.readline(8192).strip()
+        if reply == 'DIRECT':
+            return request
+        proxy = urlsplit(reply)
+        _require(proxy.scheme in ('http', 'https') and proxy.hostname and not proxy.query
+                 and not proxy.fragment and proxy.path in ('', '/'), 'system_update_proxy_failed')
+        if proxy.username is not None:
+            credentials = unquote(proxy.username) + ':' + unquote(proxy.password or '')
+            request.add_unredirected_header('Proxy-Authorization', 'Basic ' + b64encode(
+                credentials.encode('utf-8')).decode('ascii'))
+        request.set_proxy(proxy.netloc.rsplit('@', 1)[-1], proxy.scheme)
+        return request
+
+    def http_request(self, request):
+        raise ValueError('unsafe_update_redirect')
 
 
 def _open(url, opener=None):
@@ -539,6 +562,8 @@ def main(argv=None):
     for name in ('check', 'download', 'inspect', 'launch', 'worker', 'recover'):
         command = commands.add_parser(name, allow_abbrev=False)
         command.add_argument('--player', type=Path, required=True)
+        if name in ('check', 'download'):
+            command.add_argument('--system-proxy', action='store_true', help=argparse.SUPPRESS)
         if name == 'inspect':
             command.add_argument('--archive', type=Path, required=True)
         if name in ('launch', 'worker'):
@@ -550,10 +575,10 @@ def main(argv=None):
             command.add_argument('--wait-seconds', type=int, default=120)
     args = parser.parse_args(argv)
     try:
-        if args.command == 'check':
-            result = check_update(args.player)
-        elif args.command == 'download':
-            result = download_update(args.player)
+        if args.command in ('check', 'download'):
+            action = check_update if args.command == 'check' else download_update
+            opener = build_opener(ProxyHandler({}), _SystemUpdateProxy()).open if args.system_proxy else None
+            result = action(args.player, opener=opener)
         elif args.command == 'inspect':
             result = {'status': 'validated', **validate_archive(args.player, args.archive)}
         elif args.command == 'recover':

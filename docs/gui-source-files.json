@@ -351,6 +351,7 @@
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuDisplay.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuIdentity.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuReadOnlyDiagnostic.cs",
+    "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrNetworkProxy.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrOcrDiagnostics.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrOcrEvidence.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrPlayerRunLog.cs",

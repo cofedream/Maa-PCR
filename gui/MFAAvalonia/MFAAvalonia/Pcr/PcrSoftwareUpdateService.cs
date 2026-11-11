@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
@@ -396,7 +398,7 @@ public static class PcrSoftwareUpdateService
         foreach (var argument in new[] { "-X", "utf8", "-B", "-u", script, command, "--player", Player })
             start.ArgumentList.Add(argument);
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
-        ConfigureProxy(start, command, ViewModel.ProxyAddress, ViewModel.ProxyType);
+        ConfigureProxy(start, command, ViewModel.ProxyMode, ViewModel.UpdateProxyAddress);
         if (command != "launch") shutdown.Token.ThrowIfCancellationRequested();
         using var process = Process.Start(start) ?? throw new InvalidOperationException("updater_process_not_started");
         using var timeout = new CancellationTokenSource(command == "download" ? TimeSpan.FromMinutes(30) : TimeSpan.FromMinutes(3));
@@ -411,7 +413,8 @@ public static class PcrSoftwareUpdateService
             }
         });
         var stdout = process.StandardOutput.ReadToEndAsync(stop.Token);
-        var progress = ReadProgressAsync(process.StandardError, stop.Token);
+        var progress = ReadProgressAsync(process.StandardError,
+            start.RedirectStandardInput ? process.StandardInput : null, stop.Token);
         try
         {
             await process.WaitForExitAsync(stop.Token);
@@ -432,28 +435,68 @@ public static class PcrSoftwareUpdateService
         }
     }
 
-    internal static void ConfigureProxy(ProcessStartInfo start, string command, string? address,
-        VersionUpdateSettingsUserControlModel.UpdateProxyType type)
+    internal static void ConfigureProxy(ProcessStartInfo start, string command,
+        VersionUpdateSettingsUserControlModel.UpdateProxyMode mode, string? address)
     {
         // Local inspection, installation and recovery never depend on a network proxy.
-        if (command is not ("check" or "download") || string.IsNullOrWhiteSpace(address)) return;
+        if (command is not ("check" or "download")) return;
+        if (mode == VersionUpdateSettingsUserControlModel.UpdateProxyMode.FollowSystem)
+        {
+            // Python asks Windows for each URL, including redirected asset URLs.
+            start.RedirectStandardInput = true;
+            start.StandardInputEncoding = new System.Text.UTF8Encoding(false);
+            start.ArgumentList.Add("--system-proxy");
+            return;
+        }
+        if (mode == VersionUpdateSettingsUserControlModel.UpdateProxyMode.None)
+        {
+            // Do not let the updater inherit a desktop proxy either.
+            foreach (var key in new[] { "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY" }) start.Environment.Remove(key);
+            start.Environment["NO_PROXY"] = "*";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(address))
+            throw new InvalidOperationException("更新代理选择“自定义代理”时需要填写代理地址，格式为 [<用户名>:<密码>@]<主机>:<端口>。");
         var proxy = address.Trim();
         if (!proxy.Contains("://", StringComparison.Ordinal))
-        {
-            if (type == VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5)
-                throw new InvalidOperationException("unsupported_proxy_use_http_https");
             proxy = "http://" + proxy;
-        }
         if (!Uri.TryCreate(proxy, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
             throw new InvalidOperationException("unsupported_proxy_use_http_https");
         start.Environment["HTTPS_PROXY"] = proxy;
         start.Environment["HTTP_PROXY"] = proxy;
+        start.Environment.Remove("NO_PROXY");
     }
 
-    private static async Task ReadProgressAsync(StreamReader stderr, CancellationToken cancellation)
+    internal static string ResolveUpdateProxy(string url, IWebProxy settings)
     {
-        while (await stderr.ReadLineAsync(cancellation) is { } line)
+        if (url.Length > 32768 || !Uri.TryCreate(url, UriKind.Absolute, out var target)
+            || target.Scheme != "https" || target.Port != 443 || target.UserInfo.Length != 0
+            || target.IdnHost is not ("github.com" or "release-assets.githubusercontent.com" or "objects.githubusercontent.com"))
+            throw new InvalidDataException("unsafe_update_redirect");
+        var proxy = settings.IsBypassed(target) ? null : settings.GetProxy(target);
+        if (proxy is null || proxy == target) return "DIRECT";
+        if (proxy.Scheme is not ("https" or "http")) throw new InvalidDataException("unsupported_proxy_use_http_https");
+        return proxy.GetLeftPart(UriPartial.Authority);
+    }
+
+    private static async Task ReadProgressAsync(StreamReader stderr, StreamWriter? proxyInput, CancellationToken cancellation)
+    {
+        const string prefix = "PCR_UPDATE_PROXY ";
+        while (await stderr.ReadLineAsync(cancellation).ConfigureAwait(false) is { } line)
         {
+            if (proxyInput != null && line.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                string reply;
+                try
+                {
+                    reply = await Task.Run(() => ResolveUpdateProxy(line[prefix.Length..], HttpClient.DefaultProxy),
+                        cancellation).WaitAsync(cancellation).ConfigureAwait(false);
+                }
+                catch (Exception error) when (error is not OperationCanceledException) { reply = "ERROR"; }
+                await proxyInput.WriteLineAsync(reply.AsMemory(), cancellation).ConfigureAwait(false);
+                await proxyInput.FlushAsync(cancellation).ConfigureAwait(false);
+                continue;
+            }
             if (line.Length > 4096) continue;
             try
             {

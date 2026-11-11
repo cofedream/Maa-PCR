@@ -208,6 +208,7 @@ internal static class StartupActionsChecks
             "no_real_controller_agent_or_grant");
         PlayerLogChecks.Run(directory, id => Owner(manager, id));
         CheckUnreadableGlobalRestart(Owner(manager, "pcr-alpha-v1"));
+        CheckUpdateProxySettings(root);
         Console.WriteLine($"PCR startup/completion actions checks passed: {checks}; two fresh processes, real harmless launch marker; game inputs=0; OS shutdowns=0");
     }
 
@@ -417,6 +418,64 @@ internal static class StartupActionsChecks
             using var frame = new RenderTargetBitmap(new PixelSize(960, 720));
             frame.Render(view);
             frame.Save(Path.Combine(root, "restarted-start-settings.png"));
+        }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+    }
+
+    private static void CheckUpdateProxySettings(string root)
+    {
+        var view = new VersionUpdateSettingsUserControl { Background = Brushes.White };
+        var window = new Window { Content = view, Width = 720, Height = 840, ShowActivated = false,
+            ShowInTaskbar = false, Position = new PixelPoint(-12000, -12000) };
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var mode = view.GetLogicalDescendants().OfType<ComboBox>().Single();
+            var address = view.GetLogicalDescendants().OfType<TextBox>().Single();
+            Require(mode.ItemCount == 3
+                && (VersionUpdateSettingsUserControlModel.UpdateProxyMode?)mode.SelectedValue
+                == VersionUpdateSettingsUserControlModel.UpdateProxyMode.FollowSystem,
+                "update_proxy_defaults_to_follow_system");
+            Require(!address.IsEnabled, "follow_system_disables_custom_address");
+            var config = ConfigurationManager.Current;
+            var previousAddress = config.GetValue(ConfigurationKeys.ProxyAddress, string.Empty);
+            var previousType = config.GetValue(ConfigurationKeys.ProxyType, "Http");
+            var modelType = typeof(VersionUpdateSettingsUserControlModel);
+            var loadMode = modelType.GetMethod("LoadProxyMode", Hidden)!;
+            var loadAddress = modelType.GetMethod("LoadUpdateProxyAddress", Hidden)!;
+            config.SetValue(ConfigurationKeys.ProxyAddress, "127.0.0.1:38901");
+            config.SetValue(ConfigurationKeys.ProxyType, "Http");
+            Require(loadMode.Invoke(null, null)?.ToString() == "Custom"
+                && (string?)loadAddress.Invoke(null, null) == "127.0.0.1:38901", "legacy_http_proxy_is_preserved");
+            config.SetValue(ConfigurationKeys.ProxyType, "Socks5");
+            Require((string?)loadAddress.Invoke(null, null) == "socks5://127.0.0.1:38901", "legacy_socks_scheme_is_visible");
+            config.SetValue(ConfigurationKeys.ProxyType, previousType);
+            config.SetValue(ConfigurationKeys.ProxyAddress, previousAddress);
+            mode.SetCurrentValue(ComboBox.SelectedValueProperty, VersionUpdateSettingsUserControlModel.UpdateProxyMode.Custom);
+            Dispatcher.UIThread.RunJobs();
+            Require(address.IsEnabled
+                && ConfigurationManager.Current.GetValue(ConfigurationKeys.UpdateProxyMode, string.Empty)
+                == nameof(VersionUpdateSettingsUserControlModel.UpdateProxyMode.Custom),
+                "custom_proxy_enables_address_and_saves_mode");
+            var model = (VersionUpdateSettingsUserControlModel)view.DataContext!;
+            model.UpdateProxyAddress = "127.0.0.1:38124";
+            Dispatcher.UIThread.RunJobs();
+            Require(address.Text == model.UpdateProxyAddress
+                && ConfigurationManager.Current.GetValue(ConfigurationKeys.UpdateProxyAddress, string.Empty) == address.Text
+                && ConfigurationManager.Current.GetValue(ConfigurationKeys.ProxyAddress, string.Empty) == previousAddress,
+                "update_proxy_address_is_private_to_updates");
+            mode.SetCurrentValue(ComboBox.SelectedValueProperty, VersionUpdateSettingsUserControlModel.UpdateProxyMode.None);
+            Dispatcher.UIThread.RunJobs();
+            Require(!address.IsEnabled
+                && ConfigurationManager.Current.GetValue(ConfigurationKeys.UpdateProxyMode, string.Empty)
+                == nameof(VersionUpdateSettingsUserControlModel.UpdateProxyMode.None),
+                "no_proxy_disables_custom_address_and_saves_mode");
+            mode.SetCurrentValue(ComboBox.SelectedValueProperty, VersionUpdateSettingsUserControlModel.UpdateProxyMode.FollowSystem);
+            Dispatcher.UIThread.RunJobs();
+            using var frame = new RenderTargetBitmap(new PixelSize(720, 840));
+            frame.Render(view);
+            frame.Save(Path.Combine(root, "update-proxy-settings.png"));
         }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     }

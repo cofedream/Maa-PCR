@@ -10,6 +10,44 @@ from pcr_maa import player_maintenance as maintenance
 from pcr_maa import player_update as updater
 
 
+def test_system_proxy_resolves_redirects_and_keeps_proxy_auth_on_first_request(monkeypatch):
+    from email.message import Message
+    from io import BytesIO, StringIO
+    from urllib.request import HTTPSHandler, ProxyHandler, build_opener
+    from urllib.response import addinfourl
+
+    queries = StringIO()
+    monkeypatch.setattr(updater.sys, 'stderr', queries)
+    monkeypatch.setattr(updater.sys, 'stdin', StringIO('http://test:pw@127.0.0.1:38124\nDIRECT\n'))
+    redirect = 'https://release-assets.githubusercontent.com/test-asset'
+    hops = []
+
+    class SavedResponses(HTTPSHandler):
+        def https_open(self, request):
+            hops.append((request.host, request.get_header('Proxy-authorization')))
+            headers = Message()
+            if len(hops) == 1:
+                headers['Location'] = redirect
+            response = addinfourl(BytesIO(b'asset'), headers, request.full_url, 302 if len(hops) == 1 else 200)
+            response.msg = 'offline'
+            return response
+
+    opener = build_opener(ProxyHandler({}), updater._SystemUpdateProxy(), SavedResponses())
+    with updater._open(updater.INDEX_URL, opener.open) as response:
+        assert response.read() == b'asset'
+    assert hops == [('127.0.0.1:38124', 'Basic dGVzdDpwdw=='), ('release-assets.githubusercontent.com', None)]
+    assert queries.getvalue().splitlines() == ['PCR_UPDATE_PROXY ' + url for url in (updater.INDEX_URL, redirect)]
+
+
+@pytest.mark.parametrize('reply', ['', 'ERROR\n', 'socks5://localhost:7890\n'])
+def test_failed_system_proxy_resolution_stops_before_connection(monkeypatch, reply):
+    from io import StringIO
+    from urllib.request import Request
+    monkeypatch.setattr(updater.sys, 'stdin', StringIO(reply))
+    with pytest.raises(ValueError, match='system_update_proxy_failed'):
+        updater._SystemUpdateProxy().https_request(Request(updater.INDEX_URL))
+
+
 def record(name, data):
     return {'path': name, 'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
 
