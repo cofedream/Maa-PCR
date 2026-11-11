@@ -72,6 +72,7 @@ DELIVERY_FILES = frozenset((
     'delivery/baselines/r75-package-manifest.json',
     'delivery/baselines/r76-package-manifest.json',
     'delivery/baselines/r77-package-manifest.json',
+    'delivery/baselines/r78-package-manifest.json',
 ))
 TEXT_SUFFIXES = frozenset((
     '.py', '.cs', '.md', '.txt', '.json', '.toml', '.yml', '.yaml', '.xml',
