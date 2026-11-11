@@ -1,14 +1,82 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 79,
   "expected_version": "v0.1.32",
+  "verified_at_utc": "2026-11-11T18:53:52.699562+00:00",
   "base_release_manifest_sha256": "b97e57784aa58d212b9eb567815f44c65a9dfde6a8b172bf15f0654e6be04a1a",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
+  "accepted_owned_payload_sha256": "871ad91677c644925b6f16758439aeee4c7b2b388233edca92ceab8986e8db30",
+  "accepted_staging_manifest_sha256": "5d1cf7ced5ed0abb1b4010424bcbcd5986fe5efa0814414a88b9e2f6198a5e04",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 43072231825,
+    "run_attempt": 1,
+    "artifact_id": 13882754822,
+    "source_commit": "d7ebdb5bd719d910aef5f94ffdc47aadddcc619f",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.32-win-x64.zip",
+      "size": 350071595,
+      "sha256": "895659e4b387a5634d0fe338b4ace871ca015e060e9d4540eca4cabbba154103"
+    }
+  },
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 7475,
+    "skipped": 395,
+    "failed": 0,
+    "errors": 0
+  },
+  "bundled_runtime_tests": {
+    "passed": 3,
+    "skipped": 0,
+    "failed": 0,
+    "errors": 0
+  },
+  "packaged_business_tests": {
+    "passed": 45,
+    "skipped": 0,
+    "failed": 0,
+    "errors": 0
+  },
+  "maaframework_version": "5.13.0",
+  "packaged_source_alignment_verified": true,
+  "packaged_event_and_shop_feedback_replayed": true,
+  "original_r78_delta_and_full_updates_verified": true,
+  "live_verification_performed": false,
+  "game_inputs": 0,
+  "evidence_sha256": {
+    "CI_BINDING.json": "783f1eff6ed5f7738f3572c82f033d201889eb9be6b38bd0b9532403b6aad941",
+    "ci-artifact/public-tests.xml": "1d05e922af293412137ce314acea461ea66477e2ea2c8fc927d5d7c120cb5412",
+    "ci-artifact/bundled-runtime.xml": "bce181dd0c59df69d1b273ebe939fbf6cacbecf66e2f968efcf4ab23ae0793ca",
+    "ci-artifact/build/SOURCE_ALIGNMENT.json": "00319c04bb2d4833f64079335ea32caa80eb4c11b9992290e5fc0c8fbc254ced",
+    "package-checks/final-ci/PACKAGE_CHECKS.json": "c6a94444bf1f87dd81d2cef09ed256e93aa5c55818e6f96dd4b1c65a3edc3ff6",
+    "ORIGINAL_UPDATER.json": "f28db3aa74bdceec4796625608a86b9091408f1c76937db0244450e402436a5f",
+    "package-business.xml": "d899e7a232fa003b8dd257934f45399981f3ce8e7b22a427693b4c090dd555df",
+    "packaged-window.json": "66d0e532f5dff190b648c0a23d51018a316189567ecf24abe99b5ff68875561e",
+    "ci-frames/child.log": "0ad9baaec61145c14f9ee36e9f88bb3b5530352a41af24fe10893d281f001abf",
+    "ci-python/child.log": "9e4529db419b3d7e9a31111a5349db2fe499c2ff2aa0e9ae16a1ee148e103562",
+    "ci-packages/result.json": "d6a59977fb6abd2d5c96c99319cba396b22722d571e2ead5895f97ac9460b185",
+    "ci-original/result.json": "d005ca3782d30caf40fb6d7cfb24e325cf6f4793f8d9314251bf02d91a1d67a6",
+    "ci-business/result.json": "b8cd9d80118b8a2c6f586434180dead0f25dd7bb955e9097fcf891a3536cff87",
+    "ci-frames/result.json": "30af6fc622ce27df26e1512ad374a11ae15d23401b0705d8f663b27920c3f316",
+    "ci-python/result.json": "e20d6cf1482c46fef679d2fc09f78640552602541c8e4c0208c0e5d067c1adcb",
+    "ci-window/result.json": "85266f6e4e7c459ff6a8a525ac55f9db7901d6475f5c09cd1433364b65290cfd",
+    "ci-proxy/result.json": "765859b22347e951ef5acc9f4536e7a9bc18531a57cc18469b5c9ba969a47aa1",
+    "pr12/windows-pac/result.json": "191166f285224890c854d28e1d9ba98a890ceb58889aa679f0a04b61b87a1d37",
+    "pr12-startup-migration/result.json": "ec9d9f607c27c440e6cca8500f86840a0b5ff57977341ba15bcfcbe300e0cccc",
+    "ci-proxy/child.log": "bcb77645ceef2c3d25cd78335574d1d937d529351f3770bac1bd44d163281d3b",
+    "pr12/windows-pac/child.log": "d58fc188466642c9613b9fd3adff3031c8c2bf859ec4081e52d63848525d8974",
+    "pr12-startup-migration/child.log": "baf81995fca6af529d2ecabc7924e2a74b10c954e6d62cd356a4499f7f7d459a"
+  },
+  "previous_release_acceptance": {
+    "revision": 78,
+    "sha256": "4ee1da15934ed35c89ddb8c999abb9c6bd4f646ec4158cf7a407704fd80901b4"
+  },
   "limits": [
-    "Acceptance pending for the exact R79 CI candidate."
-  ]
+    "Saved-frame and isolated GUI coverage. No new real-account or live-device run."
+  ],
+  "pr12_update_proxy_routes_verified": 12
 }
