@@ -1,9 +1,27 @@
 from copy import deepcopy
 import hashlib
+import json
 
 import pytest
 
 from scripts.ocr_benchmark import gates, validate
+
+
+@pytest.mark.parametrize('exit_code,expected_version', [(0,'5.16.0'),(1,None)])
+def test_report_uses_the_version_observed_by_a_successful_worker(tmp_path,monkeypatch,exit_code,expected_version):
+    from scripts import ocr_benchmark as bench
+    from subprocess import CompletedProcess
+    samples,models,out=(tmp_path/name for name in ('samples','models','out'))
+    samples.write_text('{"samples":[]}',encoding='utf-8')
+    models.write_text('{"baseline":"v4","models":[{"id":"v4"}]}',encoding='utf-8')
+    monkeypatch.setattr(bench,'validate',lambda *_:None)
+    monkeypatch.setattr(bench.sys,'argv',['benchmark','--samples',str(samples),'--models',str(models),'--output',str(out)])
+    def run(command,**kwargs):
+        (out/'v4.json').write_text(json.dumps(dict(status='compatible',model='v4',framework='5.16.0',rows=[])),encoding='utf-8')
+        return CompletedProcess(command,exit_code)
+    monkeypatch.setattr(bench.subprocess,'run',run)
+    bench.main()
+    assert json.loads((out/'report.json').read_text(encoding='utf-8'))['framework']==expected_version
 
 
 def row(sample='good', expected=True, hits=None, **kw):

@@ -80,7 +80,7 @@ def memory_bytes():
 def worker(samples_path, models_path, model_id, output):
     from pcr_maa import native
     from pcr_maa.replay import SavedImages
-    from maa.resource import Resource
+    from maa.library import Library
     import cv2
     import numpy as np
     deny_external_io()
@@ -131,7 +131,8 @@ def worker(samples_path, models_path, model_id, output):
     finally:
         native.stop_tasker(tasker)
     rss, peak = memory_bytes()
-    output.write_text(json.dumps(dict(status='compatible', model=model_id, load_seconds=loading,
+    output.write_text(json.dumps(dict(status='compatible', model=model_id,
+        framework=Library.version().removeprefix('v'), load_seconds=loading,
         cold_endpoint_seconds=cold_endpoint, cold_ready_seconds=loading + (cold_endpoint or 0),
         rss_bytes=rss, peak_rss_bytes=peak, model_bytes=sum(r['size'] for r in model['files'].values()), rows=rows),
         ensure_ascii=False, indent=2), encoding='utf-8')
@@ -198,7 +199,10 @@ def main():
                 result = dict(model=model['id'], status='timeout')
         results.append(result)
         print(model['id'], result['status'], flush=True)
-    report = dict(schema=1, framework='5.13.0', samples_sha256=digest(args.samples), models_sha256=digest(args.models),
+    versions = {r['framework'] for r in results if r['status'] == 'compatible'}
+    if len(versions) > 1:
+        raise RuntimeError('OCR workers loaded different framework versions')
+    report = dict(schema=1, framework=next(iter(versions), None), samples_sha256=digest(args.samples), models_sha256=digest(args.models),
         corpus_groups=len({r['group'] for r in samples['samples']}), results=results,
         selection=gates(results, models['baseline']), limitations=samples.get('limitations', []), device_inputs=0, installed=False)
     (args.output/'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
