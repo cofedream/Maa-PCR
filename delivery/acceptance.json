@@ -1,14 +1,64 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 81,
   "expected_version": "v0.1.34",
+  "verified_at_utc": "2026-11-13T17:24:54.528717+00:00",
   "base_release_manifest_sha256": "d9f4a851247fb61f82eaf33a65cb707a948214bfc6d9e0e1251fe36bac153c8e",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
+  "accepted_owned_payload_sha256": "0977cf3d7c8f8fb38eb9ca49f86cc0d595b750a5a5337309318e4827218270a4",
+  "accepted_staging_manifest_sha256": "01e499d8deef79a9ac0557bfcd2a322cee4c187b56bfd99efc184ee77b7599bb",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 43461900830,
+    "run_attempt": 1,
+    "artifact_id": 14059123811,
+    "source_commit": "b7a9c672496d70f4e1874f1afd4f7a8edf9a6f42",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.34-win-x64.zip",
+      "size": 350082285,
+      "sha256": "298b4bc56ed5f34d74555e68ec0ad266cae4650bf6a42625f6a80ad66b40d4ca"
+    }
+  },
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "gui_mode": "real Win32 settings-only diagnostic with separate device ownership",
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 7564,
+    "skipped": 395,
+    "failed": 0,
+    "errors": 0
+  },
+  "bundled_runtime_tests": {
+    "passed": 3,
+    "skipped": 0,
+    "failed": 0,
+    "errors": 0
+  },
+  "packaged_source_alignment_verified": true,
+  "original_r80_delta_and_full_updates_verified": true,
+  "isolated_rollback_and_recovery_verified": true,
+  "packaged_channel_stop_and_resume_gateway_verified": true,
+  "live_verification_performed": false,
+  "evidence_sha256": {
+    "CI_BINDING.json": "1c2f62b3029a0c314c64fde4bc23bb6a183ff7312a6ad19c9012886dfe5f46bd",
+    "ci-artifact/build/SOURCE_ALIGNMENT.json": "2aeeb380dbd3f9954d608b3b0ff290256ee86025287a594c97b5724f3e8a0770",
+    "ci-artifact/public-tests.xml": "853be683b9ab6434c36eb56796a4e5d3c8b8e2ef82e7a9ef11a375fc918c4022",
+    "ci-artifact/bundled-runtime.xml": "bcc84eb8150680f99afcea1970466353f0243b8ec53b35d557efe544aad0172b",
+    "packaged-window.json": "7a648f364f9bbb6e1b8507f2abde781221e7041e235fa834b4d06098998d188b",
+    "package-checks/final-ci/PACKAGE_CHECKS.json": "d1e57496a412fe7168574575c3277a5d790c773d6c1f1af152ee42809fc0284c",
+    "ORIGINAL_UPDATER.json": "a087a28e675e1bc2e591e287916dbfff1a001413a25cf9e686d69ee90572eb6a",
+    "packages/result.json": "ed8db0133f093c72c8c44280967098f95fcbd5466c22900dc548ef30a21c2850",
+    "packages/child.log": "0c05e0eeb16745ea5681b85631e8a72398d90123d6851a0bd5d305a030e057f3",
+    "original/result.json": "17861eb86d9a732c9f1df3120572b9e68cadd84f5a0d58c5823c04a0e14e29a7",
+    "original/child.log": "a32185ddcec5ca88bbfea26d0fefbb48d6cbe693f281fbcfa60dde25343fc59c",
+    "window-verified/result.json": "41eee3bc618e48380f13b721cab6ea27b53bd80c2f8a2e916e3246bfb8c2957b",
+    "window-verified/child.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "packaged-fixes/result.json": "a9da485574c9b2935472f73cd50008949d19dfd0b1709cc43ee99db292ea55a9",
+    "packaged-fixes/child.log": "f6c1c825cb4e5c9bd59288b109f6c734514ccd3cc19e1cd978a208bbd1ef7875"
+  },
   "limits": [
-    "Acceptance pending for the exact R81 CI candidate."
+    "Verified in isolated R80 installations with synthetic settings and a settings-only Win32 GUI. No live account or device was used."
   ]
 }
