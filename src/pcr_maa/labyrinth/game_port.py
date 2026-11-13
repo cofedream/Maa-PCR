@@ -5,8 +5,9 @@ Title identity, the empty-to-joined invitation and a fresh area-1 map. A logical
 START comes from that new-run sequence, never from invented pixel evidence.
 """
 from copy import deepcopy
+import re
 import time
-from .. import native
+from .. import native, player_log
 from .batch import BatchStopped
 from .game_session import MaaGameSession, game_session_pipeline, _root, _box
 from .launch_command import launch_accepted, launch_command, launch_component
@@ -47,24 +48,40 @@ class MaaGamePort:
 
     def prepare_protocol_login(self,server,account_id):
         """ADB force-stop avoids channel SDK logout before a game-server login."""
+        from .app_version import controller_shell
         self._hard_closed=None
         if (server!=self.server.server_id or not self.server.closes_client_before_login
                 or type(account_id) is not int or not 0<account_id<=2**63-1):
+            player_log.text('渠道服关闭游戏失败：登录目标校验失败。')
             raise BatchStopped('channel_client_close_failed')
         if self.stopped():raise BatchStopped('stopped')
         node='LabyChannelBeforeLoginStopOnce'
-        if not self.tasker.resource.override_pipeline({node:dict(recognition='DirectHit',action='StopApp',
-                package=self.server.package,max_hit=1,next=[],pre_delay=0,post_delay=0)}):
-            raise BatchStopped('channel_client_close_failed')
-        receipt=native.run(self.tasker,node,reset_hits=(node,))
-        if self.stopped():raise BatchStopped('stopped')
-        action=_root(receipt,node).get('action')
-        if (type(action) is not dict or action.get('name')!=node or action.get('success') is not True
-                or type(action.get('raw')) is not dict or action['raw'].get('package')!=self.server.package):
-            raise BatchStopped('channel_client_close_failed')
-        from .app_version import controller_shell
-        if controller_shell(self.tasker.controller,'pidof '+self.server.package,stopped=self.stopped).strip():
-            raise BatchStopped('channel_client_close_failed')
+        package=self.server.package
+        reason='关闭动作未能执行'
+        try:
+            if not self.tasker.resource.override_pipeline({node:dict(recognition='DirectHit',action='StopApp',
+                    package=package,max_hit=1,next=[],pre_delay=0,post_delay=0)}):
+                raise BatchStopped('channel_client_close_failed')
+            receipt=native.run(self.tasker,node,reset_hits=(node,))
+            if self.stopped():raise BatchStopped('stopped')
+            reason='关闭动作回执校验失败'
+            action=_root(receipt,node).get('action')
+            if (type(action) is not dict or action.get('name')!=node or action.get('success') is not True
+                    or type(action.get('raw')) is not dict or action['raw'].get('package')!=package):
+                raise BatchStopped('channel_client_close_failed')
+            reason='进程查询失败'
+            # pidof exits 1 for no matches. Bring its status and stderr back through ADB.
+            reply=controller_shell(self.tasker.controller,f'pidof {package} 2>&1; echo "pidof_status=$?"',
+                                   stopped=self.stopped).strip()
+            if reply!='pidof_status=1':
+                if re.fullmatch(r'[0-9]+(?:[ \t]+[0-9]+)*\r?\npidof_status=0',reply):
+                    reason='进程仍在运行'
+                raise BatchStopped('channel_client_close_failed')
+        except Exception as error:
+            if self.stopped() or isinstance(error,BatchStopped) and error.args==('stopped',):
+                raise BatchStopped('stopped') from None
+            player_log.text(f'渠道服关闭游戏失败（{self.server.name}）：{reason}。')
+            raise BatchStopped('channel_client_close_failed') from None
         if self.stopped():raise BatchStopped('stopped')
         self._hard_closed=(self.server.server_id,account_id,self.server.package)
         return True

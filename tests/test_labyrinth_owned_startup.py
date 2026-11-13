@@ -314,32 +314,92 @@ def client():
         content_version='123456789012')
 
 
-@pytest.mark.parametrize('operation,statuses,expected', [
-    ('top', (503,200), 'ok'), ('top', (502,502), 'network_failed'),
-    ('top', (403,), 'network_failed'), ('enter', (503,), 'network_failed'),
-    ('retire', (504,), 'network_failed'),
+@pytest.mark.parametrize('operation,statuses,headers,size,expected', [
+    ('top', (503,200), {}, 4, 'ok'), ('top', (502,502), {}, 4, 'network_failed'),
+    ('top', (403,), {}, 4, 'network_failed'), ('enter', (503,), {}, 4, 'network_failed'),
+    ('retire', (504,), {}, 4, 'network_failed'),
+    ('resume', (502,200), {}, 4, 'ok'), ('resume', (503,503), {}, 4, 'network_failed'),
+    ('resume', (504,200), {}, 4, 'ok'), ('resume', (429,), {}, 4, 'network_failed'),
+    ('resume', (503,), {'Retry-After':'60'}, 4, 'network_failed'),
+    ('resume', (200,), {}, 16*1024*1024+1, 'network_failed'),
 ])
-def test_gateway_readback_retries_only_top(monkeypatch, operation, statuses, expected):
+def test_gateway_retries_only_the_readback(monkeypatch, operation, statuses, headers, size, expected):
+    from pcr_maa import player_log
     value=client()
     value._phase='protocol';value.logged_in=True
     value.auth.viewer_id=123
     monkeypatch.setattr(value.auth,'validate_root',lambda root:'https://offline.invalid/')
-    monkeypatch.setattr(value.auth,'unpack',lambda data:dict(data_headers={'result_code':1},data={'enter_id':713}))
-    calls=[]
+    node=dict(block_id=1,area=1,column=1,row=1,block_type=1)
+    monkeypatch.setattr(value.auth,'unpack',lambda data:dict(data_headers={'result_code':1},data={'enter_id':713,'map_list':[node]}))
+    calls=[];logs=[]
+    monkeypatch.setattr(player_log,'text',logs.append)
     def post(url,**kw):
         status=statuses[len(calls)]
-        calls.append(url.rsplit('/',1)[-1])
-        return NS(status_code=status,content=b'test',headers={})
+        calls.append((url.rsplit('/',1)[-1],kw['data']))
+        return NS(status_code=status,content=b'x'*size,headers=headers)
     value.http=post
-    args={'top':(), 'enter':(3,4), 'retire':(713,)}[operation]
+    args={'top':(), 'enter':(3,4), 'retire':(713,), 'resume':(713,)}[operation]
     try:
         if expected=='ok':
             assert asyncio.run(getattr(value,operation)(*args))['enter_id']==713
         else:
             with pytest.raises(protocol.ProtocolFailure,match='^'+expected+'$'):
                 asyncio.run(getattr(value,operation)(*args))
-        assert calls==[operation]*len(statuses)
+            assert value.phase=='closed'
+        assert calls==[(operation,calls[0][1])]*len(statuses)
+        failed=[(i,status) for i,status in enumerate(statuses,1) if status!=200 or size>16*1024*1024]
+        assert len(logs)==len(failed)
+        for line,(i,status) in zip(logs,failed):
+            assert operation.upper() in line and f'HTTP {status}' in line
+            assert f'{size} 字节' in line and f'第 {i} 次' in line
+            assert ('将重试' in line)==(i<len(statuses))
+            assert ('Retry-After' in line)==bool(headers)
+            assert ('超过 16 MiB' in line)==(size>16*1024*1024)
     finally:value.close()
+
+
+def test_resume_transport_failure_logs_no_private_detail_or_retry(monkeypatch):
+    import requests
+    from pcr_maa import player_log
+    value=client()
+    value._phase='protocol';value.logged_in=True;value.auth.viewer_id=123
+    calls=[];logs=[]
+    def post(url,**kwargs):
+        calls.append(url.rsplit('/',1)[-1])
+        raise requests.Timeout('private transport details')
+    value.http=post
+    monkeypatch.setattr(player_log,'text',logs.append)
+    with pytest.raises(protocol.ProtocolFailure,match='^network_or_protocol_failed$'):
+        asyncio.run(value.resume(713))
+    assert calls==['resume'] and value.phase=='closed'
+    assert len(logs)==1 and 'RESUME' in logs[0] and 'private' not in logs[0]
+
+
+def test_opening_readback_gateway_error_never_replays_creation(monkeypatch):
+    from pcr_maa.labyrinth.acquisition import ProtocolAcquisitionPort
+    from pcr_maa.labyrinth.batch import Binding
+    from test_labyrinth import handoff_map_nodes
+
+    value=client()
+    value._phase='protocol';value.logged_in=True
+    value._session_generation=object();value.auth.viewer_id=123
+    port=ProtocolAcquisitionPort(value,None,Binding(123,'offline'))
+    calls=[]
+    nodes=[n.payload() for n in handoff_map_nodes()]
+    def post(url,**kwargs):
+        op=url.rsplit('/',1)[-1]
+        calls.append(op)
+        status=503 if op=='resume' and calls.count(op)==1 else 200
+        data={'enter':dict(enter_id=713,map_list=nodes), 'top':dict(enter_id=713,guild_id=1,difficulty=1),
+              'resume':dict(guild_id=1,block_id=0,map_list=nodes)}[op]
+        return NS(status_code=status,headers={},content=json.dumps(dict(data_headers={'result_code':1},data=data)).encode())
+    value.http=post
+    monkeypatch.setattr(value.auth,'unpack',json.loads)
+    try:
+        opening=port.enter(1,1,'synthetic-opening')
+        assert port.read_opening(opening['enter_id'])['enter_id']==713
+        assert calls==['enter','top','top','resume','resume','top']
+    finally:port.close()
 
 
 def test_sdk_login_wall_timeout_closes_credentials_without_retry(monkeypatch):

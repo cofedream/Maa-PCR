@@ -5,7 +5,7 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from pcr_maa import native
+from pcr_maa import native, player_log
 from pcr_maa.labyrinth.app_version import parse_package_version
 from pcr_maa.labyrinth.batch import BatchStopped
 from pcr_maa.labyrinth.game_port import MaaGamePort
@@ -346,11 +346,11 @@ def offline_native(tmp_path_factory):
     class Controller(SavedImages):
         def __init__(self):
             super().__init__([[np.zeros((720,1280,3),np.uint8)]])
-            self.stops=[];self.commands=[];self.pids=''
+            self.stops=[];self.commands=[];self.pid_reply='pidof_status=1\n'
         def stop_app(self,package):self.stops.append(package);return True
         def shell(self,command,timeout):
             self.commands.append(command)
-            if command.startswith('pidof '):return self.pids
+            if command.startswith('pidof '):return self.pid_reply
             if command=='dumpsys window windows':
                 return 'mCurrentFocus=Window{abc u0 com.bilibili.priconne.aligames/.MainActivity}'
             if command=='uiautomator dump /dev/tty':return window()
@@ -363,18 +363,35 @@ def offline_native(tmp_path_factory):
     assert native.wait_job(tasker.post_stop()).succeeded
 
 
-def test_real_official_sdk_executes_only_selected_force_stop_and_verifies_absent_pid(offline_native):
+def test_real_official_sdk_executes_only_selected_force_stop_and_verifies_absent_pid(offline_native, monkeypatch):
     tasker,controller=offline_native
     game=MaaGamePort(tasker,lambda **v:v,server='cn-mumu')
+    logs=[]
+    monkeypatch.setattr(player_log,'text',logs.append)
     assert game.prepare_protocol_login('cn-mumu',123)
     assert controller.stops==[get_server('cn-mumu').package]
-    assert controller.commands==['pidof '+get_server('cn-mumu').package]
+    assert controller.commands==[f'pidof {game.server.package} 2>&1; echo "pidof_status=$?"']
     assert game._hard_closed==('cn-mumu',123,get_server('cn-mumu').package)
-    controller.pids='1234'
+    for reply,reason in [('1234 5678\npidof_status=0','进程仍在运行'), ('','进程查询失败'), (None,'进程查询失败'),
+                         ('private detail\npidof_status=1','进程查询失败'), ('pidof_status=127','进程查询失败')]:
+        monkeypatch.setattr(controller,'pid_reply',reply)
+        with pytest.raises(BatchStopped,match='^channel_client_close_failed$'):
+            game.prepare_protocol_login('cn-mumu',123)
+        assert game._hard_closed is None and reason in logs[-1]
+    assert len(logs)==5 and 'private detail' not in str(logs)
+
+
+def test_rejected_stop_receipt_never_checks_pid(monkeypatch):
+    tasker=NS(resource=NS(override_pipeline=lambda nodes:True))
+    game=MaaGamePort(tasker,lambda **v:v,server='cn-4399')
+    logs=[]
+    monkeypatch.setattr(player_log,'text',logs.append)
+    monkeypatch.setattr(native,'run',lambda _,node,**kw:native_receipt(node,package='wrong.package'))
+    monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',
+                        lambda *a,**kw:pytest.fail('unexpected pid query'))
     with pytest.raises(BatchStopped,match='^channel_client_close_failed$'):
-        game.prepare_protocol_login('cn-mumu',123)
-    assert game._hard_closed is None
-    controller.pids=''
+        game.prepare_protocol_login('cn-4399',123)
+    assert game._hard_closed is None and '回执校验失败' in logs[-1]
 
 
 def test_real_sdk_window_dump_rechecks_precede_one_bounded_maafw_click(offline_native):

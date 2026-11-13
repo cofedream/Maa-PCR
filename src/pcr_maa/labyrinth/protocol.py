@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 import sys
 from urllib.parse import urlsplit
+from .. import player_log
 from .routes import Node
 from .timing import Timings
 from .servers import get_server
@@ -338,16 +339,25 @@ class LabyrinthClient:
         data=dict(fields,viewer_id=base64.b64encode(self.auth.encrypt(str(self.auth.viewer_id).encode(),key)).decode('ascii'))
         body=self.auth.encrypt(msgpack.packb(data,use_bin_type=False),key)
         try:
-            for attempt in range(2):
+            for attempt in (1,2):
                 self._check_open()
                 response=await asyncio.to_thread(self.http or requests.post,self.auth.validate_root(self.auth.root)+endpoint.value,
                     data=body,headers=dict(self.auth.headers),timeout=(5,10),allow_redirects=False)
                 self._check_open()
-                # A transient gateway error on the readback can never repeat ENTER or RETIRE.
-                if (attempt or endpoint is not Endpoint.TOP or response.status_code not in (502,503,504)
-                        or response.headers.get('Retry-After') is not None):break
+                status=response.status_code
+                size=len(response.content)
+                if status==200 and size<=16*1024*1024:break
+                gateway=status in (502,503,504)
+                retry_after=gateway and response.headers.get('Retry-After') is not None
+                retry=(attempt==1 and endpoint in (Endpoint.TOP,Endpoint.RESUME)
+                       and gateway and not retry_after)
+                decision='将重试本次读取' if retry else '已停止请求'
+                if retry_after:decision='收到 Retry-After，'+decision
+                if size>16*1024*1024:decision='超过 16 MiB，'+decision
+                player_log.text(f'黎明界协议 {endpoint.name} 第 {attempt} 次请求失败：HTTP {status}，'
+                                f'响应 {size} 字节，{decision}。')
+                if not retry:raise ProtocolFailure('network_failed')
                 await asyncio.sleep(.5)
-            if response.status_code!=200 or len(response.content)>16*1024*1024:raise ProtocolFailure('network_failed')
             raw=self.auth.no_null_key(self.auth.unpack(response.content))
             header=raw.get('data_headers');result=raw.get('data')
             if type(header) is not dict or type(result) is not dict:raise ProtocolFailure('response_invalid')
@@ -364,6 +374,9 @@ class LabyrinthClient:
             self.close();raise
         except asyncio.CancelledError:
             self.close();raise
+        except requests.RequestException:
+            player_log.text(f'黎明界协议 {endpoint.name} 第 {attempt} 次请求未取得完整响应，已停止请求。')
+            self.close();raise ProtocolFailure('network_or_protocol_failed') from None
         except Exception:
             self.close();raise ProtocolFailure('network_or_protocol_failed') from None
 
