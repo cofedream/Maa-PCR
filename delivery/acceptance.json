@@ -1,14 +1,66 @@
 {
   "schema_version": 1,
-  "status": "pending",
+  "status": "passed",
   "revision": 80,
   "expected_version": "v0.1.33",
+  "verified_at_utc": "2026-11-13T14:59:59.279889+00:00",
   "base_release_manifest_sha256": "d61b28aca9270338af32b23b14e931c1d2aba6e072e23287471949c7352cbaf5",
-  "offline_tests_passed": false,
-  "isolated_update_passed": false,
-  "gui_verified": false,
-  "clean_build_verified": false,
+  "accepted_owned_payload_sha256": "fc4e1c6c6e294d41b84cc0ca10df11a460a2e7b31a23b8dbea26502356db27c9",
+  "accepted_staging_manifest_sha256": "9ae001f2b4044214b0bd0b5345d7c7d85818111550cff9f9262f060cb8f0f51e",
+  "accepted_ci_artifact": {
+    "repository": "shiwandehongbai/Maa-PCR",
+    "run_id": 43434878273,
+    "run_attempt": 1,
+    "artifact_id": 14044788704,
+    "source_commit": "6b25e3df167ff810de7441fdc32727ed28acf063",
+    "runtime_archive": {
+      "name": "Maa-PCR-v0.1.33-win-x64.zip",
+      "size": 350081315,
+      "sha256": "9bd18f5ce6545c9a6640232b667f15165d341fd4de0fc28bdbdf7f663d0725c2"
+    }
+  },
+  "offline_tests_passed": true,
+  "isolated_update_passed": true,
+  "gui_verified": true,
+  "gui_mode": "real Win32 settings-only diagnostic with separate device ownership",
+  "clean_build_verified": true,
+  "public_tests": {
+    "passed": 7550,
+    "skipped": 395,
+    "failed": 0,
+    "errors": 0
+  },
+  "bundled_runtime_tests": {
+    "passed": 3,
+    "skipped": 0,
+    "failed": 0,
+    "errors": 0
+  },
+  "packaged_source_alignment_verified": true,
+  "original_r79_delta_and_full_updates_verified": true,
+  "isolated_rollback_and_recovery_verified": true,
+  "packaged_final_chest_and_link_character_entrance_replayed": true,
+  "live_verification_performed": false,
+  "evidence_sha256": {
+    "CI_BINDING.json": "074dc4e1295ae686610b27470922b04dd10a6d59019c8119038afd73b7e0550e",
+    "ci-artifact/build/SOURCE_ALIGNMENT.json": "174fae127f055281447981ea775d4d6d750a94ce8827393c0b2278df221947b5",
+    "ci-artifact/public-tests.xml": "9fe5c095d9b4d17df3e0b9333b68a7f5cdd822e46843bce28254bc5b29abdce5",
+    "ci-artifact/bundled-runtime.xml": "7d845f7697886929deab8b441beeb70cf7c91569f67a4442c9992ac3796be064",
+    "packaged-window.json": "3c7071f20142eeaf1f964e92b419db8aff741afb13b78c80808c641b4f34e3f7",
+    "package-checks/final-ci/PACKAGE_CHECKS.json": "ba384a33367dfff532abec5b6632499ff21230f2a8a71012d91a7b67dda78a4e",
+    "ORIGINAL_UPDATER.json": "7b02820c70f3db8ac2af09dfc8e6186e9f7a3f4a91689490a4904f142791ffc9",
+    "packages/result.json": "5fa603fcbbc045b4085a831229cceb06683b91b928b7821491d335d979dcc813",
+    "packages/child.log": "33f855b11108559c8684c6069d6915c9406daa4a34c1ab03d00a6acd44cea64a",
+    "original/result.json": "f0e5762a8a65943700e0640c129fb602629818ed40734aa2ca372607f6cc0cc3",
+    "original/child.log": "ad54a9e91c8ad02a147519b03d5d19d29fa2c894d341ffab60cf6697aa18654d",
+    "link/result.json": "776c04c4996487c9d9e22414fa4d05aebaa5b57966bf15c1299911ec697219ee",
+    "link/child.log": "4a76df063c6faab39d7698119a4d999e5ee6a71625f608d0775255d04beee51f",
+    "window-settings/result.json": "6b5c1b394c86c485d3e541a6854d9137a534e663ce39b1133bf2d2c20053c857",
+    "window-settings/child.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "chest/result.json": "61719a80993f242e3e3359fceaebcd286f11d0bb195bd8ef087e73416cffcef1",
+    "chest/child.log": "e75a11018d85c802b7c26e540751e8156b7af05f9d3f8c43c477dfe8faf9bdb7"
+  },
   "limits": [
-    "Acceptance pending for the exact R80 CI candidate."
+    "The prior local R84 gameplay build completed one real run. The integrated R80 package was verified using saved frames, isolated updates and its settings-only Win32 GUI. The opening recruitment animation should be disabled."
   ]
 }
