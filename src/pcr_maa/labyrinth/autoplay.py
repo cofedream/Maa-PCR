@@ -23,6 +23,7 @@ from .roles import Context
 from .scene import Scene, OBSERVATION_TIMEOUT_SECONDS
 
 _TARGET = 'LabyAutoplayTarget'
+_TARGET_MARKS = 'LabyAutoplayTargetWithMarks'
 _CLICK = 'LabyAutoplayPreviewOnce'
 _NAME = 'LabyrinthAutoplayTarget'
 _TYPES = {'normal_battle':2,'ex_battle':3,'link':4,'event':5,'relic':6,'shop':7,'boss':8}
@@ -64,13 +65,21 @@ def _native_ok(receipt, *, action=False):
 
 
 def _poll_pause(tasker,batch,node,reason):
-    """One input-free Maa delay inside the caller's fixed inspection deadline."""
+    """Wait between observations on the active business clock, without taking a frame."""
     batch.checkpoint()
-    if not tasker.resource.override_pipeline({node:dict(recognition='DirectHit',action='DoNothing',
-            next=[],pre_delay=0,post_delay=500,timeout=1000)}):
-        raise BatchStopped(reason)
-    with batch.timings.measure('page_wait'):_native_ok(native.run(tasker,node))
-    batch.checkpoint()
+    with batch.timings.measure('page_wait'):
+        end = native.active_now() + .5
+        deadline = native.RUN_DEADLINE.get()
+        while True:
+            batch.checkpoint()
+            now = native.active_now()
+            if now >= min(end, deadline):
+                return
+            if isinstance(tasker, native.ContextTasker):
+                tasker._check_ready()
+            elif native.tasker_blocked(tasker) or tasker.stopping:
+                raise BatchStopped(reason)
+            time.sleep(min(.05, end - now, deadline - now))
 
 
 def final_shop_in_route(route,node):
@@ -356,10 +365,12 @@ class NodePixels:
         """
         anchors=[(self.boss_anchor_active,'boss_nameplate.png',.75,False,(-72,-31,203,141)),
                  (self.boss_anchor_inactive,'boss_nameplate_inactive.png',.75,False,(-73,-28,204,119))]
+        if self.boss_anchor_active is None and self.boss_anchor_inactive is None:return []
+        features=self._features(image)
         matches=[]
         for anchor,template,minimum_color,purple_fallback,output in anchors:
             if anchor is not None:
-                matches.extend(self._final_boss_anchor(image,anchor,template,
+                matches.extend(self._final_boss_anchor(image,features,anchor,template,
                     minimum_color,purple_fallback,output))
         unique=[]
         for match in sorted(matches,key=lambda m:m['score'],reverse=True):
@@ -372,7 +383,7 @@ class NodePixels:
         # preview click (center x, 32% height) lands on the nameplate area.
         return [[unique[0]]] if len(unique)==1 else []
 
-    def _final_boss_anchor(self,image,anchor,template,minimum_color,purple_fallback,output=None):
+    def _final_boss_anchor(self,image,features,anchor,template,minimum_color,purple_fallback,output=None):
         """Locate one 首领 nameplate state with its tight, alpha-masked glyph crop.
 
         The nameplate is UI, so a boss sprite never occludes it: the unlocked
@@ -386,7 +397,7 @@ class NodePixels:
         """
         rgb,mask,light,gradient,interior=anchor
         h,w=light.shape
-        lights,gradients=self._features(image)
+        lights,gradients=features
         left,right=round(1280*.10),round(1280*.98)
         top,bottom=round(720*.40),round(720*.76)
         channels=[cv2.matchTemplate(frame[top:bottom,left:right],ref,
@@ -598,7 +609,8 @@ class RouteTargetRecognition(CustomRecognition):
             scene=context.run_recognition(NODE,argv.image,
                 {NODE:dict(custom_recognition_param=dict(probe_kinds=sorted(_RULES)))})
             raw=_detail(scene.raw_detail) if scene is not None and scene.hit else None
-            mode=json.loads(argv.custom_recognition_param or '{}').get('mode','read')
+            params=json.loads(argv.custom_recognition_param or '{}')
+            mode=params.get('mode','read')
             if type(raw) is not dict:return None
             if raw.get('kind')!='map' or raw.get('payload',{}).get('area')!=self.current.area:
                 if mode=='read':
@@ -620,6 +632,9 @@ class RouteTargetRecognition(CustomRecognition):
             bound=view['target']
             detail=dict(status='target_observed' if bound else 'target_not_visible',area=self.current.area,
                 frame_pixel_sha256=sha256(argv.image.tobytes()).hexdigest(),columns=columns,target=bound,viewport=view)
+            if mode=='read' and params.get('read_marks') is True:
+                from .relics import read_map_marks_frame
+                detail['map_marks']=read_map_marks_frame(context,argv.image)
             if self.stopped() or context.tasker.stopping: return None
             if mode=='preview' and bound is None: return self.AnalyzeResult(None,detail)
             box=bound['box'] if bound else [0,0,1,1]
@@ -651,12 +666,15 @@ class MaaNodeNavigator:
                _CLICK:dict(recognition='Custom',custom_recognition=_NAME,
                    custom_recognition_param=dict(mode='preview'),action='Click',target=True,max_hit=1,
                    next=[],timeout=3000,pre_delay=0,post_delay=0)}
+        nodes[_TARGET_MARKS]=dict(nodes[_TARGET],custom_recognition_param=dict(mode='read',read_marks=True),
+            pre_delay=0,post_delay=0)
         if not resource.override_pipeline(nodes):raise BatchStopped('node_runtime_unavailable')
 
-    def locate(self,route,current):
+    def locate(self,route,current,*,read_marks=False):
         self.observer.route,self.observer.current=route,current
-        receipt=_native_ok(native.run(self.tasker,_TARGET))
-        row=next((n for n in receipt['nodes'] if n['name']==_TARGET),None)
+        entry=_TARGET_MARKS if read_marks else _TARGET
+        receipt=_native_ok(native.run(self.tasker,entry))
+        row=next((n for n in receipt['nodes'] if n['name']==entry),None)
         detail=_detail(row.get('recognition')) if row else None
         if detail is None or detail.get('status') not in ('target_observed','target_not_visible','scene_changed'):
             raise BatchStopped('route_target_unknown')
@@ -718,12 +736,24 @@ class MaaRunActions:
         self.link=MaaLinkReward(tasker,stamp,timings=batch.timings)
         self.relic=MaaRelicReward(tasker,stamp,timings=batch.timings)
 
-    def calibrate_map(self,route,node):
+    def calibrate_map(self,route,node,*,navigator=None):
         from .relics import read_map_relic_stacks,map_relic_consensus
         key=(route.enter_id,node.block_id)
         if key in self.map_read_nodes:return
         first=read_map_relic_stacks(self.tasker,self.batch,timings=self.batch.timings)
-        second=read_map_relic_stacks(self.tasker,self.batch,timings=self.batch.timings)
+        located=None
+        if navigator is not None:
+            self.batch.checkpoint()
+            located=navigator.locate(route,node,read_marks=True)
+            self.batch.checkpoint()
+            detail,receipt=located
+            if detail['status']=='scene_changed':return located
+            marks=detail.get('map_marks')
+            if type(marks) is dict and type(marks.get('values')) is dict:
+                second=dict(marks,native=receipt)
+            else:located=None
+        if located is None:
+            second=read_map_relic_stacks(self.tasker,self.batch,timings=self.batch.timings)
         self.map_read_nodes.add(key)
         actual=map_relic_consensus(first,second)
         for mark,value in actual.items():
@@ -737,6 +767,7 @@ class MaaRunActions:
             self.batch.observation(self.stamp(source='maa',enter_id=route.enter_id,
                 relic_map_stacks=actual,relic_stack_conflicts=sorted(self.stack_conflicts),
                 native=dict(first=first['native'],second=second['native'])),enter_id=route.enter_id)
+        return located
 
     def item_scene(self,scene,route,node,*,apply=False):
         from .relics import read_item_reward
@@ -783,13 +814,14 @@ class MaaRunActions:
                 acquisition_fields=dict(source='maa',enter_id=route.enter_id,reward_id=reward_id))
             return dict(result,following_scene=accepted_item[0] if scene.kind=='item_reward' else scene)
         if kind=='relic_reward':
-            from .relics import relic_offers
             # Actual printed currents take priority over history, as in the
             # upstream stack ledger. Selection uses its current native guard.
-            offers=relic_offers(self.relic._run('LabyRelicObserved'))
-            for offer in offers:
-                self.stacks[offer.mark]=offer.current;self.stack_sources[offer.mark]='choice';self.stack_conflicts.discard(offer.mark)
-            result=self.relic.choose(self.batch,route.enter_id,reward_id,node.area,self.stacks,offers=offers,locked_focus=self.relic_focus,priority=self.batch.settings.strategy.relic_mark_priority)
+            def update_stacks(offers):
+                for offer in offers:
+                    self.stacks[offer.mark]=offer.current;self.stack_sources[offer.mark]='choice';self.stack_conflicts.discard(offer.mark)
+            result=self.relic.choose(self.batch,route.enter_id,reward_id,node.area,self.stacks,
+                on_offers=update_stacks,defer_following=True,locked_focus=self.relic_focus,
+                priority=self.batch.settings.strategy.relic_mark_priority)
             self.relic_focus=result.get('focus',self.relic_focus)
             self.stacks[result['mark']]=min(30,self.stacks.get(result['mark'],0)+result['bonus'])
             self.stack_sources[result['mark']]='acquisition';self.stack_conflicts.discard(result['mark'])
@@ -808,6 +840,9 @@ class MaaRunActions:
                 'score_result','final_clear','clear_congratulations','clear_character_summary',
                 'clear_reward_animation','clear_chest_animation','home'},source='item_reward',accept=advanced,
                 timeout=20,reason='relic_close_readback_unknown')
+            close_fields=dict(enter_id=route.enter_id,reward_id=reward_id,phase='reward_close')
+            self.batch.observation(self.stamp(**close_fields,native=following.native,client_page_verified=False),**close_fields)
+            result['native'].update(following_observation=following.native,following_page=following.kind)
             return dict(result,following_scene=accepted_item[0] if following.kind=='item_reward' else following)
         from .rewards import MaaRoleReward
         reward=MaaRoleReward(self.tasker,self.stamp,timings=self.batch.timings,characters=self.characters)
@@ -1085,13 +1120,13 @@ class AutoplayRunner:
             source=('map','move_confirmation'),accept=arrived,timeout=15,
             reason='autoplay_readback_unknown' if confirmed else 'node_preview_unknown')
 
-    def _move(self,batch,route,scene):
+    def _move(self,batch,route,scene,*,located=None):
         current=route.nodes[self.cursor.index]
         if self.cursor.index+1>=len(route.nodes):raise BatchStopped('terminal_clear_not_observed')
         target=route.nodes[self.cursor.index+1]
         if target.area!=current.area or target.block_type==1:raise BatchStopped('area_transition_unknown')
         batch.checkpoint()
-        detail,receipt=self.navigator.locate(route,current)
+        detail,receipt=located if located is not None else self.navigator.locate(route,current)
         _native_ok(receipt)
         located=self.stamp(source='maa',enter_id=route.enter_id,native=receipt)
         batch.observation(located,enter_id=route.enter_id)
@@ -1246,15 +1281,21 @@ class AutoplayRunner:
                     self.battle_retries[node.block_id]=next_retry;self.owned_defeat=False
                     continue
                 if scene.kind=='map':
+                    area=scene.payload.get('area')
+                    nxt=route.nodes[self.cursor.index+1] if self.cursor.index+1<len(route.nodes) else None
+                    located=None
                     calibrate=getattr(self.actions,'calibrate_map',None)
-                    if callable(calibrate):calibrate(route,node)
+                    if callable(calibrate):
+                        if (area==node.area and nxt is not None and nxt.area==area and nxt.block_type!=1
+                                and (node.block_type==1 or self.cursor.node_finished)
+                                and not getattr(self.actions,'role_pending',())):
+                            located=calibrate(route,node,navigator=self.navigator)
+                        else:calibrate(route,node)
                     self.actions.acquisition_active=False
                     if getattr(self.actions,'role_pending',()):raise BatchStopped('role_reward_readback_unknown')
-                    area=scene.payload.get('area')
                     if type(area) is not int:
                         scene=self._observe(batch,route,timeout=15);continue
                     if area!=node.area:
-                        nxt=route.nodes[self.cursor.index+1] if self.cursor.index+1<len(route.nodes) else None
                         if (nxt is None or nxt.block_type!=1 or nxt.area!=area
                                 or area!=node.area+1 or not self.cursor.node_finished):
                             raise BatchStopped('area_transition_unknown')
@@ -1274,7 +1315,7 @@ class AutoplayRunner:
                             timeout=30,reason='area_transition_unknown')
                         continue
                     previous=self.cursor.index
-                    scene=self._move(batch,route,scene)
+                    scene=self._move(batch,route,scene,located=located)
                     if self.cursor.index!=previous:
                         self.confirmed_nodes.append(route.nodes[self.cursor.index].block_id)
                     continue
@@ -1363,6 +1404,12 @@ class AutoplayRunner:
                          'area_transition','normal_challenge','ex_challenge'})
                     if scene.kind not in ('event','normal_challenge','ex_challenge'):
                         self.cursor.node_finished=True
+                    continue
+                if (scene.kind=='character_animation' and self.cursor.node_finished
+                        and (node.block_id,'link_reward') in self.rewards):
+                    scene=self.runtime.wait_for(batch,{'joined','item_reward','map','area_transition'},
+                        source='character_animation',timeout=20,reason='link_result_unknown',
+                        acquisition_fields=dict(source='maa',enter_id=route.enter_id,block_id=node.block_id))
                     continue
                 if scene.kind in ('item_reward','joined'):
                     if scene.kind=='joined':self.actions.accept_joined(route,node)

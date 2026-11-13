@@ -13,6 +13,7 @@ namespace MFAAvalonia.Pcr;
 /// Extras candidate. Frame dimensions alone never authorize business input.</summary>
 internal static class PcrMuMuDisplay
 {
+    internal const AdbScreencapMethods StandardCapture = AdbScreencapMethods.Encode | AdbScreencapMethods.RawWithGzip;
     internal sealed record Mapping(int Logical, string Physical, string Basis = "viewport_verified");
     // Only layout compatibility: target identity is verified independently.
     // Maa scales this landscape frame to 1280x720 and maps inputs back natively.
@@ -195,11 +196,10 @@ internal static class PcrMuMuDisplay
         var adb = (string)binding["connection"]!["adb_path"]!;
         var serial = (string)binding["connection"]!["serial"]!;
         var options = StandardOptions(mapping);
-        const AdbScreencapMethods capture = AdbScreencapMethods.Encode | AdbScreencapMethods.RawWithGzip;
         return offlineFactory != null
-            ? offlineFactory(adb, serial, capture, AdbInputMethods.AdbShell, options)
+            ? offlineFactory(adb, serial, StandardCapture, AdbInputMethods.AdbShell, options)
                 ?? throw new InvalidOperationException("Offline factory returned null")
-            : new MaaAdbController(adb, serial, capture, AdbInputMethods.AdbShell, options,
+            : new MaaAdbController(adb, serial, StandardCapture, AdbInputMethods.AdbShell, options,
                 agentPath, LinkOption.None, CheckStatusOption.None);
     }
     internal const string Package = "com.bilibili.priconne";

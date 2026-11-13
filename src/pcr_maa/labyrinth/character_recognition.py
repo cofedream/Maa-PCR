@@ -911,59 +911,38 @@ def member_slots(frame,*,refine=True):
 
     if not refine:return tuple(box for box in expected if card_presence(frame,box)>=.055)
 
-    distance=23;edge_offset=3
+    offsets = np.arange(-23, 24)
+    edge_offset = 3
 
-    def evidence(ox,oy,ix,iy):
+    def evidence(outside_x, outside_y, inside_x, inside_y):
+        outside = frame[outside_y, outside_x].min(axis=-1).astype(np.int16)
+        inside = frame[inside_y, inside_x].min(axis=-1).astype(np.int16)
+        return np.where(outside >= 215, np.maximum(0, outside - inside), 0)
 
-        if not (0<=ox<1280 and 0<=ix<1280 and 0<=oy<720 and 0<=iy<720):return 0.
-
-        outside=int(frame[oy,ox].min());inside=int(frame[iy,ix].min())
-
-        return max(0,outside-inside) if outside>=215 else 0.
-
-    def bottom_score(offset):
-
-        values=[]
-
-        for left,top,w,h in expected:
-
-            bottom=top+h+offset
-
-            values.append(sum(evidence(left+int(_round(w*(.06+sample*.12))),bottom+edge_offset,
-
-                left+int(_round(w*(.06+sample*.12))),bottom-edge_offset) for sample in range(1,7))/6)
-
-        return sum(sorted(values,reverse=True)[:2])/2-abs(offset)*.10
-
-    bottom_offset=max(range(-distance,distance+1),key=bottom_score);refined=[]
-
-    for left,top,w,h in expected:
-
-        best=(left,top,w,h);best_score=25.;bottom=top+h+bottom_offset
-
-        for width in range(w-7,w+8):
-
-            for candidate_left in range(left-distance,left+distance+1):
-
-                candidate_top=bottom-width
-
-                if candidate_left<0 or candidate_top<0 or candidate_left+width>1280 or bottom>720:continue
-
-                ls=rs=0.
-
-                for sample in range(7):
-
-                    y=candidate_top+int(_round(width*(.25+sample/12)))
-
-                    ls+=evidence(candidate_left-edge_offset,y,candidate_left+edge_offset,y)
-
-                    rs+=evidence(candidate_left+width+edge_offset,y,candidate_left+width-edge_offset,y)
-
-                score=min(ls,rs)/7-abs(width-w)*.15-abs(candidate_left-left)*.04
-
-                if score>best_score:best_score=score;best=(candidate_left,candidate_top,width,width)
-
-        refined.append(best)
+    lefts = np.array([box[0] for box in expected])
+    _, top, width, height = expected[0]
+    x = lefts[:, None] + _round(width * (.06 + np.arange(1, 7) * .12))
+    bottoms = (top + height + offsets)[:, None, None]
+    strengths = evidence(x, bottoms + edge_offset, x, bottoms - edge_offset).mean(axis=2)
+    bottom_scores = np.sort(strengths, axis=1)[:, -2:].mean(axis=1) - abs(offsets) * .10
+    bottom = int(bottoms[np.argmax(bottom_scores), 0, 0])
+    widths = np.arange(width - 7, width + 8)
+    sample_y = bottom - widths[:, None] + _round(widths[:, None] * (.25 + np.arange(7) / 12))
+    sample_y = sample_y[:, None, :]
+    refined = []
+    for box in expected:
+        left = box[0] + offsets[None, :, None]
+        right = left + widths[:, None, None]
+        ls = evidence(left - edge_offset, sample_y, left + edge_offset, sample_y).sum(axis=2)
+        rs = evidence(right + edge_offset, sample_y, right - edge_offset, sample_y).sum(axis=2)
+        scores = np.minimum(ls, rs) / 7 - abs(widths[:, None] - width) * .15 - abs(offsets) * .04
+        # First maximum in width/left order matches the scalar search's strict >.
+        wi, xi = np.unravel_index(np.argmax(scores), scores.shape)
+        if scores[wi, xi] > 25:
+            size = int(widths[wi])
+            refined.append((box[0] + int(offsets[xi]), bottom - size, size, size))
+        else:
+            refined.append(box)
 
     if any(a[0]+a[2]>z[0] for a,z in zip(refined,refined[1:])):refined=expected
 

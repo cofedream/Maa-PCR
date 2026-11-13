@@ -1707,7 +1707,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                         || connection["serial"]?.Type != JTokenType.String)
                         throw new InvalidOperationException("保存的设备连接数据无效。");
                     savedDevice = new AdbDeviceInfo("已保存的 ADB 设备", (string)connection["adb_path"]!,
-                        (string)connection["serial"]!, AdbScreencapMethods.Encode, AdbInputMethods.AdbShell, "{}");
+                        (string)connection["serial"]!, PcrMuMuDisplay.StandardCapture, AdbInputMethods.AdbShell, "{}");
                 }
                 if (savedDevice == null || !AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(
                         savedDevice.AdbPath, savedDevice.AdbSerial, out var path, out var serial))
@@ -1715,7 +1715,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                 // Saved Finder Extras/options are data, not authority. Preserve
                 // the exact transport; fresh Owner checks still happen at Start.
                 var target = new AdbDeviceInfo(savedDevice.Name, path, serial,
-                    AdbScreencapMethods.Encode, AdbInputMethods.AdbShell, "{}");
+                    PcrMuMuDisplay.StandardCapture, AdbInputMethods.AdbShell, "{}");
                 _restoringPcrAdbSelection = true;
                 try
                 {

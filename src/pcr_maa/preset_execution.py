@@ -232,6 +232,15 @@ class Journal:
         events = self._current_events()
         return deepcopy(events[-1]) if events else None
 
+    def paired_tail(self, *fields):
+        """Check completed pairs on one validated history and return an independent tail."""
+        events = self._current_events()
+        pairs = iter(events)
+        for intent, result in zip(pairs, pairs):
+            if any(intent.get(field) != result.get(field) for field in fields):
+                return False, None
+        return True, deepcopy(events[-1]) if events else None
+
     def append_not_sent(self, intent, receipt):
         # Only close the intent created by this call; old unknowns stay untouched.
         if self.last_event() != intent or receipt.get('input_execution') != 'not_sent':

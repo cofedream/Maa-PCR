@@ -112,7 +112,8 @@ internal static class AlphaOwnerAsyncChecks
             var described = (AdbDeviceInfo)describe.Invoke(null, [raw])!;
             Require(described.Name.StartsWith("【ADB】") && described.AdbSerial == serial && described.AdbPath == adb
                 && described.Config == "{}" && raw.Config == "{\"finder_only\":true}"
-                && described.ScreencapMethods == AdbScreencapMethods.Encode && described.InputMethods == AdbInputMethods.AdbShell,
+                && described.ScreencapMethods == (AdbScreencapMethods.Encode | AdbScreencapMethods.RawWithGzip)
+                && described.InputMethods == AdbInputMethods.AdbShell,
                 "finder_preserves_target_and_clears_extras: " + serial);
             transport.Invoke(null, [new JObject { ["connection"] = new JObject { ["adb_path"] = adb, ["serial"] = serial },
                 ["controller"] = new JObject { ["kind"] = "adb", ["app_package"] = "com.bilibili.priconne" } }]);

@@ -65,8 +65,11 @@ def _observe(tasker):
 
 
 def test_relic_offer_frame_uses_the_catalog_identity(relic_offline):
-    _, tasker = relic_offline
+    controller, tasker = relic_offline
     offers, identified = _observe(tasker)
+    same_frame = native.run(tasker, 'LabyRelicOffersWithIcons')
+    assert R.relic_offers(same_frame, with_icons=True) == identified
+    assert controller.clicks == []
     expected = MANIFEST['expected']
 
     assert [offer.name for offer in offers] == expected['observed_ocr_names']

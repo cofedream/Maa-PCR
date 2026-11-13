@@ -212,7 +212,7 @@ def test_run147_boss_star_badge_does_not_alias_another_candidate_as1088():
     actual=CharacterRecognizer().recognize(frame,'boss',roster=params['roster'],current_filter='LIGHT')
     assert actual['selected']==params['expected_selected']
     assert actual['cards'][0]['trusted'] and actual['cards'][0]['character_id']=='1088'
-    assert not actual['cards'][2]['trusted'] and actual['cards'][2]['character_id'] is None
+    assert actual['cards'][2]['trusted'] and actual['cards'][2]['character_id']=='1802'  # 优衣（公主）
     assert all(c['trusted'] for c in actual['members'])
 
 

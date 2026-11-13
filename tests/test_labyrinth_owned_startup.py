@@ -314,6 +314,34 @@ def client():
         content_version='123456789012')
 
 
+@pytest.mark.parametrize('operation,statuses,expected', [
+    ('top', (503,200), 'ok'), ('top', (502,502), 'network_failed'),
+    ('top', (403,), 'network_failed'), ('enter', (503,), 'network_failed'),
+    ('retire', (504,), 'network_failed'),
+])
+def test_gateway_readback_retries_only_top(monkeypatch, operation, statuses, expected):
+    value=client()
+    value._phase='protocol';value.logged_in=True
+    value.auth.viewer_id=123
+    monkeypatch.setattr(value.auth,'validate_root',lambda root:'https://offline.invalid/')
+    monkeypatch.setattr(value.auth,'unpack',lambda data:dict(data_headers={'result_code':1},data={'enter_id':713}))
+    calls=[]
+    def post(url,**kw):
+        status=statuses[len(calls)]
+        calls.append(url.rsplit('/',1)[-1])
+        return NS(status_code=status,content=b'test',headers={})
+    value.http=post
+    args={'top':(), 'enter':(3,4), 'retire':(713,)}[operation]
+    try:
+        if expected=='ok':
+            assert asyncio.run(getattr(value,operation)(*args))['enter_id']==713
+        else:
+            with pytest.raises(protocol.ProtocolFailure,match='^'+expected+'$'):
+                asyncio.run(getattr(value,operation)(*args))
+        assert calls==[operation]*len(statuses)
+    finally:value.close()
+
+
 def test_sdk_login_wall_timeout_closes_credentials_without_retry(monkeypatch):
     value = client()
     from autopcr_sync.core import readonly

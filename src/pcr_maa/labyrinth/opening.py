@@ -176,10 +176,23 @@ class MaaOpening:
         observed=self.stamp(source='maa',enter_id=enter_id,page='joined',roles_joined=sorted(item.character_id for item in items),native=receipt)
         batch.observation(observed,enter_id=enter_id,page='joined')
         return dict(observed,layout=layout)
+    def prepare_grant(self):
+        from .character_recognition import CALLBACK
+        identity=self.characters.namespace+'OpeningGrantIdentity'
+        # The first And result is the click target. Its sibling rechecks the sole arrival on the same frame.
+        guard=dict(recognition='And',all_of=['LabyRoleRewardJoinedClose',identity],
+            next=[],timeout=3000,pre_delay=0,post_delay=0)
+        nodes={identity:dict(recognition='Custom',custom_recognition=CALLBACK,
+                custom_recognition_param=dict(mode='read',page='joined',expected_role='1068'),action='DoNothing'),
+            'LabyOpeningGrantObserved':dict(guard,action='DoNothing'),
+            'LabyOpeningGrantCloseOnce':dict(guard,action='Click',target=True,max_hit=1)}
+        if not self.tasker.resource.override_pipeline(nodes):raise BatchStopped('opening_pipeline_unavailable')
+        return 'LabyOpeningGrantObserved'
     def _after_invitation(self,batch,guild_id):
         self._install_joined()
-        names=['LabyDateChangedObserved','LabyDisconnect6002Observed','LabyMapObserved']
-        if guild_id==5:names.append('LabyPortraitJoined1Observed')
+        names=['LabyDateChangedObserved','LabyDisconnect6002Observed']
+        if guild_id==5:names.append(self.prepare_grant())
+        names.append('LabyMapObserved')
         hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)
         receipt=self._run(hit);batch.checkpoint()
         return ('map' if hit=='LabyMapObserved' else 'joined'),receipt
@@ -193,39 +206,21 @@ class MaaOpening:
         self.granted_used.add(key);batch.checkpoint()
         joined=self.observe_joined(batch,enter_id)
         if joined['layout']!='joined1' or joined['roles_joined']!=['1068']:raise BatchStopped('opening_grant_identity_unknown')
-        from .portrait_cache import joined_portrait_readback
-        _,items=joined_portrait_readback(joined['native'])
-        from .rewards import normalized_name
-        import re
-        full=normalized_name(items[0].raw_text)
-        exact=r'^\s*'+r'\s*'.join('[（(]' if c=='(' else '[）)]' if c==')' else re.escape(c) for c in full)+r'\s*$'
-        nodes={'LabyPortraitJoined1Name0':dict(expected=exact),
-            'LabyPortraitJoined1Message':dict(expected=exact[:-1]+r'成为了同伴[。.]?$',only_rec=True),
-            'LabyOpeningGrantCloseOnce':dict(recognition='And',all_of=['LabyPortraitJoined1Close','LabyPortraitJoined1Observed'],
-                action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)}
-        originals={name:self.tasker.resource.get_node_data(name) for name in ('LabyPortraitJoined1Name0','LabyPortraitJoined1Message')}
-        if not self.tasker.resource.override_pipeline(nodes):raise BatchStopped('opening_close_guard_failed')
+        self.prepare_grant()
         fields=dict(enter_id=enter_id,navigation_target=page,roles_joined=['1068'])
         def close(oid):
             sent=self._run('LabyOpeningGrantCloseOnce',input=True)
             return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
-        try:
-            clicked=batch.transaction('opening_granted_close',fields,close)
-            batch.checkpoint();entry='LabyOpeningGrantPostObserved'
-            if page=='opening_empty':
-                from .scene import MaaSceneRuntime,OBSERVATION_TIMEOUT_SECONDS
-                MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(
-                    batch,{'free_role_reward'},source={'map','joined'},timeout=OBSERVATION_TIMEOUT_SECONDS,
-                    reason='opening_readback_unknown')
-            hit,_=self._choice(batch,entry,['LabyDateChangedObserved','LabyDisconnect6002Observed',next_node])
-            receipt=self._run(hit);batch.checkpoint()
-            closed=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,page=page,native=receipt,input_native=clicked['input_native']),**fields)
-        except BaseException:
-            try:self.tasker.resource.override_pipeline(originals)
-            except Exception:pass
-            raise
-        else:
-            if not self.tasker.resource.override_pipeline(originals):raise BatchStopped('opening_close_guard_restore_failed')
+        clicked=batch.transaction('opening_granted_close',fields,close)
+        batch.checkpoint();entry='LabyOpeningGrantPostObserved'
+        if page=='opening_empty':
+            from .scene import MaaSceneRuntime,OBSERVATION_TIMEOUT_SECONDS
+            MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(
+                batch,{'free_role_reward'},source={'map','joined'},timeout=OBSERVATION_TIMEOUT_SECONDS,
+                reason='opening_readback_unknown')
+        hit,_=self._choice(batch,entry,['LabyDateChangedObserved','LabyDisconnect6002Observed',next_node])
+        receipt=self._run(hit);batch.checkpoint()
+        closed=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,page=page,native=receipt,input_native=clicked['input_native']),**fields)
         actual=dict(joined,granted=dict(source='maa',enter_id=enter_id,joined=joined,closed=closed))
         self.grants[key]=actual
         return actual

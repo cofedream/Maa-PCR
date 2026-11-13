@@ -282,8 +282,38 @@ class ShopRecognition(CustomRecognition):
         return None
     def analyze(self,context,argv):
         if self.stopped is not None and self.stopped():return self.AnalyzeResult(None,dict(status='unknown',reason='stopped'))
-        words={k:_words(context.run_recognition('LabyShopRead_'+k,argv.image),k) for k in _READS}
-        if not words['Balance']:
+        def read(key):
+            return _words(context.run_recognition('LabyShopRead_'+key,argv.image),key)
+        words={key:read(key) for key in ('DialogTitle','DialogBody','Confirm')}
+        title=_text(words['DialogTitle'])
+        body=_normalized(_text(words['DialogBody']))
+        refresh_dialog=title in ('更新确认','刷新确认','确认') and ('更新' in body or '刷新' in body)
+        state='refresh_confirmation' if refresh_dialog else 'complete' if title in ('购买完成','购买完毕') else 'confirmation' if title=='购买确认' else 'shop'
+        param=json.loads(argv.custom_recognition_param or '{}')
+        guard=param if type(param) is dict else {}
+        dialog_evidence={}
+        if state=='confirmation' and self.icon_capture is not None and self.icon_capture.icon is not None:
+            match=context.run_recognition('LabyShopConfirmedIcon',argv.image)
+            dialog_evidence['selected_icon_verified']=match is not None and match.hit is True
+        if state=='confirmation' and self.catalog is not None:
+            match=self.catalog.match(argv.image,SHOP_DIALOG_ICON_ROI);facts=match.facts
+            if match.trusted is True and facts is not None:
+                dialog_evidence['dialog_catalog']=dict(id=facts.id,name=facts.name,mark=facts.mark,bonus=facts.bonus,
+                    score=round(float(match.score),4),margin=round(float(match.margin),4))
+        qualified_modal=False
+        if (state in ('confirmation','complete') and len(words['DialogTitle'])==1
+                and len(words['Confirm'])==1 and '购买' in body and ('购买了' in body)==(state=='complete')
+                and guard.get('state',state)==state and '刷新商店' not in body and '更新商店' not in body):
+            try:
+                _,amount=confirmation_terms(dict(state=state,words=words),mark=guard.get('mark'),bonus=guard.get('bonus'))
+                catalog=dialog_evidence.get('dialog_catalog',{})
+                qualified_modal=(guard.get('price',amount) in (None,amount)
+                    and (not catalog or guard.get('catalog_id') in (None,catalog['id'])))
+            except BatchStopped:
+                pass
+        if not qualified_modal:
+            words.update({key:read(key) for key in _READS if key not in words})
+        if not qualified_modal and not words['Balance']:
             # Small zero glyphs need the same field enlarged before native detection.
             x,y,w,h=_READS['Balance'][1]
             image=cv2.resize(argv.image[y:y+h,x:x+w,:3],(w*4,h*4),interpolation=cv2.INTER_CUBIC)
@@ -295,17 +325,13 @@ class ShopRecognition(CustomRecognition):
                         a,b,c,d=word['box'];left,top=a//4,b//4
                         word['box']=[x+left,y+top,(a+c+3)//4-left,(b+d+3)//4-top]
             words['Balance']=_words(seen,'Balance')
-        title=_text(words.get('DialogTitle',[]));body=_normalized(_text(words.get('DialogBody',[])))
-        refresh_dialog=title in ('更新确认','刷新确认','确认') and ('更新' in body or '刷新' in body)
-        state='refresh_confirmation' if refresh_dialog else 'complete' if title in ('购买完成','购买完毕') else 'confirmation' if title=='购买确认' else 'shop'
         buttons={}
         for slot,x in enumerate(X):
-            if len(words[f'Buy{slot}'])!=1:continue
+            if len(words.get(f'Buy{slot}',()))!=1:continue
             # Ported fixed button luma evidence; never equated with probability.
             roi=[x+177,320,195,61];a,b,w,h=roi;pixels=argv.image[b:b+h,a:a+w,:3]
             luma=float(np.mean(pixels[:,:,0]*.114+pixels[:,:,1]*.587+pixels[:,:,2]*.299))
             buttons[slot]=dict(box=words[f'Buy{slot}'][0]['box'],enabled=luma>=145,luma=luma)
-        refresh=words.get('Refresh',[])
         # The price grows per refresh (live frames: 300 then 600), never a fixed coin amount.
         refresh_price=refresh_quote(dict(words=words))
         try:balance=_integer(_text(words['Balance'])) if len(words.get('Balance',[]))==1 else None
@@ -333,15 +359,7 @@ class ShopRecognition(CustomRecognition):
                 payload.update(balance=balance,items=[dict(i,relic=dict(relic_id=i['relic'].relic_id,mark=i['relic'].mark,bonus=i['relic'].bonus,recognized=True)) if i['kind']=='relic' else i for i in items])
             except BatchStopped:return self.AnalyzeResult(None,dict(payload,status='unknown'))
         elif not words.get('Confirm') or not words.get('DialogBody'):return self.AnalyzeResult(None,dict(payload,status='unknown'))
-        if state=='confirmation' and self.icon_capture is not None and self.icon_capture.icon is not None:
-            match=context.run_recognition('LabyShopConfirmedIcon',argv.image)
-            payload['selected_icon_verified']=match is not None and match.hit is True
-        if state=='confirmation' and self.catalog is not None:
-            match=self.catalog.match(argv.image,SHOP_DIALOG_ICON_ROI);facts=match.facts
-            if match.trusted is True and facts is not None:
-                payload['dialog_catalog']=dict(id=facts.id,name=facts.name,mark=facts.mark,bonus=facts.bonus,
-                    score=round(float(match.score),4),margin=round(float(match.margin),4))
-        param=json.loads(argv.custom_recognition_param or '{}')
+        payload.update(dialog_evidence)
         if type(param) is dict:
             if param.get('state') and param['state']!=state:return self.AnalyzeResult(None,payload)
             if state!='shop' and (param.get('price') is not None or param.get('mark') is not None):

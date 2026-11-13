@@ -122,3 +122,83 @@ def test_failed_observation_cannot_reuse_previous_safe_page(tmp_path):
     player_log.flush()
     assert not list(tmp_path.rglob('*.png'))
     assert rows[-1]['event'] == 'text'
+
+
+def test_feedback_preserves_actual_frame_size_and_explains_empty_cache(tmp_path):
+    import cv2
+    rows = []
+    player_log.configure(tmp_path, 'f'*32, 'daily', rows.append)
+    player_log.observe({'nodes': [{'name': 'DailyHome'}], 'native_ok': True}, 'DailyHome')
+    frame = np.full((720, 1440, 3), 31, np.uint8)
+    player_log.capture(NS(controller=NS(cached_image=frame)), 'stopped')
+    saved, = tmp_path.rglob('*.png')
+    assert np.array_equal(cv2.imdecode(np.fromfile(saved, np.uint8), cv2.IMREAD_COLOR), frame)
+    player_log.capture(NS(controller=NS(cached_image=np.empty((0, 0, 3), np.uint8))), 'stopped')
+    player_log.flush()
+    assert '缓存为空' in rows[-1]['text']
+
+
+def test_startup_miss_exports_notice_and_exact_failed_recognition(tmp_path, monkeypatch):
+    import cv2
+    from pathlib import Path
+    from pcr_maa import native
+    from pcr_maa.labyrinth.game_session import game_session_pipeline
+    from pcr_maa.ocr_diagnostics import FailureDiagnostics
+    from pcr_maa.replay import SavedImages
+
+    monkeypatch.setattr(native, 'RUNTIME', tmp_path/'native')
+    rows = []
+    player_log.configure(tmp_path, 'a'*32, 'labyrinth', rows.append)
+    data = Path(__file__).parent/'data'
+    notice = native.read_image(data/'labyrinth-start-data-download-notice-20261108.png')
+    missed = native.read_image(data/'labyrinth-start-data-download-progress-20261108.png')
+    controller = SavedImages([[notice], [missed]])
+    resource = native.load_resource()
+    tasker = native.bind(resource, controller)
+    diagnostics = FailureDiagnostics(tmp_path/'ocr', 'test', 'labyrinth', {}).attach(tasker)
+    entry = 'LabyGameSessionAfterTitleObserved'
+    try:
+        assert resource.override_pipeline(game_session_pipeline(123))
+        assert resource.override_pipeline({entry: dict(timeout=50)})
+        assert native.run(tasker, 'LabyClientNoticeCloseOnce')['native_ok']
+        failed = native.run(tasker, entry)
+        assert not failed['native_ok']
+        player_log.capture(NS(controller=NS(cached_image=notice)), 'stopped')
+        player_log.flush()
+        images = [r['name'] for r in rows if r['event'] == 'image']
+        assert len(images) == 2
+        for name, expected in zip(images, [notice, missed]):
+            saved, = (tmp_path/'.runtime/player-logs').rglob(name)
+            assert np.array_equal(cv2.imdecode(np.fromfile(saved, np.uint8), cv2.IMREAD_COLOR), expected)
+        assert any(entry in r.get('text', '') and 'success=False' in r['text'] for r in rows)
+        captions = [r['text'] for r in rows if r['event'] == 'text']
+        assert any(images[0] in s and '关闭前' in s for s in captions)
+        assert any(images[1] in s and '识别失败' in s and entry in s
+                   and f"task={failed['task_id']}" in s for s in captions)
+        assert len(controller.clicks) == 1
+        player_log.observe({'nodes': [{'name': ''}], 'native_ok': False}, 'Login')
+        player_log.capture(tasker, 'stopped')
+        assert len(list((tmp_path/'.runtime/player-logs').rglob('*.png'))) == 2
+    finally:
+        diagnostics.finish(False)
+        native.stop_tasker(tasker)
+
+
+def test_failure_picture_requires_the_current_recognition_and_a_shareable_node(tmp_path):
+    rows = []
+    player_log.configure(tmp_path, 'c'*32, 'labyrinth', rows.append)
+    node = 'LabyBusinessObserved'
+    frame = np.zeros((12, 16, 3), np.uint8)
+    def miss(task_id, entry, observations):
+        player_log.observe(dict(nodes=[], native_ok=False, task_id=task_id), entry, observations)
+        player_log.capture(NS(), 'stopped')
+        player_log.flush()
+
+    def record(task_id, entry, rid, image):
+        return (dict(task_id=task_id, reco_id=rid, entry=entry, node=entry, hit=False), image)
+
+    miss(4, node, [record(4, node, 7, frame)])
+    miss(5, node, [record(4, node, 7, frame), record(5, node, 8, None)])
+    miss(6, 'LabyClientProfileObserved', [record(6, 'LabyClientProfileObserved', 9, frame)])
+    assert len(list(tmp_path.rglob('*.png'))) == 1
+    assert any('失败原帧' in r.get('text', '') and '未取得' in r['text'] for r in rows)

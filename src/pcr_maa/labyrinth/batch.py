@@ -335,11 +335,10 @@ class Batch:
                     self._first_acquire_done=bool(sum(self.completed.values())+sum(self.failed.values()))
                 record=RunRecord(self.journal.directory,self.run_id,self.binding,resume=bool(recovered))
                 if not recovered:record.append('started',settings=self.settings.payload())
-                events=self.journal.events()
-                for a,b in zip(events[::2],events[1::2]):
-                    if a.get('operation_id')!=b.get('operation_id') or a.get('binding')!=b.get('binding'):
-                        raise ValueError('labyrinth_journal_invalid')
-                if events and events[-1]['state']=='in_flight':
+                paired,last=self.journal.paired_tail('operation_id','binding')
+                if not paired:
+                    raise ValueError('labyrinth_journal_invalid')
+                if last and last['state']=='in_flight':
                     result=dict(outcome='blocked_in_flight',completed=dict(self.completed),batch_complete=False)
                     record.append('finished',**result,timings=self.timings.payload())
                     return dict(result,run_id=self.run_id)
@@ -391,6 +390,7 @@ class Batch:
                     from pathlib import Path
                     import re
                     from ..native import NativeInputNotSent
+                    from .protocol import ProtocolFailure
                     frames=[];causes=[];cause=error;seen=set()
                     while cause is not None and id(cause) not in seen:
                         seen.add(id(cause));tb=cause.__traceback__
@@ -399,10 +399,14 @@ class Batch:
                                 function=tb.tb_frame.f_code.co_name,line=tb.tb_lineno));tb=tb.tb_next
                         item=dict(error_type=type(cause).__name__)
                         reason=str(cause) if isinstance(cause,BatchStopped) else cause.receipt.get('reason') if isinstance(cause,NativeInputNotSent) else None
+                        if isinstance(cause,ProtocolFailure) and cause.args in (('network_failed',),('network_or_protocol_failed',)):
+                            reason=cause.args[0]
                         if type(reason) is str and re.fullmatch('[a-z][a-z0-9_]{0,95}',reason):item['reason']=reason
                         causes.append(item);cause=cause.__cause__ or cause.__context__
                     record.append('adapter_error',error_type=type(error).__name__,frames=frames,causes=causes)
                     outcome=str(error) if isinstance(error,BatchStopped) else 'adapter_failed'
+                    if isinstance(error,ProtocolFailure) and causes[0].get('reason'):
+                        outcome=causes[0]['reason']
                     where=', '.join(f"{item['file']}:{item['line']}" for item in frames[-3:])
                     self.emit_log(f'本次停止：{outcome}' + (f'（位置 {where}）' if where else ''))
                 finish_timings=getattr(self.port,'finish_timings',None)

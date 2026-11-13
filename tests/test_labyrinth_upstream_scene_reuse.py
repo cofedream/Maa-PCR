@@ -92,10 +92,11 @@ def test_boss_unknown_recovery_requires_boss_context_and_current_anchor(monkeypa
     tasker=owner();batch=Batch();runtime=Runtime([
         unknown_boss_scene(score=score),Scene('battle_defeat',receipt(11),{})])
     pauses=[]
-    monkeypatch.setattr(autoplay_module.native,'run',lambda *a,**k:(pauses.append(1) or receipt(12)))
+    monkeypatch.setattr(autoplay_module,'_poll_pause',lambda *args:pauses.append(args[2]))
+    monkeypatch.setattr(autoplay_module.native,'run',lambda *a,**k:pytest.fail('poll spacing sent a native task'))
     result=actions(runtime,batch,tasker).start_battle(
         SimpleNamespace(enter_id=7),SimpleNamespace(block_id=30301,block_type=block_type))
-    assert result['outcome']=='defeated' and runtime.reads==2 and pauses==[1]
+    assert result['outcome']=='defeated' and runtime.reads==2 and pauses==['LabyAutoplayBattlePollSpacing']
 
 
 @pytest.mark.parametrize('key',[

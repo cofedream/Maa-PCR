@@ -61,6 +61,7 @@ R75_MANIFEST_SHA256 = '04adf05df7b9dd91de533dcd00827477c60eea2b3f129a52847c90df1
 R76_MANIFEST_SHA256 = '16610f8aa288551b30f2e764ed1aa3b6a96a643d329b4247c02f2b11d940ebd4'
 R77_MANIFEST_SHA256 = '378b275b25bc24727cd84256e80bcbaec4f43d4009e6f4add976b31d89e557cb'
 R78_MANIFEST_SHA256 = 'b97e57784aa58d212b9eb567815f44c65a9dfde6a8b172bf15f0654e6be04a1a'
+R79_MANIFEST_SHA256 = 'd61b28aca9270338af32b23b14e931c1d2aba6e072e23287471949c7352cbaf5'
 GUI_PROJECT = 'gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj'
 PAYLOAD_DIRS = ('src', 'vendor', 'assets', 'third_party', 'licenses', 'docs')
 PAYLOAD_SCRIPTS = ('pcr.py', 'validate-alpha-config.py', 'start-alpha-agent.py',
@@ -379,7 +380,7 @@ def package_outputs(player, output, base=None, base_manifest=None):
             result = patcher.build_patch(base, player, patch)
         else:
             expected = {38: R38_MANIFEST_SHA256, 39: R39_MANIFEST_SHA256,
-                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256, 61: R61_MANIFEST_SHA256, 64: R64_MANIFEST_SHA256, 65: R65_MANIFEST_SHA256, 66: R66_MANIFEST_SHA256, 67: R67_MANIFEST_SHA256, 68: R68_MANIFEST_SHA256, 69: R69_MANIFEST_SHA256, 70: R70_MANIFEST_SHA256, 71: R71_MANIFEST_SHA256, 72: R72_MANIFEST_SHA256, 73: R73_MANIFEST_SHA256, 74: R74_MANIFEST_SHA256, 75: R75_MANIFEST_SHA256, 76: R76_MANIFEST_SHA256, 77: R77_MANIFEST_SHA256, 78: R78_MANIFEST_SHA256}.get(base_version['revision'])
+                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256, 61: R61_MANIFEST_SHA256, 64: R64_MANIFEST_SHA256, 65: R65_MANIFEST_SHA256, 66: R66_MANIFEST_SHA256, 67: R67_MANIFEST_SHA256, 68: R68_MANIFEST_SHA256, 69: R69_MANIFEST_SHA256, 70: R70_MANIFEST_SHA256, 71: R71_MANIFEST_SHA256, 72: R72_MANIFEST_SHA256, 73: R73_MANIFEST_SHA256, 74: R74_MANIFEST_SHA256, 75: R75_MANIFEST_SHA256, 76: R76_MANIFEST_SHA256, 77: R77_MANIFEST_SHA256, 78: R78_MANIFEST_SHA256, 79: R79_MANIFEST_SHA256}.get(base_version['revision'])
             if expected is None:
                 raise ValueError('unsupported_patch_baseline')
             result = patcher.build_patch_from_manifest(base_path, player, patch, expected)
@@ -560,8 +561,8 @@ def build(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--revision', type=int, default=79)
-    parser.add_argument('--version', default='v0.1.32')
+    parser.add_argument('--revision', type=int, default=80)
+    parser.add_argument('--version', default='v0.1.33')
     parser.add_argument('--dotnet', type=Path)
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--nuget-source', type=Path, help='optional official package cache/feed for offline builds')
@@ -569,7 +570,7 @@ def main(argv=None):
     parser.add_argument('--wheelhouse', type=Path, help='optional directory of hash-locked official wheels')
     baseline = parser.add_mutually_exclusive_group()
     baseline.add_argument('--base', type=Path, help='immutable exact manifest-bound patch baseline')
-    baseline.add_argument('--base-manifest', type=Path, help='exact public R38, R39, R41, R45, R46, R49, R50, R51, R52, R53, R55, R56, R57, R58, R59, R60, R61, R64, R65, R66, R67, R68, R69, R70, R71, R72, R73, R74, R75, R76, R77 or R78 manifest; installation verifies old files')
+    baseline.add_argument('--base-manifest', type=Path, help='exact public R38, R39, R41, R45, R46, R49, R50, R51, R52, R53, R55, R56, R57, R58, R59, R60, R61, R64, R65, R66, R67, R68, R69, R70, R71, R72, R73, R74, R75, R76, R77, R78 or R79 manifest; installation verifies old files')
     args = parser.parse_args(argv)
     try:
         print(json.dumps(build(args), ensure_ascii=False))

@@ -55,7 +55,7 @@ internal sealed class PcrAdbDiscovery
         // Standard Owner transport must never inherit Finder EmulatorExtras.
         return new AdbDeviceInfo($"【{label}】{device.Name}", valid ? path : device.AdbPath,
             valid ? serial : device.AdbSerial,
-            supported ? AdbScreencapMethods.Encode : device.ScreencapMethods,
+            supported ? PcrMuMuDisplay.StandardCapture : device.ScreencapMethods,
             supported ? AdbInputMethods.AdbShell : device.InputMethods, supported ? "{}" : device.Config);
     }
 
@@ -66,7 +66,7 @@ internal sealed class PcrAdbDiscovery
         if (!AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(device.AdbPath, device.AdbSerial,
                 out var path, out var serial))
             throw new InvalidOperationException("请选择本机已有的 adb.exe 和有效的本机或局域网 IPv4:端口，或 emulator-串号。");
-        return new MaaAdbController(path, serial, AdbScreencapMethods.Encode, AdbInputMethods.None,
+        return new MaaAdbController(path, serial, PcrMuMuDisplay.StandardCapture, AdbInputMethods.None,
             "{}", Path.Combine(AppPaths.InstallRoot, "libs", "MaaAgentBinary"),
             LinkOption.None, CheckStatusOption.None);
     }

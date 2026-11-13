@@ -1,4 +1,9 @@
 {
+  "CHARACTER_ENTRANCE_PLATE": {
+    "template": "labyrinth/scene/character_entrance_plate.png",
+    "rois": [[835, 532, 130, 95]],
+    "threshold": 0.9
+  },
   "TITLE_LOGO": {
     "template": "labyrinth/scene/title_logo.png",
     "rois": [

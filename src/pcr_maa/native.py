@@ -328,7 +328,7 @@ def run(tasker, entry, *, reset_hits=()):
     finally:
         proof.close()
     from . import player_log
-    player_log.observe(receipt, entry)
+    player_log.observe(receipt, entry, getattr(diagnostics, 'pending', ()))
     receipt['native_evidence'] = proof.receipt_proof(receipt['task_id'])
     proof=getattr(tasker,'_labyrinth_input_evidence',{}).get(job.job_id)
     if (reset_hits and type(proof) is dict

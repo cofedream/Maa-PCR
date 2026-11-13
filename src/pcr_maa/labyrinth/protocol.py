@@ -338,9 +338,15 @@ class LabyrinthClient:
         data=dict(fields,viewer_id=base64.b64encode(self.auth.encrypt(str(self.auth.viewer_id).encode(),key)).decode('ascii'))
         body=self.auth.encrypt(msgpack.packb(data,use_bin_type=False),key)
         try:
-            response=await asyncio.to_thread(self.http or requests.post,self.auth.validate_root(self.auth.root)+endpoint.value,
-                data=body,headers=dict(self.auth.headers),timeout=(5,10),allow_redirects=False)
-            self._check_open()
+            for attempt in range(2):
+                self._check_open()
+                response=await asyncio.to_thread(self.http or requests.post,self.auth.validate_root(self.auth.root)+endpoint.value,
+                    data=body,headers=dict(self.auth.headers),timeout=(5,10),allow_redirects=False)
+                self._check_open()
+                # A transient gateway error on the readback can never repeat ENTER or RETIRE.
+                if (attempt or endpoint is not Endpoint.TOP or response.status_code not in (502,503,504)
+                        or response.headers.get('Retry-After') is not None):break
+                await asyncio.sleep(.5)
             if response.status_code!=200 or len(response.content)>16*1024*1024:raise ProtocolFailure('network_failed')
             raw=self.auth.no_null_key(self.auth.unpack(response.content))
             header=raw.get('data_headers');result=raw.get('data')

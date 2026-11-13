@@ -124,14 +124,24 @@ def install(monkeypatch, kind, control, action, *, target=None):
 
 
 def test_template_control_insets_its_random_click_target(monkeypatch):
-    key = 'RUN_CLEAR_CHEST_CONFIRM_BUTTON'
-    nodes = install(monkeypatch, 'chest', dict(anchor=key, box=[497, 607, 287, 73], score=.95), 'settlement_next')
+    key = 'BATTLE_RESULT_BOSS_SUMMARY_NEXT_BUTTON'
+    nodes = install(monkeypatch, 'boss_summary', dict(anchor=key, box=[497, 607, 287, 73], score=.95), 'settlement_next')
     once = nodes['LabySceneActionOnce']
     assert once['target'] is True
-    left, top, right, bottom = art_bounds(SPEC[key]['template'])
-    x, y, w, h = (497 + once['target_offset'][0], 607 + once['target_offset'][1],
-                  287 + once['target_offset'][2], 73 + once['target_offset'][3])
-    assert (x - 497, y - 607, x - 497 + w - 1, y - 607 + h - 1) == (left + 3, top + 3, right - 3, bottom - 3)
+    assert once['target_offset'] == s._click_target_offset(SPEC[key]['template'])
+
+
+@pytest.mark.parametrize('key', ['RUN_CLEAR_CHEST_CONFIRM_BUTTON', 'CONFIRM'])
+def test_chest_next_reads_confirm_text_inside_button(monkeypatch, key):
+    anchors={k:dict(anchor=k,box=[497,607,287,73],score=.95) for k in ('NEXT',key)}
+    control=s._controls('chest',anchors)['next']
+    assert control['anchor']==key
+    nodes=install(monkeypatch,'chest',control,'settlement_next')
+    click=nodes['LabySceneActionControl']
+    assert click['recognition']=='OCR' and click['expected']=='^确认$'
+    x,y,w,h=click['roi']
+    assert x<=607 and x+w>=667 and y<=622 and y+h>=655 and x+w<=776
+    assert nodes['LabySceneActionOnce']['target'] is True
 
 
 def test_page_text_control_keeps_its_tight_target(monkeypatch):

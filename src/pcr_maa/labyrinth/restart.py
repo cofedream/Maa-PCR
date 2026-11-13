@@ -47,13 +47,12 @@ def _valid_intent(intent):
 
 def pending_intent(journal, binding):
     try:
-        events = journal.events()
+        paired, last = journal.paired_tail('operation', 'operation_id', 'binding')
     except (ValueError, OSError) as error:
         raise BatchStopped('restart_records_invalid') from error
-    if any(any(a.get(key) != b.get(key) for key in ('operation', 'operation_id', 'binding'))
-           for a, b in zip(events[::2], events[1::2])):
+    if not paired:
         raise BatchStopped('restart_records_invalid')
-    pending = events[-1] if events and events[-1]['state'] == 'in_flight' else None
+    pending = last if last and last['state'] == 'in_flight' else None
     if pending is not None:
         if not _valid_intent(pending):
             raise BatchStopped('blocked_in_flight')

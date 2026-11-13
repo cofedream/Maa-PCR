@@ -100,6 +100,26 @@ def target_callback():
     return callback
 
 
+def test_character_entrance_requires_nameplate_at_native_position(tmp_path,monkeypatch,offline):
+    import cv2
+    spec=scene._anchors()['CHARACTER_ENTRANCE_PLATE']
+    pixels=cv2.imdecode(np.frombuffer((scene.ASSETS.parent/spec['template']).read_bytes(),np.uint8),cv2.IMREAD_COLOR)
+    frame=np.zeros((720,1280,3),np.uint8)
+    frame[542:617,845:955]=pixels
+    moved=np.roll(frame,-180,axis=1)
+    monkeypatch.setattr(native,'RUNTIME',tmp_path/'native')
+    controller=SavedImages([[frame,moved]])
+    resource=native.load_resource()
+    tasker=native.bind(resource,controller)
+    try:
+        runtime=scene.MaaSceneRuntime(tasker)
+        controller.frame=0
+        assert runtime.observe(probe_kinds=['character_animation']).kind=='character_animation'
+        assert runtime.observe(probe_kinds=['character_animation']).kind=='unknown'
+        assert not controller.clicks
+    finally:native.stop_tasker(tasker)
+
+
 def test_map_target_short_circuits_rules_without_dropping_page_guards(offline):
     image=np.zeros((720,1280,3),np.uint8)
     keys=set(scene._RULES['map'][0])|{'AREA'}

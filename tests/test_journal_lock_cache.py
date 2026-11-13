@@ -145,6 +145,34 @@ def test_any_event_reads_the_file_outside_a_lock(tmp_path):
     assert Journal(tmp_path).any_event(lambda event: event.get('operation') == 'synthetic')
 
 
+def test_paired_tail_checks_all_pairs_and_only_copies_the_returned_event(tmp_path, monkeypatch):
+    from pcr_maa import preset_execution
+    journal = Journal(tmp_path)
+    rows = seed(journal, 3)
+    original = preset_execution.deepcopy
+    copied = []
+    def copy_event(event):
+        assert isinstance(event, dict)
+        copied.append(event['state'])
+        return original(event)
+    monkeypatch.setattr(preset_execution, 'deepcopy', copy_event)
+    with journal.locked():
+        paired, tail = journal.paired_tail('operation_id', 'binding')
+        assert paired and tail == rows[-1]
+        tail['nested']['value'] = 'external change'
+        journal.append(dict(state='in_flight', operation='pending'))
+        assert journal.paired_tail('operation_id', 'binding') == (True, dict(state='in_flight', operation='pending'))
+        assert copied == ['settled','in_flight']
+        rows[1]['operation'] = 'another'
+        journal.path.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
+        with pytest.raises(ValueError, match='changed'):
+            journal.paired_tail('operation')
+    with journal.locked():
+        assert journal.paired_tail('operation','operation_id','binding') == (False, None)
+        assert journal.paired_tail('operation_id','binding') == (True, rows[-1])
+        assert copied[-1] == 'settled'
+
+
 def test_any_event_refuses_an_external_change_like_the_other_reads(tmp_path):
     journal = Journal(tmp_path)
     seed(journal, 2)

@@ -57,6 +57,19 @@ def test_trace_never_carries_exception_text():
     assert any(line.startswith('本次停止：adapter_failed（位置 ') for line in lines)
 
 
+def test_known_network_failure_is_visible_and_enter_is_never_resent():
+    from pcr_maa.labyrinth.protocol import ProtocolFailure
+    port=Port()
+    calls=[]
+    def failed_enter(*args):
+        calls.append('enter')
+        raise ProtocolFailure('network_failed')
+    port.enter=failed_enter
+    lines=[]
+    assert run_batch(port,lines.append)['outcome']=='network_failed'
+    assert calls==['enter'] and any('本次停止：network_failed' in line for line in lines)
+
+
 def test_owner_log_is_normalized_bounded_and_display_only(tmp_path, monkeypatch):
     from test_labyrinth_owned_startup import runtime
     owned, events, calls = runtime(tmp_path, monkeypatch)

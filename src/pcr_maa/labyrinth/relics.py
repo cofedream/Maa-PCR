@@ -161,6 +161,8 @@ def relic_pipeline():
     nodes['LabyRelicOfferedStaticIdentity'] = dict(recognition='Custom',
         custom_recognition=STATIC_ICON, custom_recognition_param=dict(mode='offers'),
         action='DoNothing', next=[], timeout=1500, pre_delay=0, post_delay=0)
+    nodes['LabyRelicOffersWithIcons'] = dict(nodes['LabyRelicObserved'],
+        all_of=[*names, 'LabyRelicOfferedStaticIdentity'])
     # Deliberately unusable until all three offers are supplied to the exact guard.
     nodes['LabyRelicSelectOnce'] = dict(recognition='And', all_of=['LabyRelicGuardRequired'],
         action='Click', target=True, max_hit=1, next=[], timeout=2500, rate_limit=250,
@@ -325,18 +327,19 @@ def attach_offer_identity(offers, facts):
     return _validate_offers(tuple(attached))[0]
 
 
-def relic_offers(receipt):
+def relic_offers(receipt, *, with_icons=False):
     """Parse one completed native And receipt, never partial/best-only OCR."""
     if type(receipt) is not dict or receipt.get('native_ok') is not True:
         raise BatchStopped('relic_offers_unknown')
     nodes = receipt.get('nodes')
     if type(nodes) is not list or any(type(n) is not dict for n in nodes):
         raise BatchStopped('relic_offers_unknown')
-    matches = [n for n in nodes if n.get('name') == 'LabyRelicObserved']
+    entry = 'LabyRelicOffersWithIcons' if with_icons else 'LabyRelicObserved'
+    matches = [n for n in nodes if n.get('name') == entry]
     if len(matches) != 1 or matches[0].get('completed') is not True:
         raise BatchStopped('relic_offers_unknown')
     raw = matches[0].get('recognition')
-    expected = set(relic_pipeline()['LabyRelicObserved']['all_of'])
+    expected = set(relic_pipeline()[entry]['all_of'])
     if (type(raw) is not list or any(type(r) is not dict or type(r.get('name')) is not str for r in raw)
             or len(raw) != len(expected) or {r.get('name') for r in raw} != expected):
         raise BatchStopped('relic_offers_unknown')
@@ -377,7 +380,12 @@ def relic_offers(receipt):
             _words(name, NAME_ROIS[slot], maximum=2),
             _words(rows[f'LabyRelicAttribute{slot}'], ATTRIBUTE_ROIS[slot], maximum=2),
             _words(rows[f'LabyRelicButton{slot}'], BUTTON_ROIS[slot]), remaining=remaining))
-    return _validate_offers(offers)[0]
+    offers = _validate_offers(offers)[0]
+    if with_icons:
+        detail = _custom_detail(rows['LabyRelicOfferedStaticIdentity'])
+        if detail is not None:
+            return identify_relic_offers(offers, detail)
+    return offers
 
 
 def choose_offer(offers, observed_stacks=None, *, locked_focus=None, area=None, priority=(), **policy):
@@ -894,7 +902,31 @@ class MaaRelicReward:
             raise BatchStopped('relic_input_unknown' if input else 'relic_result_unknown')
         return receipt
 
-    def choose(self, batch, enter_id, reward_id, area, observed_stacks=None, *, locked_focus=None, priority=(), offers=None):
+    def read_offers(self):
+        if self.catalog is None:
+            return relic_offers(self._run('LabyRelicObserved'))
+        return relic_offers(self._run('LabyRelicOffersWithIcons'), with_icons=True)
+
+    def _obtained_receipt(self, batch):
+        from .scene import MaaSceneRuntime, REWARD_CONNECTION_TIMEOUT_SECONDS
+        try:
+            return self._run('LabyRelicObtainedObserved')
+        except BatchStopped as error:
+            if error.args != ('relic_result_unknown',):
+                raise
+        # The click is already journaled. Only observe the pending network transition.
+        batch.checkpoint()
+        scene = MaaSceneRuntime(self.tasker, timings=self.timings)
+        current = scene.observe(probe_kinds=('item_reward',))
+        batch.checkpoint()
+        if current.kind == 'connecting':
+            scene.wait_for(batch, {'item_reward'}, source='relic_reward',
+                           timeout=REWARD_CONNECTION_TIMEOUT_SECONDS, reason='relic_result_unknown')
+        elif current.kind != 'item_reward':
+            raise BatchStopped(current.kind if current.kind in ('date_changed', 'disconnected') else 'relic_result_unknown')
+        return self._run('LabyRelicObtainedObserved')
+
+    def choose(self, batch, enter_id, reward_id, area, observed_stacks=None, *, locked_focus=None, priority=(), offers=None, on_offers=None, defer_following=False):
         if (type(enter_id) is not int or enter_id <= 0 or type(reward_id) is not str
                 or not reward_id or len(reward_id) > 128 or any(ord(c) < 32 for c in reward_id)):
             raise BatchStopped('relic_reward_identity_required')
@@ -905,10 +937,14 @@ class MaaRelicReward:
                 and (e.get('enter_id'),e.get('reward_id'))==key):
             raise BatchStopped('relic_reward_already_attempted')
         batch.checkpoint()
-        if offers is None:offers = relic_offers(self._run('LabyRelicObserved'))
-        else:offers,_ = _validate_offers(offers)
-        if self.catalog is not None:
-            offers = self._identify_offers(offers)
+        if offers is None:
+            offers = self.read_offers()
+        else:
+            offers, _ = _validate_offers(offers)
+            if self.catalog is not None:
+                offers = self._identify_offers(offers)
+        if on_offers is not None:
+            on_offers(offers)
         from .roles import strategy_value
         strategy=getattr(batch.settings,'strategy',None)
         policy={key:strategy_value(strategy,key,default) for key,default in (('baseline_last_area',3),('baseline_target',4),('debuff_pivot_minimum',12),('debuff_pivot_tolerance',2))}
@@ -938,7 +974,7 @@ class MaaRelicReward:
         static = self.catalog is not None
         selected_id = identity['id'] if identity is not None else None
         with obtained_guard(self.tasker, selected, icon=True, static=static, relic_id=selected_id):
-            obtained = relic_obtained(self._run('LabyRelicObtainedObserved'), selected,
+            obtained = relic_obtained(self._obtained_receipt(batch), selected,
                                       icon=True, static=static, relic_id=selected_id)
         confirmed=batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,
             inventory_added=True,input_native=clicked['input_native'],input_action_verified=True,
@@ -949,13 +985,16 @@ class MaaRelicReward:
             return self.stamp(operation_id=oid,**close_fields,native=close,input_native=close,
                 input_action_verified=True,client_page_verified=False)
         closed=batch.transaction('relic_reward_close',close_fields,close_result)
-        batch.checkpoint();following=self._run('LabyRelicFollowingObserved')
-        batch.observation(self.stamp(**close_fields,native=following,client_page_verified=False),**close_fields)
+        batch.checkpoint()
+        evidence=dict(confirmed['native'],close=closed['native'])
+        if not defer_following:
+            following=self._run('LabyRelicFollowingObserved')
+            batch.observation(self.stamp(**close_fields,native=following,client_page_verified=False),**close_fields)
+            evidence.update(following_observation=following,following_page='unclassified')
         calibrated=dict(observed_stacks or {});calibrated.update({o.mark:o.current for o in offers})
         decision=choose_relic(calibrated,[Relic(str(o.slot),o.mark,o.bonus) for o in offers],locked_focus=locked_focus,area=area,priority=priority,**policy)
         return dict(confirmed,closed_reward_signature=item_reward_values(obtained['observed_result_text'])['signature'],
-            focus=locked_focus if decision.phase=='baseline' else decision.focus,native=dict(confirmed['native'],close=closed['native'],
-            following_observation=following,following_page='unclassified'))
+            focus=locked_focus if decision.phase=='baseline' else decision.focus,native=evidence)
 
 
 # Read-only fixed upstream compact-map calibration. It has five mark slots;
@@ -1083,6 +1122,19 @@ def _item_body_words(raw):
     return '\n'.join(''.join(word.text for word in _words(dict(filtered=row),RESULT_ITEM_ROI,maximum=8)) for row in rows)
 
 
+def read_map_marks_frame(context,image):
+    """Read the five counters after the caller has verified MAP on this image."""
+    digits={i:None for i in range(5)};skipped=[]
+    for i,(x,y,w,h) in enumerate(MAP_DIGIT_ROIS):
+        if map_relic_mark(image,MAP_MARK_ROIS[i]) is None:
+            skipped.append(i);continue
+        cropped=cv2.resize(image[y:y+h,x:x+w],(w*4,h*4),interpolation=cv2.INTER_LINEAR)
+        digits[i]=getattr(context.run_recognition('LabyRelicMapDigitScaled',cropped),'raw_detail',None)
+    templates={i:map_small_counter(image,roi) for i,roi in enumerate(MAP_TEMPLATE_DIGIT_ROIS)}
+    value=map_relic_values(image,digits,digit_rois=((0,0,128,128),)*5,templates=templates)
+    return dict(value,digit_native=digits,digit_templates=templates,digit_ocr_skipped_slots=skipped)
+
+
 class RelicBusinessRecognition(CustomRecognition):
     def __init__(self):super().__init__();self.stopped=None
 
@@ -1098,15 +1150,7 @@ class RelicBusinessRecognition(CustomRecognition):
                 {NODE:dict(custom_recognition_param=dict(probe_kinds=sorted(_RULES)))})
             page=_detail(getattr(scene,'raw_detail',None))
             if getattr(scene,'hit',False) is not True or not page or page.get('kind')!='map':return None
-            digits={i:None for i in range(5)};skipped=[]
-            for i,(x,y,w,h) in enumerate(MAP_DIGIT_ROIS):
-                if map_relic_mark(argv.image,MAP_MARK_ROIS[i]) is None:
-                    skipped.append(i);continue
-                cropped=cv2.resize(argv.image[y:y+h,x:x+w],(w*4,h*4),interpolation=cv2.INTER_LINEAR)
-                digits[i]=getattr(context.run_recognition('LabyRelicMapDigitScaled',cropped),'raw_detail',None)
-            templates={i:map_small_counter(argv.image,roi) for i,roi in enumerate(MAP_TEMPLATE_DIGIT_ROIS)}
-            value=map_relic_values(argv.image,digits,digit_rois=((0,0,128,128),)*5,templates=templates)
-            value.update(digit_native=digits,digit_templates=templates,digit_ocr_skipped_slots=skipped)
+            value=read_map_marks_frame(context,argv.image)
         elif params.get('mode')=='item':
             for suffix,roi,texts in (('Title',RESULT_TITLE_ROI,('获得道具',)),('Message',RESULT_MESSAGE_ROI,('获得了以下道具','获得了以下道具.')),('Close',RESULT_CLOSE_ROI,('关闭',))):
                 result=context.run_recognition('LabyRelicItemRead'+suffix,argv.image)

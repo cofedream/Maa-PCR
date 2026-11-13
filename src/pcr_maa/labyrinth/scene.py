@@ -19,6 +19,7 @@ NODE='LabySceneObserved'
 NAME='LabyrinthScene'
 # Full-page OCR can exceed 10s; the caller's shorter business deadline still wins.
 OBSERVATION_TIMEOUT_SECONDS=20
+REWARD_CONNECTION_TIMEOUT_SECONDS=60
 ASSETS=Path(__file__).resolve().parents[3]/'assets/resource/image/labyrinth'
 _OCR={
  'AREA':(r'^[1-5]$',[430,42,30,32]),
@@ -64,6 +65,7 @@ _OCR={
  # Reuse the shop anchor ROI for its native text target; chrome is not clickable.
  'SHOP_CLOSE':(r'^关闭$',[947,600,287,77]),
 }
+_BATTLE_WORDS=('WIN','LOSE','DEFEAT')
 # Each term is a required same-frame anchor. Alternative tuples are disjunctions.
 _RULES={
  'shop_confirmation':(('SHOP_TITLE','SHOP_PURCHASE_CONFIRMATION_TITLE'),),
@@ -90,6 +92,7 @@ _RULES={
  'clear_chest_animation':(('RUN_CLEAR_CHEST_ANIMATION_TITLE',),('CHEST_ANIMATION',)),
  'event':(('EVENT_CHOICE_TITLE','EVENT_CHOICE_INSTRUCTION'),('EVENT_SINGLE_CHOICE_TRIGGER_TITLE','EVENT_SINGLE_CHOICE_SELECT_BUTTON')),
  'event_animation':(('EVENT_ANIMATION_TITLE','EVENT_ANIMATION_SKIP'),),
+ 'character_animation':(('CHARACTER_ENTRANCE_PLATE',),),
  'team':(('BATTLE_TEAM_HEADER','BATTLE_TEAM_CURRENT_MEMBERS_SUMMARY','BATTLE_TEAM_START_BUTTON','BATTLE_TEAM_CANCEL_BUTTON','BATTLE_TEAM_FILTER_BAR'),('TEAM_TITLE','MEMBERS_WORD','START_WORD'),('TEAM_TITLE','BOSS_MEMBER','BOSS_TAB1','BOSS_TAB2','BOSS_TAB3')),
  'battle':(('BATTLE_IN_PROGRESS_MENU_BUTTON',),),
  'move_confirmation':(('MOVE_TITLE','MOVE_DESCRIPTION','CONFIRM','CANCEL'),),
@@ -105,7 +108,7 @@ _RULES={
  'home':(('DAWN_TICKET_LABEL_STANDARD','DAWN_ACTIVE_STANDARD'),('DAWN_TICKET_LABEL_STANDARD','DAWN_START_STANDARD')),
 }
 _ACTIONS={
- 'advance_character_animation':(frozenset(('event_animation','unknown')),'EVENT_ANIMATION_SKIP'),
+ 'advance_character_animation':(frozenset(('character_animation','event_animation','unknown')),'EVENT_ANIMATION_SKIP'),
  'advance_final_unknown':(frozenset(('unknown',)),'advance'),
  'retry_battle':(frozenset(('battle_defeat',)),'RETRY'),
  'advance_revived_battle':(frozenset(('battle_defeat',)),'REVIVE_NEXT'),
@@ -147,9 +150,11 @@ def scene_pipeline():
     nodes=event_pipeline()
     for key,spec in _anchors().items():
         for i,roi in enumerate(spec['rois']):
-            nodes[f'LabySceneTemplate_{key}_{i}']=dict(recognition='TemplateMatch',template=spec['template'],roi=roi,method=5,threshold=.70,count=1,action='DoNothing',next=[],pre_delay=0,post_delay=0)
+            nodes[f'LabySceneTemplate_{key}_{i}']=dict(recognition='TemplateMatch',template=spec['template'],roi=roi,method=5,threshold=spec['threshold'],count=1,action='DoNothing',next=[],pre_delay=0,post_delay=0)
     for key,(pattern,roi) in _OCR.items():
         nodes['LabySceneWord_'+key]=dict(recognition='OCR',expected=pattern,roi=roi,threshold=.8,action='DoNothing',next=[],pre_delay=0,post_delay=0)
+    nodes['LabySceneBattleWords']=dict(nodes['LabySceneWord_WIN'],
+        expected=[_OCR[key][0] for key in _BATTLE_WORDS])
     nodes['LabySceneWord_AREA']['only_rec']=area_pipeline()['LabyAreaCurrent']['only_rec']
     nodes[NODE]=dict(recognition='Custom',custom_recognition=NAME,roi=[0,0,1280,720],action='DoNothing',next=[],timeout=OBSERVATION_TIMEOUT_SECONDS*1000,rate_limit=250,pre_delay=0,post_delay=0)
     return nodes
@@ -197,7 +202,7 @@ def _controls(kind,anchors):
     controls=dict(anchors)
     for logical,keys in {
       'close':(('CONFIRM',) if kind in ('shop_complete','chest') or 'NO_REWARD_BODY' in anchors else ())+('ITEM_CLOSE','ITEM_REWARD_CLOSE','RELIC_EFFECT_RESULT_CLOSE','JOINED_CLOSE','JOINED_CLOSE_STANDARD','RUN_CLEAR_CHEST_CONFIRM_BUTTON'),
-      'next':(('RUN_RESULT_CLOSE_BUTTON',) if kind=='final_clear' else ())+('NEXT','BATTLE_RESULT_BOSS_SUMMARY_NEXT_BUTTON','BATTLE_RESULT_NEXT_BUTTON','RUN_CLEAR_NEXT_BUTTON','RUN_RESULT_CLOSE_BUTTON','RUN_CLEAR_CHEST_CONFIRM_BUTTON'),
+      'next':(('RUN_RESULT_CLOSE_BUTTON',) if kind=='final_clear' else ('RUN_CLEAR_CHEST_CONFIRM_BUTTON','CONFIRM') if kind=='chest' else ())+('NEXT','BATTLE_RESULT_BOSS_SUMMARY_NEXT_BUTTON','BATTLE_RESULT_NEXT_BUTTON','RUN_CLEAR_NEXT_BUTTON','RUN_RESULT_CLOSE_BUTTON','RUN_CLEAR_CHEST_CONFIRM_BUTTON'),
     }.items():
         keys=[k for k in keys if k in anchors]
         if keys:controls[logical]=anchors[keys[0]]
@@ -291,7 +296,7 @@ class SceneRecognition(CustomRecognition):
         guard=json.loads(argv.custom_recognition_param or '{}') if type(argv.custom_recognition_param) is str else (argv.custom_recognition_param or {})
         if type(guard) is not dict:guard={}
         scope=_probe_scope(guard.get('probe_kinds'))
-        anchors={};scanned=set()
+        anchors={};scanned=set();battle_words_absent=False
         def read(key):
             if key in scanned:return anchors.get(key)
             scanned.add(key)
@@ -300,12 +305,23 @@ class SceneRecognition(CustomRecognition):
                 matches=[_primitive(context.run_recognition(f'LabySceneTemplate_{key}_{i}',argv.image),key) for i in range(len(spec['rois']))]
                 matches=[v for v in matches if v is not None]
                 if matches:anchors[key]=max(matches,key=lambda v:v['score'])
-            if key in _OCR:
+            if key in _OCR and not (battle_words_absent and key in _BATTLE_WORDS):
                 word=_primitive(context.run_recognition('LabySceneWord_'+key,argv.image),key)
                 if word is not None:anchors[key]=word
             return anchors.get(key)
         connection=_primitive(context.run_recognition('HomeDataConnection',argv.image),'DATA_CONNECTION')
         scanned.add('DATA_CONNECTION')
+        if (connection is None or connection['score']<.8) and (scope is None or
+                'battle_defeat' in scope and ('battle_victory' in scope or 'boss_summary' in scope)):
+            probe=context.run_recognition('LabySceneBattleWords',argv.image)
+            raw=getattr(probe,'raw_detail',None)
+            # Only a complete native miss excludes all three words on this frame.
+            battle_words_absent=(getattr(probe,'hit',None) is False and
+                type(getattr(probe,'reco_id',None)) is int and probe.reco_id>0 and
+                type(raw) is dict and type(raw.get('all')) is list and raw.get('filtered')==[]
+                and 'best' in raw and raw['best'] is None
+                and all(type(word) is dict and type(word.get('text')) is str
+                    and _box(word.get('box')) and _score(word.get('score')) for word in raw['all']))
         if connection is not None and connection['score']>=.8:
             anchors['DATA_CONNECTION']=connection
             read('DATE');read('DISCONNECT')
@@ -451,6 +467,9 @@ def perform_scene_action(tasker,scene,action,*,stopped=None,timings=None,target=
         # Reuse the existing native text control; the template includes chrome
         # outside the clickable button and must not supply its random target.
         nodes['LabySceneActionControl']=dict(tasker.resource.get_node_data('LabyNormalChallengeButton'))
+    elif scene.kind=='chest' and key in ('RUN_CLEAR_CHEST_CONFIRM_BUTTON','CONFIRM'):
+        # The template extends beyond the hitbox. Click the fresh text inside the bottom button.
+        nodes['LabySceneActionControl']=dict(recognition='OCR',expected=_OCR['CONFIRM'][0],roi=[505,606,268,66],threshold=.8,action='DoNothing',next=[])
     elif key=='RUN_RESULT_CLOSE_BUTTON':
         # The result template includes a non-clickable border; reuse the
         # existing native close text target for CLEAR and score-result pages.
@@ -501,7 +520,11 @@ class MaaSceneRuntime:
         """Business wait with independent owned acquisition and final-settlement drivers."""
         from .autoplay import _poll_pause, _native_ok, _owned_boss_summary_scene
         sources={source} if isinstance(source,str) else set(source or ())
-        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+timeout)
+        started=native.active_now()
+        parent_deadline=native.RUN_DEADLINE.get()
+        deadline=min(parent_deadline,started+timeout)
+        role_connection=('role_reward' in sources or 'free_role_reward' in sources) and acquisition_fields is not None
+        connection_deadline=min(parent_deadline,started+max(timeout,REWARD_CONNECTION_TIMEOUT_SECONDS)) if role_connection else deadline
         token=native.RUN_DEADLINE.set(deadline);acquisition_clicks=0;last_acquisition=-float('inf')
         def advance_owned(operation,fields,send):
             try:
@@ -522,7 +545,13 @@ class MaaSceneRuntime:
                         and proof.get('action_started') is False):return False
                 raise
         previous_probe=getattr(self,'_scene_probe_kinds',None)
-        self._scene_probe_kinds=_probe_scope(set(allowed)|sources|({'boss_summary','battle_victory'} if final_fields is not None else set()))
+        probe_kinds=set(allowed)|sources
+        if final_fields is not None:probe_kinds.update(('boss_summary','battle_victory'))
+        if acquisition_fields is not None:probe_kinds.add('character_animation')
+        self._scene_probe_kinds=_probe_scope(probe_kinds)
+        # A late entrance after a link reward requires its own fresh nameplate.
+        animation_kinds=(('character_animation',) if source=='character_animation'
+            else ('unknown','event_animation','character_animation'))
         try:
             while True:
                 batch.checkpoint();remaining=deadline-native.active_now()
@@ -532,6 +561,11 @@ class MaaSceneRuntime:
                 _native_ok(after.native)
                 if after.kind in ('date_changed','disconnected'):raise BatchStopped(after.kind)
                 if after.kind=='connecting':
+                    # A confirmed reward can spend its whole short transition window loading.
+                    # Extend once from the original start; neither repeated frames nor pauses reset it.
+                    if connection_deadline>deadline:
+                        deadline=connection_deadline
+                        native.RUN_DEADLINE.set(deadline)
                     _poll_pause(self.tasker,batch,'LabySceneTransitionPollSpacing',reason);continue
                 # An owned summon may expose MAP before its actual JOINED popup.
                 if acquisition_fields is not None and final_fields is None and after.kind=='map' and 'map' not in allowed:
@@ -557,7 +591,7 @@ class MaaSceneRuntime:
                             if advance_owned('advance_final_unknown',final_fields,advance_final):
                                 self._final_settlement_progress=(key,count+1,native.active_now())
                         _poll_pause(self.tasker,batch,'LabySceneTransitionPollSpacing',reason);continue
-                if acquisition_fields is not None and final_fields is None and after.kind in ('unknown','event_animation'):
+                if acquisition_fields is not None and final_fields is None and after.kind in animation_kinds:
                     if acquisition_clicks>=40:raise BatchStopped('character_acquisition_click_limit')
                     if native.active_now()-last_acquisition>=.65:
                         def advance(oid):

@@ -137,6 +137,7 @@ def _frame(value):
     return type(value) is np.ndarray and value.dtype == np.uint8 and value.ndim == 3 and value.shape[2] == 3
 
 
+@lru_cache(maxsize=128)
 def _near(center, radius, step):
     return tuple(round(float(center) + delta, 4) for delta in np.arange(-radius, radius + step / 2, step))
 
@@ -257,9 +258,12 @@ class RelicCatalog:
         sw, sh = max(1, int(round(w * span))), max(1, int(round(h * span)))
         return (x + int(round(w * (.5 + dx) - sw / 2)), y + int(round(h * (.5 + dy) - sh / 2)), sw, sh)
 
-    def _candidates(self, box, shape, spans, dxs, dys):
+    @staticmethod
+    @lru_cache(maxsize=128)
+    def _candidates(box, shape, spans, dxs, dys):
+        # Only layout coordinates are reusable. Every match scores the current frame.
         spec_rects = [((round(float(span), 4), round(float(dx), 4), round(float(dy), 4)),
-                       self._rect(box, span, dx, dy))
+                       RelicCatalog._rect(box, span, dx, dy))
                       for span in spans for dx in dxs for dy in dys]
         return tuple((spec, rect) for spec, rect in spec_rects if _inside(rect, shape))
 
@@ -351,7 +355,7 @@ class RelicCatalog:
                 _unknown_frame()
             geometries = (tuple(art),)
         else:
-            geometries = self._search(frame, box)
+            geometries = self._search(frame, tuple(box))
         per_geometry = np.stack([self._scores(frame, rect) for rect in geometries])
         best_geometry = np.argmax(per_geometry, axis=0)
         scores = per_geometry[best_geometry, np.arange(len(self._ids))]

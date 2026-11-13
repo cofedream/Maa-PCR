@@ -18,7 +18,7 @@ from .scene import OBSERVATION_TIMEOUT_SECONDS
 from .servers import get_server
 
 
-def game_port_pipeline():
+def game_port_pipeline(*,single_joined='LabyPortraitJoined1Observed'):
     """Dedicated single inputs, with separate fresh waiting tasks."""
     nodes=resume_home_pipeline()
     nodes['LabyClientResumeHomeDepartOnce']['next']=[]
@@ -26,7 +26,7 @@ def game_port_pipeline():
     nodes.update(readonly)
     from .portrait_cache import joined_portrait_pipeline
     for count in (1,2,3):nodes.update(joined_portrait_pipeline(count))
-    joined=[f'LabyPortraitJoined{count}Observed' for count in (1,2,3)]
+    joined=[single_joined,'LabyPortraitJoined2Observed','LabyPortraitJoined3Observed']
     nodes['LabyGamePortOpeningObserved']=dict(recognition='Or',
         any_of=['LabyDateChangedObserved','LabyDepartureRewardObserved']+joined+['LabyOpeningEmptyObserved','LabyMapObserved'],
         action='DoNothing',next=[],timeout=OBSERVATION_TIMEOUT_SECONDS*1000,rate_limit=250,pre_delay=0,post_delay=0)
@@ -116,14 +116,14 @@ class MaaGamePort:
         return receipt
 
     def _initial_roster(self,batch,snapshot):
-        pipeline=game_port_pipeline()
+        single=self.opening.prepare_grant() if snapshot.guild_id==5 else 'LabyPortraitJoined1Observed'
+        pipeline=game_port_pipeline(single_joined=single)
         # Protocol supplies the actual guild. This popup is the common guild
         # selection-imprint reward; only its actual title/body/close are used.
         pipeline['LabyDepartureGuildReward']=dict(expected=r'.+选择印记')
         if not self.tasker.resource.override_pipeline(pipeline):
             raise BatchStopped('game_port_pipeline_unavailable')
         fields=dict(enter_id=snapshot.enter_id,source='maa')
-        joined_names=[f'LabyPortraitJoined{count}Observed' for count in (1,2,3)]
         opening_names=pipeline['LabyGamePortOpeningObserved']['any_of']
         roster_names=pipeline['LabyGamePortRosterObserved']['any_of']
         def depart(oid):
@@ -139,7 +139,7 @@ class MaaGamePort:
             clicked=batch.transaction('opening_departure_reward_close',fields,close)
             page,seen=self._wait(batch,'LabyGamePortRosterObserved',roster_names)
             arrived=batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,page=page,native=seen,input_native=clicked['input_native']),**fields)
-        if arrived['page'] in joined_names:
+        if arrived['page'] in (single,'LabyPortraitJoined2Observed','LabyPortraitJoined3Observed'):
             return self.opening.consume_granted(batch,snapshot.enter_id,guild_id=snapshot.guild_id,
                 creation_operation_id=self._active_creation_oid)
         return None

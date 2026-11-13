@@ -120,6 +120,34 @@ def test_area_transition_commits_only_actual_next_area_map(tmp_path):
     result=runner.play(route,batch)
     assert result['confirmed_nodes']==[n.block_id for n in route.nodes] and result['clear_verified']
 
+
+@pytest.mark.parametrize('reward,recovers', [(4, True), (6, False)])
+def test_delayed_character_entrance_after_map_requires_owned_link(tmp_path,monkeypatch,reward,recovers):
+    from pcr_maa.labyrinth import autoplay
+    route=route_for([1,reward,8])
+    pages=sequence([1,reward,8])
+    pages.insert(3,('character_animation',{}))
+    pages.insert(4,('map',dict(area=1)))
+    runner,batch,runtime,navigator,actions=make(tmp_path,route,pages)
+    runtime.stamp=runner.stamp
+    locate=navigator.locate
+    def locate_with_entrance(route,current):
+        if runtime.i==2:
+            runtime.advance()
+            return dict(status='scene_changed',scene=dict(kind='character_animation',payload={})),receipt()
+        return locate(route,current)
+    navigator.locate=locate_with_entrance
+    monkeypatch.setattr(autoplay,'_poll_pause',lambda *args: None)
+    if recovers:
+        assert runner.play(route,batch)['clear_verified']
+        assert runtime.inputs.count('advance_character_animation')==1
+        assert len(navigator.previews)==2
+        assert actions.calls.count(('link_reward',4))==1
+    else:
+        with pytest.raises(BatchStopped,match='scene_unhandled'):
+            runner.play(route,batch)
+        assert 'advance_character_animation' not in runtime.inputs and len(navigator.previews)==1
+
 @pytest.mark.parametrize('kind,payload,reason',[
     ('move_confirmation',dict(node_type=7),'node_type_conflict'),
     ('unknown',{},'node_preview_unknown'),('date_changed',{},'date_changed'),('disconnected',{},'disconnected')])

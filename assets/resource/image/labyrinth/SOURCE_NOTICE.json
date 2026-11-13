@@ -4,6 +4,15 @@
   "image_license": "Third-party imagery retains respective rights. Attribution does not establish distribution permission. See upstream THIRD_PARTY_NOTICES.md.",
   "assets": [
     {
+      "key": "CHARACTER_ENTRANCE_PLATE",
+      "source": "2026-11-13 character entrance screen, CN client",
+      "source_sha256": "c5f837134983e7b4badd2ff25f5493e49628bc27bebaaba6124d644e19ed495f",
+      "local": "assets\\resource\\image\\labyrinth\\scene\\character_entrance_plate.png",
+      "local_sha256": "d520a5744970cbc8ed03b6eae15077bc4967f328ad98ba4562e10f78c8e06f68",
+      "transform": "1280x720 frame, crop [845,542,110,75] of the left nameplate ornament",
+      "rights": "game imagery; respective rights retained, not relicensed under source-code CC"
+    },
+    {
       "key": "TITLE_LOGO",
       "source": "android\\app\\src\\main\\assets\\resource-packs\\cn-bilibili\\vision\\entry_title_logo.bmp",
       "source_sha256": "aa8c35e4a92e06bfad7e247e85ef4a6bde3e1864de0075e6a8a9abb43640bf55",
