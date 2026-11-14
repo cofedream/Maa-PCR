@@ -9654,7 +9654,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",
-      "local_sha256": "4daeda63b9aaf52f9c907e08aee6a5099467532595e046a1b1276f0ba9c2f631",
+      "local_sha256": "83057c732588bb439b978636589fea8fafe3d318179ba9104e36d2e9e3711cdd",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -9672,7 +9672,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml",
-      "local_sha256": "e3d7d4acdf0a0cf9e202386212b15a56f37ed75241cc831c104399534639d8aa",
+      "local_sha256": "03d2a261726a2f6382df61219b803d0e25e3ea7465a166816f154a5812bfa3e5",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

@@ -347,6 +347,8 @@
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLiveLogView.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLogFiles.cs",
+    "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMarkPriorityList.axaml",
+    "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMarkPriorityList.axaml.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrModuleOrderList.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuDisplay.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuIdentity.cs",

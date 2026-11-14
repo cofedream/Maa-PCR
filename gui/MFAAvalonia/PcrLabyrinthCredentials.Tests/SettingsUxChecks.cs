@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Xml.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -11,6 +12,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Pcr;
 using MFAAvalonia.ViewModels.Pages;
@@ -41,6 +43,16 @@ internal static class SettingsUxChecks
             "settings_event_chain_policy_is_in_event_section");
         require(Named("EventChoicesInput").Ancestors().Contains(Named("EventSettings")),
             "settings_event_choice_list_is_in_event_section");
+        var relicPriorityNodes = nodes.Where(node => node.Name.LocalName == "PcrMarkPriorityList").ToArray();
+        require(relicPriorityNodes.Length == 1 && (string?)relicPriorityNodes[0].Attribute("Name") == "RelicPriorityInput"
+            && relicPriorityNodes[0].Ancestors().Contains(Named("RelicSettings")),
+            "settings_relic_priority_blocks_live_in_relic_section");
+        require(!nodes.Where(node => node.Name.LocalName == "TextBox")
+                .Any(node => ((string?)node.Attribute("Text") ?? "").Contains("RelicMarkPriority", StringComparison.Ordinal))
+            && !nodes.Any(node => (string?)node.Attribute("Watermark") == "加速,会心,守备,强化,弱体"),
+            "settings_relic_priority_free_text_entry_removed");
+        require(nodes.Any(node => node.Name.LocalName == "TextBlock" && (string?)node.Attribute("Text") == "遗物印记优先级"),
+            "settings_relic_priority_title");
 
         const string id = "pcr-settings-ux";
         var config = new InstanceConfiguration(id);
@@ -102,6 +114,23 @@ internal static class SettingsUxChecks
         require(((settings.Snapshot()["strategy"]?["event_choice_overrides"]) as JObject)?.ContainsKey("1105") == false,
             "settings_event_choice_override_can_be_cleared");
 
+        const string legacyPriorityId = "pcr-settings-legacy-relic-priority";
+        var legacyPriorityConfig = new InstanceConfiguration(legacyPriorityId);
+        legacyPriorityConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,
+            new JObject
+            {
+                ["version"] = 1,
+                ["goals"] = new JArray(new JObject { ["guild_id"] = 1, ["clears"] = 1 }),
+                ["strategy"] = new JObject { ["relic_mark_priority"] = new JArray("会心", "加速") },
+            }.ToString(Newtonsoft.Json.Formatting.None));
+        var migrated = owner(legacyPriorityConfig).LabyrinthSettings;
+        require(migrated.RelicMarkPriority == "会心,加速,守备,强化,弱体" && migrated.HasRelicPriorityNotice
+            && migrated.RelicPriorityNotice.Contains("会心，加速", StringComparison.Ordinal),
+            "settings_legacy_relic_subset_expands_with_notice");
+        var reopened = owner(new InstanceConfiguration(legacyPriorityId)).LabyrinthSettings;
+        require(reopened.RelicMarkPriority == "会心,加速,守备,强化,弱体" && !reopened.HasRelicPriorityNotice,
+            "settings_legacy_relic_subset_migrates_once");
+
         PcrLabyrinthCharacterCatalog.UseRepositoryRoot(sourceRoot);
         var view = new PcrLabyrinthView { DataContext = vm, Background = Brushes.White };
         var window = new Window { Content = view, Width = 960, Height = 900, ShowActivated = false,
@@ -122,6 +151,55 @@ internal static class SettingsUxChecks
             Dispatcher.UIThread.RunJobs();
             require(settings.Reroll && owner(new InstanceConfiguration(id)).LabyrinthSettings.Reroll,
                 "settings_reroll_can_be_reenabled_and_saved");
+            var priority = view.FindControl<PcrMarkPriorityList>("RelicPriorityInput")!;
+            var priorityToggle = priority.FindControl<CheckBox>("EnableToggle")!;
+            JArray PriorityArray() => (JArray)settings.Snapshot()["strategy"]!["relic_mark_priority"]!;
+            require(priorityToggle.IsChecked == false && PriorityArray().Count == 0,
+                "settings_relic_priority_starts_builtin");
+            priorityToggle.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+            Dispatcher.UIThread.RunJobs();
+            require(settings.RelicMarkPriority == "加速,会心,守备,强化,弱体"
+                && PriorityArray().Select(token => (string)token!).SequenceEqual(PcrMarkPriorityList.Marks),
+                "settings_relic_priority_enable_writes_five");
+            require(owner(new InstanceConfiguration(id)).LabyrinthSettings.RelicMarkPriority == "加速,会心,守备,强化,弱体",
+                "settings_relic_priority_enable_persists");
+            priority.Move(0, 2);
+            Dispatcher.UIThread.RunJobs();
+            require(settings.RelicMarkPriority == "会心,守备,加速,强化,弱体"
+                && PriorityArray().Select(token => (string)token!).SequenceEqual(new[] { "会心", "守备", "加速", "强化", "弱体" })
+                && owner(new InstanceConfiguration(id)).LabyrinthSettings.RelicMarkPriority == "会心,守备,加速,强化,弱体",
+                "settings_relic_priority_reorder_persists");
+            priorityToggle.SetCurrentValue(CheckBox.IsCheckedProperty, false);
+            Dispatcher.UIThread.RunJobs();
+            require(priorityToggle.IsChecked == false && PriorityArray().Count == 0 && settings.RelicMarkPriority == ""
+                && owner(new InstanceConfiguration(id)).LabyrinthSettings.RelicMarkPriority == "",
+                "settings_relic_priority_disable_clears");
+            priorityToggle.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+            Dispatcher.UIThread.RunJobs();
+            var relicSettings = view.FindControl<Expander>("RelicSettings")!;
+            relicSettings.IsExpanded = true;
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(500);
+            Dispatcher.UIThread.RunJobs();
+            view.UpdateLayout();
+            var chipTops = priority.GetVisualDescendants().OfType<Border>()
+                .Where(chip => chip.Classes.Contains("MarkChip"))
+                .Select(chip => Math.Round(chip.TranslatePoint(new Point(0, 0), priority)?.Y ?? double.NaN, 1))
+                .Distinct().ToArray();
+            require(chipTops.Length == 1 && !double.IsNaN(chipTops[0]), "settings_relic_priority_blocks_share_one_row");
+            var priorityOutput = Path.Combine(fixtureRoot, "settings-ux");
+            Directory.CreateDirectory(priorityOutput);
+            var settingsScroll = view.FindControl<ScrollViewer>("SettingsScroll")!;
+            if (priority.TranslatePoint(new Point(0, 0), (Visual)settingsScroll.Content!) is { } priorityTop)
+                settingsScroll.Offset = new Vector(0, Math.Max(0, priorityTop.Y - 180));
+            Dispatcher.UIThread.RunJobs();
+            view.UpdateLayout();
+            require(settingsScroll.Offset.Y > 0, "settings_relic_priority_frame_scrolled");
+            using (var pageFrame = new RenderTargetBitmap(new PixelSize(960, 900)))
+            {
+                pageFrame.Render(view);
+                pageFrame.Save(Path.Combine(priorityOutput, "labyrinth-relic-priority.png"));
+            }
             var input = view.FindControl<PcrCountInput>("DifficultyInput")!;
             var blur = typeof(PcrCountInput).GetMethod("OnLostFocus", BindingFlags.Instance | BindingFlags.NonPublic)!;
             foreach (var draft in new[] { "", "invalid", "8" })

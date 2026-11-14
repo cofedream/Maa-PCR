@@ -19,6 +19,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     public const string CredentialsKey = "PcrLabyrinthCredentialsV1";
     private readonly TaskQueueViewModel vm;
     private bool ready;
+    private bool relicPriorityMigrated;
     private bool credentialsDirty;
     private string? saved;
     private int? loadedMaxSeconds;
@@ -112,6 +113,10 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string debuffPivotMinimum = "12";
     [ObservableProperty] private string debuffPivotTolerance = "2";
     [ObservableProperty] private string relicMarkPriority = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRelicPriorityNotice))]
+    private string relicPriorityNotice = "";
+    public bool HasRelicPriorityNotice => RelicPriorityNotice.Length>0;
     [ObservableProperty] private bool refreshShop = true;
     [ObservableProperty] private string refreshFromArea = "5";
     [ObservableProperty] private string normalWinRate = "95";
@@ -171,6 +176,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         }
         foreach (var g in Goals) g.PropertyChanged+=(_,_)=>SaveCore(automatic:true);
         ready=true;
+        FlushRelicPriorityMigration();
     }
     private void LoadEventChoices() {
         try {
@@ -233,6 +239,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             ShowCredentials=false; credentialsDirty=false; DeleteAccountPending=false;
             Status=Servers.Any(item=>item.Id==Server) ? "已载入所选账号的黎明界设置。" : "未知服务器，请重新选择服务器并填写凭据。";
         } finally { ready=wasReady; switchingAccount=false; }
+        FlushRelicPriorityMigration();
         OnPropertyChanged(nameof(AccountSummary));
     }
     private void LoadSettings(JObject d) {
@@ -257,7 +264,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             BaselineTarget=strategy["baseline_target"]?.ToString() ?? "4";
             DebuffPivotMinimum=strategy["debuff_pivot_minimum"]?.ToString() ?? "12";
             DebuffPivotTolerance=strategy["debuff_pivot_tolerance"]?.ToString() ?? "2";
-            RelicMarkPriority=strategy["relic_mark_priority"] is JArray priority ? string.Join(",",priority.Values<string>()) : "";
+            RelicMarkPriority=NormalizeRelicPriority(strategy["relic_mark_priority"] as JArray);
             RefreshFromArea=strategy["refresh_from_area"]?.ToString() ?? "5";
             NormalWinRate=strategy["normal_win_rate"]?.ToString() ?? "95";
             ExtremeWinRate=strategy["extreme_win_rate"]?.ToString() ?? "70";
@@ -368,7 +375,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
                 or nameof(RosterStatus) or nameof(HasRosterStatus) or nameof(AccountSummary) or nameof(SaveButtonText)
                 or nameof(SelectedAccount) or nameof(SelectedServer) or nameof(LoginLabel) or nameof(PasswordLabel) or nameof(LoginHint)
                 or nameof(IsPaused) or nameof(PausePending) or nameof(PauseLabel) or nameof(DeleteAccountPending) or nameof(DeleteAccountText)
-                or nameof(BossFilterStatus) or nameof(HasBossFilterStatus)) return;
+                or nameof(BossFilterStatus) or nameof(HasBossFilterStatus)
+                or nameof(RelicPriorityNotice) or nameof(HasRelicPriorityNotice)) return;
         vm.NotifyPcrSelectionChanged();
         if (e.PropertyName is nameof(ExpectedPlayerId) or nameof(Username) or nameof(Password)) {
             credentialsDirty=true;
@@ -449,9 +457,28 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private JArray RelicPrioritySnapshot() {
         if (string.IsNullOrWhiteSpace(RelicMarkPriority)) return new JArray();
         var marks=RelicMarkPriority.Split(',',StringSplitOptions.TrimEntries).Select(mark=>mark switch { "暴击"=>"会心", "削弱" or "崩弱"=>"弱体", _=>mark }).ToArray();
-        if (marks.Distinct().Count()!=marks.Length || marks.Any(mark=>!new[]{"加速","会心","守备","强化","弱体"}.Contains(mark)))
+        if (marks.Distinct().Count()!=marks.Length || marks.Any(mark=>!PcrMarkPriorityList.Marks.Contains(mark)))
             throw new InvalidOperationException("遗物印记优先级请填写不重复的加速、会心、守备、强化、弱体，用逗号分隔。");
         return new JArray(marks);
+    }
+    // A stored ordered subset was expressible by the old text box, but the block list
+    // only renders all five marks. Keep the stored relative order, append the missing
+    // marks in built-in order, and migrate the account once with a visible notice.
+    private string NormalizeRelicPriority(JArray? priority) {
+        var stored=PcrMarkPriorityList.Normalize(priority?.Values<string>());
+        if (stored.Count==0) return "";
+        if (stored.Count>=PcrMarkPriorityList.Marks.Count) return string.Join(",",stored);
+        var expanded=PcrMarkPriorityList.Expand(stored);
+        relicPriorityMigrated=true;
+        RelicPriorityNotice=$"检测到旧的子集优先级（{string.Join("，",stored)}），已补全为五项：{string.Join("，",expanded)}。";
+        return string.Join(",",expanded);
+    }
+    private void FlushRelicPriorityMigration() {
+        if (!relicPriorityMigrated || !ready || !vm.CanEditPcrTarget) return;
+        SaveCore(automatic:true);
+    }
+    partial void OnRelicMarkPriorityChanged(string value) {
+        if (ready) RelicPriorityNotice="";
     }
     private JObject EventChoiceOverridesSnapshot() {
         var result=(JObject)savedEventChoiceOverrides.DeepClone();
@@ -536,6 +563,9 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [RelayCommand] public void Save() => SaveCore(automatic:false);
     private void SaveCore(bool automatic) {
         if (!ready || !vm.CanEditPcrTarget) return;
+        // A successful save writes the current five-mark order, so a pending one-time
+        // subset migration no longer needs its own flush.
+        relicPriorityMigrated=false;
         vm.NotifyPcrSelectionChanged();
         SaveCredentials();
         try {
