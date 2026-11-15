@@ -9,6 +9,13 @@ from test_labyrinth_joined_confirmation import callback, receipt
 from test_labyrinth_scene_budgets import SlowOwner, runtime, slow
 
 
+def expected_budgets(scene_seconds):
+    """The scene wait and the joined read share the transition deadline."""
+    wait = opening.INVITATION_TRANSITION_TIMEOUT_SECONDS
+    return [wait, min(wait + opening.JOINED_CONFIRMATION_TIMEOUT_SECONDS,
+                      scene_seconds + opening.JOINED_CONFIRMATION_TIMEOUT_SECONDS)]
+
+
 @pytest.fixture
 def confirmation(slow, monkeypatch):
     import time
@@ -53,19 +60,19 @@ def test_opening_accepts_slow_confirmed_identities(confirmation, slow, scene_sec
     value = confirmation
     value.scene_seconds, value.read_seconds = scene_seconds, read_seconds
     assert value.port._wait_invitation_joined(value.batch, 1, dict(operation_id='offline')) == value.evidence
-    assert slow.now > 3 and value.budgets == pytest.approx([30, min(30, scene_seconds + 12)])
+    assert slow.now > 3 and value.budgets == pytest.approx(expected_budgets(scene_seconds))
     assert value.inputs == [] and native.RUN_DEADLINE.get() == float('inf')
 
 
 @pytest.mark.parametrize('scene_seconds,read_seconds,stopped', [
-    (1.852, 12.1, False), (1.852, 1.198, True), (1.852, 12.1, True), (20, 10.1, False)])
+    (1.852, 12.1, False), (1.852, 1.198, True), (1.852, 12.1, True), (20, 12.1, False)])
 def test_opening_rejects_late_result_and_stop_without_input(confirmation, scene_seconds, read_seconds, stopped):
     value = confirmation
     value.scene_seconds = scene_seconds
     value.read_seconds, value.stop_on_read = read_seconds, stopped
     with pytest.raises(scene.BatchStopped, match='^stopped$' if stopped else '^character_readback_unknown$'):
         value.port._wait_invitation_joined(value.batch, 1, dict(operation_id='offline'))
-    assert value.inputs == [] and value.budgets == pytest.approx([30, min(30, scene_seconds + 12)])
+    assert value.inputs == [] and value.budgets == pytest.approx(expected_budgets(scene_seconds))
     assert native.RUN_DEADLINE.get() == float('inf')
 
 
