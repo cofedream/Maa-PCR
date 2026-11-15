@@ -104,6 +104,40 @@ def test_cached_session_still_uses_manual_game_captcha(store, tmp_path, monkeypa
     assert calls.count('ToolSdkLoginRequest') == 2 and store.read() == ('1','old-key')
 
 
+@pytest.mark.parametrize('cached', [False, True])
+def test_game_rejecting_submitted_captcha_stops_without_refreshing_credentials(store, tmp_path, monkeypatch, cached):
+    import base64
+    import msgpack
+    from pcr_maa.labyrinth.captcha import Proof
+    if cached:
+        assert store.save('1', 'old-key')
+    client, calls = stub_client(tmp_path, monkeypatch)
+    from autopcr_sync.core import readonly
+    stub = client.auth.request
+    async def request(req):
+        if type(req).__name__ != 'ToolSdkLoginRequest':
+            return await stub(req)
+        calls.append('game-login')
+        if not req.validate_:
+            return NS(is_risk=True)
+        return await readonly.ReadOnlyClient.request(client.auth, req)
+    async def verify(stage):
+        assert stage == 'game'
+        calls.append('manual')
+        return Proof('fixture-challenge', 'fixture-user', 'fixture-proof')
+    def reject(url, **kw):
+        payload = dict(data_headers=dict(result_code=2), data=dict(server_error=dict(message='验证码校验失败')))
+        return NS(status_code=200, content=base64.b64encode(client.auth.encrypt(msgpack.packb(payload), b'0'*32)))
+    monkeypatch.setattr(client.auth, 'request', request)
+    monkeypatch.setattr(client, '_verify_captcha', verify)
+    monkeypatch.setattr(readonly.requests, 'post', reject)
+    with pytest.raises(ProtocolFailure, match='^captcha_rejected$'):
+        asyncio.run(client.login(123))
+    assert client.phase == 'closed' and calls.count('game-login') == 2
+    assert calls.count('manual') == 1 and calls.count('password') == int(not cached)
+    assert store.read() == (('1','old-key') if cached else None)
+
+
 def test_bindings_and_corrupt_ciphertext_are_cache_misses(store, tmp_path):
     store.save('1', 'old-key')
     for server, account, user, password in [('cn-huawei',123,'user','password'),
