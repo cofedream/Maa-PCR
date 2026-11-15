@@ -134,7 +134,7 @@ class MaaOpening:
             sent=self._run('LabyOpeningAnyJoinedCloseOnce',input=True)
             return self.stamp(source='maa',operation_id=oid,**close_fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('opening_close',close_fields,close)
-        batch.checkpoint();hit,receipt=self._after_invitation(batch,guild_id)
+        batch.checkpoint();hit,receipt=self._after_invitation(batch,guild_id,enter_id=enter_id)
         closed=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**close_fields,page=hit,native=receipt,input_native=clicked['input_native']),**close_fields)
         granted=self.grants.get(claim)
         if closed['page']=='joined':
@@ -195,15 +195,37 @@ class MaaOpening:
             'LabyOpeningGrantCloseOnce':dict(guard,action='Click',target=True,max_hit=1)}
         if not self.tasker.resource.override_pipeline(nodes):raise BatchStopped('opening_pipeline_unavailable')
         return 'LabyOpeningGrantObserved'
-    def _after_invitation(self,batch,guild_id):
+    def _after_invitation(self,batch,guild_id,*,enter_id=None):
         self._install_joined()
+        # invite() installs this before the invitation; re-install so a direct
+        # transition call also has the item-page nodes.
+        if not self.tasker.resource.override_pipeline(opening_catalog_pipeline()):
+            raise BatchStopped('opening_pipeline_unavailable')
         names=['LabyDateChangedObserved','LabyDisconnect6002Observed']
         # The extra 1-role grant page exists only for guild 5. The user verified on
         # device (2026-11-13) that the new guilds 6..10 present no gift page, so
         # never generalize this branch from configuration alone.
         if guild_id==5:names.append(self.prepare_grant())
-        names.append('LabyMapObserved')
-        hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)
+        # A departure guild's starting relic can also present a one-shot item
+        # result before the map. Guild 5's relic joins 1068 (the joined page
+        # above); guild 9's grants 3000 alpha coins as a "迷宫遗物效果" item page.
+        # Keep the item branch before MAP: the modal dims the map anchors, and
+        # only the observed page may be closed, on a fresh guarded click. Then
+        # read the map; a repeated/unknown page still stops this transition.
+        names.append('LabyOpeningItemRewardObserved');names.append('LabyMapObserved')
+        for _ in range(3):
+            hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)
+            if hit!='LabyOpeningItemRewardObserved':break
+            fields=dict(phase='opening_item_reward_close')
+            if type(enter_id) is int and enter_id>0:fields['enter_id']=enter_id
+            def close(oid):
+                sent=self._run('LabyOpeningItemRewardCloseOnce',input=True)
+                return self.stamp(source='maa',operation_id=oid,**fields,native=sent,
+                    input_native=sent,input_action_verified=True)
+            batch.transaction('opening_item_reward_close',fields,close)
+            batch.checkpoint()
+        else:
+            raise BatchStopped('opening_readback_unknown')
         receipt=self._run(hit);batch.checkpoint()
         return ('map' if hit=='LabyMapObserved' else 'joined'),receipt
     def consume_granted(self,batch,enter_id,*,guild_id,next_node='LabyOpeningEmptyObserved',page='opening_empty',creation_operation_id=None):
@@ -235,8 +257,28 @@ class MaaOpening:
         self.grants[key]=actual
         return actual
 def opening_catalog_pipeline():
-    # Only the dedicated close input remains; joined identity is always read by
-    # the shared fullpack reader above.
-    return {'LabyOpeningAnyJoinedCloseOnce':dict(recognition='And',
+    # Only the dedicated close inputs remain; joined identity is always read by
+    # the shared fullpack reader above. A departure guild's starting relic can
+    # present either the guild-5 one-role joined page or an item result
+    # ("迷宫遗物效果"/"获得道具"/"遗物效果结果") over the map.
+    nodes={'LabyOpeningAnyJoinedCloseOnce':dict(recognition='And',
         all_of=['LabyJoinedCloseLabel','LabyJoinedTitle'],
         action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)}
+    # Same title/close frame as the scene item_reward class (scene.py
+    # ITEM_TITLE/ITEM_CLOSE). The relic name and item line are only text on that
+    # page; they must not be required to identify it.
+    nodes.update({
+        'LabyOpeningItemRewardTitle':dict(recognition='OCR',
+            expected=r'^(获得道具|迷宫遗物效果|遗物效果结果)$',roi=[380,0,540,220],
+            threshold=.8,action='DoNothing',next=[],timeout=1000,pre_delay=0,post_delay=0),
+        'LabyOpeningItemRewardClose':dict(recognition='OCR',expected=r'^关闭$',
+            roi=[350,490,590,220],threshold=.8,action='DoNothing',next=[],timeout=1000,
+            pre_delay=0,post_delay=0),
+        'LabyOpeningItemRewardObserved':dict(recognition='And',
+            all_of=['LabyOpeningItemRewardTitle','LabyOpeningItemRewardClose'],
+            action='DoNothing',next=[],timeout=3000,pre_delay=0,post_delay=0),
+        'LabyOpeningItemRewardCloseOnce':dict(recognition='And',
+            all_of=['LabyOpeningItemRewardClose','LabyOpeningItemRewardTitle'],
+            action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0),
+    })
+    return nodes
