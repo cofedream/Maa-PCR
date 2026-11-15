@@ -219,12 +219,18 @@ try {
         var routePanel=view.GetLogicalDescendants().OfType<Expander>().Single(control=>control.Name=="RouteSettings");
         routePanel.IsExpanded=true; Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(350); Dispatcher.UIThread.RunJobs();
         routePanel.BringIntoView(); Dispatcher.UIThread.RunJobs(); view.UpdateLayout();
-        var bossChoices=view.GetLogicalDescendants().OfType<CheckBox>()
-            .Where(control=>control.Content is StackPanel panel && panel.Children.OfType<Image>().Any()).ToArray();
-        Require(bossChoices.Length==10,"real_boss_filter_shows_ten_icon_checkboxes");
-        Require(bossChoices.All(control=>control.Content is StackPanel panel
+        var bossChips=view.GetLogicalDescendants().OfType<Button>()
+            .Where(control=>control.DataContext is PcrLabyrinthBossChoice && control.Content is StackPanel panel
+                && panel.Children.OfType<Image>().Any()).ToArray();
+        Require(bossChips.Length==10,"real_boss_filter_shows_ten_icon_chips");
+        Require(bossChips.All(control=>control.Content is StackPanel panel
                 && panel.Children.OfType<Image>().Single().Source is Bitmap bitmap && bitmap.PixelSize.Width==128),
             "real_boss_filter_icons_decode_from_boss_pack");
+        var bossChoice=(PcrLabyrinthBossChoice)bossChips[0].DataContext!;
+        var bossSelected=bossChoice.Selected;
+        typeof(Button).GetMethod("OnClick",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(bossChips[0],null);
+        Dispatcher.UIThread.RunJobs();
+        Require(bossChoice.Selected!=bossSelected,"real_boss_filter_chip_click_toggles_selection");
         using (var frame=new RenderTargetBitmap(new PixelSize(1080,1100))) { frame.Render(view); frame.Save(Path.Combine(root,"boss-filter-view.png")); }
         routePanel.IsExpanded=false;
         var teamPanel=view.GetLogicalDescendants().OfType<Expander>().Single(control=>control.Name=="TeamSettings");
