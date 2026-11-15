@@ -58,6 +58,55 @@ python -X utf8 -B scripts/verify.py all
 
 测试禁止发现或构造真实 ADB 控制器。GUI 构建、离线契约检查和真实游戏验收是不同证据。此入口覆盖前两者；发行候选、内置运行时检查和实机验收仍按 [Windows 检查工作流](../.github/workflows/ci.yml) 及发行流程执行。
 
+## 多 worktree 并行开发与 GUI 核对
+
+同一台机器可以同时检出多个 worktree。每个 worktree 的 `gui\MFAAvalonia\bin\x64\Release` 都是独立的程序目录，配置、日志和 `pcr-alpha-v1` 都落在各自目录，不会覆盖 main 或其他 worktree 的账号与设置。开发模式下窗口标题和可见标题栏会追加 ` · <分支名>`；没有可读分支时使用 HEAD 短提交号或 checkout 目录名，因此 main 与各 worktree 的窗口可以直接区分。
+
+### 首次准备 worktree 程序目录
+
+在 **worktree 根目录**执行：
+
+```powershell
+$root = (Get-Location).Path
+$app = Join-Path $root 'gui\MFAAvalonia\bin\x64\Release'
+Set-Content (Join-Path $app 'pcr-repository.txt') $root -NoNewline
+Copy-Item (Join-Path $root 'interface.json') (Join-Path $app 'interface.json') -Force
+if (-not (Test-Path (Join-Path $app 'assets'))) {
+    New-Item -ItemType Junction -Path (Join-Path $app 'assets') -Target (Join-Path $root 'assets') | Out-Null
+}
+```
+
+`pcr-repository.txt` 决定开发模式读取哪个 checkout；`interface.json` 提供任务列表；`assets` junction 让 worktree 实时使用自己的资源。不要从 main 复制 `config`、`pcr-alpha-v1` 或 `logs`，否则会串用账号、策略和日志。
+
+### 构建与启动
+
+```powershell
+dotnet build gui\MFAAvalonia\MFAAvalonia.Desktop\MFAAvalonia.Desktop.csproj -c Release -r win-x64 -p:Platform=x64 -p:UsedAvaloniaProducts= --no-restore
+Start-Process (Join-Path $app 'MFAAvalonia.exe')
+```
+
+成功时标题形如 `MFA 任务管理器 Maa-PCR（开发模式） | ... · <分支名>`。编译前先关闭当前 checkout 的 GUI，否则 DLL 被占用。
+
+### 并行运行限制
+
+- 普通模式有单实例互斥锁 `PCRAlphaV1.FixedDeviceOwner`，同一 Windows 用户会话只能有一个完整 GUI；启动第二个会直接退出、不显示窗口。需要切换 worktree 时，先在正在运行的窗口中停止任务并正常关闭，再启动另一个。不要强杀正在执行任务的实例。
+- 只想并行核对**设置界面**（不改 main、不跑任务）时，可用零设备的设置隔离诊断模式：
+  1. 把 worktree 的 Release 输出复制到 `<worktree>\.runtime\player-win32-20260929\count-restore-fix\formal-settings\app`，再把 `assets` 作为真实目录复制进去（不能是 junction）；该目录树及其所有父目录都不能含 reparse point。
+  2. 确保 app 目录有指向 worktree 根目录的 `pcr-repository.txt` 和 `interface.json`。
+  3. 在 app 目录写入 `player-settings.ready`，内容严格为 `PCR PLAYER SETTINGS COUNT RESTORE WIN32 ONLY` 加一个 LF，不能带 CRLF 或 BOM。
+  4. 启动：`dotnet <app>\MFAAvalonia.dll --pcr-settings-diagnostic`。该模式使用独立互斥锁 `PCRAlphaV1.PlayerSettingsDiagnostic`，可以和 main 同时运行；标题会追加 `— PCR 玩家设置隔离验收（零设备）`，只能编辑设置，不能开始任务，同一时间只允许一个诊断窗口。
+  5. 检查完成后关闭窗口；隔离副本只用于界面核对，可随时删除。
+
+  ```powershell
+  $app = Join-Path (Get-Location) '.runtime\player-win32-20260929\count-restore-fix\formal-settings\app'
+  robocopy 'gui\MFAAvalonia\bin\x64\Release' $app /E /XJ /NFL /NDL /NJH /NJS /NP
+  robocopy 'assets' (Join-Path $app 'assets') /E /XJ /NFL /NDL /NJH /NJS /NP
+  [IO.File]::WriteAllText((Join-Path $app 'player-settings.ready'),
+      "PCR PLAYER SETTINGS COUNT RESTORE WIN32 ONLY`n", [Text.UTF8Encoding]::new($false))
+  ```
+- 不要同时在两个窗口对同一模拟器执行任务；ADB、控制器和 Agent 会话不属于并行开发支持范围。
+- 仅核对 GUI 不需要 worktree 的 `.venv`；要从 worktree 真正跑任务，先按[本地开发环境初始化](DEVELOPMENT_SETUP.md)为该 worktree 准备 Python 环境，并确认没有其他实例占用同一设备。
+
 ## 性能与场景验收
 
 性能分析复用 `src/pcr_maa/labyrinth/timing.py` 的 `Timings` 和 `PcrCapturePerformance` 报告。分别记录启动、连接准备、识别和任务执行耗时，在同一设备、相同设置与相近任务量下比较。至少收集 3 组可比样本再报告整体提速，注明冷启动或预热条件，保留慢样本。局部识别或缓存耗时不能换算成整局提速；不为取证新增常驻监控、轮询抓屏或全目录扫描。

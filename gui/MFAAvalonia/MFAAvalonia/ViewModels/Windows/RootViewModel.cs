@@ -144,6 +144,8 @@ public partial class RootViewModel : ViewModelBase
         }
     }
 
+    public string DevelopmentIdentitySuffix => DevelopmentIdentity.TitleSuffix;
+
     public void RefreshApplicationDisplayName() => OnPropertyChanged(nameof(ApplicationDisplayName));
 
     [ObservableProperty] private bool _lockController;
