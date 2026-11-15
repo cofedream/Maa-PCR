@@ -17,9 +17,11 @@ def request(server='cn-bilibili'):
         credentials=dict(username='fixture-uid',password='fixture-access-key'))
 
 
+@pytest.mark.parametrize('cpu_option', [{}, {'cpu_only': True}])
 @pytest.mark.parametrize('server',list(SERVERS))
-def test_owner_server_and_strategy_snapshot_are_bound_without_retaining_input_credentials(server,tmp_path):
+def test_owner_server_and_strategy_snapshot_are_bound_without_retaining_input_credentials(server,tmp_path,cpu_option):
     value=request(server)
+    value.update(cpu_option)
     adb=tmp_path/'adb.exe'
     adb.write_bytes(b'offline fixture, never executed')
     value['connection']['adb_path']=str(adb.resolve())
@@ -27,6 +29,7 @@ def test_owner_server_and_strategy_snapshot_are_bound_without_retaining_input_cr
     parsed=parse_request(value)
     try:
         assert parsed.server==server
+        assert parsed.cpu_only is cpu_option.get('cpu_only', False)
         assert parsed.settings.strategy.response_interval_ms==500
         assert parsed.settings.strategy.auto_database_update is False
         assert credentials=={} and 'credentials' not in value
