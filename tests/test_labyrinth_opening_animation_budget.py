@@ -20,19 +20,19 @@ def test_three_opening_animations_finish_with_slow_guards_and_respect_parent(mon
     runtime.tasker=NS()
     runtime.stamp=lambda **fields:fields
     def observe(**kwargs):
-        advance(1.5)
+        advance(3.)
         return scene.Scene('unknown' if state.clicks<3 else 'joined',receipt(),{})
     def perform(current,action):
         assert current.kind=='unknown' and action=='advance_character_animation'
-        advance(3.9);state.clicks+=1
+        advance(6.);state.clicks+=1
         return receipt(action=True)
     runtime.observe=observe;runtime.perform=perform
     monkeypatch.setattr(scene,'MaaSceneRuntime',lambda *a,**kw:runtime)
-    monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:advance(.5))
+    monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:advance(1.5))
     port=opening.MaaOpening(NS(),lambda **fields:fields)
     def joined(batch,page,*,stable,timeout):
         assert page=='joined' and stable is False and timeout==opening.JOINED_CONFIRMATION_TIMEOUT_SECONDS
-        advance(1.);state.confirmed=True
+        advance(11.);state.confirmed=True
         return receipt(),receipt()
     port._characters=NS(read=joined)
     batch=NS(stopped=lambda:False,checkpoint=lambda:None,
@@ -41,7 +41,7 @@ def test_three_opening_animations_finish_with_slow_guards_and_respect_parent(mon
     try:
         if parent==float('inf'):
             assert port._wait_invitation_joined(batch,1,dict(operation_id='invitation'))['native_ok']
-            assert state.clicks==3 and state.confirmed and 12<state.now<30
+            assert state.clicks==3 and state.confirmed and state.now==45.5
         else:
             with pytest.raises(scene.BatchStopped,match='opening_readback_unknown'):
                 port._wait_invitation_joined(batch,1,dict(operation_id='invitation'))
