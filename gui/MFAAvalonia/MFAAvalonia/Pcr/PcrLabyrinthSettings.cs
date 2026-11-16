@@ -196,7 +196,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     }
     internal void BossSelectionEdited() {
         if (!ready) return;
-        // 用户已重新勾选，本次保存会写入清洗后的 ID；载入时的“已忽略”提示不再成立。
+        // 用户已重新选择，本次保存会写入清洗后的 ID；载入时的“已忽略”提示不再成立。
         BossFilterStatus="";
         vm.NotifyPcrSelectionChanged();
         SaveCore(automatic:true);

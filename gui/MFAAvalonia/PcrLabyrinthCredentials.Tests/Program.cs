@@ -317,7 +317,7 @@ try
     Require(rosterExpanderNode.Descendants(xaml + "Border").Any(node => ClassesOf(node).Contains("OpeningSlotBox")),
         "opening_slot_boxes_in_view");
     Require(rosterExpanderNode.Descendants(xaml + "Button").Any(node =>
-            ClassesOf(node).Contains("OpeningCandidate") && (string?)node.Attribute("Command") == "{Binding ToggleCommand}"),
+            ClassesOf(node).Contains("CandidateChip") && (string?)node.Attribute("Command") == "{Binding ToggleCommand}"),
         "opening_candidate_chips_bound_in_view");
     Require(rosterExpanderNode.Descendants(xaml + "ItemsControl").Any(node => (string?)node.Attribute("ItemsSource") == "{Binding Slots}"),
         "opening_slots_bound_in_view");

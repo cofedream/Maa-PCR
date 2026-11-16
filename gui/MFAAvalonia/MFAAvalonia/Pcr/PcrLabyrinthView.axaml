@@ -12,13 +12,13 @@
   <Style Selector="Border.OpeningSlotBox.empty">
    <Setter Property="Opacity" Value="0.55" />
   </Style>
-  <Style Selector="Button.OpeningCandidate">
+  <Style Selector="Button.CandidateChip, ToggleButton.CandidateChip">
    <Setter Property="Padding" Value="6,3" />
    <Setter Property="Margin" Value="0,0,6,6" />
    <Setter Property="CornerRadius" Value="14" />
    <Setter Property="Background" Value="#14000000" />
   </Style>
-  <Style Selector="Button.OpeningCandidate.selected">
+  <Style Selector="Button.CandidateChip.selected, ToggleButton.CandidateChip:checked">
    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}" />
    <Setter Property="Foreground" Value="White" />
   </Style>
@@ -101,22 +101,22 @@
      <TextBlock Text="价值容差（0–3）" /><TextBox Text="{Binding LabyrinthSettings.Allowance, Mode=TwoWay}" />
      <TextBlock Text="第三区域与第五区域遗物／事件偏好" />
      <ComboBox ItemsSource="{Binding LabyrinthSettings.ThirdChoices}" SelectedItem="{Binding LabyrinthSettings.ThirdChoice}" HorizontalAlignment="Stretch" />
-     <TextBlock Text="Boss 筛选：勾选要接受的首领（名称后为 ID）；全部不勾表示不限制。" TextWrapping="Wrap" FontSize="12" />
+     <TextBlock Text="Boss 筛选：点击首领标签选择要接受的首领（名称后为 ID），再次点击取消；全部不选表示不限制。" TextWrapping="Wrap" FontSize="12" />
      <TextBlock Text="第三区域" /><ItemsControl Name="Area3BossInput" ItemsSource="{Binding LabyrinthSettings.Area3Bosses}" HorizontalAlignment="Left"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="pcr:PcrLabyrinthBossChoice">
-       <CheckBox IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}">
+       <ToggleButton Classes="CandidateChip" IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}" ToolTip.Tip="{Binding Label}">
         <StackPanel Orientation="Horizontal" Spacing="6">
          <Image Width="24" Height="24" Source="{Binding Icon}" Stretch="Uniform" />
          <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
         </StackPanel>
-       </CheckBox>
+       </ToggleButton>
      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
      <TextBlock Text="第五区域" /><ItemsControl Name="Area5BossInput" ItemsSource="{Binding LabyrinthSettings.Area5Bosses}" HorizontalAlignment="Left"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="pcr:PcrLabyrinthBossChoice">
-       <CheckBox IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}">
+       <ToggleButton Classes="CandidateChip" IsChecked="{Binding Selected, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}" ToolTip.Tip="{Binding Label}">
         <StackPanel Orientation="Horizontal" Spacing="6">
          <Image Width="24" Height="24" Source="{Binding Icon}" Stretch="Uniform" />
          <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
         </StackPanel>
-       </CheckBox>
+       </ToggleButton>
      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
      <TextBlock Text="{Binding LabyrinthSettings.BossFilterStatus}" TextWrapping="Wrap" FontSize="12" Foreground="OrangeRed" IsVisible="{Binding LabyrinthSettings.HasBossFilterStatus}" />
     </StackPanel></Expander>
@@ -223,7 +223,7 @@
          <ItemsControl ItemsSource="{Binding Pool}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
            <DataTemplate x:DataType="pcr:PcrLabyrinthCharacter">
-            <Button Classes="OpeningCandidate" Classes.selected="{Binding IsSelected}" Command="{Binding ToggleCommand}" ToolTip.Tip="{Binding Name}">
+            <Button Classes="CandidateChip" Classes.selected="{Binding IsSelected}" Command="{Binding ToggleCommand}" ToolTip.Tip="{Binding Name}">
              <StackPanel Orientation="Horizontal" Spacing="4">
               <Image Source="{Binding Icon}" Width="22" Height="22" />
               <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" />

@@ -6,7 +6,10 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using Avalonia;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -24,7 +27,8 @@ if (args.Length!=2 || args.Any(arg=>!Path.IsPathFullyQualified(arg)) || !Operati
 try {
     AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
     Application.Current!.RequestedThemeVariant=ThemeVariant.Light;
-    Application.Current.Styles.Add(new SukiUI.SukiTheme());
+    var theme = new SukiUI.SukiTheme { ThemeColor = SukiUI.Enums.SukiColor.Blue };
+    Application.Current.Styles.Add(theme);
     var root=Path.Combine(args[0],"accounts-"+Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
     const BindingFlags fields=BindingFlags.Instance|BindingFlags.Static|BindingFlags.NonPublic;
     typeof(AppPaths).GetField("_configDirectory",fields)!.SetValue(null,Path.Combine(root,"config"));
@@ -219,12 +223,34 @@ try {
         var routePanel=view.GetLogicalDescendants().OfType<Expander>().Single(control=>control.Name=="RouteSettings");
         routePanel.IsExpanded=true; Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(350); Dispatcher.UIThread.RunJobs();
         routePanel.BringIntoView(); Dispatcher.UIThread.RunJobs(); view.UpdateLayout();
-        var bossChoices=view.GetLogicalDescendants().OfType<CheckBox>()
-            .Where(control=>control.Content is StackPanel panel && panel.Children.OfType<Image>().Any()).ToArray();
-        Require(bossChoices.Length==10,"real_boss_filter_shows_ten_icon_checkboxes");
-        Require(bossChoices.All(control=>control.Content is StackPanel panel
+        var bossChips=view.GetLogicalDescendants().OfType<ToggleButton>()
+            .Where(control=>control.DataContext is PcrLabyrinthBossChoice && control.Content is StackPanel panel
+                && panel.Children.OfType<Image>().Any()).ToArray();
+        Require(bossChips.Length==10,"real_boss_filter_shows_ten_icon_chips");
+        Require(bossChips.Any(chip=>chip.IsChecked==true && chip.Background is ISolidColorBrush brush
+                && brush.Color==theme.ActiveColorTheme!.Primary), "real_selected_boss_chip_uses_theme_color");
+        Require(bossChips.All(control=>control.Content is StackPanel panel
                 && panel.Children.OfType<Image>().Single().Source is Bitmap bitmap && bitmap.PixelSize.Width==128),
             "real_boss_filter_icons_decode_from_boss_pack");
+        foreach (var chip in bossChips.GroupBy(chip=>((PcrLabyrinthBossChoice)chip.DataContext!).Area).Select(group=>group.First())) {
+            var choice=(PcrLabyrinthBossChoice)chip.DataContext!;
+            var initial=choice.Selected;
+            var peer=(IToggleProvider)ControlAutomationPeer.CreatePeerForElement(chip);
+            void CheckState(bool expected) {
+                Dispatcher.UIThread.RunJobs();
+                Require(choice.Selected==expected && chip.IsChecked==expected
+                    && peer.ToggleState==(expected ? ToggleState.On : ToggleState.Off),
+                    "boss_chip_reports_checked_state");
+                var saved=Reload();
+                var choices=choice.Area==3 ? saved.Area3Bosses : saved.Area5Bosses;
+                Require(choices.Single(boss=>boss.Id==choice.Id).Selected==expected,"boss_chip_saves_checked_state");
+            }
+            CheckState(initial);
+            typeof(ToggleButton).GetMethod("OnClick",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(chip,null);
+            CheckState(!initial);
+            peer.Toggle();
+            CheckState(initial);
+        }
         using (var frame=new RenderTargetBitmap(new PixelSize(1080,1100))) { frame.Render(view); frame.Save(Path.Combine(root,"boss-filter-view.png")); }
         routePanel.IsExpanded=false;
         var teamPanel=view.GetLogicalDescendants().OfType<Expander>().Single(control=>control.Name=="TeamSettings");

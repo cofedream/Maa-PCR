@@ -52,11 +52,11 @@ internal static class LabyrinthBossFilterChecks
         Check(area3.Count == 5 && area5.Count == 5, "boss_choices_are_built_for_both_areas");
         Check(area3.Concat(area5).All(choice => choice.Label.Contains(choice.Name, StringComparison.Ordinal)
                 && choice.Label.Contains(choice.Id.ToString(), StringComparison.Ordinal)),
-            "boss_checkbox_labels_show_name_and_id");
+            "boss_chip_labels_show_name_and_id");
         Check(area3.Concat(area5).All(choice => choice.Icon is { PixelSize: { Width: 128, Height: 128 } }),
             "boss_icons_decode_to_128_square");
 
-        // 键缺失 → 沿用目录里的默认勾选。
+        // 键缺失 → 沿用目录里的默认选择。
         Apply("{\"mode\":\"value\"}");
         Check(catalog.SelectedIds(3, area3).OrderBy(id => id).SequenceEqual(new[] { 312505, 319604 }),
             "boss_missing_key_restores_area3_default");
@@ -71,7 +71,7 @@ internal static class LabyrinthBossFilterChecks
         Check(settings.HasBossFilterStatus && settings.BossFilterStatus.Contains("111111", StringComparison.Ordinal),
             "boss_dropped_ids_are_reported_in_status");
 
-        // 往返：勾选 → 快照 → 读回，勾选状态与 ID 集合稳定。
+        // 往返：选择 → 快照 → 读回，选择状态与 ID 集合稳定。
         foreach (var choice in area3) choice.Selected = choice.Id == 303306;
         foreach (var choice in area5) choice.Selected = choice.Id == 315004;
         var snapshot = new JObject {
@@ -86,10 +86,10 @@ internal static class LabyrinthBossFilterChecks
             "boss_area5_round_trip_is_stable");
         Check(!settings.HasBossFilterStatus, "boss_known_ids_clear_the_ignored_status");
 
-        // 全不勾 → 写空数组，Python 侧按"不限制"处理。
+        // 全不选 → 写空数组，Python 侧按"不限制"处理。
         foreach (var choice in area3) choice.Selected = false;
         Check(new JArray(catalog.SelectedIds(3, area3)).Count == 0,
-            "boss_all_unchecked_writes_empty_array");
+            "boss_all_unselected_writes_empty_array");
 
         Console.WriteLine($"PCR labyrinth boss filter checks passed: {count}");
     }
