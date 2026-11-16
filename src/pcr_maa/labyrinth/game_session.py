@@ -284,6 +284,7 @@ class MaaGameSession:
         instead; that is this window expiring, not a native failure.
         """
         deadline=min(native.RUN_DEADLINE.get(),native.active_now()+seconds)
+        focus_deadline=min(deadline,native.active_now()+10) if entry=='LabyGameSessionColdStartObserved' else None
         original=self.tasker.resource.get_node_data(entry)
         token=native.RUN_DEADLINE.set(deadline)
         try:
@@ -294,7 +295,7 @@ class MaaGameSession:
                 if native.active_now()>=deadline:raise _WaitWindowElapsed()
                 snapshot=self.opening_snapshot
                 fields=self._fields(snapshot) if snapshot is not None else dict(enter_id=0,protocol_enter_id=0)
-                if self.channel_prompts.poll(batch,fields):
+                if self.channel_prompts.poll(batch,fields,wait_for_focus_until=focus_deadline):
                     time.sleep(.05);continue
                 try:
                     with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)

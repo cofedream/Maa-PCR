@@ -342,6 +342,19 @@ def test_official_tcp_callbacks(tmp_path, monkeypatch):
             assert time.monotonic() < end, 'bounded test deadline'
             time.sleep(0.02)
 
+    def results():
+        # The server rewrites server-results.json after each callback; a reader can
+        # observe the file while it is empty or partially written on Windows.
+        # Treat that as "not ready yet" instead of failing the bounded poll.
+        try:
+            return json.loads((tmp_path / 'server-results.json').read_text(encoding='utf-8'))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return None
+
+    def result_count():
+        rows = results()
+        return 0 if rows is None else len(rows)
+
     Tasker.set_log_dir(tmp_path / 'host-maa')
     Tasker.set_stdout_level(LoggingLevelEnum.Off)
     bundle = tmp_path / 'bundle'
@@ -382,11 +395,10 @@ def test_official_tcp_callbacks(tmp_path, monkeypatch):
                 job = tasker.post_task('Entry', {'Entry': {'custom_action_param': {'case': case}}})
                 until(lambda: job.done)
                 until(lambda: not tasker.running)
-                until(lambda: (tmp_path / 'server-results.json').exists() and len(
-                    json.loads((tmp_path / 'server-results.json').read_text(encoding='utf-8'))) == len(host_results) + 1)
+                until(lambda: result_count() == len(host_results) + 1)
                 host_results.append(dict(case=case, succeeded=job.succeeded, task_id=job.job_id))
-            rows = json.loads((tmp_path / 'server-results.json').read_text(encoding='utf-8'))
-            assert len(rows) == 8
+            rows = results()
+            assert rows is not None and len(rows) == 8
             for i, (row, result) in enumerate(zip(rows, host_results)):
                 assert row['cleaned'] and row['borrowed'] and row['root_task'] == result['task_id'], row
                 assert row['ok'] is (i < 2), row
@@ -414,8 +426,10 @@ def test_official_tcp_callbacks(tmp_path, monkeypatch):
             until(lambda: job.done)
             timeout_done_at = time.monotonic()
             assert not job.succeeded
-            until(lambda: len(json.loads((tmp_path / 'server-results.json').read_text(encoding='utf-8'))) == 9)
-            late = json.loads((tmp_path / 'server-results.json').read_text(encoding='utf-8'))[-1]
+            until(lambda: result_count() == 9)
+            late_rows = results()
+            assert late_rows is not None and len(late_rows) == 9
+            late = late_rows[-1]
             assert late['cleaned'] and late['calls'] == 0 and late['pages'] == 0, late
             assert late['retry_blocked'] and late['new_scope_blocked'] and not late['ok'], late
             assert timeout_done_at < late['returned_at']

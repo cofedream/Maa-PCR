@@ -117,6 +117,20 @@ def test_character_entrance_requires_nameplate_at_native_position(tmp_path,monke
         assert runtime.observe(probe_kinds=['character_animation']).kind=='character_animation'
         assert runtime.observe(probe_kinds=['character_animation']).kind=='unknown'
         assert not controller.clicks
+        # A later animation must never receive the click meant for the departed one.
+        from pcr_maa.labyrinth.timing import NativeTimings, Timings
+        timings=NativeTimings(tasker,controller,Timings())
+        try:
+            entrance=scene.Scene('character_animation',{}, {})
+            controller.stages=[[moved,frame]];controller.frame=0
+            with pytest.raises(native.NativeInputNotSent) as error:
+                runtime.perform(entrance,'advance_character_animation')
+            assert error.value.receipt['native_evidence']['recognition_failed']
+            assert not controller.clicks
+            controller.stages=[[frame]];controller.frame=0
+            assert runtime.perform(entrance,'advance_character_animation')['native_ok']
+            assert controller.clicks==[[640,520]]
+        finally:timings.close()
     finally:native.stop_tasker(tasker)
 
 

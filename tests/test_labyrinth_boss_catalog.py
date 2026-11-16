@@ -1,7 +1,7 @@
 """Boss 目录必须与 Python 路线表、游戏 master 名称和图标溯源保持一致。
 
 GUI 的 Boss 筛选来自 ``assets/labyrinth/labyrinth-bosses.json``（名称/ID/区域/轮转序号/图标），
-Python 的 ``routes.BOSSES`` 仍只保存 ID，且顺序就是协议轮转。两边一旦漂移，用户按名称勾选
+Python 的 ``routes.BOSSES`` 仍只保存 ID，且顺序就是协议轮转。两边一旦漂移，用户按名称选择
 就会静默筛到另一个首领，所以这里把三件事锁在一起：
 
 - JSON 的 id 与轮转顺序 == ``routes.BOSSES``；
@@ -30,7 +30,7 @@ VIEW = ROOT / 'gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml'
 ICON_NAME = re.compile(r'^boss-pack/icons/([0-9]{6})\.png$')
 
 # 官方名称来自 data/labyrinth/master-cn 的 labyrinth_enemy_parameter（master 202611021739）。
-# 名称与 ID 配错时用户会按错误的名字勾选，实际存下的是另一个首领的 ID。
+# 名称与 ID 配错时用户会按错误的名字选择，实际存下的是另一个首领的 ID。
 MASTER_VERSION = '202611021739'
 MASTER_NAMES = {
     301206: '巨型魔像', 303306: '暗黑滴水嘴兽', 319604: '冰霜魔狼',
@@ -126,7 +126,7 @@ def test_csharp_no_longer_keeps_a_second_boss_table():
     assert 'boss-pack/icons/' in loader
 
 
-def test_view_offers_two_checkbox_lists_with_icons_and_shared_hint():
+def test_view_offers_two_chip_lists_with_icons_and_shared_hint():
     view = VIEW.read_text(encoding='utf-8')
     for binding in ('LabyrinthSettings.Area3Bosses', 'LabyrinthSettings.Area5Bosses'):
         assert binding in view
@@ -134,9 +134,12 @@ def test_view_offers_two_checkbox_lists_with_icons_and_shared_hint():
     for area in (3, 5):
         start = view.index(f'Name="Area{area}BossInput"')
         block = view[start:view.index('</ItemsControl>', start)]
+        # 整块标签就是开关：点击切换，不再使用复选框。
+        assert '<ToggleButton Classes="CandidateChip"' in block
         assert 'IsChecked="{Binding Selected, Mode=TwoWay}"' in block
+        assert 'Command=' not in block
         assert 'Source="{Binding Icon}"' in block
         assert 'Text="{Binding Label}"' in block
-    assert '全部不勾表示不限制' in view
+    assert '全部不选表示不限制' in view
     # 提示行原先手写的 ID 文案已由目录与图标取代，留着就是第二份会漂移的事实。
     assert '厄勒克特拉夫人 312505' not in view

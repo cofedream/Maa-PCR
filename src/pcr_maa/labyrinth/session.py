@@ -215,7 +215,10 @@ class ChannelPrompts:
         batch.checkpoint()
         controller=self.tasker.controller
         focus=controller_shell(controller,'dumpsys window windows',stopped=batch.stopped)
-        matches=re.findall(r'mCurrentFocus=Window\{[^\r\n]*?\s([A-Za-z0-9_.]+)/[^\r\n]*?\}',focus)
+        pattern=r'mCurrentFocus=Window\{[^\r\n]*?\s([A-Za-z0-9_.]+)/[^\r\n]*?\}'
+        if 'mCurrentFocus=' not in focus:
+            focus=controller_shell(controller,'dumpsys window displays',stopped=batch.stopped)
+        matches=re.findall(pattern,focus)
         if len(matches)!=1:raise BatchStopped('game_client_foreground_unknown')
         if matches[0]!=self.server.package:raise BatchStopped('game_client_foreground_unknown')
         xml=controller_shell(controller,'uiautomator dump /dev/tty',stopped=batch.stopped)
@@ -223,7 +226,7 @@ class ChannelPrompts:
         try:return channel_window(xml,matches[0],self.server.server_id)
         except (ValueError,ET.ParseError):raise BatchStopped('channel_window_unavailable') from None
 
-    def poll(self,batch,fields):
+    def poll(self,batch,fields,*,wait_for_focus_until=None):
         if not self.server.channel:return False
         # Other channels have no SDK click rule or observed temporary rotation.
         if self.server.server_id not in ('cn-aligames','cn-vivo','cn-4399'):return False
@@ -231,7 +234,11 @@ class ChannelPrompts:
         if now-self.last_poll<.5:return now<self.visible_until
         self.last_poll=now
         try:match,blocked=self._read(batch)
-        except BatchStopped:raise
+        except BatchStopped as error:
+            if (error.args!=('game_client_foreground_unknown',) or wait_for_focus_until is None
+                    or native.active_now()>=wait_for_focus_until):raise
+            self.previous=None;self.visible_until=now+.5
+            return True
         except Exception:raise BatchStopped('channel_window_unavailable') from None
         batch.checkpoint();now=native.active_now()
         if blocked:

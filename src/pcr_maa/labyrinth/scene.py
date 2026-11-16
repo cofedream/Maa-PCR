@@ -443,7 +443,8 @@ def perform_scene_action(tasker,scene,action,*,stopped=None,timings=None,target=
         nodes={'LabySceneActionOnce':dict(recognition='Custom',custom_recognition=NAME,
             custom_recognition_param=dict(kind=scene.kind,probe_kinds=sorted(_RULES),
                 **({'final_settlement':True} if final else {})),roi=[0,0,1280,720],action='Click',
-            target=target if final else [640,520,1,1],max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)}
+            # Once the animation is gone, return to the caller's page reader immediately.
+            target=target if final else [640,520,1,1],max_hit=1,next=[],timeout=0,pre_delay=0,post_delay=0)}
         if not tasker.resource.override_pipeline(nodes):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='scene_action_install_failed'))
         with (timings or Timings()).measure('page_wait'):receipt=native.run(tasker,'LabySceneActionOnce',reset_hits=('LabySceneActionOnce',))
         _checkpoint(tasker,stopped)
