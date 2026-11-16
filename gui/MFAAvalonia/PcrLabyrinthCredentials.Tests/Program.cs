@@ -63,6 +63,24 @@ try
     var decodedProbe = ProtectedData.Unprotect(protectedProbe, null, DataProtectionScope.CurrentUser);
     try { Require(probe.SequenceEqual(decodedProbe), "windows_current_user_dpapi_available"); }
     finally { CryptographicOperations.ZeroMemory(probe); CryptographicOperations.ZeroMemory(decodedProbe); }
+    var identityRoot = Path.Combine(root, "development-identity");
+    Directory.CreateDirectory(identityRoot);
+    File.WriteAllText(Path.Combine(identityRoot, "pcr-repository.txt"), identityRoot);
+    var identityGit = Path.Combine(identityRoot, ".git");
+    Directory.CreateDirectory(identityGit);
+    File.WriteAllText(Path.Combine(identityGit, "HEAD"), "ref: refs/heads/feat/title-test\n");
+    Require(DevelopmentIdentity.Resolve(identityRoot) == " · feat/title-test",
+        "development_title_suffix_uses_branch");
+    var linkedGit = Path.Combine(root, "linked-git");
+    Directory.CreateDirectory(linkedGit);
+    File.WriteAllText(Path.Combine(linkedGit, "HEAD"), "ref: refs/heads/worktree-branch\n");
+    Directory.Delete(identityGit, recursive: true);
+    File.WriteAllText(Path.Combine(identityRoot, ".git"), "gitdir: " + linkedGit);
+    Require(DevelopmentIdentity.Resolve(identityRoot) == " · worktree-branch",
+        "linked_worktree_title_suffix_uses_branch");
+    File.Delete(Path.Combine(identityRoot, "pcr-repository.txt"));
+    Require(DevelopmentIdentity.Resolve(identityRoot) == "",
+        "installed_title_has_no_development_suffix");
     SettingsUxChecks.Run(args[1], root, Owner, Require);
     var settings = new PcrLabyrinthSettings(firstOwner);
     Require(!settings.KeepOldRun, "keep_old_run_defaults_off_for_old_and_new_config");

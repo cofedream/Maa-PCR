@@ -1,22 +1,22 @@
 {
   "schema_version": 1,
   "status": "passed",
-  "revision": 82,
-  "expected_version": "v0.1.35",
-  "verified_at_utc": "2026-11-14T10:48:09.405574+00:00",
-  "base_release_manifest_sha256": "94dad3257a791e07c1ce03933e2997397d5e1f54dd4ded2bf99adc4d09229ce1",
-  "accepted_owned_payload_sha256": "d69384cd59f0ff09334a727c7074250f77b2d65ba1e829ed7a5661c8b1770bdd",
-  "accepted_staging_manifest_sha256": "6b58350b264cf3db9e1364c3b015fc4d328ba3a6e82cc5d1e66ae8c5cd319a01",
+  "revision": 83,
+  "expected_version": "v0.1.36",
+  "verified_at_utc": "2026-11-15T17:44:47.243894+00:00",
+  "base_release_manifest_sha256": "35aa5cd9beca352f61bedfb0b8a0f95765262c2e77f58b2a00d65a069f53903c",
+  "accepted_owned_payload_sha256": "759a364cea5d1abb353870b59f1c45a6cf2457e440770457ac42181f71c3afa0",
+  "accepted_staging_manifest_sha256": "16702661d2c3de8ba6865dd54ae00fc4d5b2e6dd10dd9833347d43a43e621414",
   "accepted_ci_artifact": {
     "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 43581770928,
+    "run_id": 43738190334,
     "run_attempt": 1,
-    "artifact_id": 14109534597,
-    "source_commit": "611970c5ce2bb3ef070e87b06ffc6778f7b848f9",
+    "artifact_id": 14173185201,
+    "source_commit": "84800e1ae49851b96dc5719c63348f2e2d7876ec",
     "runtime_archive": {
-      "name": "Maa-PCR-v0.1.35-win-x64.zip",
-      "size": 350091998,
-      "sha256": "5801b11c86966f66c62939f3fd5fe0b4d60f0164b18c41a6b852189503ae430e"
+      "name": "Maa-PCR-v0.1.36-win-x64.zip",
+      "size": 350093275,
+      "sha256": "60e8bdcb3f83f38a6b5a63afa512224237978c3f6f13c9ee31026f36f73c02ad"
     }
   },
   "offline_tests_passed": true,
@@ -25,8 +25,8 @@
   "gui_mode": "real Win32 settings-only diagnostic with separate device ownership",
   "clean_build_verified": true,
   "public_tests": {
-    "passed": 7607,
-    "skipped": 395,
+    "passed": 7635,
+    "skipped": 401,
     "failed": 0,
     "errors": 0
   },
@@ -37,31 +37,37 @@
     "errors": 0
   },
   "packaged_source_alignment_verified": true,
-  "original_r81_delta_and_full_updates_verified": true,
+  "original_r82_delta_and_full_updates_verified": true,
   "isolated_rollback_and_recovery_verified": true,
-  "packaged_ten_guild_defaults_verified": true,
+  "packaged_opening_and_login_feedback_verified": true,
   "live_verification_performed": false,
   "evidence_sha256": {
-    "CI_BINDING.json": "2efb78210b5054ab41274dcebdb9418a543cd668b6c98589e6e47390c80f6a9d",
-    "ci-artifact/build/SOURCE_ALIGNMENT.json": "86f2c55f578af6c1e6d7c77c0c724acc01a241fff31d83e8c311471a89dc89db",
-    "ci-artifact/public-tests.xml": "d6dd688ba497f9d9472225eea698f1c75ae73618b6f0c50b207c1b3ee3c9fa32",
-    "ci-artifact/bundled-runtime.xml": "6df1d543ad06b27c24cd0a3810cfe8b3b57b497a221e95e8d3fe1ab7322d927b",
-    "packaged-window.json": "0d516dad5adefeec5ad5c2a97870f173a85fcabda2de89c3cc9570e8c1dd95ea",
-    "package-checks/final-ci/PACKAGE_CHECKS.json": "b9a4f46096a33b1f33011c918099dd379b0d291ca01ee51f78483db59399261a",
-    "ORIGINAL_UPDATER.json": "1f4c3becb80dd395c713adfd51bf04e3bc83c8eae233bec3d71975f389c1f521",
-    "packages/result.json": "fe8d5275420fa7e554baa6e03566615874027ebfbb20457cf2beaaee762c8ffc",
-    "packages/child.log": "83f414160bdd489f676a58e751623b166b2e3eb88ddc92b0bc453a5aee91125b",
-    "original/result.json": "fc380055e0d1bae1c04ed95e0346248a67e6ab93a04378e016881c2808503182",
-    "original/child.log": "5c10e25ae74922051515773e492a094807f56b653070bbef8327b2114cbbdbbf",
-    "window-verified/result.json": "feb5a3d3b062ba3e69262b40cf9932af9db548bda803c391d2404a8e5ddf52bb",
+    "CI_BINDING.json": "a7e00fd36456c69730372530969e0236167ea1aa2c502bebe534306a4ecc85e0",
+    "ci-artifact/build/SOURCE_ALIGNMENT.json": "6f2cbdbe12488688227af94b8839a0a29ddf10b367b50530918a91062d30a2c4",
+    "ci-artifact/public-tests.xml": "5fc972ad3c1c36beb5f79cbefedd7c9935ff0783c19b8299ed292e92c447d754",
+    "ci-artifact/bundled-runtime.xml": "6f9ae5538bd5f18fce5d6094ed9de1ca3c11b6d34e0311ea83d2ad26422b5a3c",
+    "packaged-window.json": "4e31ccb140ec6b7e3e4aca331b0f7020057f2d53ef4ecc74d76e4fd96ebdc8e6",
+    "package-checks/final-ci/PACKAGE_CHECKS.json": "2ea4865a44b7d82ae94091ef5068a2ca3cbd4db74a022e5bb0c9784bafe1e3e8",
+    "ORIGINAL_UPDATER.json": "ffcfa852f66ae2264d1672f7a576e1dd2b3aecb265c19e4dc7565038d0d4520b",
+    "packages/result.json": "16ee47b390a0d17c7c565f134c0029bbf16a85a759a443748fbe3638e7409fc1",
+    "packages/child.log": "08b1e9104e60a1df160b18ece1fb7bff9dbe34f66d0f5e8e4a32bce6913de6fc",
+    "original/result.json": "d414cce7c68177abad9189259cd555765770f7b6fa72ea586b3a25308a2c361d",
+    "original/child.log": "1e6415b365c1afc8d19734a593ebc1edbcc9a1efe71b9e7c507ff3b9601021eb",
+    "window-verified/result.json": "bdc7dcb2f5dbb03da34e2b2f682a896f92cdfc00523277f7448c0e890a059a3c",
     "window-verified/child.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "packaged-fixes/result.json": "a72ba7df6abdc337e415a2da0ea66bd02f2f909fc0da69a5a79ddb971cb683b9",
-    "packaged-fixes/child.log": "e76594f486903b06862eb222baa2f309281579076e5b163c0ac4f97d84f3c155",
-    "PACKAGED_GUILDS.json": "1dc561779ad088aa1481ad5df14296e1b516c9fcc8cdefe7f003002a6b68edd5",
-    "ci-artifact/parity-gui-checks/PcrLabyrinthAccounts.Tests.log": "5834318dbe3c69da5ef9c09f517d8cd15a7c91b145365cd8bd9bbc937b76c0a7",
-    "ci-artifact/credentials-checks.log": "323dd12f23a3472d6018161e804cd81373f53c02a5aee188c905822989fdba73"
+    "packaged-fixes/result.json": "31529234d2f067191d3315c8be4ad04a54fb0d6a0668704f016cf749091c6c3e",
+    "packaged-fixes/child.log": "c87763fa089630aad4084c70c40c8f00c7c18e1b5636b81611e17cc6673dfbe8",
+    "ocr-auto/result.json": "eb17643b1d7bd44ec017de9b2f15cc19a224efc4e7e02f72a43d0c6c7f7b445e",
+    "ocr-auto/child.log": "4d9cb035d3883d3bd303fbc636424e04346b65030b781e0cc74e74c1d42da18b",
+    "ocr-cpu/result.json": "d91bbfdd45aa91424ebce2fae104a27b7f60e0bc1086e3a53e37845128b12f94",
+    "ocr-cpu/child.log": "b4627bf6df20cb8a03dbdd5cf97f632902c4bad74da9344f64e65ccf851b75ec",
+    "PACKAGED_FIXES.json": "b2841082ea7bf717326c9c56c66e216d02d7318981135dea084de97c385dc82c",
+    "ci-artifact/parity-gui-checks/PcrLabyrinthAccounts.Tests.log": "107c95edd2d326b0845da7885cea965248a7ff1e94859f69a2fb34e03ce81bd0",
+    "ci-artifact/credentials-checks.log": "ef2cea965d8339a4e529bd18688ea5849ed6ceee1f50392664b0e197eb0bd01e"
   },
   "limits": [
-    "Verified in isolated R81 installations with synthetic settings and a settings-only Win32 GUI. No live account or device was used."
-  ]
+    "Verified in isolated R82 installations with synthetic settings and a settings-only Win32 GUI. No live account or device was used."
+  ],
+  "packaged_daily_adventure_verified": true,
+  "packaged_cpu_and_automatic_ocr_verified": true
 }

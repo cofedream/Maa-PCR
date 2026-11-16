@@ -97,7 +97,7 @@ internal static class StartupActionsChecks
         New(manager, "_lock");
         New(manager, "_instanceNames");
         var cache = (ConcurrentDictionary<Type, Lazy<object>>)typeof(Instances).GetField("ServiceCache", Hidden)!.GetValue(null)!;
-        foreach (var type in new[] { typeof(RootViewModel), typeof(VersionUpdateSettingsUserControlModel), typeof(InstanceTabBarViewModel), typeof(GuiSettingsUserControlModel) })
+        foreach (var type in new[] { typeof(RootViewModel), typeof(VersionUpdateSettingsUserControlModel), typeof(InstanceTabBarViewModel), typeof(GuiSettingsUserControlModel), typeof(PerformanceUserControlModel) })
             cache[type] = new Lazy<object>(() => RuntimeHelpers.GetUninitializedObject(type));
         Set(Instances.GuiSettingsUserControlModel, "_baseTheme", ThemeVariant.Light);
         LanguageHelper.Initialize();
@@ -507,11 +507,16 @@ internal static class StartupActionsChecks
         {
             foreach (var outcome in new[] { "complete", "stopped", "defeated", "malformed", "missing-outcome", "cancelled" })
             {
-                File.WriteAllText(script, outcome == "cancelled" ? "import sys,json\njson.loads(sys.stdin.readline())\njson.loads(sys.stdin.readline())\n" :
-                    "import sys,json\njson.loads(sys.stdin.readline())\nprint(" +
+                var cpuOnly = outcome == "complete";
+                Instances.PerformanceUserControlModel.GpuOption = cpuOnly
+                    ? PerformanceUserControlModel.GpuDeviceOption.CPU : PerformanceUserControlModel.GpuDeviceOption.Auto;
+                var readRequest = "import sys,json\nassert json.loads(sys.stdin.readline())['cpu_only'] is "
+                    + (cpuOnly ? "True" : "False") + "\n";
+                File.WriteAllText(script, readRequest + (outcome == "cancelled" ? "json.loads(sys.stdin.readline())\n" :
+                    "print(" +
                     System.Text.Json.JsonSerializer.Serialize(outcome == "malformed" ? "invalid-json" :
                         outcome == "missing-outcome" ? "{\"kind\":\"result\"}" :
-                        new JObject { ["kind"] = "result", ["outcome"] = outcome, ["batch_complete"] = outcome == "complete" }.ToString(Newtonsoft.Json.Formatting.None)) + ",flush=True)\n");
+                        new JObject { ["kind"] = "result", ["outcome"] = outcome, ["batch_complete"] = outcome == "complete" }.ToString(Newtonsoft.Json.Formatting.None)) + ",flush=True)\n"));
                 var info = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, CreateNoWindow = true };
                 if (IsDotnetHost) info.ArgumentList.Add(typeof(StartupActionsChecks).Assembly.Location);
                 foreach (var arg in new[] { Path.Combine(root, "held-helper.txt"), "--startup-hold-marker" })

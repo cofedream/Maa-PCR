@@ -44,9 +44,15 @@ def wait_job(job, *, seconds=30):
     return job
 
 
-def load_resource(path=RESOURCE):
+class InferenceDeviceError(RuntimeError):
+    pass
+
+
+def load_resource(path=RESOURCE, *, cpu_only=False):
     setup()
     resource = Resource()
+    if cpu_only and not resource.use_cpu():
+        raise InferenceDeviceError("Cannot select CPU for inference")
     job = wait_job(resource.post_bundle(path), seconds=90)
     if not job.succeeded:
         raise RuntimeError(f"Native Resource load failed: {path}")

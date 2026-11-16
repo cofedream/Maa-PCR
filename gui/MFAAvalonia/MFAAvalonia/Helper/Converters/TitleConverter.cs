@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Markup.Xaml;
+using MFAAvalonia.Helper;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -29,6 +30,8 @@ public class TitleConverter : MarkupExtension, IMultiValueConverter
 
         if (isResourceVisible && !string.IsNullOrEmpty(resourceName))
             result = $"{appName} {appVersion} | {resourceName} {resourceVersion}";
+        // Parallel worktree windows otherwise share the same title.
+        result += DevelopmentIdentity.TitleSuffix;
         return result;
     }
 

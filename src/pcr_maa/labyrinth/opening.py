@@ -10,7 +10,7 @@ from .strategies import UPSTREAM_OPENING_SLOTS
 from .timing import Timings
 
 JOINED_CONFIRMATION_TIMEOUT_SECONDS=12
-INVITATION_TRANSITION_TIMEOUT_SECONDS=30
+INVITATION_TRANSITION_TIMEOUT_SECONDS=45
 
 # Opening defaults are shared with the legacy helpers below; see
 # strategies.UPSTREAM_OPENING_SLOTS (documented in LABYRINTH_GUILD_ROSTERS.md
@@ -49,8 +49,8 @@ class MaaOpening:
         return receipt
     def _wait_invitation_joined(self,batch,enter_id,invited):
         from .scene import MaaSceneRuntime
-        # Three entrances plus fresh click guards share a budget capped by the caller.
-        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+INVITATION_TRANSITION_TIMEOUT_SECONDS)
+        # Leave a full portrait read after three slow entrances, within the caller's deadline.
+        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+INVITATION_TRANSITION_TIMEOUT_SECONDS+JOINED_CONFIRMATION_TIMEOUT_SECONDS)
         token=native.RUN_DEADLINE.set(deadline)
         try:
             MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(

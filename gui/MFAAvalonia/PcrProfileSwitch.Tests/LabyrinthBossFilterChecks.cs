@@ -55,13 +55,6 @@ internal static class LabyrinthBossFilterChecks
             "boss_chip_labels_show_name_and_id");
         Check(area3.Concat(area5).All(choice => choice.Icon is { PixelSize: { Width: 128, Height: 128 } }),
             "boss_icons_decode_to_128_square");
-        // 整块标签是开关：点击命令必须翻转 Selected，取消后回到未选。
-        var toggleProbe = area3.First(choice => choice.Id == 301206);
-        Check(!toggleProbe.Selected, "boss_chip_toggle_probe_starts_unselected");
-        toggleProbe.ToggleCommand.Execute(null);
-        Check(toggleProbe.Selected, "boss_chip_toggle_command_selects");
-        toggleProbe.ToggleCommand.Execute(null);
-        Check(!toggleProbe.Selected, "boss_chip_toggle_command_clears");
 
         // 键缺失 → 沿用目录里的默认选择。
         Apply("{\"mode\":\"value\"}");

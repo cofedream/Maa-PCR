@@ -135,10 +135,9 @@ def test_view_offers_two_chip_lists_with_icons_and_shared_hint():
         start = view.index(f'Name="Area{area}BossInput"')
         block = view[start:view.index('</ItemsControl>', start)]
         # 整块标签就是开关：点击切换，不再使用复选框。
-        assert 'Classes="CandidateChip"' in block
-        assert 'Classes.selected="{Binding Selected}"' in block
-        assert 'Command="{Binding ToggleCommand}"' in block
-        assert 'IsChecked=' not in block
+        assert '<ToggleButton Classes="CandidateChip"' in block
+        assert 'IsChecked="{Binding Selected, Mode=TwoWay}"' in block
+        assert 'Command=' not in block
         assert 'Source="{Binding Icon}"' in block
         assert 'Text="{Binding Label}"' in block
     assert '全部不选表示不限制' in view
