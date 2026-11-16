@@ -29,7 +29,7 @@ try
 {
     AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
     Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
-    Application.Current!.Styles.Add(new SukiUI.SukiTheme());
+    Application.Current!.Styles.Add(new SukiUI.SukiTheme { ThemeColor = SukiUI.Enums.SukiColor.Blue });
     var count = 0;
     void Require(bool result, string name)
     {
