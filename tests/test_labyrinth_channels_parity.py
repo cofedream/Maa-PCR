@@ -225,6 +225,42 @@ def test_prompt_needs_two_polls_rechecks_and_rate_limits_three_total_taps(monkey
     assert all(op=='client_channel_prompt' for op,_ in batch.operations)
 
 
+@pytest.mark.parametrize('initial',['mCurrentFocus=null','mCurrentFocus=Window{abc u0 launcher/.Home}'])
+def test_4399_cold_start_waits_without_input_for_selected_package(monkeypatch,initial):
+    tasker=NS(controller=object())
+    prompts=ChannelPrompts(tasker,lambda **v:v,'cn-4399')
+    batch=FakeBatch();clock=[0.];commands=[]
+    package=prompts.server.package
+    def shell(controller,command,*,stopped):
+        commands.append(command)
+        if command=='dumpsys window windows':return 'Window list without focus'
+        if command=='dumpsys window displays':
+            return initial if clock[0]<1 else f'mCurrentFocus=Window{{abc u0 {package}/.SplashActivity}}'
+        assert command=='uiautomator dump /dev/tty'
+        return window(package=package)
+    monkeypatch.setattr(native,'active_now',lambda:clock[0])
+    monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',shell)
+    assert prompts.poll(batch,{},wait_for_focus_until=10)
+    clock[0]=.2
+    assert prompts.poll(batch,{},wait_for_focus_until=10)
+    assert commands==['dumpsys window windows','dumpsys window displays']
+    clock[0]=1
+    assert not prompts.poll(batch,{},wait_for_focus_until=10)
+    assert commands[-1]=='uiautomator dump /dev/tty' and not batch.operations
+
+
+@pytest.mark.parametrize('deadline',[None,10])
+def test_missing_focus_stops_after_grace_and_before_input(monkeypatch,deadline):
+    prompts=ChannelPrompts(NS(controller=object()),lambda **v:v,'cn-4399')
+    def shell(controller,command,*,stopped):
+        assert command=='dumpsys window windows'
+        return 'mCurrentFocus=null'
+    monkeypatch.setattr(native,'active_now',lambda:10.)
+    monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',shell)
+    with pytest.raises(BatchStopped,match='^game_client_foreground_unknown$'):
+        prompts.poll(FakeBatch(),{},wait_for_focus_until=deadline)
+
+
 def test_prompt_changed_between_observation_and_dispatch_sends_no_click(monkeypatch):
     value,batch,clock,inputs,match=prompts(monkeypatch)
     value.poll(batch,dict(enter_id=1));clock[0]+=.6
@@ -318,7 +354,7 @@ def test_channel_poll_miss_requires_complete_non_input_native_evidence(monkeypat
     overrides=[]
     resource=NS(get_node_data=lambda _:dict(timeout=75000),override_pipeline=lambda value:overrides.append(value) or True)
     session=MaaGameSession(NS(stopping=False,resource=resource),lambda **v:v,server='cn-xiaomi')
-    monkeypatch.setattr(session.channel_prompts,'poll',lambda *_:False)
+    monkeypatch.setattr(session.channel_prompts,'poll',lambda *_,**kw:False)
     node='LabyGameSessionEntryObserved';calls=[]
     def run(*_):
         calls.append(node)

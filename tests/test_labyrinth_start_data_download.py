@@ -343,7 +343,6 @@ def channel_session(monkeypatch, clock, script, *, miss_seconds=10):
     adapter = MaaGameSession(NS(stopping=False, resource=resource), lambda **v: dict(v),
                              timings=Timings(), server='cn-xiaomi')
     adapter.opening_snapshot = OpeningSnapshot(ACCOUNT, 169, 1, 1, ())
-    adapter.channel_prompts = NS(poll=lambda batch, fields: False)
     adapter._input = lambda batch, node: dict(native_ok=True, node=node)
     steps = list(script)
     calls = []
