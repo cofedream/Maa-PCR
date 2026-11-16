@@ -6,11 +6,16 @@ with the caller. Generic card resources come from the pinned upstream pack.
 from collections.abc import Mapping
 from .. import native
 from .batch import BatchStopped
+from .strategies import UPSTREAM_OPENING_SLOTS
 from .timing import Timings
 
 JOINED_CONFIRMATION_TIMEOUT_SECONDS=12
-INVITATION_TRANSITION_TIMEOUT_SECONDS=30
+INVITATION_TRANSITION_TIMEOUT_SECONDS=45
 
+# Opening defaults are shared with the legacy helpers below; see
+# strategies.UPSTREAM_OPENING_SLOTS (documented in LABYRINTH_GUILD_ROSTERS.md
+# and LABYRINTH_UPSTREAM_PARITY.md).  An empty GUI selection always means
+# "use these".
 
 
 def _guild_units(settings,guild_id):
@@ -44,8 +49,8 @@ class MaaOpening:
         return receipt
     def _wait_invitation_joined(self,batch,enter_id,invited):
         from .scene import MaaSceneRuntime
-        # Three entrances plus fresh click guards share a budget capped by the caller.
-        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+INVITATION_TRANSITION_TIMEOUT_SECONDS)
+        # Leave a full portrait read after three slow entrances, within the caller's deadline.
+        deadline=min(native.RUN_DEADLINE.get(),native.active_now()+INVITATION_TRANSITION_TIMEOUT_SECONDS+JOINED_CONFIRMATION_TIMEOUT_SECONDS)
         token=native.RUN_DEADLINE.set(deadline)
         try:
             MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(
@@ -69,17 +74,19 @@ class MaaOpening:
         from .character_recognition import CharacterNavigation,canonical_id
         from .portrait_cache import joined_portrait_readback
         from .roles import configured_optimizer
-        defaults={1:(('1075',),('1351',),('1059',)),2:(('1089',),('1088',),('1003','1801','1225')),
-            3:(('1025',),('1308',),('1145',)),4:(('1242',),('1339',),('1136','1115','1236','1238')),
-            5:(('1091',),('1171',),('1011',))}
-        if type(enter_id) is not int or enter_id<=0 or type(guild_id) is not int or guild_id not in defaults:
+        if type(enter_id) is not int or enter_id<=0 or type(guild_id) is not int or not 1<=guild_id<=10:
             raise BatchStopped('opening_identity_required')
+        if slots is None:
+            # All ten departure guilds carry upstream defaults.  A guild without
+            # one must never borrow another guild's picks: stop and let the GUI
+            # supply three explicit slots instead.
+            slots=UPSTREAM_OPENING_SLOTS.get(guild_id)
+            if slots is None:raise BatchStopped('opening_roster_required')
         claim=self._creation_key(enter_id,creation_operation_id)
         if enter_id in self.used or claim in self.used:raise BatchStopped('opening_already_attempted')
         previous=self.grants.get(claim)
         if previous is not None and (previous.get('binding')!=batch.binding.payload() or previous.get('enter_id')!=enter_id or previous.get('roles_joined')!=['1068']):
             raise BatchStopped('opening_grant_binding_unknown')
-        slots=defaults[guild_id] if slots is None else slots
         if type(slots) not in (tuple,list) or len(slots)!=3:raise BatchStopped('opening_slots_invalid')
         slots=tuple(tuple(canonical_id(v) for v in row) for row in slots)
         if any(not row or len(set(row))!=len(row) for row in slots) or len(set(v for row in slots for v in row))!=sum(map(len,slots)):
@@ -191,6 +198,9 @@ class MaaOpening:
     def _after_invitation(self,batch,guild_id):
         self._install_joined()
         names=['LabyDateChangedObserved','LabyDisconnect6002Observed']
+        # The extra 1-role grant page exists only for guild 5. The user verified on
+        # device (2026-11-13) that the new guilds 6..10 present no gift page, so
+        # never generalize this branch from configuration alone.
         if guild_id==5:names.append(self.prepare_grant())
         names.append('LabyMapObserved')
         hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)

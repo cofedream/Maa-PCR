@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 import pytest
 
 from pcr_maa.labyrinth.captcha import CaptchaFailure, CaptchaPage, Challenge, Proof
-from pcr_maa.labyrinth.protocol import LabyrinthClient
+from pcr_maa.labyrinth.protocol import LabyrinthClient, ProtocolFailure
 
 
 def post(page, body, *, origin=None, action='complete'):
@@ -107,6 +107,52 @@ def test_completed_challenge_reaches_both_login_paths(monkeypatch, stage):
         client.close()
 
 
+@pytest.mark.parametrize('failed_step,reason', [
+    ('sdk_proof', '未取得可用响应'), ('sdk_proof', 'sdk_request_failed'),
+    ('game_session', 'server_maintenance'), ('game_proof', 'sdk_session_rejected')])
+def test_login_failure_after_manual_proof_records_only_safe_request_details(monkeypatch, failed_step, reason):
+    from pcr_maa import player_log
+    client = LabyrinthClient('private-user', 'private-password')
+    from autopcr_sync.core import readonly
+    from autopcr_sync.sdk import bsgamesdk
+    lines = []
+    monkeypatch.setattr(player_log, 'text', lines.append)
+    async def login1(*args):
+        if failed_step == 'game_proof':
+            return {'code': 0, 'uid': 1, 'access_key': 'private-key'}
+        return {'code': 200000}
+    async def verify(stage):
+        assert stage == ('game' if failed_step == 'game_proof' else 'sdk')
+        return Proof('private-challenge', 'private-user', 'private-proof')
+    async def login2(*args):
+        if failed_step == 'sdk_proof':
+            if reason == 'sdk_request_failed':
+                raise RuntimeError('sdk_request_failed')
+            raise ValueError('private-response')
+        return {'code': 0, 'uid': 1, 'access_key': 'private-key'}
+    async def request(req):
+        if type(req).__name__ == 'SourceIniIndexRequest':
+            return NS(server=['l3-prod-all-gs-gzlj.bilibiligame.net'])
+        if type(req).__name__ == 'SourceIniGetMaintenanceStatusRequest':
+            return NS(required_manifest_ver='202610141431', res_ver='10002200')
+        assert type(req).__name__ == 'ToolSdkLoginRequest'
+        if failed_step == 'game_proof':
+            if req.validate_ is None:
+                return NS(is_risk=True)
+            raise readonly.SdkSessionRejected('sdk_session_rejected')
+        raise readonly.SyncFailure('server_maintenance')
+    monkeypatch.setattr(readonly, 'login1', login1)
+    monkeypatch.setattr(bsgamesdk, 'login2', login2)
+    monkeypatch.setattr(client, '_verify_captcha', verify)
+    monkeypatch.setattr(client.auth, 'request', request)
+    outcome = 'sdk_login_failed' if failed_step == 'game_proof' else 'login_failed'
+    with pytest.raises(ProtocolFailure, match=f'^{outcome}$'):
+        asyncio.run(client.login(123))
+    expected = {'sdk_proof': '提交账号验证码', 'game_proof': '提交游戏验证码', 'game_session': 'ToolSdkLoginRequest'}[failed_step]
+    assert any(expected in line and reason in line for line in lines)
+    assert 'private-' not in repr(lines) and client.phase == 'closed'
+
+
 @pytest.mark.parametrize('with_proof', [False, True])
 def test_sdk_login_form_has_unique_encoded_values_and_original_value_signature(monkeypatch, with_proof):
     client = LabyrinthClient('synthetic-user', 'synthetic-password')
@@ -133,5 +179,68 @@ def test_sdk_login_form_has_unique_encoded_values_and_original_value_signature(m
         operation = bsgamesdk.login2(*args, 'final', 'user', 'proof') if with_proof else bsgamesdk.login1(*args)
         assert asyncio.run(operation)['code'] == 0
         assert calls == ['rsa', 'login']
+    finally:
+        client.close()
+
+
+@pytest.mark.parametrize('step,statuses,headers,success', [
+    ('index', [502, 200], {}, True), ('maintenance', [503, 200], {}, True),
+    ('maintenance', [504, 504], {}, False), ('index', [503], {'Retry-After': '60'}, False),
+    ('index', [403], {}, False), ('game', [502], {}, False)])
+def test_public_metadata_gateway_failure_after_captcha(monkeypatch, step, statuses, headers, success):
+    import base64
+    import msgpack
+    from pcr_maa.labyrinth import captcha
+    client = LabyrinthClient('fixture-user', 'fixture-password')
+    from autopcr_sync.core import readonly
+    from autopcr_sync.sdk import bsgamesdk
+    calls = []
+    async def login1(*args):
+        calls.append('password')
+        return {'code': 200000}
+    async def start(_):
+        return Challenge('fixture-gt', 'fixture-initial', 'fixture-user')
+    async def solve(challenge, stage):
+        assert stage == 'sdk'
+        calls.append('manual')
+        return Proof('fixture-completed', challenge.gt_user_id, 'fixture-proof')
+    async def login2(*args):
+        calls.append('submit')
+        return {'code': 0, 'uid': '1', 'access_key': 'fixture-key'}
+    paths = {'source_ini/index': 'index', 'source_ini/get_maintenance_status': 'maintenance',
+             'tool/sdk_login': 'game', 'check/game_start': 'start', 'load/index': 'load', 'home/index': 'home'}
+    def post(url, **kwargs):
+        from urllib.parse import urlsplit
+        name = paths[urlsplit(url).path.lstrip('/')]
+        calls.append(name)
+        status = statuses[calls.count(name)-1] if name == step else 200
+        if status != 200:
+            return NS(status_code=status, headers=headers, content=b'')
+        data = {'index': {'server': ['l3-prod-all-gs-gzlj.bilibiligame.net']},
+                'maintenance': {'required_manifest_ver': '202611131613', 'res_ver': '10002200'},
+                'game': {'is_risk': False}, 'start': {'now_tutorial': True}, 'load': {}, 'home': {}}[name]
+        payload = {'data_headers': {'result_code': 1, 'viewer_id': '123' if name == 'home' else '0'}, 'data': data}
+        if name in ('index', 'maintenance'):
+            content = json.dumps(payload).encode()
+        else:
+            content = base64.b64encode(client.auth.encrypt(msgpack.packb(payload), b'0'*32))
+        return NS(status_code=200, headers={}, content=content)
+    monkeypatch.setattr(readonly, 'login1', login1)
+    monkeypatch.setattr(bsgamesdk, 'login2', login2)
+    monkeypatch.setattr(captcha, 'start_challenge', start)
+    monkeypatch.setattr(readonly.requests, 'post', post)
+    client.manual_captcha = NS(solve=solve)
+    try:
+        if success:
+            asyncio.run(client.login(123))
+            assert client.logged_in and client.auth.viewer_id == 123
+        else:
+            with pytest.raises(ProtocolFailure, match='^login_failed$'):
+                asyncio.run(client.login(123))
+            assert client.phase == 'closed'
+        assert calls[:3] == ['password', 'manual', 'submit']
+        assert calls.count('password') == calls.count('manual') == calls.count('submit') == 1
+        assert calls.count(step) == len(statuses)
+        assert calls.count('game') == int(success or step == 'game')
     finally:
         client.close()

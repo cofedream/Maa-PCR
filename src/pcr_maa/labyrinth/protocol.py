@@ -66,9 +66,29 @@ class LabyrinthClient:
         self._session_generation=None
         self.timings=timings or Timings()
 
-    async def _timed_auth(self,label,operation):
+    async def _timed_auth(self,label,operation,stage):
         with self.timings.measure('protocol_request',label=label):
-            return await operation
+            try:
+                return await operation
+            except Exception as error:
+                from autopcr_sync.core.readonly import SyncFailure
+                from requests.exceptions import RequestException
+                # Only fixed reason codes can enter a player export; SDK errors can contain credentials.
+                reason='未取得可用响应'
+                if isinstance(error,SyncFailure) and str(error) in (
+                        'network_failed','network_or_protocol_failed','invalid_response','app_version_changed',
+                        'protocol_update_required','game_request_failed','sdk_session_rejected','captcha_rejected','server_maintenance',
+                        'request_rejected','server_rejected'):
+                    reason=str(error)
+                elif type(error) is RuntimeError and str(error) in (
+                        'sdk_request_failed','oversize_sdk_response','sdk_request_rejected'):
+                    reason=str(error)
+                elif isinstance(error,TimeoutError):
+                    reason='请求超时'
+                elif isinstance(error,RequestException):
+                    reason='网络请求失败'
+                player_log.text(f'登录请求未完成（{stage}）：{reason}。')
+                raise
 
     @property
     def phase(self):
@@ -121,8 +141,14 @@ class LabyrinthClient:
             raise ProtocolFailure('session_closed')
 
     async def _auth_request(self,request,expected_viewer_id):
+        from autopcr_sync.core.readonly import GameCaptchaRejected
         self._check_open()
-        try:result=await self._timed_auth('authentication',asyncio.wait_for(self.auth.request(request),AUTH_REQUEST_TIMEOUT_SECONDS))
+        stage='提交游戏验证码' if getattr(request,'validate_',None) else f'游戏登录 / {type(request).__name__}'
+        try:
+            result=await self._timed_auth('authentication',
+                asyncio.wait_for(self.auth.request(request),AUTH_REQUEST_TIMEOUT_SECONDS),stage)
+        except GameCaptchaRejected:
+            raise ProtocolFailure('captcha_rejected') from None
         except TimeoutError:
             self.close();raise ProtocolFailure('protocol_login_timeout') from None
         # The read-only primitive can update headers while a close is pending.
@@ -172,14 +198,14 @@ class LabyrinthClient:
         response={}
         proof=None
         try:
-            response=await self._timed_auth('sdk_login',asyncio.wait_for(login1(username,password),SDK_LOGIN_TIMEOUT_SECONDS))
+            response=await self._timed_auth('sdk_login',asyncio.wait_for(login1(username,password),SDK_LOGIN_TIMEOUT_SECONDS),'账号登录')
             self._check_open()
             if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
             if response.get('code')==200000:
                 response.clear()
                 proof=await self._verify_captcha('sdk')
                 self._check_open()
-                response=await self._timed_auth('sdk_login',asyncio.wait_for(login2(username,password,proof.challenge,proof.gt_user_id,proof.validate),SDK_LOGIN_TIMEOUT_SECONDS))
+                response=await self._timed_auth('sdk_login',asyncio.wait_for(login2(username,password,proof.challenge,proof.gt_user_id,proof.validate),SDK_LOGIN_TIMEOUT_SECONDS),'提交账号验证码')
                 self._check_open()
                 if type(response) is not dict:raise ProtocolFailure('sdk_login_failed')
                 if response.get('code')==200000:raise ProtocolFailure('captcha_rejected')
@@ -263,6 +289,8 @@ class LabyrinthClient:
                 return load
             except ProtocolFailure:
                 self.close();raise
+            except SdkSessionRejected:
+                self.close();raise ProtocolFailure('sdk_login_failed') from None
             except asyncio.CancelledError:
                 self.close();raise
             except TimeoutError:
@@ -405,7 +433,7 @@ class LabyrinthClient:
             except ProtocolFailure:self.close();raise
 
     async def enter(self,guild_id,difficulty):
-        if type(guild_id) is not int or not 1<=guild_id<=5 or type(difficulty) is not int or not 1<=difficulty<=5:raise ProtocolFailure('request_rejected')
+        if type(guild_id) is not int or not 1<=guild_id<=10 or type(difficulty) is not int or not 1<=difficulty<=5:raise ProtocolFailure('request_rejected')
         async with self._operation():
             try:
                 value=await self._request_locked(Endpoint.ENTER,dict(guild_id=guild_id,difficulty=difficulty))

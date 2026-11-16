@@ -51,6 +51,13 @@
           "commit": "b809b196988b019571caf5679ccf8d7ebb7f072d",
           "path": "android/app/src/main/java/com/landosol/toolbox/labyrinth/LabyrinthShopPolicy.kt",
           "sha256": "f8dac2f675c70fa3bc77dd853cfd9b26b6bd8e357e22f084d5a4a7c23592e372"
+        },
+        {
+          "repository": "https://github.com/SatenRuiko10032/limingjie-assistant",
+          "commit": "a9ac22e67d3b6dc4ff4a90cd1d40089bdaef90a6",
+          "path": "android/app/src/main/java/com/landosol/toolbox/labyrinth/LabyrinthOpeningRosterPolicy.kt",
+          "sha256": "81ac1b0a23c3a93ecfdef8a6d449f715d353bed395e86b95c4e7dcfd70619da3",
+          "note": "2026-11-13 新增 5 个出发公会及默认开局三人候选；默认表落在本文件，MaaOpening 与旧辅助函数共用。"
         }
       ]
     },
@@ -422,6 +429,15 @@
         }
       ],
       "local_sha256": "67c1f4a04d6c2effac10b93ddc8c9afe4d046e2093a3478db6de81661b899ec0",
+      "upstream_updates": [
+        {
+          "repository": "https://github.com/SatenRuiko10032/limingjie-assistant",
+          "commit": "a9ac22e67d3b6dc4ff4a90cd1d40089bdaef90a6",
+          "path": "android/app/src/main/java/com/landosol/toolbox/labyrinth/LabyrinthOpeningRosterPolicy.kt",
+          "sha256": "81ac1b0a23c3a93ecfdef8a6d449f715d353bed395e86b95c4e7dcfd70619da3",
+          "note": "2026-11-13 新增 5 个出发公会及默认开局三人候选；只同步默认候选数据，guild_id 6-10 在上游仍为占位。默认表定义已移到 strategies.py 供 MaaOpening 与旧辅助函数共用；本文件 local_sha256 仍记录上次来源审查时的版本。"
+        }
+      ],
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -9654,7 +9670,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",
-      "local_sha256": "83057c732588bb439b978636589fea8fafe3d318179ba9104e36d2e9e3711cdd",
+      "local_sha256": "7a89ca8b4f99e40a3d1ac5a4686293f7f681c6f4a6bbabfee419fb90625c6561",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -9672,7 +9688,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml",
-      "local_sha256": "03d2a261726a2f6382df61219b803d0e25e3ea7465a166816f154a5812bfa3e5",
+      "local_sha256": "b97560ca065558a2cb27cfb6725dc6fead3e855c50397b2c6feb81e5eacd09e9",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

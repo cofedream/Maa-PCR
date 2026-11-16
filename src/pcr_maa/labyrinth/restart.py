@@ -37,8 +37,8 @@ def _valid_intent(intent):
         return False
     if intent['operation'] == 'enter':
         return (not any(key in intent for key in ('enter_id', 'protocol_enter_id'))
-                and all(type(intent.get(key)) is int and 1 <= intent[key] <= 5
-                        for key in ('guild_id', 'difficulty')))
+                and type(intent.get('guild_id')) is int and 1 <= intent['guild_id'] <= 10
+                and type(intent.get('difficulty')) is int and 1 <= intent['difficulty'] <= 5)
     enter = _intent_enter_id(intent)
     # Only client navigation can precede a run; consumption and post-creation
     # Stop/Start still require a positive run identity.

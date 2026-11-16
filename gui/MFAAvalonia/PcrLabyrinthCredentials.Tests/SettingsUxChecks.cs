@@ -31,6 +31,15 @@ internal static class SettingsUxChecks
             "settings_account_entry_precedes_task_goals");
         require(Named("MaxAttemptsInput").Ancestors().Contains(Named("RerollSettings"))
             && Named("MaxMinutesInput").Ancestors().Contains(Named("RerollSettings")), "settings_reroll_limits_are_in_advanced_section");
+        require((string?)Named("MaxAttemptsInput").Attribute("Maximum") == "5000"
+            && nodes.Any(node => node.Name.LocalName == "TextBlock"
+                && ((string?)node.Attribute("Text"))?.Contains("刷取次数上限为 5000 次", StringComparison.Ordinal) == true),
+            "settings_reroll_attempt_cap_is_5000_with_hint");
+        var rootMarkup = XDocument.Load(Path.Combine(sourceRoot, "gui", "MFAAvalonia", "MFAAvalonia",
+            "Views", "Windows", "RootView.axaml"));
+        require(rootMarkup.Descendants().Any(node => node.Name.LocalName == "TextBlock"
+                && (string?)node.Attribute("Text") == "{Binding DevelopmentIdentitySuffix}"),
+            "settings_window_title_shows_development_identity");
         require(nodes.Count(node => node.Name.LocalName == "PcrCountInput") == 4
             && nodes.Where(node => node.Name.LocalName == "PcrCountInput")
                 .All(node => (string?)node.Attribute("ClipValueToMinMax") == "False"), "settings_numeric_inputs_preserve_invalid_drafts");
@@ -61,6 +70,8 @@ internal static class SettingsUxChecks
         require(settings.AccountSummary.Contains("待填写") && !settings.Status.StartsWith("已自动保存"),
             "settings_empty_account_and_unsaved_initial_state_are_explicit");
         require(settings.Reroll && (bool)settings.Snapshot()["reroll"]!, "settings_fresh_reroll_defaults_on");
+        require(settings.MaxAttempts == "100" && (int)settings.Snapshot()["max_attempts"]! == 100,
+            "settings_reroll_attempts_default_100");
         var legacyConfig = new InstanceConfiguration("pcr-settings-legacy-no-reroll");
         legacyConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,
             new JObject { ["version"] = 1, ["goals"] = new JArray(new JObject { ["guild_id"] = 1, ["clears"] = 1 }) }
@@ -130,6 +141,17 @@ internal static class SettingsUxChecks
         var reopened = owner(new InstanceConfiguration(legacyPriorityId)).LabyrinthSettings;
         require(reopened.RelicMarkPriority == "会心,加速,守备,强化,弱体" && !reopened.HasRelicPriorityNotice,
             "settings_legacy_relic_subset_migrates_once");
+        migrated.AddAccount();
+        require(migrated.Accounts.Count == 2 && !migrated.HasRelicPriorityNotice && migrated.RelicMarkPriority == "",
+            "settings_legacy_relic_notice_is_scoped_to_the_migrated_account");
+        var invalidConfig = new InstanceConfiguration("pcr-settings-incomplete-relic-migration");
+        var invalid = new JObject { ["strategy"] = new JObject {
+            ["relic_mark_priority"] = new JArray("会心"), ["response_interval_ms"] = "invalid" } };
+        invalidConfig.SetValueAndPersist(PcrLabyrinthSettings.Key, invalid.ToString(Newtonsoft.Json.Formatting.None));
+        var original = File.ReadAllBytes(invalidConfig.GetConfigFilePath());
+        var incomplete = owner(invalidConfig).LabyrinthSettings;
+        require(incomplete.Status.Contains("无法读取") && original.SequenceEqual(File.ReadAllBytes(invalidConfig.GetConfigFilePath())),
+            "settings_partial_account_load_does_not_persist_relic_migration");
 
         PcrLabyrinthCharacterCatalog.UseRepositoryRoot(sourceRoot);
         var view = new PcrLabyrinthView { DataContext = vm, Background = Brushes.White };
@@ -174,6 +196,37 @@ internal static class SettingsUxChecks
             require(priorityToggle.IsChecked == false && PriorityArray().Count == 0 && settings.RelicMarkPriority == ""
                 && owner(new InstanceConfiguration(id)).LabyrinthSettings.RelicMarkPriority == "",
                 "settings_relic_priority_disable_clears");
+            priorityToggle.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+            Dispatcher.UIThread.RunJobs();
+            var accountA = settings.SelectedAccount!;
+            const string orderA = "会心,守备,加速,强化,弱体";
+            require(settings.RelicMarkPriority == orderA, "settings_relic_same_account_remembers_disabled_order");
+            settings.AddAccount();
+            Dispatcher.UIThread.RunJobs();
+            var accountB = settings.SelectedAccount!;
+            require(accountB.Id != accountA.Id && priorityToggle.IsChecked == false
+                && priority.DisplayOrder.SequenceEqual(PcrMarkPriorityList.Marks), "settings_relic_new_account_starts_with_default_order");
+            priorityToggle.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+            Dispatcher.UIThread.RunJobs();
+            var orderB = string.Join(",", PcrMarkPriorityList.Marks);
+            require(owner(new InstanceConfiguration(id)).LabyrinthSettings.RelicMarkPriority == orderB,
+                "settings_relic_enabling_new_account_persists_its_own_order");
+            settings.SelectedAccount = accountA;
+            Dispatcher.UIThread.RunJobs();
+            require(settings.RelicMarkPriority == orderA && string.Join(",", priority.DisplayOrder) == orderA,
+                "settings_relic_switch_back_restores_first_account_order");
+            priorityToggle.SetCurrentValue(CheckBox.IsCheckedProperty, false);
+            settings.SelectedAccount = accountB;
+            Dispatcher.UIThread.RunJobs();
+            require(settings.RelicMarkPriority == orderB, "settings_relic_switch_back_restores_second_account_order");
+            priority.Move(4, 0);
+            priorityToggle.SetCurrentValue(CheckBox.IsCheckedProperty, false);
+            Dispatcher.UIThread.RunJobs();
+            require(priority.DisplayOrder[0] == "弱体", "settings_relic_second_account_remembers_its_disabled_order");
+            settings.SelectedAccount = accountA;
+            Dispatcher.UIThread.RunJobs();
+            require(priorityToggle.IsChecked == false && priority.DisplayOrder.SequenceEqual(PcrMarkPriorityList.Marks),
+                "settings_relic_switch_between_disabled_accounts_resets_transient_order");
             priorityToggle.SetCurrentValue(CheckBox.IsCheckedProperty, true);
             Dispatcher.UIThread.RunJobs();
             var relicSettings = view.FindControl<Expander>("RelicSettings")!;

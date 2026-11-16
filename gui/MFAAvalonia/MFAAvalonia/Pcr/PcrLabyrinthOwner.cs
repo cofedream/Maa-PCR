@@ -112,6 +112,7 @@ internal static class PcrLabyrinthOwner
         "reroll_attempt_limit"=>"已达到开局重试次数上限，本次已停止。请放宽路线条件或提高上限后再次开始。",
         "reroll_time_limit"=>"已达到开局重试时间上限，本次已停止。请放宽路线条件或提高上限后再次开始。",
         "opening_slots_invalid" or "opening_identity_required" or "opening_creation_identity_required"=>"开局识别出的可选角色不符合配置，本次已停止。",
+        "opening_roster_required"=>"所选公会没有可用的上游默认开局候选，请在「各公会开局三人候选」里为三个槽位各选一个角色后再次开始。",
         "opening_selection_unknown"=>"选人界面初始状态未确认，本次已停止。请确认界面停在“角色选择”后再次开始。",
         "character_identity_unknown"=>"“角色加入”弹窗里的角色名无法匹配图鉴（多为文字识别错误），本次已停止。请导出黎明界诊断记录，保留现场截图。",
         "character_identity_ambiguous"=>"“角色加入”弹窗里的角色名匹配到多个角色，无法唯一确认，本次已停止。",
@@ -166,6 +167,7 @@ internal static class PcrLabyrinthOwner
                     throw new InvalidOperationException("请先在设备栏选择有效的 ADB 目标。");
                 request=new JObject { ["version"]=1,["settings"]=snapshot,["account_id"]=accountId,["server"]=settings.Server,
                     ["keep_old_run"]=settings.KeepOldRun,
+                    ["cpu_only"]=Instances.PerformanceUserControlModel.GpuOption is { IsDirectML: false, Device: InferenceDevice.CPU },
                     ["connection"]=new JObject { ["adb_path"]=path,["serial"]=serial },
                     ["credentials"]=new JObject { ["username"]=settings.Username,["password"]=settings.Password } };
                 current=run=new Run(vm);

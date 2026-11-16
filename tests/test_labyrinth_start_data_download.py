@@ -109,6 +109,7 @@ def test_saved_failure_frame_hits_the_prompt_and_clicks_confirm(offline_resource
         # Not one of the other known startup pages.
         assert not native.run(tasker, 'LabyClientDownloadErrorObserved')['native_ok']
         assert not native.run(tasker, 'LabyClientAfterTitleHomeObserved')['native_ok']
+        confirm_box = None
         for name, (_, (x, y, w, h)) in WORDS.items():
             receipt = native.run(tasker, name)
             assert receipt['native_ok'], name
@@ -118,12 +119,16 @@ def test_saved_failure_frame_hits_the_prompt_and_clicks_confirm(offline_resource
             box = word['box']
             assert x <= box[0] and y <= box[1]
             assert box[0] + box[2] <= x + w and box[1] + box[3] <= y + h
+            if name == 'LabyClientDataDownloadConfirmLabel':
+                confirm_box = box
         assert not controller.clicks
         assert native.run(tasker, CONFIRM)['native_ok']
         assert len(controller.clicks) == 1
         click_x, click_y = controller.clicks[0]
-        # Inside the 确认 word box (756,476,61,35) and the dialog's right button.
-        assert 756 <= click_x <= 817 and 476 <= click_y <= 511
+        # Inside the recognized 确认 word box; allow 2 px for OCR/click rounding.
+        assert confirm_box is not None
+        assert confirm_box[0] - 2 <= click_x <= confirm_box[0] + confirm_box[2] + 2
+        assert confirm_box[1] - 2 <= click_y <= confirm_box[1] + confirm_box[3] + 2
     finally:
         native.stop_tasker(tasker)
 

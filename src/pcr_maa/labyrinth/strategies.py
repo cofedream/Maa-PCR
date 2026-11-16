@@ -5,25 +5,39 @@ remain the responsibility of the Maa adapter, using a new frame after input.
 """
 from dataclasses import dataclass
 
-OPENING = {
+# Every departure guild's opening trio, shared by MaaOpening.invite() and the
+# legacy opening helpers below.  Guilds 1..5 keep the picks sampled before the
+# 2026-11-13 game update; 6..10 come from the upstream 2026-11-13 commit
+# a9ac22e67d3b6dc4ff4a90cd1d40089bdaef90a6 ("新增5个公会与开局角色配置",
+# SatenRuiko10032/limingjie-assistant sync/10087-batches) and are recorded in
+# LABYRINTH_GUILD_ROSTERS.md and LABYRINTH_UPSTREAM_PARITY.md.  A slot may hold
+# priority candidates; ids never repeat across slots.
+UPSTREAM_OPENING_SLOTS = {
  1: (('1075',),('1351',),('1059',)),
  2: (('1089',),('1088',),('1003','1801','1225')),
  3: (('1025',),('1308',),('1145',)),
  4: (('1242',),('1339',),('1136','1115','1236','1238')),
- 5: (('1091',),('1171',),('1011',))}
+ 5: (('1091',),('1171',),('1011',)),
+ 6: (('1348',),('1344',),('1054','1116')),
+ 7: (('1082',),('1117',),('1138',)),
+ 8: (('1038',),('1026',),('1128',)),
+ 9: (('1079',),('1168',),('1251',)),
+ 10: (('1056',),('1299',),('1051',))}
+OPENING = UPSTREAM_OPENING_SLOTS  # historical name used by ported tests
 GRANTED = {5: ('1068',)}
 MARKS = ('加速','会心','守备','强化','弱体')
 ALIASES = {'暴击':'会心','削弱':'弱体','崩弱':'弱体'}
 
 def opening_roster(guild_id,available):
-    if guild_id not in OPENING: raise ValueError('invalid_guild')
-    result=tuple(next((c for c in slot if c in available),None) for slot in OPENING[guild_id])
+    if guild_id not in UPSTREAM_OPENING_SLOTS: raise ValueError('invalid_guild')
+    result=tuple(next((c for c in slot if c in available),None) for slot in UPSTREAM_OPENING_SLOTS[guild_id])
     if None in result: return None
     if len(set(result)) != 3: raise ValueError('duplicate_opening_role')
     return result
 
 def next_opening_role(guild_id,available,selected):
-    for slot in OPENING[guild_id]:
+    if guild_id not in UPSTREAM_OPENING_SLOTS: raise ValueError('invalid_guild')
+    for slot in UPSTREAM_OPENING_SLOTS[guild_id]:
         if not set(slot)&set(selected):
             candidate=next((c for c in slot if c in available and c not in selected),None)
             if candidate: return candidate

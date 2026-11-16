@@ -261,7 +261,7 @@ class MaaGamePort:
     def restore_opening(self,snapshot,batch,*,creation):
         self._checkpoint(batch)
         if (type(snapshot) is not OpeningSnapshot or snapshot.difficulty!=batch.settings.difficulty
-                or type(snapshot.guild_id) is not int or not 1<=snapshot.guild_id<=5):
+                or type(snapshot.guild_id) is not int or not 1<=snapshot.guild_id<=10):
             raise BatchStopped('game_port_opening_scope_unqualified')
         if (snapshot.account_id!=batch.binding.account_id or type(creation) is not dict
                 or creation.get('verified') is not True or creation.get('source')!='protocol'

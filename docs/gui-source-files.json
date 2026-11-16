@@ -244,6 +244,7 @@
     "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/UniversalEnumConverter.cs",
     "gui/MFAAvalonia/MFAAvalonia/Helper/Converters/UniversalEqualityConverter.cs",
     "gui/MFAAvalonia/MFAAvalonia/Helper/CustomPathResolver.cs",
+    "gui/MFAAvalonia/MFAAvalonia/Helper/DevelopmentIdentity.cs",
     "gui/MFAAvalonia/MFAAvalonia/Helper/DirectoryMerger.cs",
     "gui/MFAAvalonia/MFAAvalonia/Helper/DispatcherHelper.cs",
     "gui/MFAAvalonia/MFAAvalonia/Helper/DisposableObservableCollection.cs",

@@ -95,7 +95,8 @@ internal static class RunFeedbackChecks
             .GetMethod("StatusFor", BindingFlags.Static | BindingFlags.NonPublic)!;
         foreach (var outcome in new[] { "login_failed", "sdk_login_failed", "captcha_response_invalid",
                      "captcha_type_unsupported", "captcha_proof_invalid", "captcha_request_invalid",
-                     "captcha_network_or_protocol_failed", "runtime_components_missing", "controller_connection_failed" })
+                     "captcha_network_or_protocol_failed", "runtime_components_missing", "controller_connection_failed",
+                     "opening_roster_required" })
         {
             var reason = (string)statusFor.Invoke(null, [outcome])!;
             showError.Invoke(labyrinth, [labyrinthRun, reason]);

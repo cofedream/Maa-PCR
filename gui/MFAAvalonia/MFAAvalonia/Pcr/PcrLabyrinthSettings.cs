@@ -155,7 +155,9 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         vm=owner;
         Goals=new(new[] {
             new PcrLabyrinthGoal(1,"美食殿堂",this), new PcrLabyrinthGoal(2,"破晓之星",this), new PcrLabyrinthGoal(3,"咲恋救济院",this),
-            new PcrLabyrinthGoal(4,"王宫骑士团",this),new PcrLabyrinthGoal(5,"拉比林斯",this) });
+            new PcrLabyrinthGoal(4,"王宫骑士团",this),new PcrLabyrinthGoal(5,"拉比林斯",this),
+            new PcrLabyrinthGoal(6,"慈乐之音",this), new PcrLabyrinthGoal(7,"恶魔伪王国军",this), new PcrLabyrinthGoal(8,"伊丽莎白牧场",this),
+            new PcrLabyrinthGoal(9,"墨丘利财团",this),new PcrLabyrinthGoal(10,"暮光流星群",this) });
         Goals[0].Enabled=true;
         try { bossCatalog=PcrLabyrinthBossCatalog.Load(); }
         catch (Exception ex) { bossCatalogError=ex.Message; }
@@ -227,6 +229,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private void ApplyAccount(PcrLabyrinthAccount account) {
         var wasReady=ready; ready=false; switchingAccount=true;
         try {
+            RelicPriorityNotice="";
+            relicPriorityMigrated=false;
             saved=account.Settings.Count==0 ? null : account.Settings.ToString(Formatting.None);
             AccountName=account.Name; Server=account.Server;
             foreach (var goal in Goals) {
@@ -234,10 +238,14 @@ public partial class PcrLabyrinthSettings : ObservableObject {
                 goal.RosterWarning=""; goal.RosterHint="";
             }
             LoadSettings(account.Settings);
+            // 新账号可能没有某个公会的 opening_rosters；槽位已在上方清空，这里统一刷新
+            // 方案标签与默认名单，避免界面停在上一账号的「已自定义」。
+            foreach (var goal in Goals) goal.RefreshOpeningPlan();
             ExpectedPlayerId=Username=Password="";
             LoadCredentials(account.Credentials);
             ShowCredentials=false; credentialsDirty=false; DeleteAccountPending=false;
             Status=Servers.Any(item=>item.Id==Server) ? "已载入所选账号的黎明界设置。" : "未知服务器，请重新选择服务器并填写凭据。";
+            relicPriorityMigrated=HasRelicPriorityNotice;
         } finally { ready=wasReady; switchingAccount=false; }
         FlushRelicPriorityMigration();
         OnPropertyChanged(nameof(AccountSummary));
@@ -444,7 +452,11 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         var rosters=new JObject();
         foreach (var goal in Goals) {
             var filled=goal.Slots.Where(slot=>slot.Candidates.Count>0).ToArray();
-            if (filled.Length==0) continue;
+            if (filled.Length==0) {
+                // 1–10 号公会都带上游默认开局候选（6–10 号于 2026-11-13 从上游同步），
+                // 三个槽位都留空即沿用默认；部分槽位已选时必须补满三个。
+                continue;
+            }
             if (filled.Length!=goal.Slots.Count)
                 throw new InvalidOperationException($"{goal.Name}的开局候选需要三个槽位都至少选择一个角色；若沿用上游默认，请把三个槽位都清空。");
             var roles=goal.Slots.SelectMany(slot=>slot.Candidates.Select(character=>character.Id)).ToArray();
@@ -469,7 +481,6 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (stored.Count==0) return "";
         if (stored.Count>=PcrMarkPriorityList.Marks.Count) return string.Join(",",stored);
         var expanded=PcrMarkPriorityList.Expand(stored);
-        relicPriorityMigrated=true;
         RelicPriorityNotice=$"检测到旧的子集优先级（{string.Join("，",stored)}），已补全为五项：{string.Join("，",expanded)}。";
         return string.Join(",",expanded);
     }
@@ -553,7 +564,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (!RouteModes.Contains(RouteMode) || !ThirdChoices.Contains(ThirdChoice)) throw new InvalidOperationException("路线设置无效。");
         if (bossCatalog is null) throw new InvalidOperationException("Boss 目录加载失败，无法保存或开始："+bossCatalogError);
         return new JObject { ["version"]=1,["goals"]=goals,["difficulty"]=Number(Difficulty,1,5,"难度"),["reroll"]=Reroll,
-            ["max_attempts"]=Number(MaxAttempts,1,100,"刷取次数"),["max_seconds"]=loadedMaxSeconds is >=1 and <=1800 && MaxMinutes==loadedMaxMinutes ? loadedMaxSeconds.Value:Number(MaxMinutes,1,30,"刷取分钟")*60,
+            ["max_attempts"]=Number(MaxAttempts,1,5000,"刷取次数"),["max_seconds"]=loadedMaxSeconds is >=1 and <=1800 && MaxMinutes==loadedMaxMinutes ? loadedMaxSeconds.Value:Number(MaxMinutes,1,30,"刷取分钟")*60,
             ["buy_relics"]=BuyRelics,["refresh_shop"]=RefreshShop,["strategy"]=StrategySnapshot(),["route"]=new JObject {
                 ["mode"]=RouteMode==RouteModes[0] ? "value":"template",["perfect_start"]=PerfectStart,["allowance"]=Number(Allowance,0,3,"价值容差"),
                 ["third_choice"]=ThirdChoice==ThirdChoices[0] ? "relic":ThirdChoice==ThirdChoices[1] ? "event":"either",

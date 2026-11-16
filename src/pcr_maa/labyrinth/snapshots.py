@@ -46,7 +46,7 @@ class OpeningSnapshot:
         if type(top) is not dict or type(resume) is not dict or type(top.get('enter_id')) is not int or top['enter_id']!=enter_id:
             raise ValueError('opening_changed')
         guild=top.get('guild_id');difficulty=top.get('difficulty')
-        if (type(guild) is not int or not 1<=guild<=5 or type(difficulty) is not int or not 1<=difficulty<=5
+        if (type(guild) is not int or not 1<=guild<=10 or type(difficulty) is not int or not 1<=difficulty<=5
                 or type(resume.get('guild_id')) is not int or resume['guild_id']!=guild):
             raise ValueError('opening_identity_unknown')
         block=resume.get('block_id')

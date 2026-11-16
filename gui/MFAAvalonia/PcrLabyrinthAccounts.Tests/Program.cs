@@ -173,6 +173,30 @@ try {
         var accountSelector=view.GetLogicalDescendants().OfType<ComboBox>().Single(control=>control.Name=="AccountSelector");
         Require(accountSelector.Items.Count==1 && accountSelector.SelectedItem==guiOwner.LabyrinthSettings.SelectedAccount,
             "real_account_selector_is_bound");
+        // 账号 A 给 1 号公会选过三人后切到使用默认阵容的账号 B：B 没有 opening_rosters 条目，
+        // 也必须刷新方案标签与默认名单，不能停在 A 的「已自定义」。
+        var guiSettings=guiOwner.LabyrinthSettings;
+        var openingPanel=view.GetLogicalDescendants().OfType<Expander>().Single(control=>control.Name=="OpeningSettings");
+        openingPanel.IsExpanded=true; Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(350); Dispatcher.UIThread.RunJobs();
+        openingPanel.BringIntoView(); Dispatcher.UIThread.RunJobs(); view.UpdateLayout();
+        var guildOne=guiSettings.Goals[0];
+        foreach (var pick in guildOne.Pool.Take(3).ToArray()) pick.ToggleCommand!.Execute(null);
+        Dispatcher.UIThread.RunJobs(); view.UpdateLayout();
+        var guildOneTexts=view.GetLogicalDescendants().OfType<TextBlock>().Where(node=>node.DataContext==guildOne).ToArray();
+        Require(guildOne.HasCustomRoster && guildOne.PlanLabel=="已自定义"
+            && guildOneTexts.Any(node=>node.Text=="已自定义"), "account_a_custom_roster_shows_custom_label");
+        guiSettings.AddAccountCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs(); view.UpdateLayout();
+        Require(!guildOne.HasCustomRoster && guildOne.PlanLabel=="使用内置默认"
+            && !string.IsNullOrEmpty(guildOne.DefaultPlanText),
+            "account_switch_refreshes_builtin_plan: "+guildOne.PlanLabel);
+        Require(guildOneTexts.Any(node=>node.Text=="使用内置默认"),
+            "account_switch_updates_bound_plan_label: "+string.Join("|",guildOneTexts.Select(node=>node.Text)));
+        guiSettings.SelectedAccount=guiSettings.Accounts[0];
+        Dispatcher.UIThread.RunJobs(); view.UpdateLayout();
+        Require(guildOne.HasCustomRoster && guildOneTexts.Any(node=>node.Text=="已自定义"),
+            "account_switch_back_restores_custom_plan_label");
+        openingPanel.IsExpanded=false;
         var serverSelector=view.GetLogicalDescendants().OfType<ComboBox>().Single(control=>control.Name=="ServerSelector");
         serverSelector.SetCurrentValue(ComboBox.SelectedItemProperty,PcrLabyrinthServer.All.Single(item=>item.Id=="cn-mumu"));
         Dispatcher.UIThread.RunJobs();

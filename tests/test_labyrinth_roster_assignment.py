@@ -206,7 +206,7 @@ def test_strategy_guild_units_round_trip_and_validation():
     assert Settings.parse(json.loads(json.dumps(payload))).strategy.guild_units['5'] == ('1049',)
     legacy = Settings.parse({'version': 1, 'goals': [{'guild_id': 5, 'clears': 1}]})
     assert dict(legacy.strategy.guild_units) == {}
-    for value in ({'6': ['1049']}, {'5': []}, {'5': ['1049', '1049']},
+    for value in ({'11': ['1049']}, {'5': []}, {'5': ['1049', '1049']},
                   {'5': [1049]}, {'5': ['10']}, {'5': 'x'}):
         with pytest.raises(ValueError, match='^invalid_guild_units$'):
             Strategy.parse({'guild_units': value})

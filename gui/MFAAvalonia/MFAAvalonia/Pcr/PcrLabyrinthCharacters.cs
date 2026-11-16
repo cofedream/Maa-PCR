@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -46,12 +47,17 @@ public sealed partial class PcrLabyrinthCharacter : ObservableObject {
 }
 
 public sealed class PcrLabyrinthGuildRoster {
-    internal PcrLabyrinthGuildRoster(int guildId, string name, IReadOnlyList<PcrLabyrinthCharacter> characters) {
-        GuildId=guildId; Name=name; Characters=characters;
+    internal PcrLabyrinthGuildRoster(int guildId, string name, IReadOnlyList<PcrLabyrinthCharacter> characters,
+        IReadOnlyList<IReadOnlyList<string>> defaults, IReadOnlyList<string> granted) {
+        GuildId=guildId; Name=name; Characters=characters; Defaults=defaults; Granted=granted;
     }
     public int GuildId { get; }
     public string Name { get; }
     public IReadOnlyList<PcrLabyrinthCharacter> Characters { get; }
+    // 三个槽位的内置默认候选：GUI 只回显；未自定义时 Python 使用同一份默认（测试校验一致）。
+    public IReadOnlyList<IReadOnlyList<string>> Defaults { get; }
+    // 公会开局附赠角色（如有），不可编辑。
+    public IReadOnlyList<string> Granted { get; }
 }
 
 // 只读取打包资源；加载失败由调用方转成可见提示，不参与任务启动资格。
@@ -60,8 +66,12 @@ public sealed class PcrLabyrinthCharacterCatalog {
     private const string CharacterPack = "assets/labyrinth/character-pack";
     private static readonly object Gate = new();
     private static string? repositoryRootOverride;
-    private PcrLabyrinthCharacterCatalog(IReadOnlyList<PcrLabyrinthGuildRoster> guilds) { Guilds=guilds; }
+    private PcrLabyrinthCharacterCatalog(IReadOnlyList<PcrLabyrinthGuildRoster> guilds,
+        IReadOnlyDictionary<string, string> displayNames) { Guilds=guilds; DisplayNames=displayNames; }
     public IReadOnlyList<PcrLabyrinthGuildRoster> Guilds { get; }
+    private IReadOnlyDictionary<string, string> DisplayNames { get; }
+    // 内置默认候选可能不在公会的可选名单里（例如排除的 18xx 形态），显示名仍从图鉴解析。
+    public string DisplayName(string id) => DisplayNames.TryGetValue(id, out var name) ? name : id;
     public PcrLabyrinthGuildRoster ForGuild(int guildId) =>
         Guilds.FirstOrDefault(guild=>guild.GuildId==guildId) ?? throw new InvalidOperationException($"缺少公会 {guildId} 的开局名单。");
     // 测试或独立宿主可显式指向数据目录；正常运行时沿用 pcr-repository.txt。
@@ -81,6 +91,7 @@ public sealed class PcrLabyrinthCharacterCatalog {
             .OfType<JObject>()
             .Where(row=>(string?)row["id"] is not null)
             .ToDictionary(row=>(string)row["id"]!, row=>row, StringComparer.Ordinal);
+        var displayNames=byId.ToDictionary(pair=>pair.Key, pair=>DisplayNameOf(pair.Value, pair.Key), StringComparer.Ordinal);
         var result=new List<PcrLabyrinthGuildRoster>();
         foreach (var guild in (guilds["guilds"] as JArray ?? throw new InvalidOperationException("公会开局名单缺少 guilds。")).OfType<JObject>()) {
             if (guild["id"]?.Type!=JTokenType.Integer || (string?)guild["name"] is not { Length: >0 } name)
@@ -90,19 +101,57 @@ public sealed class PcrLabyrinthCharacterCatalog {
                 foreach (var token in person["units"] as JArray ?? throw new InvalidOperationException($"{name} 缺少角色 ID。")) {
                     var id=token.Value<string>() ?? "";
                     if (!byId.TryGetValue(id, out var row)) throw new InvalidOperationException($"角色图鉴缺少 ID {id}（{name}）。");
-                    var display=(string?)row["officialName"];
-                    if (string.IsNullOrWhiteSpace(display)) display=(string?)row["name"];
-                    if (string.IsNullOrWhiteSpace(display)) display=id;
+                    var display=DisplayNameOf(row, id);
                     characters.Add(new PcrLabyrinthCharacter(
-                        id, display!, SearchTextFor(id, row, display!), PcrLabyrinthCharacter.IconPathFor(pack, iconIndex, id)));
+                        id, display, SearchTextFor(id, row, display), PcrLabyrinthCharacter.IconPathFor(pack, iconIndex, id)));
                 }
-            result.Add(new PcrLabyrinthGuildRoster((int)guild["id"]!, name, characters));
+            result.Add(new PcrLabyrinthGuildRoster((int)guild["id"]!, name, characters,
+                ReadDefaultSlots(guild, name, byId), ReadGranted(guild, name, byId)));
         }
         if (result.Count==0 || result.Any(guild=>guild.Characters.Count==0))
             throw new InvalidOperationException("公会开局名单为空。");
         var duplicate=result.SelectMany(guild=>guild.Characters).GroupBy(character=>character.Id).FirstOrDefault(group=>group.Count()>1);
         if (duplicate is not null) throw new InvalidOperationException($"角色 {duplicate.Key} 同时出现在多个公会名单中。");
-        return new PcrLabyrinthCharacterCatalog(result);
+        return new PcrLabyrinthCharacterCatalog(result, displayNames);
+    }
+    private static string DisplayNameOf(JObject row, string id) {
+        var display=(string?)row["officialName"];
+        if (string.IsNullOrWhiteSpace(display)) display=(string?)row["name"];
+        return string.IsNullOrWhiteSpace(display) ? id : display!;
+    }
+    // 三个槽位的内置默认候选：GUI 只回显，执行仍由 Python 的同一份默认表决定。
+    private static IReadOnlyList<IReadOnlyList<string>> ReadDefaultSlots(JObject guild, string name,
+        IReadOnlyDictionary<string, JObject> byId) {
+        if (guild["defaults"] is not JArray rows || rows.Count != 3)
+            throw new InvalidOperationException($"{name} 缺少三个槽位的内置默认候选。");
+        var seen=new HashSet<string>(StringComparer.Ordinal);
+        var slots=new List<IReadOnlyList<string>>();
+        foreach (var row in rows) {
+            if (row is not JArray candidates || candidates.Count==0)
+                throw new InvalidOperationException($"{name} 的内置默认候选格式无效。");
+            var ids=new List<string>();
+            foreach (var token in candidates) {
+                var id=token.Value<string>() ?? "";
+                if (!Regex.IsMatch(id, @"^[0-9]{4,6}$") || !byId.ContainsKey(id))
+                    throw new InvalidOperationException($"{name} 的内置默认候选包含无效角色 ID：{id}");
+                if (!seen.Add(id)) throw new InvalidOperationException($"{name} 的内置默认候选重复：{id}");
+                ids.Add(id);
+            }
+            slots.Add(ids);
+        }
+        return slots;
+    }
+    private static IReadOnlyList<string> ReadGranted(JObject guild, string name, IReadOnlyDictionary<string, JObject> byId) {
+        if (guild["granted"] is not JArray rows) return Array.Empty<string>();
+        var ids=new List<string>();
+        foreach (var token in rows) {
+            var id=token.Value<string>() ?? "";
+            if (!Regex.IsMatch(id, @"^[0-9]{4,6}$") || !byId.ContainsKey(id))
+                throw new InvalidOperationException($"{name} 的公会附赠角色无效：{id}");
+            if (ids.Contains(id)) throw new InvalidOperationException($"{name} 的公会附赠角色重复：{id}");
+            ids.Add(id);
+        }
+        return ids;
     }
     private static Dictionary<string, string[]> ReadIconIndex(JObject icons) {
         var result=new Dictionary<string, string[]>(StringComparer.Ordinal);

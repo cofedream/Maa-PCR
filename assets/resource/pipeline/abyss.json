@@ -91,7 +91,25 @@
   "AbyssAdventureIdentity": {
     "recognition": "And",
     "all_of": [
-      "AbyssAdventureTitle",
+      {
+        "recognition": "Or",
+        "any_of": [
+          "AbyssAdventureTitle",
+          {
+            "recognition": "And",
+            "all_of": [
+              {
+                "recognition": "OCR",
+                "roi": [121, 16, 48, 47],
+                "expected": "^险$",
+                "threshold": 0.9,
+                "only_rec": true
+              },
+              "OneKeyQuickAdventureHomeBright"
+            ]
+          }
+        ]
+      },
       "AbyssAdventureMainLabel",
       "AbyssAdventureDeepLabel",
       "AbyssAdventurePrincessArenaLabel"

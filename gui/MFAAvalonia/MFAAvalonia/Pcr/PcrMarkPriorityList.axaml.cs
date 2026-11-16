@@ -29,8 +29,11 @@ public partial class PcrMarkPriorityList : UserControl
     public static readonly StyledProperty<string> PriorityProperty =
         AvaloniaProperty.Register<PcrMarkPriorityList, string>(nameof(Priority), defaultValue: "",
             defaultBindingMode: BindingMode.TwoWay);
+    public static readonly StyledProperty<string?> AccountIdProperty =
+        AvaloniaProperty.Register<PcrMarkPriorityList, string?>(nameof(AccountId));
 
     private readonly List<string> order = new(Marks);
+    private IReadOnlyList<string> disabledOrder = Marks;
     private readonly List<Border> chips = new();
     private StackPanel chipHost = null!;
     private CheckBox enableToggle = null!;
@@ -57,6 +60,12 @@ public partial class PcrMarkPriorityList : UserControl
     {
         get => GetValue(PriorityProperty);
         set => SetValue(PriorityProperty, value);
+    }
+
+    public string? AccountId
+    {
+        get => GetValue(AccountIdProperty);
+        set => SetValue(AccountIdProperty, value);
     }
 
     /// <summary>Marks in the order currently displayed (test/reporting hook).</summary>
@@ -103,8 +112,13 @@ public partial class PcrMarkPriorityList : UserControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == PriorityProperty && !syncing)
-            ApplyPriority(change.GetNewValue<string>() ?? "");
+        if (change.Property == AccountIdProperty)
+        {
+            CancelDrag();
+            disabledOrder = Marks;
+        }
+        if ((change.Property == PriorityProperty || change.Property == AccountIdProperty) && !syncing)
+            ApplyPriority(Priority);
     }
 
     private void ApplyPriority(string? value)
@@ -114,16 +128,8 @@ public partial class PcrMarkPriorityList : UserControl
         {
             var stored = Normalize(Split(value));
             var enabled = stored.Count > 0;
-            if (enabled)
-            {
-                order.Clear();
-                order.AddRange(stored.Count >= Marks.Count ? stored : Expand(stored));
-            }
-            else if (order.Count != Marks.Count)
-            {
-                order.Clear();
-                order.AddRange(Marks);
-            }
+            order.Clear();
+            order.AddRange(enabled ? Expand(stored) : disabledOrder);
             if (enableToggle.IsChecked != enabled) enableToggle.IsChecked = enabled;
             RebuildChips(enabled);
         }
@@ -134,6 +140,7 @@ public partial class PcrMarkPriorityList : UserControl
     {
         if (syncing) return;
         var enabled = enableToggle.IsChecked == true;
+        if (!enabled) disabledOrder = order.ToArray();
         WritePriority(enabled ? string.Join(",", order) : "");
         if (!enabled) RebuildChips(false);
     }

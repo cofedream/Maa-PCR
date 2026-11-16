@@ -5,6 +5,10 @@ import math,re
 from .routes import Policy
 from .strategies import MARKS, ALIASES
 
+# 黎明界出发公会序号（游戏 2026-11-13 由 5 个增加到 10 个）；opening_rosters /
+# guild_units 以字符串键保存，校验时与这里比对。
+GUILD_IDS = frozenset(str(i) for i in range(1,11))
+
 @dataclass(frozen=True)
 class Goal:
     guild_id: int
@@ -120,7 +124,7 @@ class Strategy:
         priority=tuple(ALIASES.get(mark,mark) for mark in priority)
         if len(set(priority))!=len(priority) or set(priority)-set(MARKS):raise ValueError('invalid_relic_mark_priority')
         rosters=value.get('opening_rosters',{})
-        if type(rosters) is not dict or set(rosters)-set('12345'):raise ValueError('invalid_opening_rosters')
+        if type(rosters) is not dict or set(rosters)-GUILD_IDS:raise ValueError('invalid_opening_rosters')
         frozen={}
         for guild,slots in rosters.items():
             if type(slots) is not list or len(slots)!=3:raise ValueError('invalid_opening_rosters')
@@ -129,7 +133,7 @@ class Strategy:
             if len(roles)!=len(set(roles)):raise ValueError('invalid_opening_rosters')
             frozen[guild]=tuple(tuple(slot) for slot in slots)
         units=value.get('guild_units',{})
-        if type(units) is not dict or set(units)-set('12345'):raise ValueError('invalid_guild_units')
+        if type(units) is not dict or set(units)-GUILD_IDS:raise ValueError('invalid_guild_units')
         frozen_units={}
         for guild,ids in units.items():
             if type(ids) is not list or not ids or len(ids)>40:raise ValueError('invalid_guild_units')
@@ -165,17 +169,17 @@ class Settings:
         allowed={'version','goals','difficulty','reroll','max_attempts','max_seconds','buy_relics','refresh_shop','route','strategy'}
         if set(v)-allowed: raise ValueError('unknown_bot_setting')
         goals=v.get('goals')
-        if type(goals) is not list or not goals or len(goals)>5: raise ValueError('invalid_goals')
+        if type(goals) is not list or not goals or len(goals)>10: raise ValueError('invalid_goals')
         result=[]
         for g in goals:
             if type(g) is not dict or not {'guild_id','clears'}<=set(g) or set(g)-{'guild_id','clears','mode'}: raise ValueError('invalid_goal')
-            if type(g['guild_id']) is not int or not 1<=g['guild_id']<=5 or type(g['clears']) is not int or not 1<=g['clears']<=999:
+            if type(g['guild_id']) is not int or not 1<=g['guild_id']<=10 or type(g['clears']) is not int or not 1<=g['clears']<=999:
                 raise ValueError('invalid_goal')
             if g.get('mode','clears') not in ('clears','attempts'):raise ValueError('invalid_goal_mode')
             result.append(Goal(g['guild_id'],g['clears'],g.get('mode','clears')))
         if len({g.guild_id for g in result})!=len(result): raise ValueError('duplicate_guild_goal')
         nums={k:v.get(k,d) for k,d in [('difficulty',1),('max_attempts',100),('max_seconds',1800)]}
-        for k,(lo,hi) in {'difficulty':(1,5),'max_attempts':(1,100),'max_seconds':(1,1800)}.items():
+        for k,(lo,hi) in {'difficulty':(1,5),'max_attempts':(1,5000),'max_seconds':(1,1800)}.items():
             if type(nums[k]) is not int or not lo<=nums[k]<=hi: raise ValueError('invalid_'+k)
         flags={k:v.get(k,d) for k,d in [('reroll',True),('buy_relics',True),('refresh_shop',True)]}
         if any(type(x) is not bool for x in flags.values()): raise ValueError('invalid_flag')

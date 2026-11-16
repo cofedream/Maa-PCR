@@ -38,6 +38,10 @@ class SdkSessionRejected(SyncFailure):
     """An explicit game SDK login rejection, excluding transport/maintenance failures."""
 
 
+class GameCaptchaRejected(SyncFailure):
+    """Game server rejected the submitted human verification."""
+
+
 class ReadOnlyClient:
     def __init__(self, username, password, *, content_version):
         self.username, self.password = username, password
@@ -93,8 +97,15 @@ class ReadOnlyClient:
         request.viewer_id = base64.b64encode(self.encrypt(str(self.viewer_id).encode("utf-8"), key)).decode("ascii") if request.crypted else str(self.viewer_id)
         body = self.encrypt(msgpack.packb(request.dict(by_alias=True), use_bin_type=False), key) if request.crypted else request.json(by_alias=True).encode("utf-8")
         try:
-            response = await asyncio.to_thread(requests.post, self.validate_root(self.root) + request.url,
-                data=body, headers=self.headers, timeout=(5, 10), allow_redirects=False)
+            url = self.validate_root(self.root) + request.url
+            # Only these public configuration reads can be repeated after a gateway error.
+            attempts = 2 if type(request) in (SourceIniIndexRequest, SourceIniGetMaintenanceStatusRequest) else 1
+            for attempt in range(1, attempts + 1):
+                response = await asyncio.to_thread(requests.post, url, data=body, headers=self.headers,
+                    timeout=(5, 10), allow_redirects=False)
+                if attempt == attempts or response.status_code not in (502, 503, 504) or "Retry-After" in response.headers:
+                    break
+                await asyncio.sleep(.25)
             if response.status_code != 200 or len(response.content) > 16 * 1024 * 1024:
                 raise SyncFailure("network_failed")
             raw = self.unpack(response.content) if request.crypted else json.loads(response.content)
@@ -117,8 +128,12 @@ class ReadOnlyClient:
         if parsed.data.server_error or header.result_code not in (0, 1):
             if type(request) is ToolSdkLoginRequest:
                 error = parsed.data.server_error
-                if error and '维护' in (error.message or ''):
+                message = (error.message or '') if error else ''
+                if '维护' in message:
                     raise SyncFailure("server_maintenance")
+                if request.validate_ and (parsed.data.is_risk or re.search(
+                        r'验证码(?:校验失败|验证失败|错误|无效|已?过期|已?失效)', message)):
+                    raise GameCaptchaRejected("captcha_rejected")
                 raise SdkSessionRejected("sdk_session_rejected")
             raise SyncFailure("game_request_failed")
         if header.sid:

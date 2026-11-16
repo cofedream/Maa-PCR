@@ -87,10 +87,11 @@
      <CheckBox Content="在后台检查游戏数据库更新（下一次任务使用）" IsChecked="{Binding LabyrinthSettings.AutoDatabaseUpdate}" />
      <CheckBox Content="启用刷开局：允许放弃不符合条件的开局" IsChecked="{Binding LabyrinthSettings.Reroll}" />
      <Grid ColumnDefinitions="*,*" ColumnSpacing="16"><StackPanel Spacing="6">
-      <TextBlock Text="每局最多刷取次数" /><pcr:PcrCountInput Name="MaxAttemptsInput" DraftText="{Binding LabyrinthSettings.MaxAttempts, Mode=TwoWay}" Minimum="1" Maximum="100" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" AutomationProperties.Name="每局最多刷取次数" />
+      <TextBlock Text="每局最多刷取次数（1–5000）" /><pcr:PcrCountInput Name="MaxAttemptsInput" DraftText="{Binding LabyrinthSettings.MaxAttempts, Mode=TwoWay}" Minimum="1" Maximum="5000" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" AutomationProperties.Name="每局最多刷取次数" />
      </StackPanel><StackPanel Grid.Column="1" Spacing="6">
       <TextBlock Text="每局最长刷取分钟" /><pcr:PcrCountInput Name="MaxMinutesInput" DraftText="{Binding LabyrinthSettings.MaxMinutes, Mode=TwoWay}" Minimum="1" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" AutomationProperties.Name="每局最长刷取分钟" />
      </StackPanel></Grid>
+     <TextBlock Text="刷取次数上限为 5000 次；刷取次数或刷取分钟任一项达到上限时，本次任务会停止并提示。" TextWrapping="Wrap" FontSize="12" />
      <TextBlock Text="账号协议读取完整地图并筛选路线，Maa 执行游戏操作；网络异常或未知结果会先核对，不重复发送原操作。" TextWrapping="Wrap" FontSize="12" />
     </StackPanel></Expander>
     <Expander Name="RouteSettings" Header="路线条件与策略" IsExpanded="False"><StackPanel Spacing="10" Margin="0,8">
@@ -157,7 +158,7 @@
      <TextBlock Text="弱体落后容差（0–5）" /><TextBox Text="{Binding LabyrinthSettings.DebuffPivotTolerance, Mode=TwoWay}" />
      <TextBlock Text="遗物印记优先级" TextWrapping="Wrap"
                 ToolTip.Tip="勾选「启用自定义」后可拖动五个印记块调整优先顺序。关闭时按内置策略：前期补加速/会心/守备到基础目标层数，弱体达到转追层数后转追弱体，任何印记能到 15 层时优先封顶。" />
-     <pcr:PcrMarkPriorityList Name="RelicPriorityInput" Priority="{Binding LabyrinthSettings.RelicMarkPriority, Mode=TwoWay}" />
+     <pcr:PcrMarkPriorityList Name="RelicPriorityInput" AccountId="{Binding LabyrinthSettings.SelectedAccount.Id}" Priority="{Binding LabyrinthSettings.RelicMarkPriority, Mode=TwoWay}" />
      <TextBlock Text="{Binding LabyrinthSettings.RelicPriorityNotice}" TextWrapping="Wrap" FontSize="12"
                 Foreground="{DynamicResource SukiPrimaryColor}" IsVisible="{Binding LabyrinthSettings.HasRelicPriorityNotice}" />
      <CheckBox Content="允许刷新商店" IsChecked="{Binding LabyrinthSettings.RefreshShop}" />
@@ -187,7 +188,7 @@
      <TextBlock Text="事件中的遗物类选项仍按「遗物与商店策略」里的层数目标和印记优先级估值。" TextWrapping="Wrap" FontSize="12" />
     </StackPanel></Expander>
     <Expander Name="OpeningSettings" Header="各公会开局三人候选" IsExpanded="False"><StackPanel Spacing="8" Margin="0,8">
-     <TextBlock Text="游戏内开局「角色选择」只列出所选同行公会的成员。点候选角色加入槽位，再点一次移除；三个槽位都留空时沿用上游默认。" TextWrapping="Wrap" FontSize="12" />
+     <TextBlock Text="游戏内开局「角色选择」只列出所选同行公会的成员。点候选角色加入槽位，再点一次移除；1–10 号公会三个槽位都留空时沿用内置默认（未修改时逐槽显示默认角色，开始前可核对）；6–10 号默认候选来自上游、尚未实机开局验证；只选了一部分槽位时需补满三个槽位才能保存。" TextWrapping="Wrap" FontSize="12" />
      <TextBlock Text="{Binding LabyrinthSettings.RosterStatus}" TextWrapping="Wrap" FontSize="12" Foreground="OrangeRed" IsVisible="{Binding LabyrinthSettings.HasRosterStatus}" />
      <ItemsControl ItemsSource="{Binding LabyrinthSettings.Goals}"><ItemsControl.ItemTemplate>
       <DataTemplate x:DataType="pcr:PcrLabyrinthGoal">
@@ -220,6 +221,9 @@
            </ItemsControl.ItemTemplate>
           </ItemsControl>
          </Grid>
+         <TextBlock Text="{Binding PlanLabel}" FontSize="11" Foreground="{DynamicResource SukiPrimaryColor}" />
+         <TextBlock Text="{Binding DefaultPlanText}" FontSize="11" Opacity="0.75" TextWrapping="Wrap" IsVisible="{Binding UsingBuiltInPlan}" />
+         <TextBlock Text="{Binding GrantedText}" FontSize="11" Opacity="0.75" TextWrapping="Wrap" IsVisible="{Binding HasGrantedText}" />
          <ItemsControl ItemsSource="{Binding Pool}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
            <DataTemplate x:DataType="pcr:PcrLabyrinthCharacter">
