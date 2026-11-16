@@ -127,7 +127,7 @@ dotnet build gui\MFAAvalonia\MFAAvalonia.Desktop\MFAAvalonia.Desktop.csproj -c R
 Start-Process 'gui\MFAAvalonia\bin\x64\Release\MFAAvalonia.exe'
 ```
 
-成功标志：标题 `MFA 任务管理器 Maa-PCR（开发模式） | PCR Alpha <版本>`。编译前必须先关 GUI，否则 DLL 被占用。
+成功标志：标题 `MFA 任务管理器 Maa-PCR（开发模式） | PCR Alpha <版本>`。编译前必须先关 GUI，否则 DLL 被占用。开发模式标题还会追加 ` · <分支名>`；多 worktree 并行开发、单实例限制和零设备设置诊断模式见[开发与验证](DEVELOPMENT.md)的「多 worktree 并行开发与 GUI 核对」。
 
 ### 可选：生成一条命令启动的本地脚本
 

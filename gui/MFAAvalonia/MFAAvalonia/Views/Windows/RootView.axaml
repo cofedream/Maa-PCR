@@ -184,6 +184,10 @@
             <TextBlock VerticalAlignment="Center" Margin="1 0 0 0" IsVisible="{Binding IsResourceNameVisible}"
                        Foreground="{DynamicResource SukiLowText}" IsHitTestVisible="False"
                        FontSize="13" Text="{Binding ResourceVersion}" />
+            <TextBlock VerticalAlignment="Center" Margin="1 0 0 0"
+                       IsVisible="{Binding DevelopmentIdentitySuffix, Converter={x:Static avaConverters:StringConverters.IsNotNullOrEmpty}}"
+                       Foreground="{DynamicResource SukiLowText}" IsHitTestVisible="False"
+                       FontSize="13" Text="{Binding DevelopmentIdentitySuffix}" />
         </StackPanel>
     </suki:SukiWindow.NonClientAreaContent>
     <suki:SukiWindow.Title>

@@ -29,6 +29,15 @@ internal static class SettingsUxChecks
             "settings_account_entry_precedes_task_goals");
         require(Named("MaxAttemptsInput").Ancestors().Contains(Named("RerollSettings"))
             && Named("MaxMinutesInput").Ancestors().Contains(Named("RerollSettings")), "settings_reroll_limits_are_in_advanced_section");
+        require((string?)Named("MaxAttemptsInput").Attribute("Maximum") == "5000"
+            && nodes.Any(node => node.Name.LocalName == "TextBlock"
+                && ((string?)node.Attribute("Text"))?.Contains("刷取次数上限为 5000 次", StringComparison.Ordinal) == true),
+            "settings_reroll_attempt_cap_is_5000_with_hint");
+        var rootMarkup = XDocument.Load(Path.Combine(sourceRoot, "gui", "MFAAvalonia", "MFAAvalonia",
+            "Views", "Windows", "RootView.axaml"));
+        require(rootMarkup.Descendants().Any(node => node.Name.LocalName == "TextBlock"
+                && (string?)node.Attribute("Text") == "{Binding DevelopmentIdentitySuffix}"),
+            "settings_window_title_shows_development_identity");
         require(nodes.Count(node => node.Name.LocalName == "PcrCountInput") == 4
             && nodes.Where(node => node.Name.LocalName == "PcrCountInput")
                 .All(node => (string?)node.Attribute("ClipValueToMinMax") == "False"), "settings_numeric_inputs_preserve_invalid_drafts");
@@ -49,6 +58,8 @@ internal static class SettingsUxChecks
         require(settings.AccountSummary.Contains("待填写") && !settings.Status.StartsWith("已自动保存"),
             "settings_empty_account_and_unsaved_initial_state_are_explicit");
         require(settings.Reroll && (bool)settings.Snapshot()["reroll"]!, "settings_fresh_reroll_defaults_on");
+        require(settings.MaxAttempts == "100" && (int)settings.Snapshot()["max_attempts"]! == 100,
+            "settings_reroll_attempts_default_100");
         var legacyConfig = new InstanceConfiguration("pcr-settings-legacy-no-reroll");
         legacyConfig.SetValueAndPersist(PcrLabyrinthSettings.Key,
             new JObject { ["version"] = 1, ["goals"] = new JArray(new JObject { ["guild_id"] = 1, ["clears"] = 1 }) }
