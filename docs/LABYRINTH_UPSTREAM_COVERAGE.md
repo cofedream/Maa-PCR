@@ -130,7 +130,7 @@
 | 11 | 基础目标层数 · baseline_target=4 · 1–4整数 | BaselineTarget→payload/GUI Save/new Settings | strategies.py:58 (def choose_relic) | config48/Headless44；各决策离线专项；新实机待验 |
 | 12 | 转追弱体最低层数 · debuff_pivot_minimum=12 · 5–15整数 | DebuffPivotMinimum→payload/GUI Save/new Settings | strategies.py:58 (def choose_relic) | config48/Headless44；各决策离线专项；新实机待验 |
 | 13 | 弱体落后容差 · debuff_pivot_tolerance=2 · 0–5整数 | DebuffPivotTolerance→payload/GUI Save/new Settings | strategies.py:58 (def choose_relic) | config48/Headless44；各决策离线专项；新实机待验 |
-| 14 | 遗物印记优先级 · relic_mark_priority=[] · 五种印记有序子集，不重复；空沿用内置 | RelicMarkPriority→payload/GUI Save/new Settings | strategies.py:58 (def choose_relic) | config48/Headless44；各决策离线专项；新实机待验 |
+| 14 | 遗物印记优先级 · relic_mark_priority=[] · 五项有序列表（旧配置可为有序子集，载入时补全并迁移）；空=不加成、走内置启发式 | RelicMarkPriority→payload/GUI 五项拖拽块+启用开关（PcrMarkPriorityList） | strategies.py:58 (def choose_relic) | config48/Headless44；各决策离线专项；GUI UX 新增；新实机待验 |
 | 15 | 商店刷新开关 · refresh_shop=True · Settings顶层布尔；旧明确False保留 | RefreshShop→payload/GUI Save/new Settings | shop_execution.py:334 (def run) | config48/Headless44；各决策离线专项；新实机待验 |
 | 16 | 商店刷新起始区域 · refresh_from_area=5 · 1–5整数 | RefreshFromArea→payload/GUI Save/new Settings | shop_execution.py:334 (def run) | config48/Headless44；各决策离线专项；新实机待验 |
 | 17 | 普通战胜率 · normal_win_rate=95 · 0–100整数 | NormalWinRate→payload/GUI Save/new Settings | event_execution.py:36 (planner=Planner) | config48/Headless44；各决策离线专项；新实机待验 |
