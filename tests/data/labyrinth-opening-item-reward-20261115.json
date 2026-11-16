@@ -1,0 +1,18 @@
+{
+  "source": "Maa-PCR player log run d2e9dddee63a49e791460166a37c4a58, 2026-11-15 15:46:57 +08:00; Maa task 200037631, last recognition 400043168. Guild 9 (墨丘利财团) opening stopped with opening_readback_unknown at LabyOpeningAfterInvitationObserved. The frame is the actual failed recognition image; no player name or account ID is visible.",
+  "purpose": "Offline saved-frame regression for the post-invitation guild-relic item result page (\"迷宫遗物效果\") and its one-shot close before the map. It does not establish live-game acceptance.",
+  "frames": {
+    "labyrinth-opening-item-reward-20261115.png": {
+      "sha256": "08e986a419c71c946ff51d4a904acef5e4368f7644eeff48b073465f7bdd6eb2",
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "expected": {
+    "title": "迷宫遗物效果",
+    "message": "获得了以下道具。",
+    "item": "阿尔法金币×3000",
+    "close": "关闭",
+    "relic": "高贵紫藤庐"
+  }
+}

@@ -191,7 +191,7 @@
 | INVITE_INITIAL_CHARACTERS | LabyrinthEntryActionPlanner.kt:83 | opening.invite | 真实选满3→InviteOnce ACK→原3秒内actual joined读回 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
 | ADVANCE_CHARACTER_ACQUISITION | LabyrinthEntryActionPlanner.kt:84 | opening._wait_invitation_joined → scene.wait_for | 拥有邀请ACK后按固定safe-area驱动，原等待不延长 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
 | CLOSE_CHARACTER_JOINED | LabyrinthEntryActionPlanner.kt:85 | opening.consume_granted / invite → original native close | 实际角色加入/赠送身份→一次关闭→地图/继续邀请 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
-| CLOSE_ITEM_REWARD | LabyrinthEntryActionPlanner.kt:86 | game_port restore departure reward / opening native successor | 仅明确奖励→关闭→actual opening/map，不伪造库存 | 原SDK/启动/开局实际证据复用；新既有开局及邀请动画待实机 |
+| CLOSE_ITEM_REWARD | LabyrinthEntryActionPlanner.kt:86 | game_port restore departure reward / opening._after_invitation item reward | 仅明确奖励页（标题与关闭同帧）→一次关闭→actual opening/map；不按遗物名或道具文案识别，不伪造库存 | 新增 2026-11-15 失败原帧回放（公会 9 高贵紫藤庐 金币×3000；先关闭再读图）；公会 5 的 1068 joined 页保留；实机待验 |
 
 ## 固定上游后进入动作（逐项，不用泛化确认替代）
 
