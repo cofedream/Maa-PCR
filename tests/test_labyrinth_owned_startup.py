@@ -115,7 +115,8 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
     stop = StopSignal(io.StringIO())
     owned = OwnedRuntime(request(), stop, events.append, root=tmp_path)
     calls = []
-    def resource(_):
+    def resource(_, *, cpu_only):
+        assert cpu_only is owned.request.cpu_only
         calls.append('resource')
         if resource_timeout:
             raise TimeoutError('synthetic resource timeout')
@@ -173,8 +174,10 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
     return owned, events, calls
 
 
-def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_path, monkeypatch):
+@pytest.mark.parametrize('cpu_only', [False, True])
+def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_path, monkeypatch, cpu_only):
     owned, events, calls = runtime(tmp_path, monkeypatch)
+    owned.request.cpu_only = cpu_only
     assert not (tmp_path / 'assets/labyrinth/protocol-version.json').exists()
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
     assert [value['stage'] for value in events] == [
@@ -186,6 +189,19 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     assert owned.request.username == owned.request.password == ''
     assert 'synthetic-user' not in json.dumps(events)
     assert 'synthetic-password' not in json.dumps(events)
+
+
+def test_rejected_cpu_selection_stops_before_loading_models_or_connecting(tmp_path, monkeypatch):
+    from pcr_maa import native
+    load_resource = native.load_resource
+    owned, _, calls = runtime(tmp_path, monkeypatch)
+    owned.request.cpu_only = True
+    monkeypatch.setattr(native, 'load_resource', load_resource)
+    monkeypatch.setattr(native, 'Resource', lambda: NS(
+        use_cpu=lambda: calls.append('cpu') or False,
+        post_bundle=lambda *_: pytest.fail('loaded models after CPU selection failed')))
+    assert owned.run() == dict(outcome='runtime_ocr_preparation_failed', batch_complete=False)
+    assert calls == ['cpu']
 
 
 def test_failed_ocr_preparation_stops_before_login_without_retry(tmp_path, monkeypatch):

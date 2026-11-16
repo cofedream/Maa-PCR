@@ -98,15 +98,16 @@
     "recognition": "And",
     "all_of": [
       {
-        "recognition": "OCR",
-        "expected": "^冒险$",
-        "roi": [
-          70,
-          6,
-          108,
-          63
-        ],
-        "threshold": 0.9
+        "recognition": "Or",
+        "any_of": [
+          {
+            "recognition": "OCR",
+            "expected": "^冒险$",
+            "roi": [70, 6, 108, 63],
+            "threshold": 0.9
+          },
+          "ActivityAdventureGuard"
+        ]
       },
       {
         "recognition": "OCR",

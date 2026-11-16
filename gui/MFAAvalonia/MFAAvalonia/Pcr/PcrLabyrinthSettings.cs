@@ -535,7 +535,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (!RouteModes.Contains(RouteMode) || !ThirdChoices.Contains(ThirdChoice)) throw new InvalidOperationException("路线设置无效。");
         if (bossCatalog is null) throw new InvalidOperationException("Boss 目录加载失败，无法保存或开始："+bossCatalogError);
         return new JObject { ["version"]=1,["goals"]=goals,["difficulty"]=Number(Difficulty,1,5,"难度"),["reroll"]=Reroll,
-            ["max_attempts"]=Number(MaxAttempts,1,100,"刷取次数"),["max_seconds"]=loadedMaxSeconds is >=1 and <=1800 && MaxMinutes==loadedMaxMinutes ? loadedMaxSeconds.Value:Number(MaxMinutes,1,30,"刷取分钟")*60,
+            ["max_attempts"]=Number(MaxAttempts,1,5000,"刷取次数"),["max_seconds"]=loadedMaxSeconds is >=1 and <=1800 && MaxMinutes==loadedMaxMinutes ? loadedMaxSeconds.Value:Number(MaxMinutes,1,30,"刷取分钟")*60,
             ["buy_relics"]=BuyRelics,["refresh_shop"]=RefreshShop,["strategy"]=StrategySnapshot(),["route"]=new JObject {
                 ["mode"]=RouteMode==RouteModes[0] ? "value":"template",["perfect_start"]=PerfectStart,["allowance"]=Number(Allowance,0,3,"价值容差"),
                 ["third_choice"]=ThirdChoice==ThirdChoices[0] ? "relic":ThirdChoice==ThirdChoices[1] ? "event":"either",

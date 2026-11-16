@@ -179,7 +179,7 @@ class Settings:
             result.append(Goal(g['guild_id'],g['clears'],g.get('mode','clears')))
         if len({g.guild_id for g in result})!=len(result): raise ValueError('duplicate_guild_goal')
         nums={k:v.get(k,d) for k,d in [('difficulty',1),('max_attempts',100),('max_seconds',1800)]}
-        for k,(lo,hi) in {'difficulty':(1,5),'max_attempts':(1,100),'max_seconds':(1,1800)}.items():
+        for k,(lo,hi) in {'difficulty':(1,5),'max_attempts':(1,5000),'max_seconds':(1,1800)}.items():
             if type(nums[k]) is not int or not lo<=nums[k]<=hi: raise ValueError('invalid_'+k)
         flags={k:v.get(k,d) for k,d in [('reroll',True),('buy_relics',True),('refresh_shop',True)]}
         if any(type(x) is not bool for x in flags.values()): raise ValueError('invalid_flag')

@@ -213,9 +213,8 @@ class MaaOpening:
         # only the observed page may be closed, on a fresh guarded click. Then
         # read the map; a repeated/unknown page still stops this transition.
         names.append('LabyOpeningItemRewardObserved');names.append('LabyMapObserved')
-        for _ in range(3):
-            hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)
-            if hit!='LabyOpeningItemRewardObserved':break
+        hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)
+        if hit=='LabyOpeningItemRewardObserved':
             fields=dict(phase='opening_item_reward_close')
             if type(enter_id) is int and enter_id>0:fields['enter_id']=enter_id
             def close(oid):
@@ -223,9 +222,12 @@ class MaaOpening:
                 return self.stamp(source='maa',operation_id=oid,**fields,native=sent,
                     input_native=sent,input_action_verified=True)
             batch.transaction('opening_item_reward_close',fields,close)
-            batch.checkpoint()
-        else:
-            raise BatchStopped('opening_readback_unknown')
+            # The close animation may leave the same reward visible on fresh frames.
+            for _ in range(3):
+                hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)
+                if hit!='LabyOpeningItemRewardObserved':break
+            else:
+                raise BatchStopped('opening_readback_unknown')
         receipt=self._run(hit);batch.checkpoint()
         return ('map' if hit=='LabyMapObserved' else 'joined'),receipt
     def consume_granted(self,batch,enter_id,*,guild_id,next_node='LabyOpeningEmptyObserved',page='opening_empty',creation_operation_id=None):

@@ -201,6 +201,24 @@ def test_native_navigation_requires_both_original_words(node, filename, roi):
     assert result['hit'] is False
 
 
+@pytest.mark.parametrize('mask', [
+    None, (70, 6, 108, 63), (685, 255, 138, 48), (910, 400, 160, 65),
+    (850, 545, 170, 70), (45, 686, 120, 25),
+])
+def test_daily_adventure_animated_title_needs_menu_landmarks(mask):
+    image = private_frame(LIVE / 'daily-adventure-title-20261115.png')
+    if mask:
+        x, y, w, h = mask
+        image[y:y+h, x:x+w] = 0
+
+    def observe(context, argv):
+        return {name: bool(context.run_recognition(name, argv.image).hit)
+                for name in ('EnterMain', 'ActivityAdventureGuard')}
+
+    hits = native_probe(image, observe, 'daily-adventure-title-' + str(mask))
+    assert hits == {'EnterMain': mask is None, 'ActivityAdventureGuard': mask is None}
+
+
 @pytest.mark.parametrize('event', [False, True])
 @pytest.mark.parametrize('fault', ['unchecked', 'solid_rectangle'])
 def test_actual_page_collectors_stop_on_unchecked_or_solid_blue(event, fault):

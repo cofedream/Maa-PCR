@@ -17,6 +17,7 @@ from types import SimpleNamespace as NS
 import pytest
 
 from pcr_maa import native
+from pcr_maa.labyrinth.batch import BatchStopped
 from pcr_maa.labyrinth.opening import MaaOpening
 from pcr_maa.replay import SavedImages
 
@@ -67,10 +68,11 @@ def _port(resource, stages):
     return MaaOpening(tasker, stamp), batch, controller, tasker, state
 
 
-def test_item_page_is_closed_once_then_the_map_is_read(offline):
+@pytest.mark.parametrize('delayed', [False, True], ids=['immediate-map', 'lingering-reward'])
+def test_item_page_is_closed_once_then_the_map_is_read(offline, delayed):
     item = _image(ITEM, ITEM_MANIFEST)
     map_ = _image(MAP, MAP_MANIFEST)
-    port, batch, controller, tasker, state = _port(offline, [[item], [map_]])
+    port, batch, controller, tasker, state = _port(offline, [[item], [item, map_] if delayed else [map_]])
     try:
         page, receipt = port._after_invitation(batch, 9, enter_id=13833)
     finally:
@@ -97,6 +99,18 @@ def test_item_page_is_closed_once_then_the_map_is_read(offline):
               if row.get('name') == 'LabyHomeTitle'
               for word in row['detail']['filtered']]
     assert '黎明界迷宫' in titles
+
+
+def test_stuck_item_page_stops_after_a_single_close(offline):
+    item = _image(ITEM, ITEM_MANIFEST)
+    port, batch, controller, tasker, state = _port(offline, [[item]])
+    try:
+        with pytest.raises(BatchStopped, match='^opening_readback_unknown$'):
+            port._after_invitation(batch, 9, enter_id=13833)
+    finally:
+        native.stop_tasker(tasker)
+    assert state.inputs == ['opening_item_reward_close']
+    assert len(controller.clicks) == 1
 
 
 def test_map_without_an_item_page_sends_no_input(offline):
