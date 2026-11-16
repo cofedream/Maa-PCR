@@ -27,7 +27,8 @@ if (args.Length!=2 || args.Any(arg=>!Path.IsPathFullyQualified(arg)) || !Operati
 try {
     AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
     Application.Current!.RequestedThemeVariant=ThemeVariant.Light;
-    Application.Current.Styles.Add(new SukiUI.SukiTheme());
+    var theme = new SukiUI.SukiTheme { ThemeColor = SukiUI.Enums.SukiColor.Blue };
+    Application.Current.Styles.Add(theme);
     var root=Path.Combine(args[0],"accounts-"+Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
     const BindingFlags fields=BindingFlags.Instance|BindingFlags.Static|BindingFlags.NonPublic;
     typeof(AppPaths).GetField("_configDirectory",fields)!.SetValue(null,Path.Combine(root,"config"));
@@ -226,6 +227,8 @@ try {
             .Where(control=>control.DataContext is PcrLabyrinthBossChoice && control.Content is StackPanel panel
                 && panel.Children.OfType<Image>().Any()).ToArray();
         Require(bossChips.Length==10,"real_boss_filter_shows_ten_icon_chips");
+        Require(bossChips.Any(chip=>chip.IsChecked==true && chip.Background is ISolidColorBrush brush
+                && brush.Color==theme.ActiveColorTheme!.Primary), "real_selected_boss_chip_uses_theme_color");
         Require(bossChips.All(control=>control.Content is StackPanel panel
                 && panel.Children.OfType<Image>().Single().Source is Bitmap bitmap && bitmap.PixelSize.Width==128),
             "real_boss_filter_icons_decode_from_boss_pack");
