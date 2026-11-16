@@ -1433,11 +1433,12 @@
     "recognition": "OCR",
     "expected": "^角色加入奖励[！!]$",
     "roi": [
-      445,
-      24,
-      405,
-      78
+      469,
+      34,
+      344,
+      62
     ],
+    "only_rec": true,
     "threshold": 0.85,
     "action": "DoNothing",
     "next": [],
