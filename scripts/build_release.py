@@ -71,7 +71,8 @@ PAYLOAD_SCRIPTS = ('pcr.py', 'validate-alpha-config.py', 'start-alpha-agent.py',
                    'start-alpha-owned-agent.py', 'start-labyrinth-owned-agent.py',
                    'player-maintenance.py', 'player-update.py', 'recover-player-update.ps1',
                    'ocr_benchmark.py', 'ocr_inventory.py',
-                   'read-guide-snapshot.py', 'prepare-clan-guide.py')
+                   'read-guide-snapshot.py', 'prepare-clan-guide.py',
+                   'check-labyrinth-network.py')
 IGNORED = {'__pycache__', '.git', '.runtime', '.venv', 'bin', 'obj', 'tests'}
 CRT_FILES = ('concrt140.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll',
              'msvcp140_atomic_wait.dll', 'msvcp140_codecvt_ids.dll', 'vccorlib140.dll',

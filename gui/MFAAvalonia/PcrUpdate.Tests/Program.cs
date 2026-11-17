@@ -51,6 +51,7 @@ if (args.Length == 2)
 var count = 0;
 AppPathsChecks.Run();
 count += NetworkProxyChecks.Run();
+count += LabyrinthNetworkChecks.Run();
 void Require(bool value, string test)
 {
     if (!value) throw new InvalidOperationException(test);
