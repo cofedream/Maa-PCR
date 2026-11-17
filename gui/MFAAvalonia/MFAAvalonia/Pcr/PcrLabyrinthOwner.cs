@@ -134,7 +134,7 @@ internal static class PcrLabyrinthOwner
 
     // 实时日志面板一行；VM 会再带前缀写一份进共享日志，以便落盘与导出。
     private static void Trace(TaskQueueViewModel vm,string text) => vm.AddLabyrinthLog(text);
-    internal static string MissingResult(string stage,bool cpuOnly,uint? code)
+    private static string MissingResult(string stage,bool cpuOnly,uint? code)
     {
         var exit=code.HasValue ? $"0x{code.Value:X8}" : "尚不可用";
         var mode=cpuOnly ? "强制 CPU" : "自动推理";
@@ -320,8 +320,11 @@ internal static class PcrLabyrinthOwner
             }
             if (!receipt) {
                 cancel.Token.ThrowIfCancellationRequested();
+                // Windows may close both output pipes before signalling the process handle.
+                var exitCode=await Task.Run(() => run.Child.WaitForExitCode(1000));
+                cancel.Token.ThrowIfCancellationRequested();
                 terminalOutcome="worker_no_result";
-                throw new InvalidOperationException(MissingResult(vm.LabyrinthSettings.Progress,request.Value<bool>("cpu_only"),run.Child.ExitCode));
+                throw new InvalidOperationException(MissingResult(vm.LabyrinthSettings.Progress,request.Value<bool>("cpu_only"),exitCode));
             }
         } catch (OperationCanceledException) {
             cancelled=true;

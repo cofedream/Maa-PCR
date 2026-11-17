@@ -513,7 +513,7 @@ internal static class StartupActionsChecks
                 var readRequest = "import sys,json\nassert json.loads(sys.stdin.readline())['cpu_only'] is "
                     + (cpuOnly ? "True" : "False") + "\n";
                 File.WriteAllText(script, readRequest + (outcome == "cancelled" ? "json.loads(sys.stdin.readline())\n" :
-                    outcome == "worker-no-result" ? "print(json.dumps({'kind':'progress','stage':'ocr_warmup'}),flush=True)\nsys.exit(37)\n" :
+                    outcome == "worker-no-result" ? "import os,time\nprint(json.dumps({'kind':'progress','stage':'ocr_warmup'}),flush=True)\nos.close(1)\nos.close(2)\ntime.sleep(.25)\nsys.exit(37)\n" :
                     "print(" +
                     System.Text.Json.JsonSerializer.Serialize(outcome == "malformed" ? "invalid-json" :
                         outcome == "missing-outcome" ? "{\"kind\":\"result\"}" :
