@@ -67,6 +67,19 @@ public partial class PcrPlayerSettings : ObservableObject
     public string ChannelStatus => SelectedChannel is { } channel ? "已选择：" + channel.Label
         : "原渠道配置尚未收录，请选择已收录渠道；原设置和历史记录保留。";
     [ObservableProperty] private bool collectGiftStamina;
+    [ObservableProperty] private bool currentEvent = true;
+    [ObservableProperty] private bool revivalEvent;
+    private JArray EventTargets() => new(new[] { CurrentEvent ? "current" : null, RevivalEvent ? "revival" : null }.Where(x => x != null));
+    private static string[] ReadEventTargets(JObject value)
+    {
+        if (value["event_targets"] == null) return new[] { "current" };
+        if (value["event_targets"] is not JArray items || items.Any(x => x.Type != JTokenType.String))
+            throw new InvalidOperationException("活动目标必须为列表。");
+        var targets = items.Select(x => x.Value<string>()!).ToArray();
+        if (targets.Any(x => x is not ("current" or "revival")) || targets.Distinct().Count() != targets.Length)
+            throw new InvalidOperationException("活动目标重复或无法识别。");
+        return targets;
+    }
     [ObservableProperty] private bool unreset;
     [ObservableProperty] private bool attestPlan;
     // Legacy in-memory fields only; never persisted or used as execution facts.
@@ -133,6 +146,7 @@ public partial class PcrPlayerSettings : ObservableObject
         ["validateDisplayMapping"] = ValidateDisplayMapping,
         ["gamePackage"] = GamePackage, ["gameActivity"] = GameActivity,
         ["collectGiftStamina"] = CollectGiftStamina,
+        ["event_targets"] = EventTargets(),
         ["ledgerIdentity"] = ledgerIdentity?.DeepClone(), ["identityConnection"] = identityConnection?.DeepClone(),
         ["managerIdentity"] = managerIdentity?.DeepClone(), ["managerConnection"] = managerConnection?.DeepClone(),
         ["schedule"] = new JArray(Schedule.Where(x => x.Enabled).Select(x => x.Id)),
@@ -151,6 +165,8 @@ public partial class PcrPlayerSettings : ObservableObject
             ? p["validateDisplayMapping"]!.Value<bool>()
             : throw new InvalidOperationException("多显示屏映射校验设置必须为布尔值");
         CollectGiftStamina = ReadGiftStamina(p, "collectGiftStamina");
+        var targets = ReadEventTargets(p);
+        CurrentEvent = targets.Contains("current"); RevivalEvent = targets.Contains("revival");
         GamePackage = (string?)p["gamePackage"] ?? PcrMuMuDisplay.Package;
         GameActivity = (string?)p["gameActivity"] ?? ".MainActivity";
         Unreset = false; AttestPlan = false;
@@ -199,9 +215,15 @@ public partial class PcrPlayerSettings : ObservableObject
         // The Owner verifies transport, current package/display and native objects.
         // Missing continuity metadata is valid for a generic ADB session; stored
         // identities stay preserved and are never transferred to another target.
-        return new JObject { ["version"] = 4, ["start"] = "home", ["count_context"] = null,
+        var config = new JObject { ["version"] = 4, ["start"] = "home", ["count_context"] = null,
             ["connection"] = connection.DeepClone(), ["presets"] = presets,
             ["controller"] = controller, ["collect_gift_stamina"] = CollectGiftStamina };
+        if (selected == null || selected.Contains("event"))
+        {
+            if (!CurrentEvent && !RevivalEvent) throw new InvalidOperationException("请在活动设置中勾选当期活动或复刻活动。");
+            config["event_targets"] = EventTargets();
+        }
+        return config;
     }
     // Called only after Owner's fresh fixed-command read and pending/target check.
     // Persistence restores the comparison baseline, never permission to skip a read.
@@ -316,6 +338,7 @@ public partial class PcrPlayerSettings : ObservableObject
         var identity = version == 3 ? config["mumu"] as JObject : config["controller"]?["ledger_identity"] as JObject;
         if (version == 3 && identity == null) throw new InvalidOperationException("v3 导入缺少 mumu 身份。");
         var importedGiftStamina = ReadGiftStamina(config, "collect_gift_stamina");
+        var eventTargets = ReadEventTargets(config);
         var importedPackage = version == 3 ? (string?)identity?["app_package"]
             : (string?)config["controller"]?["app_package"];
         var importedActivity = (string?)config["controller"]?["app_activity"] ?? ".MainActivity";
@@ -324,6 +347,7 @@ public partial class PcrPlayerSettings : ObservableObject
             throw new InvalidOperationException("导入的渠道尚未收录，请反馈维护者补充；现有设置和历史记录保留。");
         ready = false;
         CollectGiftStamina = importedGiftStamina;
+        CurrentEvent = eventTargets.Contains("current"); RevivalEvent = eventTargets.Contains("revival");
         GamePackage = importedPackage!; GameActivity = importedActivity;
         connection = (JObject)importedConnection.DeepClone();
         ledgerIdentity = (JObject?)identity?.DeepClone();

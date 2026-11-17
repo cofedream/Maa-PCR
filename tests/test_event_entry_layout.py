@@ -54,6 +54,43 @@ def test_exact_duplicate_ocr_box_is_one_target():
     assert ActivityEventEntry().analyze(Context([entry, dict(entry)]), SimpleNamespace(image=None)) is not None
 
 
+@pytest.mark.parametrize('target,x', [('current', 500), ('revival', 400)])
+def test_selected_event_uses_only_its_label(target, x):
+    marks = [word('剧情活动', [500, 580, 90, 27]), word('复刻', [400, 580, 55, 27])]
+    result = ActivityEventEntry(target).analyze(Context(marks), SimpleNamespace(image=None))
+    assert result.box[0] == x
+    other = [m for m in marks if m['box'][0] != x]
+    assert ActivityEventEntry(target).analyze(Context(other), SimpleNamespace(image=None)) is None
+
+
+@pytest.mark.private_replay
+@pytest.mark.parametrize('frame_name,target,xrange', [
+    ('daily-adventure-title-20261115.png', 'current', (495, 607)),
+    ('daily-adventure-title-20261115.png', 'revival', (385, 475)),
+    ('activity-scope-adventure.png', 'current', None),
+    ('activity-scope-adventure.png', 'revival', (495, 607)),
+])
+def test_explicit_entry_on_original_adventure_frames(frame_name, target, xrange):
+    from pcr_maa import native
+    from pcr_maa.replay import SavedImages
+    from test_player_feedback_navigation import PROJECT, frame
+    path = PROJECT / '.runtime/private-fixtures/hermes-pcr/live' / frame_name
+    resource = native.load_resource()
+    assert resource.override_pipeline({'EventEnter': {'next': []}, 'EventEnterGate': {'timeout': 1400, 'on_error': []}})
+    controller = SavedImages([[frame(path)]])
+    tasker = native.bind(resource, controller)
+    with absent_entry(tasker, 'event', target):
+        receipt = native.run(tasker, 'EventEnterGate')
+    names = [n['name'] for n in receipt['nodes'] if n['completed']]
+    if xrange is None:
+        assert 'EventUnavailable' in names and not controller.clicks, names
+    else:
+        assert 'EventEnter' in names and len(controller.clicks) == 1, names
+        x, y = controller.clicks[0]
+        scale = frame(path).shape[1] / 1280
+        assert xrange[0] <= x / scale <= xrange[1] and 557 <= y / scale < 612
+
+
 @pytest.mark.parametrize('closed', [False, True])
 def test_missing_entry_needs_positive_closed_layout_evidence(closed):
     result = ActivityEntryAbsent('event').analyze(Context([], closed=closed), SimpleNamespace(image=None))

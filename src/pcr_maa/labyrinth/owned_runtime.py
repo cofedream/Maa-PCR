@@ -302,7 +302,7 @@ class OwnedRuntime:
             pass
 
     def _progress(self, value):
-        stages = {'dependencies','resources','connecting','authenticating','ready',
+        stages = {'dependencies','resources','connecting','ocr_warmup','ocr_ready','authenticating','ready',
             'opening','handoff','playing','cleared','moving','battle','shop','reward','team','recovering','retiring'}
         stage = value.get('stage')
         stage = {'map':'moving','move_confirmation':'moving',
@@ -461,8 +461,9 @@ class OwnedRuntime:
                 if not self.tasker.bind(resource,self.controller) or not self.tasker.inited:
                     raise BatchStopped('controller_connection_failed')
                 self.tasker._labyrinth_diagnostics=self.diagnostics
-                self._progress(dict(stage='resources'))
+                self._progress(dict(stage='ocr_warmup'))
                 self._prepare_ocr()
+                self._progress(dict(stage='ocr_ready'))
                 timings=self.timings
                 self.native_timings=NativeTimings(self.tasker,self.controller,timings,
                     trace_path=native.RUNTIME/'maa/maafw.log')

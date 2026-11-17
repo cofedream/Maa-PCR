@@ -20,7 +20,7 @@ class Timings:
     categories=frozenset(('screenshot','recognition','strategy','input','swipe','page_wait','protocol_request','business_phase'))
     labels={
         'protocol_request':frozenset(('authentication','sdk_login','labyrinth/top','labyrinth/enter','labyrinth/resume','labyrinth/retire')),
-        'business_phase':frozenset(('dependencies','resources','connecting','authenticating','ready','opening','handoff','playing','cleared','moving','battle','shop','reward','team','recovering','retiring')),
+        'business_phase':frozenset(('dependencies','resources','connecting','ocr_warmup','ocr_ready','authenticating','ready','opening','handoff','playing','cleared','moving','battle','shop','reward','team','recovering','retiring')),
     }
     def __init__(self):
         self.samples=defaultdict(lambda:deque(maxlen=256));self.stats={};self.lock=RLock()

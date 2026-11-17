@@ -26,7 +26,7 @@ CONTROL_ERRORS = {'invalid_run_id', 'run_unavailable', 'unsafe_control_path', 'c
                   'invalid_report', 'invalid_stop_request', 'control_busy', 'cooperative_stop_unsupported'}
 STEP_STATES = {'not_run', 'running', 'executed', 'complete', 'partial', 'stopped', 'failed',
                'interrupted', 'skipped_disabled', 'skipped_goal_met', 'skipped_insufficient_stamina',
-               'skipped_insufficient_tickets', 'skipped_event_unavailable'}
+               'skipped_insufficient_tickets', 'skipped_event_unavailable', 'skipped_no_selection'}
 
 
 def build_plan(*, selected_modules=None, rewards_final=_DEFAULT_REWARDS_FINAL,
@@ -61,6 +61,13 @@ def build_plan(*, selected_modules=None, rewards_final=_DEFAULT_REWARDS_FINAL,
     if 'clan_battle_daily' in ordered and (ordered != ('clan_battle_daily',) or rewards_final is True):
         raise ValueError('clan_battle_daily_must_run_alone')
     return ordered + (('rewards_final',) if rewards_final is True else ())
+
+
+def _event_steps(plan, targets):
+    if targets not in (['current'], ['revival'], ['current', 'revival']) or 'event' not in plan:
+        raise ValueError('invalid_event_targets')
+    index = plan.index('event')
+    return plan[:index] + tuple('event_' + target for target in targets) + plan[index + 1:]
 
 
 def _preset_exit_page(plan, index, config):
@@ -218,6 +225,8 @@ def _read_report(directory):
             require(type(report['selected_modules']) is list)
             plan = build_plan(selected_modules=report['selected_modules'], rewards_final=report['rewards_final'])
             require(report['selected_modules'] == [n for n in plan if n != 'rewards_final'])
+            if 'event_targets' in report:
+                plan = _event_steps(plan, report['event_targets'])
             require(bool(plan) and tuple(s['name'] for s in steps) == plan)
         else:
             require(tuple(s['name'] for s in steps) in (ORDER, ('schedule_onekey',) + ORDER,
@@ -242,7 +251,7 @@ def _read_report(directory):
                 require(step['finished_at'] >= step['started_at'])
             if step['status'] in ('executed', 'complete', 'partial', 'skipped_goal_met', 'skipped_disabled',
                                   'skipped_insufficient_stamina', 'skipped_insufficient_tickets',
-                                  'skipped_event_unavailable'):
+                                  'skipped_event_unavailable', 'skipped_no_selection'):
                 result = step['result']
                 expected = (_schedule_status(result, report['game_day'], result.get('device'),
                                               result.get('authorizations', []),
@@ -396,10 +405,10 @@ def _run_step(tasker, name, config, game_day, context, *, exit_page='home'):
                     settlement_verified=False, daily_complete=False)
     from .native import ROOT
     from .preset_execution import Journal, execute_one
-    if name == 'event':
+    if name in ('event', 'event_current', 'event_revival'):
         from .event import execute_event
         from .event_native import NativeEvent
-        return execute_event(NativeEvent(tasker, start='home'),
+        return execute_event(NativeEvent(tasker, start='home', target=name.removeprefix('event_') if name != 'event' else None),
             Journal(ROOT / '.runtime/event-work/ledger'),
             game_day=game_day, context=context, execute=True)
     if name == 'abyss':
@@ -581,6 +590,10 @@ def _readonly_schedule_status(result, game_day, device, authorizations, invocati
 
 
 def _status(name, result, *, exit_page='home'):
+    if name in ('event_current', 'event_revival'):
+        if result.get('event_target') != name.removeprefix('event_'):
+            return 'stopped'
+        name = 'event'
     if name in ('deep', 'very_hard', 'hard', 'normal') and result == dict(outcome='skipped_disabled', consumption_sent=False, settlement_verified=False, daily_complete=False):
         return 'skipped_disabled'
     if result.get('consumption_sent') and result.get('settlement_verified') is not True:
@@ -629,6 +642,11 @@ def _status(name, result, *, exit_page='home'):
         return 'executed' if result.get('settlement_verified') is True else 'stopped'
     if outcome in ('skipped_goal_met', 'skipped_insufficient_stamina', 'skipped_insufficient_tickets'):
         return outcome
+    if name == 'event' and outcome == 'skipped_no_selection':
+        from .event import assess_event
+        if (result.get('consumption_sent') is False and result.get('settlement_verified') is False
+                and assess_event(result.get('reading', {}), result.get('count_context')) == outcome):
+            return outcome
     if (name in ('event', 'abyss') and outcome == 'skipped_event_unavailable'
             and result.get('consumption_sent') is False
             and result.get('settlement_verified') is False
@@ -693,6 +711,9 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
     timings = Timings()
     native_timings = None
     timing_collection = 'unavailable'
+    selected_plan = plan
+    if 'event_targets' in config and 'event' in plan:
+        plan = _event_steps(plan, config['event_targets'])
     report = dict(control_version=1, run_id=directory.name,
         schedule_attest_current_plan=schedule_attest_current_plan,
         schedule_gui_start_intent=current_state and has_schedule,
@@ -712,7 +733,9 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
         report.update(execution_target=execution_target,
                       execution_target_scope='current-owner-target')
     if selected_modules is not None:
-        report.update(selection_version=1, selected_modules=[n for n in plan if n != 'rewards_final'],
+        if 'event_targets' in config and 'event' in selected_plan:
+            report['event_targets'] = config['event_targets']
+        report.update(selection_version=1, selected_modules=[n for n in selected_plan if n != 'rewards_final'],
                       rewards_final='rewards_final' in plan,
                       scope='【仅运行本次显式选集，按玩家排列顺序；收尾领奖独立选择】\n'
                             '深渊仅支持前哨；首领、购买重置和次数调整：unsupported。完整日常未交付，daily_complete=false。')
@@ -745,6 +768,7 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
         for index, step in enumerate(report['steps']):
             from . import player_log
             labels = {'schedule_onekey': '日程', 'event': '活动', 'abyss': '深渊前哨',
+                      'event_current': '当期活动', 'event_revival': '复刻活动',
                       'deep': '深域', 'very_hard': '高难', 'hard': '困难 / 外传',
                       'normal': '普通', 'rewards': '领取奖励', 'rewards_final': '末尾补领'}
             player_log.text('开始：' + labels.get(step['name'], step['name']))
@@ -793,7 +817,9 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
                 report['outcome'] = step['status']
                 break
             player_log.text(labels.get(step['name'], step['name']) + '：' +
-                ('目标已满足，跳过' if step['status'].startswith('skipped') else '本项执行结束'))
+                ('未勾选活动关卡，已跳过' if step['status'] == 'skipped_no_selection' else
+                 '活动未开放，跳过' if step['status'] == 'skipped_event_unavailable' else
+                 '目标已满足，跳过' if step['status'].startswith('skipped') else '本项执行结束'))
             if step.get('result', {}).get('original_execution_unresolved'):
                 report['original_execution_unresolved'] = True
                 if step['status'] != 'skipped_goal_met' and index + 1 < len(report['steps']):
@@ -908,12 +934,13 @@ def summary(report, *, player=False):
         return f"{result.get('stage', '所选关卡')}：{label}。{returned}{scope} {result.get('attempts_used', 0)}/3。{history}" + (
             '\n原因：' + error if error else '')
     labels = dict(schedule_onekey='日程一键', event='活动', abyss='深渊前哨', deep='深域',
+                  event_current='当期活动', event_revival='复刻活动',
                   rewards='每日任务/礼物（早段）', rewards_final='每日任务/礼物（收尾）',
                   very_hard='高难', hard='困难', normal='普通（每关本次次数）')
     states = dict(executed='已执行并结算', complete='本步完成', partial=('仍有奖励未领取' if player else '部分领取，仍有 remaining'),
         skipped_disabled='0 次，不执行', skipped_goal_met='已达目标', skipped_insufficient_stamina='体力不足，安全跳过（日目标未满）',
         skipped_insufficient_tickets='券不足，安全跳过（日目标未满）', not_run='未运行',
-        skipped_event_unavailable='限时活动未开放，已安全跳过',
+        skipped_event_unavailable='限时活动未开放，已安全跳过', skipped_no_selection='未勾选活动关卡，已跳过',
         stopped='停止，结果或收尾未验证', failed='异常停止', interrupted='中断',
         running='报告记为运行中，进程存活未知')
     def detail(step):
@@ -1031,7 +1058,7 @@ def summary(report, *, player=False):
     return '\n'.join([heading, *[labels[s['name']] + '：' +
         ('未找到已选关卡或列表未识别，请先在游戏核对勾选（未提交）'
          if s['name'] == 'normal' and s.get('result', {}).get('outcome') == 'empty_or_unreadable_selection'
-         else '已执行并结算，日目标未满' if s['name'] == 'event' and s['status'] == 'partial'
+         else '已执行并结算，日目标未满' if s['name'] in ('event', 'event_current', 'event_revival') and s['status'] == 'partial'
          else '深渊前哨未开放，已安全跳过' if s['name'] == 'abyss' and s['status'] == 'skipped_event_unavailable'
          else states.get(s['status'], s['status'])) + detail(s)
         for s in report.get('steps', [])], *report_detail,

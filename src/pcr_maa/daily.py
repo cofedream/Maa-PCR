@@ -95,8 +95,11 @@ def validate_config(value):
     controller_v4 = value['version'] == 4
     portable = value['version'] in (2, 3, 4)
     if controller_v4:
-        require(set(value) - {'collect_gift_stamina', 'guide_trial', 'clan_battle_simulation', 'clan_battle_daily', 'clan_battle_speed'} == {'version', 'start', 'presets', 'count_context', 'connection', 'controller'},
+        require(set(value) - {'collect_gift_stamina', 'event_targets', 'guide_trial', 'clan_battle_simulation', 'clan_battle_daily', 'clan_battle_speed'} == {'version', 'start', 'presets', 'count_context', 'connection', 'controller'},
                 'v4 顶层字段无效')
+        if 'event_targets' in value:
+            require(value['event_targets'] in (['current'], ['revival'], ['current', 'revival']),
+                    '活动目标须选择当期、复刻或两项')
         require(len(set(value) & {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily'}) <= 1,
                 '试打、公会战模拟与正式三刀不能混用')
         if 'clan_battle_speed' in value:

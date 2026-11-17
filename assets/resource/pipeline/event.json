@@ -164,6 +164,7 @@
     "expected": "^.+$",
     "threshold": 0.9,
     "next": [
+      "EventLoginRewardClose",
       "EventOpenList"
     ],
     "pre_delay": 0,
@@ -234,6 +235,13 @@
       55
     ],
     "expected": "^复刻$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "EventSingleAdventureCar": {
+    "recognition": "OCR",
+    "roi": [373, 572, 106, 47],
+    "expected": "^驾车游$",
     "threshold": 0.9,
     "next": []
   },
@@ -369,6 +377,7 @@
   },
   "EventMapGate": {
     "next": [
+      "EventLoginRewardClose",
       "EventMapRead",
       "EventSwitchHard"
     ],
@@ -386,6 +395,7 @@
       "EventMapGuard"
     ],
     "next": [
+      "EventLoginRewardClose",
       "EventMapName"
     ],
     "pre_delay": 0,
@@ -509,12 +519,28 @@
       "EventCheckedLabel"
     ],
     "next": [
+      "EventCheckedEmpty",
       "EventShort",
       "EventTop",
       "EventResetTop"
     ],
     "pre_delay": 0,
     "post_delay": 0
+  },
+  "EventCheckedEmpty": {
+    "recognition": "And",
+    "all_of": [
+      "EventListGuard",
+      "EventCheckedLabel",
+      {
+        "recognition": "OCR",
+        "roi": [571, 344, 175, 35],
+        "expected": "^没有对应的关卡[。.]?$",
+        "threshold": 0.9,
+        "only_rec": true
+      }
+    ],
+    "next": []
   },
   "EventToggle": {
     "recognition": "And",
@@ -1183,6 +1209,7 @@
   },
   "StoryEventMapGate": {
     "next": [
+      "EventLoginRewardClose",
       "StoryEventOpenList",
       "StoryEventRetryOpenQuests"
     ],
@@ -1224,7 +1251,11 @@
     "recognition": "And",
     "all_of": [
       "StoryEventSweepLabel",
-      "StoryEventMapGuard"
+      {
+        "recognition": "Custom",
+        "custom_recognition": "StoryEventNavigation",
+        "custom_recognition_param": "map"
+      }
     ],
     "action": "Click",
     "target": true,
@@ -1453,6 +1484,7 @@
   },
   "EventHardGate": {
     "next": [
+      "EventLoginRewardClose",
       "EventMapRead"
     ],
     "timeout": 30000,
@@ -1576,6 +1608,8 @@
     "action": "DoNothing",
     "next": [
       "StoryEventOpenQuests",
+      "StoryEventOpenList",
+      "StoryEventRetryOpenQuests",
       "EventOpenQuests",
       "EventMapRead",
       "EventSwitchHard"

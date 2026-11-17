@@ -312,7 +312,16 @@ class EquipmentRuntime:
                 if unchanged and native.active_now()-self.last_action >= .6:
                     if attempts >= 3:
                         return abandon(current)
-                    send(previous_tap, limit)
+                    try:
+                        send(previous_tap, limit)
+                    except BatchStopped as error:
+                        # The dialog can open between the read and the guarded retry.
+                        if (error.args != ('native_input_not_sent',)
+                                or not isinstance(error.__cause__, native.NativeInputNotSent)
+                                or read(limit).get('stage') != expected):
+                            raise
+                        send(action, limit)
+                        break
                     attempts += 1
                 pause(limit)
         limit = deadline()

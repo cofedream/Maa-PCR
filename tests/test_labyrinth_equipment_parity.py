@@ -233,6 +233,21 @@ def test_confirm_is_not_resent_when_acknowledged_click_has_no_visual_result(monk
     assert runtime.actions == ['entry', 'auto', 'auto_confirm', 'equip_confirm', 'cancel']
 
 
+def test_open_dialog_wins_race_with_guarded_entry_retry(monkeypatch):
+    runtime, batch, run, _, _, _ = setup_flow(monkeypatch, freeze='entry')
+    transaction = batch.transaction
+    def raced(operation, fields, send):
+        if operation == 'special_equipment_entry' and runtime.actions == ['entry']:
+            runtime.stage = 'main'
+            try:
+                raise equipment.native.NativeInputNotSent(dict(input_execution='not_sent'))
+            except equipment.native.NativeInputNotSent as error:
+                raise BatchStopped('native_input_not_sent') from error
+        return transaction(operation, fields, send)
+    batch.transaction = raced
+    assert run() and runtime.actions == ['entry', 'auto', 'auto_confirm', 'equip_confirm']
+
+
 def test_timeout_in_upper_modal_never_clicks_lower_cancel(monkeypatch):
     runtime, _, run, _, _, _ = setup_flow(monkeypatch, freeze='auto_confirm')
     with pytest.raises(BatchStopped, match='dialog_unresolved'):

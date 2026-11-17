@@ -100,6 +100,43 @@ def test_unknown_no_retry_and_zero_goal(tmp_path):
     assert again.calls == []
 
 
+def test_event_targets_keep_separate_counters_and_share_unresolved_intents(tmp_path):
+    for target in ('current', 'revival'):
+        port = Port()
+        port.target = target
+        assert invoke(tmp_path, port, execute=True)['outcome'] == 'executed'
+        assert [e['event_target'] for e in port.journal.events()[-2:]] == [target, target]
+    again = Port()
+    again.target = 'current'
+    assert invoke(tmp_path, again, execute=True)['outcome'] == 'counter_reset_or_identity_change'
+    again.before.update(rows=[], empty_selection_verified=True)
+    assert invoke(tmp_path, again, execute=True)['outcome'] == 'skipped_no_selection'
+    pending = Port()
+    pending.target, pending.result_ok = 'current', False
+    assert invoke(tmp_path/'pending', pending, execute=True)['outcome'] == 'unknown_settlement'
+    again.target = 'revival'
+    assert invoke(tmp_path/'pending', again, execute=True)['outcome'] == 'blocked_in_flight'
+
+
+@pytest.mark.parametrize('verified,expected', [(True, 'skipped_no_selection'), (False, 'reading_unknown')])
+def test_empty_checked_list_requires_game_notice(tmp_path, verified, expected):
+    from pcr_maa.supported_daily import _status
+    p = Port()
+    p.before.update(rows=[], empty_selection_verified=verified)
+    result = invoke(tmp_path, p, execute=True)
+    assert result['outcome'] == expected
+    assert result['home_verified'] == verified
+    assert _status('event', result) == (expected if verified else 'stopped')
+    assert not result['goal_complete'] and not result['consumption_sent'] and not p.journal.events()
+    assert p.calls == (['read', 'home'] if verified else ['read'])
+
+
+def test_empty_notice_cannot_validate_an_unknown_story_period():
+    from pcr_maa.event import assess_event
+    value = dict(reading(), rows=[], empty_selection_verified=True, event_identity={'period': '?'})
+    assert assess_event(value, 'gui-current-state') == 'identity_mismatch'
+
+
 def test_synthetic_settlement_and_goal_skip(tmp_path):
     p = Port()
     r = invoke(tmp_path, p, execute=True)

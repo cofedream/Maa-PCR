@@ -40,6 +40,28 @@ def test_integration_event_partial_is_settled_and_continues(tmp_path, monkeypatc
     assert '部分领取' not in chain.summary(report)
 
 
+@pytest.mark.parametrize('targets', [['current'], ['revival'], ['current', 'revival']])
+def test_configured_event_targets_run_in_place_and_report_separately(tmp_path, monkeypatch, targets):
+    from test_gui_adb_schedule import config as gui_config
+    cfg = gui_config(tmp_path) | {'event_targets': targets}
+    monkeypatch.setattr(chain, '_run_step', lambda tasker, name, *args:
+        success(name) | {'event_target': name.removeprefix('event_')})
+    folder = tmp_path/'run'
+    report = chain.execute_supported(None, cfg, execute=True, game_day='', context='gui-current-state',
+        selected_modules=['rewards', 'event'], directory=folder)
+    assert report['outcome'] == 'complete' and report['selected_modules'] == ['rewards', 'event']
+    assert [s['name'] for s in report['steps']] == ['rewards'] + ['event_' + target for target in targets]
+    assert chain._read_report(folder) == report
+
+
+@pytest.mark.parametrize('targets', [None, [], ['invalid'], ['current', 'current']])
+def test_invalid_event_targets_are_rejected(tmp_path, targets):
+    from pcr_maa.daily import validate_config
+    from test_gui_adb_schedule import config as gui_config
+    with pytest.raises(ValueError, match='活动目标'):
+        validate_config(gui_config(tmp_path) | {'event_targets': targets})
+
+
 @pytest.mark.parametrize('partial', [True, False])
 def test_integration_event_real_producer_contract(tmp_path, monkeypatch, partial):
     from test_event import Port, reading

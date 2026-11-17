@@ -261,6 +261,28 @@ def test_missing_focus_stops_after_grace_and_before_input(monkeypatch,deadline):
         prompts.poll(FakeBatch(),{},wait_for_focus_until=deadline)
 
 
+@pytest.mark.parametrize('recovers', [False, True])
+def test_4399_dump_failure_rechecks_focus_within_existing_grace(monkeypatch, recovers):
+    prompts=ChannelPrompts(NS(controller=object()),lambda **v:v,'cn-4399')
+    batch=FakeBatch(); clock=[0.]; reads=[]
+    def shell(controller,command,*,stopped):
+        reads.append(command)
+        if command=='dumpsys window windows':
+            return f'mCurrentFocus=Window{{abc u0 {prompts.server.package}/.SplashActivity}}'
+        assert command=='uiautomator dump /dev/tty'
+        if recovers and clock[0]:return window(package=prompts.server.package)
+        raise ValueError('controller_shell_failed')
+    monkeypatch.setattr(native,'active_now',lambda:clock[0])
+    monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',shell)
+    assert prompts.poll(batch,{},wait_for_focus_until=10)
+    clock[0]=1 if recovers else 10
+    if recovers:assert not prompts.poll(batch,{},wait_for_focus_until=10)
+    else:
+        with pytest.raises(BatchStopped,match='^channel_window_dump_failed$'):
+            prompts.poll(batch,{},wait_for_focus_until=10)
+    assert reads==['dumpsys window windows','uiautomator dump /dev/tty']*2 and not batch.operations
+
+
 def test_prompt_changed_between_observation_and_dispatch_sends_no_click(monkeypatch):
     value,batch,clock,inputs,match=prompts(monkeypatch)
     value.poll(batch,dict(enter_id=1));clock[0]+=.6

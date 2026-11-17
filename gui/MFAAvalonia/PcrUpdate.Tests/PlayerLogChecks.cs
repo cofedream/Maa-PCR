@@ -94,6 +94,25 @@ internal static class PlayerLogChecks
             Call(vm,"ReceivePlayerLog",old,new JObject { ["run_id"]=logId,["function"]=(string)Property(store,"Function")!,["event"]="text",["text"]="late stale output" });
             Dispatcher.UIThread.RunJobs();
             Check(!vm.LabyrinthLogRows.Any(r=>r.Content.Contains("stale")),"old_queued_output_rejected:"+id);
+            if (id=="pcr-labyrinth-v1")
+            {
+                var assembly=typeof(PcrAlphaOwner).Assembly;
+                using var child=(IDisposable)Activator.CreateInstance(assembly.GetType("MFAAvalonia.Pcr.PcrWindowsChild",true)!,true)!;
+                Call(child,"Start",Path.Combine(Environment.SystemDirectory,"cmd.exe"),root,new[]{"/d","/c","exit","37"});
+                Check(System.Threading.SpinWait.SpinUntil(()=> (bool)Property(child,"Exited")!,TimeSpan.FromSeconds(10)),"child_without_result_exited");
+                var method=assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner",true)!.GetMethod("MissingResult",Hidden)!;
+                var message=(string)method.Invoke(null,new object?[]{"首次 OCR 预热",true,Property(child,"ExitCode")})!;
+                Call(vm,"ShowPcrStartError",Property(vm,"CurrentPcrFeedbackRun"),message);
+                Call(vm,"FinishPlayerLog","worker_no_result");
+                var archive=(byte[])Call(Property(vm,"PlayerLog"),"Export",(object)Array.Empty<string>())!;
+                using var zip=new ZipArchive(new MemoryStream(archive));
+                using var events=new StreamReader(zip.GetEntry("events.log")!.Open());
+                using var manifest=new StreamReader(zip.GetEntry("manifest.json")!.Open());
+                var text=events.ReadToEnd();
+                Check(text.Contains("首次 OCR 预热") && text.Contains("强制 CPU") && text.Contains("0x00000025")
+                    && (string?)JObject.Parse(manifest.ReadToEnd())["outcome"]=="worker_no_result","no_result_zip_stage_mode_exit");
+                begin.Invoke(vm,null);
+            }
             vm.AddPcrLiveLog("运行结束：合成示例，未操作游戏。"); Dispatcher.UIThread.RunJobs();
             var view = new PcrLiveLogView { DataContext=vm,Background=Brushes.White };
             var window = new Window { Content=view,Width=900,Height=260,ShowActivated=false,ShowInTaskbar=false,Position=new PixelPoint(-12000,-12000) };

@@ -111,7 +111,8 @@ def test_stalled_or_unverified_navigation_never_exceeds_two_retries(borrow_conte
             return successor != 'rejected_input'
     controller = Controller([[home], [image]])
     resource = native.load_resource()
-    assert resource.override_pipeline({'StoryEventMapGate': {'timeout': 3000}})
+    assert resource.override_pipeline({'StoryEventMapGate': {'timeout': 3000},
+                                       'EventAfterLoginRewardGate': {'timeout': 800}})
     tasker = native.bind(resource, controller)
     def run(owner):
         import gc
@@ -125,14 +126,17 @@ def test_stalled_or_unverified_navigation_never_exceeds_two_retries(borrow_conte
         borrowed(tasker, run)
     else:
         run(tasker)
-    assert len(controller.clicks) == (3 if successor == 'same_home' else 1)
+    assert len(controller.clicks) == {'same_home': 3, 'popup': 2}.get(successor, 1)
+    if successor == 'popup':
+        assert controller.clicks[-1] == [640, 495]
     assert not controller.swipes
 
 
 def test_pipeline_retry_is_only_a_guarded_home_navigation():
     pipeline = json.loads((native.RESOURCE / 'pipeline/event.json').read_text(encoding='utf-8'))
     assert pipeline['StoryEventOpenQuests']['all_of'] == ['StoryEventQuestsLabel', 'StoryEventNavigationInitial']
-    assert pipeline['StoryEventMapGate']['next'] == ['StoryEventOpenList', 'StoryEventRetryOpenQuests']
+    assert pipeline['StoryEventMapGate']['next'] == [
+        'EventLoginRewardClose', 'StoryEventOpenList', 'StoryEventRetryOpenQuests']
     assert pipeline['StoryEventRetryOpenQuests'] == dict(recognition='And',
         all_of=['StoryEventQuestsLabel', 'StoryEventNavigationRetry'], action='Click',
         target=True, max_hit=2, post_delay=600, next=['StoryEventMapGate'],

@@ -221,7 +221,12 @@ class ChannelPrompts:
         matches=re.findall(pattern,focus)
         if len(matches)!=1:raise BatchStopped('game_client_foreground_unknown')
         if matches[0]!=self.server.package:raise BatchStopped('game_client_foreground_unknown')
-        xml=controller_shell(controller,'uiautomator dump /dev/tty',stopped=batch.stopped)
+        try:
+            xml=controller_shell(controller,'uiautomator dump /dev/tty',stopped=batch.stopped)
+        except TimeoutError:
+            raise BatchStopped('channel_window_dump_timeout') from None
+        except ValueError:
+            raise BatchStopped('channel_window_dump_failed') from None
         batch.checkpoint()
         try:return channel_window(xml,matches[0],self.server.server_id)
         except (ValueError,ET.ParseError):raise BatchStopped('channel_window_unavailable') from None
@@ -235,7 +240,9 @@ class ChannelPrompts:
         self.last_poll=now
         try:match,blocked=self._read(batch)
         except BatchStopped as error:
-            if (error.args!=('game_client_foreground_unknown',) or wait_for_focus_until is None
+            transient = (str(error)=='game_client_foreground_unknown' or
+                self.server.server_id=='cn-4399' and str(error) in ('channel_window_dump_timeout','channel_window_dump_failed'))
+            if (not transient or wait_for_focus_until is None
                     or native.active_now()>=wait_for_focus_until):raise
             self.previous=None;self.visible_until=now+.5
             return True
