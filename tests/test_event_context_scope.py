@@ -1,5 +1,6 @@
 """Official Context event override lifetime; no OCR/input/device qualification."""
 import json
+from types import SimpleNamespace
 import numpy as np
 import pytest
 from maa.custom_action import CustomAction
@@ -15,6 +16,25 @@ from pcr_maa.replay import SavedImages
 
 NODES = ('ExecPresetGuard', 'ExecCancelled', 'ExecRowCategory',
          'ExecOpenSweep', 'ExecReturnedPreset', 'ExecCount')
+
+
+@pytest.mark.parametrize('boxes,compact', [
+    ([[1075, 543, 5, 16]], True),
+    ([[1055, 543, 4, 16], [1075, 543, 5, 16]], False),
+    ([], False),
+])
+def test_legacy_event_counter_keeps_every_visible_digit(boxes, compact):
+    from pcr_maa.event_native import EventPage
+    footer = json.loads((native.RESOURCE / 'pipeline/preset_execution.json').read_bytes())['ExecCount']['attach']
+    changes = {}
+    context = SimpleNamespace(
+        get_node_data=lambda name: {'attach': footer},
+        run_recognition=lambda name, image: SimpleNamespace(hit=True, box=[0, 0, 1, 1],
+            raw_detail={'filtered': [dict(box=box) for box in boxes]}),
+        override_pipeline=lambda override: changes.update(override) is None)
+    assert EventPage(map_name='一日店长的轨迹').read_preset_guard(context, SimpleNamespace(image=None))
+    assert changes['ExecCount'] == dict(roi=footer['normal_roi' if compact else 'default_roi'],
+                                        only_rec=compact)
 
 
 @pytest.fixture

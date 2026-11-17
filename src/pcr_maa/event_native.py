@@ -9,7 +9,7 @@ from . import native
 from .preset_scan import Collector, checked_glyph
 from .preset_confirmation import ConfirmationPage
 from .preset_execution_native import NativePreset, completed
-from .event import valid_event_identity, is_story_h_title
+from .event import valid_event_identity, is_story_h_title, read_map_stage_word
 
 
 def _story_identity(recognition):
@@ -80,11 +80,12 @@ class StoryEventNavigation(CustomRecognition):
 
 
 class EventPage(CustomRecognition):
-    def __init__(self, event_identity=None):
+    def __init__(self, event_identity=None, *, map_name=None):
         super().__init__()
         if event_identity is not None and not valid_event_identity(event_identity):
             raise ValueError('Invalid story event identity')
         self.event_identity = dict(event_identity) if event_identity is not None else None
+        self.map_name = map_name
 
     def analyze(self, context, argv):
         try:
@@ -127,6 +128,8 @@ class EventPage(CustomRecognition):
         row_rois = {}
         gaps = False
         for w in words:
+            if not story:
+                w = read_map_stage_word(w, self.map_name, reco, 'EventRowsOCR')
             title = re.sub(r'\s+', '', w['text']).replace('－', '-').replace('—', '-').replace('–', '-')
             x, y, width, height = w['box']
             accepted = is_story_h_title(title) if story else re.fullmatch(r'[^\d]+\d+-\d+', title)
@@ -226,7 +229,8 @@ class EventPage(CustomRecognition):
 
     def read_preset_guard(self, context, argv):
         """Locate all amount glyphs on this action frame; keep plain Maa OCR."""
-        if not valid_event_identity(self.event_identity):
+        story = valid_event_identity(self.event_identity)
+        if not story and not self.map_name:
             return None
         evidence = {}
         def reco(name):
@@ -236,6 +240,21 @@ class EventPage(CustomRecognition):
         guard = reco('EventListGuard')
         if not guard or not reco('EventCheckedLabel'):
             return None
+        if not story:
+            # The detector misses a thin 1. Use the compact OCR crop only when
+            # all numeral ink on the button fits inside it on this frame.
+            footer = context.get_node_data('ExecCount')['attach']
+            x, y, w, h = footer['normal_roi']
+            glyph = reco('EventCountGlyph')
+            boxes = [part['box'] for part in glyph.raw_detail['filtered']] if glyph else []
+            compact = bool(boxes) and all(
+                x < bx and y < by and bx + bw < x + w and by + bh < y + h
+                for bx, by, bw, bh in boxes)
+            count = dict(roi=footer['normal_roi'] if compact else footer['default_roi'],
+                         only_rec=True if compact else footer['default_only_rec'])
+            if not context.override_pipeline({'ExecCount': count}):
+                return None
+            return self.AnalyzeResult(guard.box, dict(evidence=evidence))
         # Read the full original numeric domain afresh, including every digit.
         # Do not reuse a narrowed ROI left by a prior frame or exact-value check.
         glyph = reco('StoryEventStaminaAfterGlyph')
@@ -339,7 +358,7 @@ class NativeEvent(NativePreset):
         self.closed_home_notice = None
         self.event_identity = None
         self._event_identity_lost = False
-        self._story_guard_active = False
+        self._preset_guard_active = False
 
     @contextmanager
     def _confirmation_scope(self):
@@ -367,16 +386,18 @@ class NativeEvent(NativePreset):
                                         'ExecOpenStaminaBefore', 'ExecOpenStaminaAfter']},
         }
         registered = False
-        if story:
+        bind_guard = story or bool(self.map_name and not self._event_identity_lost)
+        if bind_guard:
             overrides['ExecPresetGuard'] = dict(recognition='Custom',
                 custom_recognition='EventPage', custom_recognition_param='preset_guard')
         try:
             # Confirmation may nest another event scope. Borrow the outer
             # binding, because the Context registry forbids duplicate names.
-            if story and not self._story_guard_active:
-                if not resource.register_custom_recognition('EventPage', EventPage(self.event_identity)):
+            if bind_guard and not self._preset_guard_active:
+                page = EventPage(self.event_identity, map_name=self.map_name)
+                if not resource.register_custom_recognition('EventPage', page):
                     raise RuntimeError('Cannot register event numeric guard')
-                registered = self._story_guard_active = True
+                registered = self._preset_guard_active = True
             if not resource.override_pipeline(overrides):
                 raise RuntimeError('Cannot bind event confirmation scope')
             yield
@@ -392,11 +413,11 @@ class NativeEvent(NativePreset):
                     raise RuntimeError('Cannot restore event confirmation scope; root must stop')
             finally:
                 if registered:
-                    self._story_guard_active = False
+                    self._preset_guard_active = False
                     resource.unregister_custom_recognition('EventPage')
 
     def confirmation_page(self, *, stable_short=False):
-        return ConfirmationPage(stable_short=stable_short, event=True, event_identity=self.event_identity)
+        return ConfirmationPage(stable_short=stable_short, event=True, event_identity=self.event_identity, map_name=self.map_name)
 
     def return_guard(self, quote):
         return ['EventListGuard', 'EventCheckedLabel']
@@ -480,7 +501,7 @@ class NativeEvent(NativePreset):
                         incomplete_reason='event_identity_changed', daily_complete=False)
         collector = EventCollector()
         resource = self.tasker.resource
-        if not resource.register_custom_recognition('EventPage', EventPage(self.event_identity)):
+        if not resource.register_custom_recognition('EventPage', EventPage(self.event_identity, map_name=self.map_name)):
             raise RuntimeError('Cannot register event reader')
         try:
             if not resource.register_custom_action('CollectEvent', collector):

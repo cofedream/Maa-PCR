@@ -8,7 +8,7 @@ import traceback
 import time
 from maa.custom_recognition import CustomRecognition
 from .preset_scan import Collector, key, identity_key, unlimited_glyph
-from .event import is_story_h_title, valid_event_identity
+from .event import is_story_h_title, valid_event_identity, read_map_stage_word
 
 
 def check_confirmation(result, reading, quote):
@@ -46,10 +46,11 @@ class _ShortDeadline(TimeoutError):
 
 
 class ConfirmationPage(CustomRecognition):
-    def __init__(self, *, stable_short=False, event=False, event_identity=None):
+    def __init__(self, *, stable_short=False, event=False, event_identity=None, map_name=None):
         super().__init__()
         self.stable_short = stable_short
         self.event = event
+        self.map_name = map_name
         if event_identity is not None and (not event or not valid_event_identity(event_identity)):
             raise ValueError('Unverified event identity for confirmation')
         self.event_identity = dict(event_identity) if event_identity is not None else None
@@ -144,6 +145,8 @@ class ConfirmationPage(CustomRecognition):
         rows, partial = [], []
         gaps = False
         for word in words:
+            if self.event and self.event_identity is None:
+                word = read_map_stage_word(word, self.map_name, recognize, 'ExecRowsOCR')
             x, y, w, h = word['box']
             title = re.sub(r'\s+', '', word['text']).replace('－', '-').replace('—', '-').replace('–', '-')
             if not (is_story_h_title(title) if self.event_identity is not None else
@@ -165,7 +168,8 @@ class ConfirmationPage(CustomRecognition):
             category = row_value('ExecRowCategory', '活动' if self.event else '主线关卡|外传|深域关卡')
             difficulty = row_value('ExecRowDifficulty', '困难|高难|普通') if category != '深域关卡' else None
             count = row_value('ExecRowCount', r'\d{1,3}')
-            if count is None and difficulty == '普通':
+            if count is None and (difficulty == '普通' or
+                    self.map_name and category == '活动' and difficulty == '困难'):
                 count = row_value('NormalRowCount', r'\d{1,3}')
             remaining = row_value('ExecRowRemaining', r'\d+[/／]\d+|∞')
             if difficulty == '普通' and remaining is None and unlimited_glyph(context, argv.image, y, confirmation=True, evidence=row_evidence):

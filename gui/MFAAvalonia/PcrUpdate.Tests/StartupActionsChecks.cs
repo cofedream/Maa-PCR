@@ -538,6 +538,7 @@ internal static class StartupActionsChecks
                 }
                 finally { if (!helper.HasExited) { helper.Kill(true); helper.WaitForExit(3000); } }
             }
+            CheckWarmupFallback(vm, root, script);
             // Reproduce a database log arriving while the human captcha layer is open.
             var overlay = new PcrCaptchaOverlay { IsVisible = true };
             var host = typeof(PcrCaptchaOverlay).Assembly.GetType("MFAAvalonia.Pcr.PcrCaptchaHost", true)!;
@@ -568,6 +569,43 @@ internal static class StartupActionsChecks
             Require(!overlay.IsVisible && !vm.IsRunning, "stopping_owner_closes_captcha");
         }
         finally { processField.SetValue(null, previous); }
+    }
+
+    private static void CheckWarmupFallback(TaskQueueViewModel vm, string root, string script)
+    {
+        foreach (var (scenario, stage, initialCpu, secondFailure, code, expected) in new[] {
+            ("fallback", "ocr_warmup", false, false, 0xC0000005u, "auto,cpu"),
+            ("both-fail", "ocr_warmup", false, true, 0xC0000005u, "auto,cpu"),
+            ("cpu-only", "ocr_warmup", true, true, 0xC0000005u, "cpu"),
+            ("other-code", "ocr_warmup", false, true, 37u, "auto"),
+            ("post-login", "authenticating", false, true, 0xC0000005u, "auto") })
+        {
+            var gpu=initialCpu ? PerformanceUserControlModel.GpuDeviceOption.CPU : PerformanceUserControlModel.GpuDeviceOption.Auto;
+            Instances.PerformanceUserControlModel.GpuOption=gpu;
+            var marker=Path.Combine(root, scenario+"-attempts.txt");
+            File.WriteAllText(script, $$"""
+                import ctypes, json, sys
+                request = json.loads(sys.stdin.readline())
+                assert request['credentials']['username'] == 'synthetic-startup-user'
+                assert request['credentials']['password'] == 'synthetic-startup-password'
+                cpu = request['cpu_only']
+                with open({{System.Text.Json.JsonSerializer.Serialize(marker)}}, 'a') as stream:
+                    print('cpu' if cpu else 'auto', file=stream)
+                print(json.dumps({'kind':'progress','stage':'{{stage}}'}), flush=True)
+                if not cpu or {{(secondFailure ? "True" : "False")}}:
+                    ctypes.windll.kernel32.ExitProcess(ctypes.c_uint32({{code}}))
+                print(json.dumps({'kind':'progress','stage':'ocr_ready'}), flush=True)
+                print(json.dumps({'kind':'result','outcome':'stopped'}), flush=True)
+                """);
+            Complete((Task)typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner", true)!
+                .GetMethod("RequestStartAsync", Hidden)!.Invoke(null, [vm])!);
+            Require(string.Join(",",File.ReadAllLines(marker))==expected && !vm.IsRunning
+                && Instances.PerformanceUserControlModel.GpuOption==gpu, "warmup_attempts:"+scenario);
+            Require(scenario=="fallback" ? vm.LabyrinthSettings.Status.Contains("已停止本次任务")
+                : vm.LabyrinthSettings.Status.Contains($"0x{code:X8}") &&
+                  vm.LabyrinthSettings.Status.Contains(expected.EndsWith("cpu") ? "强制 CPU" : "自动推理"),
+                "warmup_result:"+scenario);
+        }
     }
 
     private static void CheckAfterActions(MaaProcessor processor)
