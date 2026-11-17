@@ -86,7 +86,7 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  }
  # R50/R51 add guarded result-only branches; all existing guard fields stay frozen.
  additions={
-  'event.json':{'StoryEventNavigationInitial','StoryEventNavigationRetry','StoryEventRetryOpenQuests','EventCheckedEmpty','EventSingleAdventureCar'},
+  'event.json':{'StoryEventNavigationInitial','StoryEventNavigationRetry','StoryEventRetryOpenQuests','EventCheckedEmpty','EventSingleAdventureCar','EventCountGlyph'},
   'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish','AbyssLevelUpDismiss'},
   'alpha_entry.json':{'PCRAlphaSelectGuideTrial','PCRAlphaSelectClanBattleSimulation','PCRAlphaSelectClanBattleDaily'},
   'preset_execution.json':{'ExecSweepSkipButton','ExecSweepAnimationRound','ExecSweepAnimationExp',
@@ -152,6 +152,8 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
           for name,node in pipeline.items()
           if isinstance(node,dict) and name!='PresetReadbackStart' and name not in added}
   if filename=='event.json':
+   assert pipeline['EventCountGlyph']==dict(recognition='ColorMatch',roi=[1022,538,115,25],
+       method=4,lower=[215,215,215],upper=[255,255,255],count=1,connected=True,next=[])
    assert pipeline['EventSingleAdventureCar']==dict(recognition='OCR',roi=[373,572,106,47],
        expected='^驾车游$',threshold=.9,next=[])
    # Only the late reward and verified empty-list successors extend these frozen routes.
