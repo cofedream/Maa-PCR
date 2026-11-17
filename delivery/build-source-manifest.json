@@ -1190,8 +1190,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
-      "size": 27893,
-      "sha256": "aff7513749735982d16dd4b22589b6ddc54f3aa7ecf03266baed6f3142d69ac3"
+      "size": 28120,
+      "sha256": "c7ed6b87260fc474ba0a019ce4ed450ebe088a1e6c8c59da54c048c8a89c427e"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",
@@ -1270,8 +1270,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrWindowsChild.cs",
-      "size": 17535,
-      "sha256": "06d0bf5336f325ab0228793010b18333f26a81b16e83839330f70c09db1ab2a4"
+      "size": 19676,
+      "sha256": "e9305b6e8e0495bb58f00730521fb35dc1d7e1a9f7af869eee29599abda0985c"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/channels.json",
