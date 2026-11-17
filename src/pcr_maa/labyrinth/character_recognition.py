@@ -1096,6 +1096,7 @@ class CharacterRecognizer:
     def __init__(self,*,matcher=None,stopped=lambda:False):
 
         self.matcher=matcher or IconMatcher();self.stopped=stopped;self.previous={};self.pending={};self.revision=0
+        self.opening_toggle=None
 
 
 
@@ -1304,6 +1305,26 @@ class CharacterRecognizer:
             cards=self._expected_cards(frame,boxes,slots,old,scroll,expected_roster)
         else:
             cards=self._scanned_cards(frame,boxes,slots,old,scroll,page,viewport,roster,prepared)
+
+        if page=='opening' and self.opening_toggle is not None:
+            before,role,count=self.opening_toggle
+            position=scroll['position']
+            prior_position=before['scrollbar']['position']
+            if (current_filter!=before['filter'] or (position is None)!=(prior_position is None)
+                    or position is not None and abs(position-prior_position)>.02):
+                self.opening_toggle=None
+            elif observed_count==count+1:
+                prior={tuple(card['box']):card for card in before['cards'] if card['trusted']}
+                # Two unchanged neighbours bind the marked portrait to the pre-click grid.
+                anchors=sum(1 for card in cards if not card['selected'] and card['trusted']
+                    and prior.get(tuple(card['box']),{}).get('character_id')==card['character_id'])
+                if anchors>=2:
+                    for card in cards:
+                        original=prior.get(tuple(card['box']))
+                        if (card['selected'] and not card['trusted'] and original
+                                and (original['character_id']==role or original['selected'])):
+                            for key in ('character_id','name','variant','confidence','rival_confidence','rival_margin','trusted','candidates','unit_icon_id'):
+                                card[key]=original[key]
 
         members=[]
 
@@ -1616,6 +1637,8 @@ class CharacterRecognition(CustomRecognition):
                 if not frozen or time.monotonic()>=deadline:return None
                 return self.AnalyzeResult([0,0,1,1],dict(page=page,filter_frozen=True))
 
+            if page=='opening' and mode in ('filter','scroll','invite'):
+                self.recognizer.opening_toggle=None
             if mode=='filter':
                 target=params.get('filter')
                 if page not in FILTER_ROIS or target not in FILTERS:return None
@@ -1704,6 +1727,8 @@ class CharacterRecognition(CustomRecognition):
                 if len(choices)!=1:return None
 
                 box=choices[0]['box']
+                if page=='opening':
+                    self.recognizer.opening_toggle=(observation,role,observation['count'])
 
                 # Upstream opening taps 50%/45%; team select/deselect taps center.
 

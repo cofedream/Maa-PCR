@@ -39,12 +39,15 @@ def assess_event(reading, context):
     if (context not in ('same-day-unreset', 'user-reported-unreset', 'gui-current-state')
             or reading.get('native_ok') is not True or reading.get('event_verified') is not True
             or reading.get('list_complete') is not True or reading.get('incomplete_reason')
-            or reading.get('view') != 'checked' or not rows):
+            or reading.get('view') != 'checked'):
         return 'reading_unknown'
-    if len({key(r) for r in rows}) != len(rows):
-        return 'identity_mismatch'
     modern = reading.get('event_identity') is not None
     if modern and not valid_event_identity(reading['event_identity']):
+        return 'identity_mismatch'
+    if not rows:
+        return ('skipped_no_selection' if reading.get('rows') == []
+                and reading.get('empty_selection_verified') is True else 'reading_unknown')
+    if len({key(r) for r in rows}) != len(rows):
         return 'identity_mismatch'
     for r in rows:
         if (r.get('category') != '活动' or r.get('difficulty') != '困难'
@@ -90,6 +93,9 @@ def execute_event(port, journal, *, context=None, game_day, execute=False, previ
                   count_context=context, count_context_source='current-game-observation' if context == 'gui-current-state' else 'user-reported' if
                   context == 'user-reported-unreset' else 'caller_assertion' if context else 'unconfirmed')
     from . import result_checkpoint as checkpoints
+    target = getattr(port, 'target', None)
+    target_fields = {'event_target': target} if target is not None else {}
+    report.update(target_fields)
     checkpoint = None
     try:
         if execute and preview or date.fromisoformat(game_day).isoformat() != game_day:
@@ -138,22 +144,23 @@ def execute_event(port, journal, *, context=None, game_day, execute=False, previ
                 return report
             status = assess_event(r, context)
             previous = next((e for e in reversed(events) if e['state'] == 'settled' and e.get('input_execution') != 'not_sent'
-                             and e['game_day'] == game_day), None)
+                             and e['game_day'] == game_day and (target is None or e.get('event_target') in (None, target))), None)
             if previous and previous.get('disposition') == checkpoints.DISPOSITION:
                 if (status != 'skipped_goal_met' or [list(key(x)) for x in r['rows']] != previous['identities']
                         or previous.get('event_identity') != r.get('event_identity')):
                     report.update(outcome='blocked_post_counts_unverified', retry_permitted=False)
                     return report
                 previous = None
-            if previous and status != 'skipped_event_unavailable' and ([list(key(x)) for x in r['rows']] != previous['identities']
+            if previous and status not in ('skipped_event_unavailable', 'skipped_no_selection') and ([list(key(x)) for x in r['rows']] != previous['identities']
                              or any(x['remaining'] > n for x, n in zip(r['rows'], previous['remaining']))
                              or previous.get('event_identity') != r.get('event_identity')):
                 status = 'counter_reset_or_identity_change'
             report['outcome'] = status
-            if status == 'skipped_event_unavailable':
+            if status in ('skipped_event_unavailable', 'skipped_no_selection'):
                 report['home_verified'] = port.home()
                 if not report['home_verified']:
-                    report['outcome'] = 'closed_home_unverified'
+                    report['outcome'] = ('closed_home_unverified' if status == 'skipped_event_unavailable'
+                                         else 'empty_selection_home_unverified')
                 return report
             if status == 'skipped_goal_met':
                 report['goal_complete'] = True
@@ -193,7 +200,7 @@ def execute_event(port, journal, *, context=None, game_day, execute=False, previ
                                      and report['home_verified'] else 'confirmation_unverified_or_expired')
                 return report
             intent = dict(state='in_flight', scope=SCOPE, game_day=game_day,
-                                quote=q, context=context, at=time.time())
+                                quote=q, context=context, at=time.time(), **target_fields)
             journal.append(intent)
             report['consumption_sent'] = True
             checkpoint = checkpoints.bind(port, journal, 'event', r, q)
@@ -226,6 +233,7 @@ def execute_event(port, journal, *, context=None, game_day, execute=False, previ
                 report['outcome'] = 'unknown_post_counts'
                 return report
             journal.append(dict(state='settled', scope=SCOPE, game_day=game_day, at=time.time(),
+                                **target_fields,
                                 identities=[list(key(x)) for x in r['rows']],
                                 remaining=[x['remaining'] for x in after['rows']],
                                 result_receipt=result.get('result_receipt'), after_receipt=after.get('reading_receipt'),

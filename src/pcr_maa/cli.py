@@ -253,7 +253,7 @@ def main(argv=None):
             print(json.dumps(result | {'receipt': str(receipt)}, ensure_ascii=False, indent=2))
             ok = result['outcome'] == 'ready_not_executed' or (result['outcome'] in (
                 'preview_complete', 'executed', 'skipped_goal_met', 'skipped_insufficient_stamina',
-                'skipped_insufficient_tickets') and result.get('home_verified') is True)
+                'skipped_insufficient_tickets', 'skipped_no_selection') and result.get('home_verified') is True)
             return 0 if ok else 2
         elif args.command == 'claim-rewards':
             from .device import navigate

@@ -413,6 +413,10 @@
                                 <TextBlock Text="{Binding PcrModuleDescription}" TextWrapping="Wrap" Foreground="{DynamicResource SukiLowText}" />
                             </StackPanel>
                             <StackPanel x:Name="PcrPlayerSettingsPanel" IsEnabled="{Binding CanEditPcrTarget}" Spacing="10">
+                                <StackPanel IsVisible="{Binding PcrEditingEvent}" Spacing="6">
+                                    <CheckBox Content="当期活动" IsChecked="{Binding PcrSettings.CurrentEvent, Mode=TwoWay}" />
+                                    <CheckBox Content="复刻活动" IsChecked="{Binding PcrSettings.RevivalEvent, Mode=TwoWay}" />
+                                </StackPanel>
                                 <StackPanel IsVisible="{Binding PcrEditingRewards}" Spacing="6">
                                     <CheckBox x:Name="PcrCollectGiftStamina" Content="领取礼物箱体力"
                                               IsChecked="{Binding PcrSettings.CollectGiftStamina, Mode=TwoWay}" />

@@ -30,7 +30,7 @@ internal static class PcrLabyrinthOwner
     internal static bool IsActive => Volatile.Read(ref current) != null;
     internal static TimeSpan? StartupWait(string? stage) => stage switch {
         "validating" or "dependencies"=>TimeSpan.FromSeconds(30),
-        "resources"=>TimeSpan.FromSeconds(120), "connecting"=>TimeSpan.FromSeconds(45),
+        "resources" or "ocr_warmup" or "ocr_ready"=>TimeSpan.FromSeconds(120), "connecting"=>TimeSpan.FromSeconds(45),
         "authenticating"=>TimeSpan.FromSeconds(200),
         "recovering" or "retiring"=>TimeSpan.FromSeconds(120),
         "ready" or "opening" or "handoff" or "playing" or "cleared" or "moving" or "team" or "battle" or "shop" or "reward"
@@ -87,6 +87,8 @@ internal static class PcrLabyrinthOwner
         "runtime_components_missing"=>"黎明界运行组件或依赖缺失，请核对完整候选包。",
         "runtime_resources_timeout"=>"本地识别资源加载超时，本次已停止。请核对完整程序包与本机资源占用。",
         "runtime_ocr_preparation_failed"=>"本地文字识别初始化未通过，本次未开始游戏任务。请导出黎明界诊断记录。",
+        "channel_window_dump_timeout"=>"读取渠道服窗口树超时，请检查游戏启动画面。",
+        "channel_window_dump_failed"=>"模拟器未能返回渠道服窗口树，请检查游戏启动画面。",
         "controller_connection_timeout" or "controller_connection_failed"=>"连接所选设备失败或超时，本次已停止。请核对设备与 ADB 目标。",
         "content_update_required"=>"游戏资源版本已更新，当前程序需匹配新版数据；本次未开始游戏任务。",
         "protocol_version_invalid"=>"服务器资源版本信息未通过校验，本次未开始游戏任务。请稍后重试或导出诊断记录。",
@@ -132,6 +134,12 @@ internal static class PcrLabyrinthOwner
 
     // 实时日志面板一行；VM 会再带前缀写一份进共享日志，以便落盘与导出。
     private static void Trace(TaskQueueViewModel vm,string text) => vm.AddLabyrinthLog(text);
+    internal static string MissingResult(string stage,bool cpuOnly,uint? code)
+    {
+        var exit=code.HasValue ? $"0x{code.Value:X8}" : "尚不可用";
+        var mode=cpuOnly ? "强制 CPU" : "自动推理";
+        return $"黎明界执行组件未返回有效结果。最后阶段：{stage} 推理设置：{mode}，退出码：{exit}。";
+    }
 
     private static string ProgressCount(JObject value,JObject request) {
         if (value["completed"] is not JObject completed || request["settings"]?["goals"] is not JArray goals) return "";
@@ -273,6 +281,8 @@ internal static class PcrLabyrinthOwner
                     vm.LabyrinthSettings.Progress=stage switch {
                         "validating"=>"正在校验黎明界配置…", "dependencies"=>"正在加载黎明界执行组件…",
                         "resources"=>"正在加载本地识别资源…", "connecting"=>"正在连接所选设备…",
+                        "ocr_warmup"=>request.Value<bool>("cpu_only") ? "正在首次预热文字识别（强制 CPU）…" : "正在首次预热文字识别（自动推理）…",
+                        "ocr_ready"=>"首次文字识别预热完成。",
                         "authenticating"=>"正在登录协议账号并核对游戏玩家 ID…",
                         "recovering"=>"正在核对上次停止后的旧局状态…",
                         "retiring"=>"正在放弃旧局，确认结束后开始新局…",
@@ -308,7 +318,11 @@ internal static class PcrLabyrinthOwner
                     break; // Terminal receipt; the owned Job closes descendant pipes in finally.
                 }
             }
-            if (!receipt) throw new InvalidOperationException("黎明界执行组件未返回有效结果，任务未确认完成。");
+            if (!receipt) {
+                cancel.Token.ThrowIfCancellationRequested();
+                terminalOutcome="worker_no_result";
+                throw new InvalidOperationException(MissingResult(vm.LabyrinthSettings.Progress,request.Value<bool>("cpu_only"),run.Child.ExitCode));
+            }
         } catch (OperationCanceledException) {
             cancelled=true;
             vm.PcrCleanupPending=true;

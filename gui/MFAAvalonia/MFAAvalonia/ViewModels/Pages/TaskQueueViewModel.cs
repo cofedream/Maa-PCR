@@ -1534,7 +1534,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PcrModuleTitle), nameof(PcrModuleDescription), nameof(PcrEditingDeep),
         nameof(PcrEditingVeryHard), nameof(PcrEditingHard), nameof(PcrEditingNormal),
-        nameof(PcrEditingPreset), nameof(PcrEditingSchedule), nameof(PcrEditingRewards))]
+        nameof(PcrEditingPreset), nameof(PcrEditingSchedule), nameof(PcrEditingRewards), nameof(PcrEditingEvent))]
     private string _pcrSelectedModuleId = "";
 
     public void SelectPcrModule(string id) => PcrSelectedModuleId = id;
@@ -1544,6 +1544,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public bool PcrEditingNormal => PcrSelectedModuleId == "normal";
     public bool PcrEditingPreset => PcrEditingDeep || PcrEditingVeryHard || PcrEditingHard || PcrEditingNormal;
     public bool PcrEditingRewards => PcrSelectedModuleId == "rewards";
+    public bool PcrEditingEvent => PcrSelectedModuleId == "event";
     public bool PcrEditingSchedule => PcrSelectedModuleId == "schedule_onekey";
     public string PcrModuleTitle => PcrModuleName(PcrSelectedModuleId);
     public static string PcrModuleName(string id) => id switch {
@@ -1552,7 +1553,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         _ => "选择一个模块" };
     public string PcrModuleDescription => PcrSelectedModuleId switch {
         "schedule_onekey" => "按游戏内已经设置的日程执行。已完成项目会跳过，无需在这里重复配置九项任务。",
-        "event" => "扫荡当前活动中已勾选的困难关卡，每关每日最多 3 次，无需设置槽位。",
+        "event" => "扫荡游戏内已勾选的困难关卡，每关每日最多 3 次。两项都勾选时，先扫当期，再扫复刻。",
         "abyss" => "按本次剩余次数扫荡已解锁的普通、困难和高难前哨。不打首领，不购买或重置。",
         "rewards" => "领取每日任务奖励与礼物。可选择是否领取礼物箱里的体力；同样适用于末尾补领。",
         "normal" => "按每个关卡的本次次数扫荡。先在游戏内保存普通关卡预设，再填写以下参数。",

@@ -52,7 +52,12 @@ class StoryEventNavigation(CustomRecognition):
     def analyze(self, context, argv):
         try:
             kind = json.loads(argv.custom_recognition_param)
-            if self.changed or kind not in ('initial', 'retry'):
+            if self.changed:
+                return None
+            if kind == 'map' and self.identity:
+                guard = context.run_recognition('StoryEventMapGuard', argv.image)
+                return self.AnalyzeResult(guard.box, guard.raw_detail) if guard and guard.hit else None
+            if kind not in ('initial', 'retry'):
                 return None
             if kind == 'initial' and self.attempts or kind == 'retry' and not self.attempts:
                 return None
@@ -318,11 +323,14 @@ class EventCollector(Collector):
 
 
 class NativeEvent(NativePreset):
-    def __init__(self, tasker, *, start):
+    def __init__(self, tasker, *, start, target=None):
         super().__init__(tasker)
         if start not in ('home', 'event'):
             raise ValueError('Event start must be home or event')
         self.start = start
+        if target is not None and (start != 'home' or target not in ('current', 'revival')):
+            raise ValueError('Explicit event target requires entry from home')
+        self.target = target
         self.entered = False
         self._navigation_attempted = False
         self.map_name = None
@@ -431,7 +439,7 @@ class NativeEvent(NativePreset):
                 self.preparation = prepare_home(self.tasker)
                 if not completed(self.preparation, 'ObserveHome'):
                     return dict(native_ok=False, rows=[], incomplete_reason='activity_start_unknown')
-            with absent_entry(self.tasker, 'event'):
+            with absent_entry(self.tasker, 'event', self.target):
                 navigation = native.run(self.tasker, 'EventFromHome' if self.start == 'home' else 'EventFromEvent',
                     reset_hits=('EventAdventure', 'EventEnter', 'EventLoginRewardClose',
                                 'EventOpenQuests', 'EventOpenList', 'EventSwitchHard',
@@ -447,7 +455,9 @@ class NativeEvent(NativePreset):
                             incomplete_reason='entry_unknown_or_not_supported', navigation=navigation,
                             daily_complete=False)
             if not self._bind_story_identity(navigation):
-                node = next((n for n in navigation['nodes'] if n['name'] == 'EventMapName' and n['completed']), None)
+                # A late login reward can interrupt the first map reading.
+                node = next((n for n in reversed(navigation['nodes'])
+                             if n['name'] == 'EventMapName' and n['completed']), None)
                 words = (node.get('recognition') or {}).get('filtered', []) if node else []
                 if len(words) != 1 or words[0].get('score', 0) < .9:
                     return dict(native_ok=False, rows=[], event_verified=False, list_complete=False,
@@ -459,7 +469,7 @@ class NativeEvent(NativePreset):
         matches = (all(is_story_h_title(r['title']) for r in result['rows'])
                    if valid_event_identity(self.event_identity) else
                    all(re.fullmatch(re.escape(self.map_name)+r'\d+-\d+', r['title']) for r in result['rows']))
-        if not result['rows'] or not matches:
+        if not (result['rows'] or result.get('empty_selection_verified')) or not matches:
             result.update(event_verified=False, list_complete=False, incomplete_reason='event_map_title_mismatch')
         result['reading_receipt'] = str(native.save_receipt(result, 'event-reading'))
         return result
@@ -482,9 +492,11 @@ class NativeEvent(NativePreset):
         if self.original_view is None:
             self.original_view = ('all' if any(n['name'] == 'EventToggle' and n['completed']
                                              for n in receipt['nodes']) else 'checked')
-        complete = receipt['native_ok'] and collector.complete
-        result = dict(receipt, event_verified=bool(collector.pages), view='checked' if complete else 'unknown',
+        empty = completed(receipt, 'EventCheckedEmpty') and not collector.pages
+        complete = receipt['native_ok'] and (collector.complete or empty)
+        result = dict(receipt, event_verified=bool(collector.pages) or empty, view='checked' if complete else 'unknown',
                       list_complete=complete, rows=collector.rows, pages=collector.pages,
+                      empty_selection_verified=empty,
                       incomplete_reason=None if complete else collector.reason,
                       source='native event list reading', daily_complete=False)
         if valid_event_identity(self.event_identity):

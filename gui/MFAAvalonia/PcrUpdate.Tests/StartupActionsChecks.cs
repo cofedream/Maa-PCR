@@ -505,14 +505,15 @@ internal static class StartupActionsChecks
         var previous = processField.GetValue(null);
         try
         {
-            foreach (var outcome in new[] { "complete", "stopped", "defeated", "malformed", "missing-outcome", "cancelled" })
+            foreach (var outcome in new[] { "complete", "stopped", "defeated", "malformed", "missing-outcome", "worker-no-result", "cancelled" })
             {
-                var cpuOnly = outcome == "complete";
+                var cpuOnly = outcome is "complete" or "worker-no-result";
                 Instances.PerformanceUserControlModel.GpuOption = cpuOnly
                     ? PerformanceUserControlModel.GpuDeviceOption.CPU : PerformanceUserControlModel.GpuDeviceOption.Auto;
                 var readRequest = "import sys,json\nassert json.loads(sys.stdin.readline())['cpu_only'] is "
                     + (cpuOnly ? "True" : "False") + "\n";
                 File.WriteAllText(script, readRequest + (outcome == "cancelled" ? "json.loads(sys.stdin.readline())\n" :
+                    outcome == "worker-no-result" ? "print(json.dumps({'kind':'progress','stage':'ocr_warmup'}),flush=True)\nsys.exit(37)\n" :
                     "print(" +
                     System.Text.Json.JsonSerializer.Serialize(outcome == "malformed" ? "invalid-json" :
                         outcome == "missing-outcome" ? "{\"kind\":\"result\"}" :
@@ -529,6 +530,7 @@ internal static class StartupActionsChecks
                         .GetMethod("RequestStartAsync", Hidden)!.Invoke(null, [vm])!;
                     if (outcome == "cancelled") vm.StopTask();
                     Complete(request);
+                    if (outcome == "worker-no-result") PlayerLogChecks.CheckMissingResult(vm);
                     if (outcome is "complete" or "defeated")
                         Require(helper.WaitForExit(3000), "labyrinth_completion_closes_only_owned_helper:" + outcome + ":" + vm.LabyrinthSettings.Status);
                     else Require(!helper.HasExited, "labyrinth_stop_or_invalid_result_keeps_helper:" + outcome);

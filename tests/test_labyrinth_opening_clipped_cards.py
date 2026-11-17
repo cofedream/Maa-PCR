@@ -91,6 +91,19 @@ def test_selected_partial_card_keeps_observed_identity_across_animation(saved):
     assert value['stable']
 
 
+@pytest.mark.parametrize('transition', ['same', 'changed_filter', 'changed_scroll', 'wrong_count'])
+def test_preclick_identity_survives_missing_intermediate_card_read(saved, transition):
+    recognizer = cr.CharacterRecognizer(matcher=saved.matcher)
+    before = copy.deepcopy(saved.prior)
+    recognizer.opening_toggle = (before, '1351', 1)
+    if transition == 'changed_scroll':
+        before['scrollbar']['position'] -= .2
+    value = recognizer.recognize(saved.frames[0], 'opening',
+        current_filter='WATER' if transition == 'changed_filter' else 'ALL',
+        observed_count=1 if transition == 'wrong_count' else 2)
+    assert ('1351' in value['selected']) == (transition == 'same')
+
+
 @pytest.mark.parametrize('changed', ['filter', 'scroll', 'cold'])
 def test_selected_partial_card_does_not_gain_identity_from_other_views(saved, changed):
     recognizer = cr.CharacterRecognizer(matcher=saved.matcher)

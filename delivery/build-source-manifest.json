@@ -1190,8 +1190,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
-      "size": 15319,
-      "sha256": "cc0ec872f4deef883baae5673fcf837118dce2e93ff6e944d1dda0b693ffd832"
+      "size": 27893,
+      "sha256": "aff7513749735982d16dd4b22589b6ddc54f3aa7ecf03266baed6f3142d69ac3"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",
@@ -1240,8 +1240,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrPlayerSettings.cs",
-      "size": 22324,
-      "sha256": "5f6f3b83a3e0ff5ad474f44e73be339652d3f9f30a237a60946f6c4ece7c252c"
+      "size": 26211,
+      "sha256": "e429269e0adb00846680f23a3128313c5556a22fa74db17aaf5d9765173a49d3"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrProfileRunGate.cs",
@@ -1375,8 +1375,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/Pages/TaskQueueViewModel.cs",
-      "size": 191477,
-      "sha256": "ba063ba693edcf9b51dda26e9d1bb87602d94c037128d61aaff89f522071beaf"
+      "size": 195537,
+      "sha256": "57773a35dc83fdbbbe8bd366e2d65570647bf9598a79e04f93259aaafe10e0e6"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/ViewModels/UsersControls/AdbEditorDialogViewModel.cs",
@@ -1605,8 +1605,8 @@
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/TaskQueueView.axaml",
-      "size": 146183,
-      "sha256": "76fb7a1a2149ab0c79a58e7eda0d07502a60f861adb066db220ebabc45d0dd66"
+      "size": 142831,
+      "sha256": "36f04e556d71ae42a6cfa31a695a3b4f9adedb9bbc40ea3b916a37d0531e6ce6"
     },
     {
       "path": "gui/MFAAvalonia/MFAAvalonia/Views/Pages/TaskQueueView.axaml.cs",

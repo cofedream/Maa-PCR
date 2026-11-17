@@ -77,6 +77,79 @@ def test_original_event_login_popup_closes_once_then_full_entry_is_verified(entr
     assert not set(names(receipt)) & {'ExecConfirm', 'EventToggle', 'ExecOpenSweep'}
 
 
+@pytest.mark.private_replay
+@pytest.mark.parametrize('waiting_at', ['EventMapGate', 'EventHardGate', 'EventMapRead', 'EventMapName'])
+def test_late_login_reward_returns_to_hard_map_then_opens_list(waiting_at):
+    fixtures = PROJECT / '.runtime/private-fixtures/hermes-pcr/live'
+    hard_map = frame(fixtures / 'event-sweep-quests.png')
+    before_close = [hard_map, popup()] if waiting_at in ('EventMapRead', 'EventMapName') else [popup()]
+    stages = [before_close, [hard_map], [frame(fixtures / 'event-sweep-before.png')]]
+    tasker, controller = setup(stages, overrides={waiting_at: {'timeout': 1200}})
+    receipt = native.run(tasker, waiting_at)
+    completed = names(receipt)
+    assert receipt['native_ok'] and completed[-1] == 'EventListReady', completed
+    after_close = completed[completed.index('EventLoginRewardClose') + 1:]
+    assert after_close.index('EventMapName') < after_close.index('EventOpenList')
+    assert len(controller.clicks) == 2 and not controller.swipes
+    close, (x, y) = controller.clicks
+    assert close == [640, 495] and 1204 <= x < 1251 and 187 <= y < 215
+
+
+@pytest.mark.private_replay
+def test_revival_late_reward_and_empty_checked_list_return_home(tmp_path):
+    from pcr_maa.event import execute_event
+    from pcr_maa.event_native import NativeEvent
+    from pcr_maa.game_day import current_game_day
+    from pcr_maa.supported_daily import _status
+    revival = Path(os.environ.get('PCR_EVENT_REVIVAL_FRAMES',
+                                  str(PROJECT / '.runtime/event-revival-20261117')))
+    hard_map, reward, all_rows, empty = [frame(revival / name) for name in
+        ('live-map.png', 'failure-popup.png', 'live-list.png', 'live-checked.png')]
+    home = frame(PROJECT / '.runtime/private-fixtures/hermes-pcr/live/activity-scope-restored-home.png')
+    tasker, controller = setup([[hard_map, hard_map, reward], [hard_map], [all_rows],
+                                [empty], [all_rows], [hard_map], [home]])
+    port = NativeEvent(tasker, start='event')
+    journal = Journal(tmp_path / 'ledger')
+    result = execute_event(port, journal, context='gui-current-state', game_day=current_game_day(), execute=True)
+    assert result['outcome'] == _status('event', result) == 'skipped_no_selection', result
+    assert result['home_verified'] and not result['consumption_sent'] and 'quote' not in result
+    assert not journal.events() and not controller.swipes and len(controller.clicks) == 6
+    assert controller.clicks[:1] == [[640, 495]] and port.map_name == '一日店长的轨迹'
+    assert result['reading']['rows'] == [] and result['reading']['empty_selection_verified']
+
+
+@pytest.mark.private_replay
+@pytest.mark.parametrize('target,left,right', [('current', 495, 610), ('revival', 400, 465)])
+def test_revival_entry_with_story_layout_retains_period_and_reads_checked_rows(target, left, right):
+    from pcr_maa.event_native import NativeEvent
+    fixtures = PROJECT / '.runtime/private-fixtures/hermes-pcr/live'
+    home = frame(fixtures / 'activity-scope-restored-home.png')
+    entry = frame(fixtures / 'daily-adventure-title-20261115.png')
+    reward, story_home, map_, list_ = event_stages()
+    checked = frame(EVENT_PREVIEW / '05-checked-list/after.png')
+    tasker, controller = setup([[home], [entry], story_home, reward, map_, list_, [checked]])
+    reading = NativeEvent(tasker, start='home', target=target).read()
+    assert reading['event_verified'] and reading['list_complete'] and len(reading['rows']) == 3
+    assert reading['event_identity']['layout'] == 'story_event_h'
+    assert names(reading['navigation']).count('StoryEventOpenList') == 1
+    assert len(controller.clicks) == 6 and controller.clicks[3] == [640, 495] and not controller.swipes
+    x, y = controller.clicks[1]
+    assert left <= x <= right and 563 <= y <= 605
+
+
+@pytest.mark.private_replay
+@pytest.mark.parametrize('masked_roi', [(571, 344, 175, 35), (849, 136, 110, 33), (500, 125, 232, 45)])
+def test_empty_message_requires_checked_view_and_all_filter(masked_roi):
+    revival = Path(os.environ.get('PCR_EVENT_REVIVAL_FRAMES',
+                                  str(PROJECT / '.runtime/event-revival-20261117')))
+    image = frame(revival / 'live-checked.png')
+    x, y, w, h = masked_roi
+    image[y:y+h, x:x+w] = 0
+    tasker, controller = setup([[image]], overrides={'EventCheckedEmpty': {'timeout': 500}})
+    assert not native.run(tasker, 'EventCheckedEmpty')['native_ok']
+    assert not controller.clicks and not controller.swipes
+
+
 @pytest.mark.parametrize('masked', ['title', 'notice', 'close', 'unknown'])
 def test_login_popup_requires_all_dedicated_anchors_zero_clicks(masked):
     image = popup()

@@ -86,7 +86,7 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  }
  # R50/R51 add guarded result-only branches; all existing guard fields stay frozen.
  additions={
-  'event.json':{'StoryEventNavigationInitial','StoryEventNavigationRetry','StoryEventRetryOpenQuests'},
+  'event.json':{'StoryEventNavigationInitial','StoryEventNavigationRetry','StoryEventRetryOpenQuests','EventCheckedEmpty','EventSingleAdventureCar'},
   'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish','AbyssLevelUpDismiss'},
   'alpha_entry.json':{'PCRAlphaSelectGuideTrial','PCRAlphaSelectClanBattleSimulation','PCRAlphaSelectClanBattleDaily'},
   'preset_execution.json':{'ExecSweepSkipButton','ExecSweepAnimationRound','ExecSweepAnimationExp',
@@ -151,6 +151,18 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
           | ({'timeout':60000} if node.get('timeout')==60000 else {})
           for name,node in pipeline.items()
           if isinstance(node,dict) and name!='PresetReadbackStart' and name not in added}
+  if filename=='event.json':
+   assert pipeline['EventSingleAdventureCar']==dict(recognition='OCR',roi=[373,572,106,47],
+       expected='^驾车游$',threshold=.9,next=[])
+   # Only the late reward and verified empty-list successors extend these frozen routes.
+   extensions={name:['EventLoginRewardClose'] for name in
+               ('EventMapGate','EventHardGate','EventMapRead','EventMapName','StoryEventMapGate')}
+   extensions.update(EventAfterLoginRewardGate=['StoryEventOpenList','StoryEventRetryOpenQuests'],
+                     EventCheckedReady=['EventCheckedEmpty'])
+   for name, targets in extensions.items():
+    for target in targets:
+     assert guards[name]['next'].count(target)==1
+     guards[name]['next'].remove(target)
   for name,branch in branches.get(filename,{}).items():
    assert guards[name]['next'].count(branch)==1
    guards[name]['next']=[target for target in guards[name]['next'] if target!=branch]

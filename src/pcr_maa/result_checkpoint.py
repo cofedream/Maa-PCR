@@ -158,7 +158,7 @@ def recover(journal, events, kind):
                 and event.get('home_verified') is False and event.get('retry_permitted') is False
                 and 'remaining' not in event, 'terminal_flags')
         require(event.get('original') == record['original'], 'terminal_original')
-        for key in ('scope','slot','device','context','intent_id','operation','abyss_identity','game_day'):
+        for key in ('scope','slot','device','context','intent_id','operation','abyss_identity','event_target','game_day'):
             require(event.get(key) == record['original'].get(key), 'terminal_' + key)
         if kind != 'abyss':
             from .preset_scan import key
@@ -175,7 +175,7 @@ def recover(journal, events, kind):
                     settlement_verified=False, post_counts_verified=False, home_verified=False,
                     consumption_result_verified=True, retry_permitted=False, original=original,
                     checkpoint_sha256=sha256(checkpoint.path.read_bytes()).hexdigest())
-    for key in ('scope','slot','device','context','intent_id','operation','abyss_identity'):
+    for key in ('scope','slot','device','context','intent_id','operation','abyss_identity','event_target'):
         if key in original:
             terminal[key] = original[key]
     if kind != 'abyss':

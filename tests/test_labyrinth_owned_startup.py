@@ -181,7 +181,7 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     assert not (tmp_path / 'assets/labyrinth/protocol-version.json').exists()
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
     assert [value['stage'] for value in events] == [
-        'dependencies', 'resources', 'connecting', 'resources', 'authenticating', 'recovering', 'ready']
+        'dependencies', 'resources', 'connecting', 'ocr_warmup', 'ocr_ready', 'authenticating', 'recovering', 'ready']
     assert calls.index('ocr_prepare') < calls.index('client') < calls.index('authenticate')
     assert calls.index('authenticate') < calls.index('restart_check') < calls.index('batch')
     assert calls.index('authenticate') < calls.index('batch')
@@ -209,7 +209,7 @@ def test_failed_ocr_preparation_stops_before_login_without_retry(tmp_path, monke
     assert owned.run() == dict(outcome='runtime_ocr_preparation_failed', batch_complete=False)
     assert calls.count('ocr_prepare') == 1 and 'native_stop' in calls
     assert not {'client', 'authenticate', 'batch'} & set(calls)
-    assert events[-1] == dict(kind='progress', stage='resources')
+    assert events[-1] == dict(kind='progress', stage='ocr_warmup')
     assert owned.request.username == owned.request.password == ''
 
 

@@ -1,66 +1,14 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "revision": 84,
-  "expected_version": "v0.1.37",
-  "verified_at_utc": "2026-11-16T17:32:20.045909+00:00",
-  "base_release_manifest_sha256": "c99d8df0cc52b31722107e823a8782c1da0db76cfa2f1346e14e098526094389",
-  "accepted_owned_payload_sha256": "3bdd997db41d8b73ea1a7bcf540ff42be1abb10e69f75eee77a0c05ece8031c3",
-  "accepted_staging_manifest_sha256": "18f38233823ef9220e92ba112fcee8739c6d4cf30b963563d4755724a407e216",
-  "accepted_ci_artifact": {
-    "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 43910221904,
-    "run_attempt": 1,
-    "artifact_id": 14250951531,
-    "source_commit": "9fdbbcc751ef7f38b24e3bba226fef7e350527c1",
-    "runtime_archive": {
-      "name": "Maa-PCR-v0.1.37-win-x64.zip",
-      "size": 350101948,
-      "sha256": "224831d3a876554bffd430680e98c39dc061f8303f25cd906900026142ca615b"
-    }
-  },
-  "offline_tests_passed": true,
-  "isolated_update_passed": true,
-  "gui_verified": true,
-  "gui_mode": "Isolated Windows settings diagnostic",
-  "clean_build_verified": true,
-  "public_tests": {
-    "passed": 7647,
-    "skipped": 401,
-    "failed": 0,
-    "errors": 0
-  },
-  "bundled_runtime_tests": {
-    "passed": 3,
-    "skipped": 0,
-    "failed": 0,
-    "errors": 0
-  },
-  "packaged_replays": {
-    "passed": 8,
-    "skipped": 0,
-    "failed": 0,
-    "errors": 0
-  },
-  "gui_checks": {
-    "settings": 193,
-    "accounts_and_filters": 60
-  },
-  "packaged_source_alignment_verified": true,
-  "original_r83_delta_and_full_updates_verified": true,
-  "isolated_rollback_and_recovery_verified": true,
-  "live_verification_performed": false,
-  "evidence_sha256": {
-    "CI_BINDING.json": "bb73d6ba0ead303a7b34face1eee0fc91853a88d4fce068c90e787c52e3f7269",
-    "ci-artifact/build/SOURCE_ALIGNMENT.json": "ea4246a62b55d59d66376e3d7f683da202d4dd0cad160855f57a4a7332f6a68c",
-    "ci-artifact/public-tests.xml": "d1e34c2765a937cb68c9fcd824679677b700e5b553f078d6718ddacd05b32d8f",
-    "ci-artifact/bundled-runtime.xml": "0029a6ff5d3d8b8f8c97c12ab60d968b4f973252a21124d1918f8af85bc51413",
-    "packaged-window.json": "8e41e7f02dff7f949aa5ec9e116d089bf7a9a27f04794dc53831dcce472df229",
-    "package-checks/final-ci/PACKAGE_CHECKS.json": "663b0ef7e252979432722dbab87a3146348af30c8f921ea0a9a3a4e3e2f1fa5b",
-    "ORIGINAL_UPDATER.json": "fa9c33e24119fdb1b91daad796fd6126e307ee7c78ba5269913050882f26e724",
-    "packaged-replay.xml": "c29f670680728faf5ac425c023ddf03c98ffce69f72f4cd31bb5a65219dcf89c"
-  },
+  "status": "pending",
+  "revision": 85,
+  "expected_version": "v0.1.38",
+  "base_release_manifest_sha256": "1a245bd395e1bde63a8f761ca56c7ece0628f7bc479b491902ee078eddac11df",
+  "offline_tests_passed": false,
+  "isolated_update_passed": false,
+  "gui_verified": false,
+  "clean_build_verified": false,
   "limits": [
-    "Saved frames and synthetic accounts. No live account or device was used."
+    "Acceptance pending for the exact R85 CI candidate."
   ]
 }
