@@ -12,6 +12,30 @@ def is_story_h_title(title):
     return isinstance(title, str) and re.fullmatch(r'活动关卡H-[1-9]\d*', title) is not None
 
 
+def read_map_stage_word(word, map_name, recognize, node):
+    # A detached leading glyph (e.g. 一) can fall outside the detector's box.
+    # Accept a wider same-frame reading only if it verifies the entire map and stage.
+    if not map_name or len(map_name) < 2:
+        return word
+    compact = re.sub(r'\s+', '', word['text']).replace('－', '-').replace('—', '-').replace('–', '-')
+    # The detector can also keep the stroke and transcribe it as a dash.
+    leading = '-?' if map_name.startswith('一') else ''
+    stage = re.fullmatch(leading + re.escape(map_name[1:]) + r'(\d+-\d+)', compact)
+    if not stage:
+        return word
+    x, y, width, height = word['box']
+    left = max(0, x - height * 3 // 2)
+    top = max(0, y - 2)
+    roi = [left, top, x + width + 3 - left, y + height + 2 - top]
+    found = recognize(node, {node: dict(roi=roi, only_rec=True)})
+    matches = (found.raw_detail or {}).get('filtered', []) if found and found.hit else []
+    if len(matches) == 1 and matches[0]['score'] >= .9:
+        text = re.sub(r'\s+', '', matches[0]['text']).replace('－', '-').replace('—', '-').replace('–', '-')
+        if text == map_name + stage[1]:
+            return dict(word, text=text, score=min(word['score'], matches[0]['score']))
+    return word
+
+
 def valid_event_identity(value):
     # The game supplies no year here. Preserve the observed period; never infer
     # a refresh, change the Journal namespace, or reinterpret an old unknown.

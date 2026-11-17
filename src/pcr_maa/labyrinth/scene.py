@@ -526,6 +526,7 @@ class MaaSceneRuntime:
         deadline=min(parent_deadline,started+timeout)
         role_connection=('role_reward' in sources or 'free_role_reward' in sources) and acquisition_fields is not None
         connection_deadline=min(parent_deadline,started+max(timeout,REWARD_CONNECTION_TIMEOUT_SECONDS)) if role_connection else deadline
+        joined_read_deadline=None
         token=native.RUN_DEADLINE.set(deadline);acquisition_clicks=0;last_acquisition=-float('inf')
         def advance_owned(operation,fields,send):
             try:
@@ -555,10 +556,16 @@ class MaaSceneRuntime:
             else ('unknown','event_animation','character_animation'))
         try:
             while True:
-                batch.checkpoint();remaining=deadline-native.active_now()
+                batch.checkpoint()
+                read_deadline=joined_read_deadline if joined_read_deadline is not None else deadline
+                remaining=read_deadline-native.active_now()
                 if remaining<=0:raise BatchStopped(reason)
+                native.RUN_DEADLINE.set(read_deadline)
                 after=self.observe(timeout=min(timeout,remaining));batch.checkpoint()
-                if native.active_now()>=deadline:raise BatchStopped(reason)
+                native.RUN_DEADLINE.set(deadline)
+                accept_deadline=read_deadline if after.kind=='joined' else deadline
+                joined_read_deadline=None
+                if native.active_now()>=accept_deadline:raise BatchStopped(reason)
                 _native_ok(after.native)
                 if after.kind in ('date_changed','disconnected'):raise BatchStopped(after.kind)
                 if after.kind=='connecting':
@@ -600,12 +607,16 @@ class MaaSceneRuntime:
                             return self.stamp(operation_id=oid,**acquisition_fields,native=sent,input_native=sent,input_action_verified=True)
                         if advance_owned('advance_character_animation',acquisition_fields,advance):
                             acquisition_clicks+=1;last_acquisition=native.active_now()
+                        elif role_connection and 'joined' in allowed:
+                            # A replaced animation sent no input. Give the joined popup one
+                            # fresh read; other pages and all inputs keep the original deadline.
+                            joined_read_deadline=min(parent_deadline,native.active_now()+timeout)
                     _poll_pause(self.tasker,batch,'LabySceneTransitionPollSpacing',reason);continue
 
                 if after.kind in allowed and not partial_map:
                     accepted=accept is None or accept(after)
                     batch.checkpoint()
-                    if native.active_now()>=deadline:raise BatchStopped(reason)
+                    if native.active_now()>=accept_deadline:raise BatchStopped(reason)
                     if accepted:
                         if acquisition_fields is not None:
                             after=Scene(after.kind,after.native,dict(after.payload,acquisition_driver_advanced=acquisition_clicks>0))

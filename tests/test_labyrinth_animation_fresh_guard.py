@@ -81,6 +81,43 @@ def failed_animation(status):
             recognition_failed=status == 'proven_unsent', action_started=False)))
 
 
+@pytest.mark.parametrize('source', ['role_reward', 'free_role_reward'])
+@pytest.mark.parametrize('page,parent,success', [
+    ('joined', 60, True), ('joined', 12.5, False), ('unknown', 60, False),
+    ('role_reward', 60, False),
+])
+def test_slow_reward_guard_grants_only_a_bounded_joined_read(monkeypatch, source, page, parent, success):
+    batch, stamp = harness()
+    clock = [0.0]
+    reads, attempts = [], []
+    def observe(*, timeout):
+        reads.append(native.RUN_DEADLINE.get())
+        clock[0] = 2 if len(reads) == 1 else 13
+        return scene.Scene('unknown' if len(reads) == 1 else page, receipt(), {})
+    def perform(current, action):
+        attempts.append(action)
+        clock[0] = 8
+        raise failed_animation('proven_unsent')
+    runtime = NS(tasker=NS(), stamp=stamp, observe=observe, perform=perform)
+    monkeypatch.setattr(native, 'active_now', lambda: clock[0])
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *args: None)
+    token = native.RUN_DEADLINE.set(parent)
+    try:
+        def wait():
+            return scene.MaaSceneRuntime.wait_for(runtime, batch, {'joined','role_reward'}, source=source,
+                timeout=12, reason='role_reward_readback_unknown', acquisition_fields={'enter_id':282})
+        if success:
+            assert wait().kind == 'joined'
+        else:
+            with pytest.raises(BatchStopped, match='^role_reward_readback_unknown$'):
+                wait()
+        assert native.RUN_DEADLINE.get() == parent
+        assert reads == [12, min(parent, 20)]
+        assert attempts == ['advance_character_animation']
+    finally:
+        native.RUN_DEADLINE.reset(token)
+
+
 @pytest.mark.parametrize('status', ['proven_unsent', 'uncertain', 'unproven_unsent'])
 def test_autoplay_animation_recovery_preserves_input_evidence(tmp_path, status):
     route = route_for([1, 5])

@@ -74,6 +74,25 @@ def test_default_observe_and_explicit_preview(tmp_path):
     assert not p.journal.events()
 
 
+@pytest.mark.parametrize('observed,confidence,expected', [
+    ('一日店长的轨迹1-3', .98, '一日店长的轨迹1-3'),
+    ('一日店长的轨迹1-2', .99, '日店长的轨迹1-3'),
+    ('一日店长的轨迹1-3', .7, '日店长的轨迹1-3'),
+    ('日店长的轨迹1-3', .99, '日店长的轨迹1-3'),
+])
+@pytest.mark.parametrize('prefix', ['', '-'])
+def test_event_stage_requires_complete_same_frame_title(observed, confidence, expected, prefix):
+    from types import SimpleNamespace
+    from pcr_maa.event import read_map_stage_word
+    word = dict(text=prefix+'日店长的轨迹1-3', score=.99, box=[80,259,196,21] if prefix else [102,259,174,21])
+    def recognize(node, overrides):
+        roi = overrides[node]['roi']
+        assert roi[0] < 81 and roi[0] + roi[2] > 276 and overrides[node]['only_rec']
+        return SimpleNamespace(hit=True, raw_detail={'filtered':[dict(text=observed,score=confidence)]})
+    result = read_map_stage_word(word, '一日店长的轨迹', recognize, 'EventRowsOCR')
+    assert result['text'] == (expected if expected.startswith('一') else prefix+expected) and result['box'] == word['box']
+
+
 @pytest.mark.parametrize('fault', ['normal', 'boss', 'limit', 'over_target', 'missing_page', 'stamina'])
 def test_synthetic_bad_scope_or_quote_never_submits(tmp_path, fault):
     p = Port()

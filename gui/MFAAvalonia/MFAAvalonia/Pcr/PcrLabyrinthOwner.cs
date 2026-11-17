@@ -204,19 +204,43 @@ internal static class PcrLabyrinthOwner
             PcrRuntimePaths.RequireUpdateComplete(AppContext.BaseDirectory,root);
             var script=Path.Combine(root,"scripts","start-labyrinth-owned-agent.py");
             if (!File.Exists(script)) throw new InvalidOperationException("黎明界执行组件缺失，请重新解压完整候选包。");
-            cancel.Token.ThrowIfCancellationRequested();
-            run.Child=new PcrWindowsChild();
             var arguments = new[] { "-X", "utf8", "-B", "-u", script };
             if (vm.PlayerLog is { } playerLog) arguments = arguments.Concat(new[] { "--player-log", playerLog.RunId }).ToArray();
-            run.Child.StartWithEnvironment(PcrRuntimePaths.ResolvePython(root),root,
-                PcrNetworkProxy.DirectEnvironment(),arguments);
-            await run.Child.Send(request.ToString(Formatting.None)).WaitAsync(cancel.Token);
-            request.Remove("credentials");
-            bool receipt=false;
+            async Task<PcrWindowsChild> StartWorkerAsync() {
+                cancel.Token.ThrowIfCancellationRequested();
+                var child=run.Child=new PcrWindowsChild();
+                child.StartWithEnvironment(PcrRuntimePaths.ResolvePython(root),root,
+                    PcrNetworkProxy.DirectEnvironment(),arguments);
+                await child.Send(request.ToString(Formatting.None)).WaitAsync(cancel.Token);
+                if (request.Value<bool>("cpu_only")) request.Remove("credentials");
+                return child;
+            }
+            var worker=await StartWorkerAsync();
             var lastLogged=string.Empty;
             var resumeProgress=string.Empty;
             string? lastStage="validating";
-            await foreach (var line in run.Child.Lines.Reader.ReadAllAsync(cancel.Token)) {
+            while (true) {
+                cancel.Token.ThrowIfCancellationRequested();
+                if (!await worker.Lines.Reader.WaitToReadAsync(cancel.Token)) {
+                    // The pipes may close just before Windows signals the process handle.
+                    var exitCode=await Task.Run(() => worker.WaitForExitCode(1000));
+                    cancel.Token.ThrowIfCancellationRequested();
+                    if (lastStage=="ocr_warmup" && exitCode==0xC0000005 && request.ContainsKey("credentials")
+                        && !request.Value<bool>("cpu_only") && !vm.LabyrinthSettings.IsPaused && !vm.LabyrinthSettings.PausePending) {
+                        await Task.Run(worker.Dispose);
+                        cancel.Token.ThrowIfCancellationRequested();
+                        request["cpu_only"]=true;
+                        lastStage="validating";
+                        startup.CancelAfter(StartupWait(lastStage)!.Value);
+                        vm.LabyrinthSettings.Progress="自动推理在首次文字识别预热时退出（0xC0000005），本次改用 CPU 重试。";
+                        Trace(vm,vm.LabyrinthSettings.Progress);
+                        worker=await StartWorkerAsync();
+                        continue;
+                    }
+                    terminalOutcome="worker_no_result";
+                    throw new InvalidOperationException(MissingResult(vm.LabyrinthSettings.Progress,request.Value<bool>("cpu_only"),exitCode));
+                }
+                if (!worker.Lines.Reader.TryRead(out var line)) continue;
                 if (line.Error) continue; // never display SDK exception text or tokens
                 JObject value;
                 try {
@@ -253,6 +277,7 @@ internal static class PcrLabyrinthOwner
                     continue;
                 }
                 if (kind=="captcha") {
+                    request.Remove("credentials");
                     if (!PcrLabyrinthCaptchaMessage.TryParse(line.Text,out var captcha))
                         throw new InvalidOperationException("人工验证码消息无效，本次任务已停止。");
                     lock (PcrProfileRunGate.StartGate) {
@@ -277,6 +302,9 @@ internal static class PcrLabyrinthOwner
                 if (kind=="progress") {
                     var stage=(string?)value["stage"];
                     lastStage=stage;
+                    // Only a pre-login warmup crash may replay this request.
+                    if (stage is not ("validating" or "dependencies" or "resources" or "connecting" or "ocr_warmup"))
+                        request.Remove("credentials");
                     if (StartupWait(stage) is { } wait) startup.CancelAfter(wait);
                     vm.LabyrinthSettings.Progress=stage switch {
                         "validating"=>"正在校验黎明界配置…", "dependencies"=>"正在加载黎明界执行组件…",
@@ -302,7 +330,6 @@ internal static class PcrLabyrinthOwner
                 if (kind=="result") {
                     if ((string?)value["outcome"]=="complete" && (bool?)value["batch_complete"]!=true)
                         throw new InvalidOperationException("黎明界通关结果不完整，本次未确认完成。");
-                    receipt=true;
                     var outcome=(string?)value["outcome"];
                     terminalOutcome=outcome ?? "unknown";
                     finished=!string.IsNullOrWhiteSpace(outcome) && outcome!="stopped";
@@ -317,14 +344,6 @@ internal static class PcrLabyrinthOwner
                     else Trace(vm,reason);
                     break; // Terminal receipt; the owned Job closes descendant pipes in finally.
                 }
-            }
-            if (!receipt) {
-                cancel.Token.ThrowIfCancellationRequested();
-                // Windows may close both output pipes before signalling the process handle.
-                var exitCode=await Task.Run(() => run.Child.WaitForExitCode(1000));
-                cancel.Token.ThrowIfCancellationRequested();
-                terminalOutcome="worker_no_result";
-                throw new InvalidOperationException(MissingResult(vm.LabyrinthSettings.Progress,request.Value<bool>("cpu_only"),exitCode));
             }
         } catch (OperationCanceledException) {
             cancelled=true;
