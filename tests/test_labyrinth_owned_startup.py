@@ -193,6 +193,40 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     assert 'synthetic-password' not in json.dumps(events)
 
 
+def test_animation_setting_preflight_runs_before_controller(tmp_path, monkeypatch):
+    from pcr_maa.labyrinth import animation_setting
+    owned, events, calls = runtime(tmp_path, monkeypatch)
+    seen = []
+
+    def fake(adb_path, serial, package, *, log, stopped):
+        seen.append((adb_path, serial, package, callable(log), callable(stopped)))
+        calls.append('animation')
+        return 'already_off'
+
+    monkeypatch.setattr(animation_setting, 'ensure_animation_off', fake)
+    assert owned.run() == dict(outcome='stopped', batch_complete=False)
+    assert seen == [('synthetic-adb.exe', '127.0.0.1:65530', 'com.bilibili.priconne',
+                     True, True)]
+    assert calls[0] == 'animation'
+    assert calls.index('animation') < calls.index('controller')
+
+
+def test_animation_setting_no_root_does_not_stop_the_run(tmp_path, monkeypatch):
+    from pcr_maa.labyrinth import animation_setting
+    owned, events, calls = runtime(tmp_path, monkeypatch)
+    logs = []
+
+    def no_root(adb_path, serial, package, *, log, stopped):
+        logs.append('synthetic no root')
+        return 'no_root'
+
+    monkeypatch.setattr(animation_setting, 'ensure_animation_off', no_root)
+    assert owned.run() == dict(outcome='stopped', batch_complete=False)
+    assert logs == ['synthetic no root']
+    assert 'client' in calls and 'batch' in calls
+    assert 'animation' not in calls
+
+
 @pytest.mark.parametrize('device', ['cpu', 'webgpu'])
 def test_rejected_inference_selection_stops_before_loading_models_or_connecting(tmp_path, monkeypatch, device):
     from pcr_maa import native
