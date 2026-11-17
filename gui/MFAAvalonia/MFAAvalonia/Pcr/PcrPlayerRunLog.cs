@@ -162,7 +162,7 @@ internal sealed class PcrPlayerRunLog
         bool Failed(string directory)
         {
             try { return (string?)JObject.Parse(File.ReadAllText(Path.Combine(directory,"manifest.json")))["outcome"]
-                is "failed" or "cleanup_unconfirmed" or "not_started"; }
+                is "failed" or "worker_no_result" or "cleanup_unconfirmed" or "not_started"; }
             catch { return false; }
         }
         var recentError = runs.Where(Failed).MaxBy(Directory.GetLastWriteTimeUtc);
