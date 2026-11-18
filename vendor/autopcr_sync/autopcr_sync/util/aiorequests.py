@@ -22,7 +22,7 @@ async def post(url, data=None, headers=None, **kwargs):
     parsed = urlsplit(url)
     if parsed.scheme != "https" or parsed.netloc != "line1-sdk-center-login-sh.biligame.net" or parsed.path not in SDK_PATHS or parsed.query:
         raise RuntimeError("sdk_request_rejected")
-    response = await asyncio.to_thread(requests.post, url, data=data, headers=headers, timeout=(5, 10), allow_redirects=False)
+    response = await asyncio.to_thread(requests.post, url, data=data, headers=headers, timeout=(10, 10), allow_redirects=False)
     if response.status_code != 200:
         raise RuntimeError("sdk_request_failed")
     return AsyncResponse(response)

@@ -102,7 +102,7 @@ class ReadOnlyClient:
             attempts = 2 if type(request) in (SourceIniIndexRequest, SourceIniGetMaintenanceStatusRequest) else 1
             for attempt in range(1, attempts + 1):
                 response = await asyncio.to_thread(requests.post, url, data=body, headers=self.headers,
-                    timeout=(5, 10), allow_redirects=False)
+                    timeout=(10, 10), allow_redirects=False)
                 if attempt == attempts or response.status_code not in (502, 503, 504) or "Retry-After" in response.headers:
                     break
                 await asyncio.sleep(.25)

@@ -378,6 +378,26 @@ def test_gateway_retries_only_the_readback(monkeypatch, operation, statuses, hea
     finally:value.close()
 
 
+def test_protocol_reuses_one_keep_alive_session_until_the_game_takes_over(monkeypatch):
+    import requests
+    value=client()
+    created=[]
+    class Session:
+        def __init__(self): self.closed=False; created.append(self)
+        def post(self,*args,**kwargs): raise AssertionError('no wire request expected')
+        def close(self): self.closed=True
+    monkeypatch.setattr(requests,'Session',Session)
+    assert value._poster().__self__ is value._poster().__self__
+    assert len(created)==1
+    value._phase='protocol'; value.logged_in=True
+    value._sdk_uid='synthetic-uid'; value._sdk_access_key='synthetic-key'
+    assert asyncio.run(value.suspend_for_game()) is True
+    assert created[0].closed is True and value._session is None
+    value._poster()
+    value.close()
+    assert len(created)==2 and created[1].closed is True
+
+
 def test_resume_transport_failure_logs_no_private_detail_or_retry(monkeypatch):
     import requests
     from pcr_maa import player_log

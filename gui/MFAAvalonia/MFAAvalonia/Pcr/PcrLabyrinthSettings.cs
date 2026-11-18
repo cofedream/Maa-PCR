@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Configuration;
@@ -59,10 +61,15 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     }
     partial void OnServerChanged(string value) {
         if (!ready || switchingAccount) return;
+        networkCheckCancel?.Cancel();
         var wasReady=ready; ready=false;
         try { Username=""; Password=""; ExpectedPlayerId=""; ShowCredentials=false; credentialsDirty=true; }
         finally { ready=wasReady; }
         CredentialsStatus="服务器已更改，请重新填写该服务器的玩家 ID、登录 UID 与凭据。";
+        NetworkCheckStatus="";
+    }
+    partial void OnAutoDatabaseUpdateChanged(bool value) {
+        if (ready) networkCheckCancel?.Cancel();
     }
     public string[] SpecialEquipmentModes { get; } = { "关闭", "自动装备" };
     [ObservableProperty] private string specialEquipmentMode = "关闭";
@@ -145,6 +152,18 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         : string.IsNullOrWhiteSpace(ExpectedPlayerId) || string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password) ? "账号待填写，展开后设置。"
         : "账号已填写，默认隐藏。";
     [ObservableProperty] private string progress = "尚未开始";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NetworkCheckText), nameof(HasNetworkCheckStatus))]
+    private bool networkCheckPending;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNetworkCheckStatus))]
+    private string networkCheckStatus = "";
+    public string NetworkCheckText => NetworkCheckPending ? "正在自检…" : "网络自检";
+    public bool HasNetworkCheckStatus => NetworkCheckStatus.Length>0;
+    // A completed report is discarded when the account, channel or database
+    // toggle it was started from has changed; the in-flight child is cancelled.
+    private const string StaleNetworkCheckStatus="自检期间已切换账号、渠道或更改数据库设置，本次结果已丢弃，请重新自检。";
+    private CancellationTokenSource? networkCheckCancel;
     private PcrLabyrinthCharacterCatalog? characterCatalog;
     public PcrLabyrinthCharacterCatalog CharacterCatalog => characterCatalog ??= CreateCharacterCatalog();
     [ObservableProperty]
@@ -229,7 +248,9 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private void ApplyAccount(PcrLabyrinthAccount account) {
         var wasReady=ready; ready=false; switchingAccount=true;
         try {
+            networkCheckCancel?.Cancel();
             RelicPriorityNotice="";
+            NetworkCheckStatus="";
             relicPriorityMigrated=false;
             saved=account.Settings.Count==0 ? null : account.Settings.ToString(Formatting.None);
             AccountName=account.Name; Server=account.Server;
@@ -384,6 +405,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
                 or nameof(SelectedAccount) or nameof(SelectedServer) or nameof(LoginLabel) or nameof(PasswordLabel) or nameof(LoginHint)
                 or nameof(IsPaused) or nameof(PausePending) or nameof(PauseLabel) or nameof(DeleteAccountPending) or nameof(DeleteAccountText)
                 or nameof(BossFilterStatus) or nameof(HasBossFilterStatus)
+                or nameof(NetworkCheckPending) or nameof(NetworkCheckStatus)
+                or nameof(NetworkCheckText) or nameof(HasNetworkCheckStatus)
                 or nameof(RelicPriorityNotice) or nameof(HasRelicPriorityNotice)) return;
         vm.NotifyPcrSelectionChanged();
         if (e.PropertyName is nameof(ExpectedPlayerId) or nameof(Username) or nameof(Password)) {
@@ -393,6 +416,38 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         else if (e.PropertyName is not (nameof(Status) or nameof(Progress))) SaveCore(automatic:true);
     }
     [RelayCommand] public void ToggleCredentials() => ShowCredentials=!ShowCredentials;
+    // On-demand only: a pre-start gate cannot predict a single slow handshake
+    // mid-run, so this reports fixed reachability facts and never blocks Start.
+    [RelayCommand] public async Task CheckNetworkAsync() {
+        if (NetworkCheckPending || !ready) return;
+        if (!vm.CanEditPcrTarget || PcrProfileRunGate.Busy) { NetworkCheckStatus="任务或连接进行中，不能自检。"; return; }
+        var startedAccount=SelectedAccount;
+        var startedServer=Server;
+        var startedDatabase=AutoDatabaseUpdate;
+        using var cancel=new CancellationTokenSource();
+        networkCheckCancel=cancel;
+        NetworkCheckPending=true;
+        NetworkCheckStatus="正在检查游戏服、登录服和 GitHub 的连接…";
+        try {
+            var report=await PcrLabyrinthNetworkCheck.RunAsync(startedServer,startedDatabase,cancel.Token);
+            if (cancel.IsCancellationRequested
+                || !PcrLabyrinthNetworkCheck.IsCurrent(startedServer,startedAccount,startedDatabase,
+                    Server,SelectedAccount,AutoDatabaseUpdate)) {
+                NetworkCheckStatus=StaleNetworkCheckStatus;
+                return;
+            }
+            NetworkCheckStatus=PcrLabyrinthNetworkCheck.Describe(report);
+            vm.Processor.AddLog(NetworkCheckStatus);
+        } catch (OperationCanceledException) {
+            NetworkCheckStatus=cancel.IsCancellationRequested ? StaleNetworkCheckStatus : "网络自检超时，请稍后重试。";
+        } catch (Exception ex) {
+            NetworkCheckStatus="网络自检未完成："+(ex is InvalidOperationException or InvalidDataException
+                ? ex.Message : "请稍后重试。");
+        } finally {
+            if (ReferenceEquals(networkCheckCancel,cancel)) networkCheckCancel=null;
+            NetworkCheckPending=false;
+        }
+    }
     public void HideCredentials() => ShowCredentials=false;
     private void ClearSdkSession(PcrLabyrinthAccount account) {
         if (string.IsNullOrEmpty(account.Credentials)) return;
