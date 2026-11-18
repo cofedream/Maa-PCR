@@ -145,11 +145,12 @@ class NativePreset:
         if type(slot) is not int or not 1 <= slot <= 7:
             raise ValueError('slot must be 1..7')
         observed = native.run(self.tasker, 'PresetReadbackStart')
-        page_verified = completed(observed, 'ObservePresets')
+        selected = next((i for i in range(1, 8) if completed(observed, f'SelectedSlot{i}')), None)
+        # A page hit can precede a transition to a different frame during slot readback.
+        if not completed(observed, 'ObservePresets'):
+            selected = None
         observed['observation'] = dict(
-            page='presets' if page_verified else 'unknown',
-            selected_slot=next((i for i in range(1, 8)
-                                if page_verified and completed(observed, f'SelectedSlot{i}')), None),
+            page='presets' if selected is not None else 'unknown', selected_slot=selected,
             list_complete=False, daily_complete=False)
         return dict(native_ok=observed['native_ok'], requested_slot=slot,
                     selected_slot=observed['observation']['selected_slot'],

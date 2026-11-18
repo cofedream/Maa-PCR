@@ -150,15 +150,18 @@ def test_native_entry_dispatches_only_one_saved_frame_click(saved_ui, entry, edg
         native.stop_tasker(tasker)
 
 
-def test_entry_rechecks_changed_frame_before_click(saved_ui):
+@pytest.mark.parametrize('action', ['RewardsMissionsOpen', 'RewardsGiftsOpen'])
+def test_entry_rechecks_changed_frame_before_click(saved_ui, action):
+    entry = action + 'Start'
     resource = native.load_resource()
-    assert resource.override_pipeline({'RewardsMissionsOpenStart': dict(timeout=200, on_error=[])})
+    assert resource.override_pipeline({entry: dict(timeout=200, on_error=[])})
     controller = SavedImages([[saved_ui, np.zeros_like(saved_ui)]])
     tasker = native.bind(resource, controller)
     try:
-        receipt = native.run(tasker, 'RewardsMissionsOpenStart')
+        receipt = native.run(tasker, entry)
         assert not controller.clicks and not controller.swipes
-        assert not any(row['name'] == 'RewardsMissionsOpen' and row['completed'] for row in receipt['nodes'])
+        assert controller.frame >= 2
+        assert not any(row['name'] == action and row['completed'] for row in receipt['nodes'])
     finally:
         native.stop_tasker(tasker)
 

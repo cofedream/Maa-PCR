@@ -338,6 +338,10 @@
     "post_delay": 650
   },
   "RewardsMissionsOpenStart": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsHomeMissionsGuard"
+    ],
     "next": [
       "RewardsMissionsOpen"
     ],
@@ -432,6 +436,10 @@
     "post_delay": 650
   },
   "RewardsGiftsOpenStart": {
+    "recognition": "And",
+    "all_of": [
+      "RewardsHomeGiftsGuard"
+    ],
     "next": [
       "RewardsGiftsOpen"
     ],
