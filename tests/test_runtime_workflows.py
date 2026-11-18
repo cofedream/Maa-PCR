@@ -61,6 +61,17 @@ def test_ci_runs_all_profile_contract_modes_from_one_build_with_bounded_evidence
     assert '.runtime/ci/profile-checks/' in steps['Publish Build Evidence']
 
 
+def test_gui_resource_load_selects_inference_device_before_loading_models():
+    gui = ROOT / 'gui/MFAAvalonia/MFAAvalonia'
+    processor = (gui / 'Extensions/MaaFW/MaaProcessor.cs').read_text(encoding='utf-8')
+    model = (gui / 'ViewModels/UsersControls/Settings/PerformanceUserControlModel.cs').read_text(encoding='utf-8')
+    assert 'new MaaResource(resources)' not in processor
+    assert 'new MaaResource(paths)' not in model
+    load = model.split('private static MaaResource LoadInferenceResource(', 1)[1]
+    assert load.index('SetOption_InferenceExecutionProvider') < load.index('resource.AppendBundle(path)')
+    assert load.index('SetOption_InferenceDevice') < load.index('resource.AppendBundle(path)')
+
+
 def test_ci_runs_account_and_rating_windows_against_packaged_core_with_timeout():
     text=(ROOT/'.github/workflows/ci.yml').read_text(encoding='utf-8')
     checks=text.split('      - name: Labyrinth Parity GUI Checks\n',1)[1].split('      - name: Bundled Runtime Checks',1)[0]

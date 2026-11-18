@@ -1668,7 +1668,7 @@ public class MaaProcessor
                 token.ThrowIfCancellationRequested();
                 if (resources.Count > 0)
                 {
-                    return new MaaResource(resources);
+                    return Instances.PerformanceUserControlModel.CreateInferenceResource(resources);
                 }
                 return new MaaResource();
             }, token: token, name: "截图资源检测", catchException: true, shouldLog: false, noMessage: true);
@@ -1787,7 +1787,7 @@ public class MaaProcessor
             // PI v2.6.0 要求 hash 只基于 resource.path，必须在 attach_resource_path 之前校验。
             if (!string.IsNullOrWhiteSpace(currentResource?.Hash))
             {
-                using var hashResource = new MaaResource(resources);
+                using var hashResource = Instances.PerformanceUserControlModel.CreateInferenceResource(resources);
                 var actualHash = hashResource.Hash;
                 if (!string.Equals(actualHash, currentResource.Hash, StringComparison.OrdinalIgnoreCase))
                 {
