@@ -26,9 +26,9 @@ def validate_connection(value):
     path = value['adb_path']
     if (not isinstance(path, str) or not path or path.startswith(('\\\\', '//'))
             or any(c in path for c in '\r\n\x00')
-            or not Path(path).is_absolute() or Path(path).name.lower() != 'adb.exe'
+            or not Path(path).is_absolute() or Path(path).name.lower() not in ('adb.exe', 'hd-adb.exe')
             or not Path(path).is_file()):
-        raise ValueError('ADB 路径无效：须为本机已有 adb.exe 的绝对路径（可含中文/空格）')
+        raise ValueError('ADB 路径无效：须为本机已有的 adb.exe 或 HD-Adb.exe 的绝对路径（可含中文/空格）')
     validate_serial(value['serial'])
     return dict(value)
 

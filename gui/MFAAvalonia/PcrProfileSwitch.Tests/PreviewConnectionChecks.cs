@@ -49,8 +49,11 @@ internal static class PreviewConnectionChecks
         SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
         try
         {
-            foreach (var profile in new[] { "pcr-alpha-v1", "pcr-labyrinth-v1", PcrClanGuide.ProfileId })
-                ConnectionFeedback(manager, directory, profile);
+            var blueStacksAdb = Path.Combine(directory, "HD-Adb.exe");
+            File.WriteAllText(blueStacksAdb, "OFFLINE FIXTURE - MUST NEVER EXECUTE");
+            ConnectionFeedback(manager, directory, "pcr-alpha-v1", blueStacksAdb, "emulator-5584");
+            ConnectionFeedback(manager, directory, "pcr-labyrinth-v1", adbPath, "emulator-5556");
+            ConnectionFeedback(manager, directory, PcrClanGuide.ProfileId, adbPath, "127.0.0.1:16384");
             CheckOwnerStartFixture(manager);
             foreach (var phase in new[] { "connect", "first_frame" })
             {
@@ -68,9 +71,12 @@ internal static class PreviewConnectionChecks
         finally { repository.SetValue(null, previousRepository); SynchronizationContext.SetSynchronizationContext(previousContext); }
     }
 
-    private static void ConnectionFeedback(MaaProcessorManager manager, string directory, string profile)
+    private static void ConnectionFeedback(MaaProcessorManager manager, string directory,
+        string profile, string path, string serial)
     {
         using var fixture = new Fixture(manager, profile);
+        Set(fixture.Vm, "_currentDevice", new AdbDeviceInfo("synthetic preview controller", path, serial,
+            AdbScreencapMethods.Encode, AdbInputMethods.None, "{}"));
         var native = new PreviewController("failed");
         fixture.Factory(native);
         var view = new PcrLiveLogView { DataContext = fixture.Vm };
@@ -113,7 +119,7 @@ internal static class PreviewConnectionChecks
             {
                 using var reader = new StreamReader(zip.GetEntry("events.log")!.Open());
                 var text = reader.ReadToEnd();
-                Require(text.Contains("127.0.0.1:16384") && text.Contains("adb.exe") && text.Contains("尚未开始任务")
+                Require(text.Contains(serial) && text.Contains(Path.GetFileName(path)) && text.Contains("尚未开始任务")
                     && text.Contains("底层连接未成功"), profile + "_zip_contains_target_and_failure");
                 Require(zip.Entries.All(e => !e.FullName.EndsWith(".png")) && new FileInfo(target).Length <= 16 * 1024 * 1024,
                     profile + "_connection_zip_has_no_game_images_and_respects_quota");

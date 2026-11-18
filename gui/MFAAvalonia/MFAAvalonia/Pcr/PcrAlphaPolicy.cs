@@ -18,7 +18,8 @@ public static class PcrAlphaPolicy
         if (!MFAAvalonia.ViewModels.UsersControls.AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(
                 device.AdbPath, device.AdbSerial, out var finder, out _)) return false;
         var directory = Path.GetDirectoryName(finder)!;
-        if (!string.Equals(Path.GetFileName(directory), "nx_main", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!string.Equals(Path.GetFileName(finder), "adb.exe", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(Path.GetFileName(directory), "nx_main", StringComparison.OrdinalIgnoreCase)) return false;
         var installation = Path.GetDirectoryName(directory)!;
         var candidate = Path.Combine(installation,"nx_device","12.0","shell","adb.exe");
         if (!File.Exists(candidate)) return false;

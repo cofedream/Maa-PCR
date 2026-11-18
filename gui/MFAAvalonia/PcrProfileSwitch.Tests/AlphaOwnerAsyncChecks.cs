@@ -96,6 +96,19 @@ internal static class AlphaOwnerAsyncChecks
             AdbScreencapMethods.Encode, AdbInputMethods.AdbShell, "{}");
         var describe = owner.Assembly.GetType("MFAAvalonia.Pcr.PcrAdbDiscovery")!
             .GetMethod("Describe", BindingFlags.Public | BindingFlags.Static)!;
+        var autoSelect = describe.DeclaringType!.GetMethod("AutoSelect")!;
+        var blueStacksAdb = Path.Combine(fixture, "HD-Adb.exe");
+        File.WriteAllText(blueStacksAdb, "OFFLINE FIXTURE - MUST NEVER EXECUTE");
+        foreach (var serial in new[] { "emulator-5584", "127.0.0.1:5585" })
+        {
+            var raw = new AdbDeviceInfo("BlueStacks Finder fixture", blueStacksAdb, serial,
+                AdbScreencapMethods.Default, AdbInputMethods.Maatouch, "{}");
+            var target = (AdbDeviceInfo)describe.Invoke(null, [raw])!;
+            Require(target.Name.StartsWith("【ADB】") && target.AdbPath == blueStacksAdb && target.AdbSerial == serial,
+                "bluestacks_finder_preserves_builtin_adb: " + serial);
+            Require(ReferenceEquals(autoSelect.Invoke(null, [new[] { target }, null]), target),
+                "single_bluestacks_target_is_auto_selected: " + serial);
+        }
         var transport = owner.Assembly.GetType("MFAAvalonia.Pcr.PcrMuMuDisplay")!
             .GetMethod("RequireTransport", Hidden)!;
         var managerSource = owner.Assembly.GetType("MFAAvalonia.Pcr.PcrMuMuIdentity")!
@@ -130,12 +143,15 @@ internal static class AlphaOwnerAsyncChecks
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
             File.WriteAllText(file, "OFFLINE FIXTURE - MUST NEVER EXECUTE");
         }
-        var mumuRaw = new AdbDeviceInfo("MuMu LAN fixture", mumuFinder, "192.168.1.4:5555",
-            AdbScreencapMethods.Default, AdbInputMethods.Maatouch, "{\"finder_only\":true}");
-        var mumuMapped = (AdbDeviceInfo)describe.Invoke(null, [mumuRaw])!;
-        Require(mumuMapped.Name.StartsWith("【MuMu】") && mumuMapped.AdbPath == mumuShell
-            && mumuMapped.AdbSerial == mumuRaw.AdbSerial && mumuMapped.Config == "{}" && mumuRaw.AdbPath == mumuFinder,
-            "mumu_finder_mapping_preserves_lan_endpoint_and_raw_source");
+        foreach (var serial in new[] { "127.0.0.1:16384", "192.168.1.4:5555" })
+        {
+            var mumuRaw = new AdbDeviceInfo("MuMu Finder fixture", mumuFinder, serial,
+                AdbScreencapMethods.Default, AdbInputMethods.Maatouch, "{\"finder_only\":true}");
+            var mumuMapped = (AdbDeviceInfo)describe.Invoke(null, [mumuRaw])!;
+            Require(mumuMapped.Name.StartsWith("【MuMu】") && mumuMapped.AdbPath == mumuShell
+                && mumuMapped.AdbSerial == serial && mumuMapped.Config == "{}" && mumuRaw.AdbPath == mumuFinder,
+                "mumu_finder_mapping_preserves_endpoint_and_raw_source: " + serial);
+        }
         foreach (var serial in new string?[] {
                      null, "", "remote.example:5555", "8.8.8.8:5555", "11.0.0.1:5555",
                      "172.15.255.254:5555", "172.32.0.1:5555", "192.169.1.4:5555",

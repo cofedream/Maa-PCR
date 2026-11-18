@@ -99,7 +99,7 @@ public partial class AdbEditorDialogViewModel : ObservableObject
             if (!TryNormalizePcrAdbTarget(AdbPath, AdbSerial, out var path, out var serial))
             {
                 ToastHelper.Warn(LangKeys.Warning.ToLocalization(),
-                    "请填写本机或局域网 IPv4:端口，或 emulator-串号，并选择本机已有 adb.exe 的完整路径。");
+                    "请填写本机或局域网 IPv4:端口，或 emulator-串号，并选择本机已有的 adb.exe 或 HD-Adb.exe。");
                 return;
             }
 
@@ -155,11 +155,13 @@ public partial class AdbEditorDialogViewModel : ObservableObject
         var candidate = path?.Trim().Replace('/', '\\');
         try
         {
+            var fileName = Path.GetFileName(candidate);
             if (string.IsNullOrWhiteSpace(candidate)
                 || !Path.IsPathFullyQualified(candidate)
                 || candidate.Length < 3 || !char.IsLetter(candidate[0])
                 || candidate[1] != ':' || candidate[2] != '\\'
-                || !string.Equals(Path.GetFileName(candidate), "adb.exe", StringComparison.OrdinalIgnoreCase)
+                || !(string.Equals(fileName, "adb.exe", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(fileName, "HD-Adb.exe", StringComparison.OrdinalIgnoreCase))
                 || !File.Exists(candidate))
                 return false;
 
