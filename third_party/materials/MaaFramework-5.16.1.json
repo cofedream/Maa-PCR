@@ -1,0 +1,139 @@
+{
+  "maaframework": "5.16.1",
+  "wheel": {
+    "filename": "maafw-5.16.1-py3-none-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/0d/78/661b155b1acfeafd76355a2854af825278640f65267c1513405ddc93ba6b/maafw-5.16.1-py3-none-win_amd64.whl",
+    "sha256": "9efea4b3f50cab0bcea713bf4a8dc0a1e5e01136e3c84a0d22031ee6e4afb1b4"
+  },
+  "sources": [
+    {
+      "path": "sources/MaaFramework-ea944bd7b75f649851dc4807295966b3676bc821.zip",
+      "sha256": "ff720a3caae9e408b834353922470f50aa5179bcf11b520db1c2389b20d5da90",
+      "commit": "ea944bd7b75f649851dc4807295966b3676bc821",
+      "url": "https://api.github.com/repos/MaaXYZ/MaaFramework/zipball/ea944bd7b75f649851dc4807295966b3676bc821",
+      "notices": [
+        {
+          "path": "delivery-notices/originals/MaaFramework-ea944bd7b75f649851dc4807295966b3676bc821/LICENSE.md",
+          "sha256": "446e755fae55ff034bbb21be44670b5f116c2b2667947e7036f2bfe6632539a8",
+          "archive_entry": "MaaXYZ-MaaFramework-ea944bd/LICENSE.md"
+        }
+      ]
+    },
+    {
+      "path": "sources/MaaUtils-55be777e326db9419f45b4082e2bf2a1ed10e697.zip",
+      "sha256": "f58e2f250f4ca288883f2374c0c400617fd623cb897c527ceacc5e4325c0cb76",
+      "commit": "55be777e326db9419f45b4082e2bf2a1ed10e697",
+      "url": "https://api.github.com/repos/MaaXYZ/MaaUtils/zipball/55be777e326db9419f45b4082e2bf2a1ed10e697",
+      "notices": [
+        {
+          "path": "delivery-notices/originals/MaaUtils-55be777e326db9419f45b4082e2bf2a1ed10e697/LICENSE.md",
+          "sha256": "446e755fae55ff034bbb21be44670b5f116c2b2667947e7036f2bfe6632539a8",
+          "archive_entry": "MaaXYZ-MaaUtils-55be777/LICENSE.md"
+        }
+      ]
+    },
+    {
+      "path": "sources/XDeviceBridge-37cf0839320373aaeff15b9a33b0e00815538f82.zip",
+      "sha256": "9bce7805515044c7bf58dcf78e2c32a601e6f08f92c54545fb98139ae539f2b9",
+      "commit": "37cf0839320373aaeff15b9a33b0e00815538f82",
+      "url": "https://api.github.com/repos/scrctl/XDeviceBridge/zipball/37cf0839320373aaeff15b9a33b0e00815538f82",
+      "notices": [
+        {
+          "path": "delivery-notices/originals/XDeviceBridge-37cf0839320373aaeff15b9a33b0e00815538f82/LICENSE",
+          "sha256": "a27d3e242d91483cc55cd35a3605aaeac2d9a6df7c06a5ffe24eabc9e0ec9d17",
+          "archive_entry": "scrctl-XDeviceBridge-37cf083/LICENSE"
+        },
+        {
+          "path": "delivery-notices/originals/XDeviceBridge-37cf0839320373aaeff15b9a33b0e00815538f82/COPYING.GPLv3",
+          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+          "archive_entry": "scrctl-XDeviceBridge-37cf083/COPYING.GPLv3"
+        }
+      ]
+    }
+  ],
+  "maadeps": {
+    "version": "v3.0.2",
+    "commit": "cec43f04c295054e0aa3dce6e5f685b7b64f5be8",
+    "url": "https://github.com/MaaXYZ/MaaDeps/releases/download/v3.0.2/MaaDeps-x64-windows.tar.xz",
+    "sha256": "31f43f9fb52d11ce421029444f7676dde583eba8a9c944cb08a0f0c9769473f0",
+    "matched_binaries": [
+      {
+        "wheel_entry": "maa/bin/DirectML.dll",
+        "archive_entry": "runtime/maa-x64-windows/DirectML.dll",
+        "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+      },
+      {
+        "wheel_entry": "maa/bin/dxcompiler.dll",
+        "archive_entry": "runtime/maa-x64-windows/dxcompiler.dll",
+        "sha256": "9b5e10ed756c461b4ec2c83a99f1d6ace20e97826e9c0b0e966b7b1cd6f2aec6"
+      },
+      {
+        "wheel_entry": "maa/bin/dxil.dll",
+        "archive_entry": "runtime/maa-x64-windows/dxil.dll",
+        "sha256": "cbcfe883a09fd0ca1f98abdf3a9553b560895e3283a136da82a8381253a169df"
+      },
+      {
+        "wheel_entry": "maa/bin/fastdeploy_ppocr_maa.dll",
+        "archive_entry": "runtime/maa-x64-windows/fastdeploy_ppocr_maa.dll",
+        "sha256": "671feaeeaa4d8f34719b8e75f279c810cc80c0db37f100778975f75d12c2f192"
+      },
+      {
+        "wheel_entry": "maa/bin/onnxruntime_maa.dll",
+        "archive_entry": "runtime/maa-x64-windows/onnxruntime_maa.dll",
+        "sha256": "29c654b2b6ba9eed0fc5fc94dd43407b2128a01ca02a8d32ab7aa6efdffc03e1"
+      },
+      {
+        "wheel_entry": "maa/bin/opencv_world4_maa.dll",
+        "archive_entry": "runtime/maa-x64-windows/opencv_world4_maa.dll",
+        "sha256": "34524a1b28b343e16b8016f44c52046358576be0e84c393d17de1146502df555"
+      },
+      {
+        "wheel_entry": "maa/bin/ViGEmClient.dll",
+        "archive_entry": "runtime/maa-x64-windows/ViGEmClient.dll",
+        "sha256": "2bf0cb1d809039573c922737d298a1653d4dbc61408060ff45a9bcfde82e97d2"
+      },
+      {
+        "wheel_entry": "maa/bin/webgpu_dawn_maa.dll",
+        "archive_entry": "runtime/maa-x64-windows/webgpu_dawn_maa.dll",
+        "sha256": "de591ae76b7db6da4f77f537d96a99f34c268c8ee33562523194d5d9e7080378"
+      }
+    ],
+    "notices": [
+      {
+        "path": "delivery-notices/originals/MaaDeps-v3.0.2/ONNX/copyright",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "archive_entry": "./vcpkg/installed/maa-x64-windows/share/ONNX/copyright"
+      },
+      {
+        "path": "delivery-notices/originals/MaaDeps-v3.0.2/dawn/copyright",
+        "sha256": "0493f897193af1796d5054659f45ec7d4c5af648fa67a99f01d30e55cc805abc",
+        "archive_entry": "./vcpkg/installed/maa-x64-windows/share/dawn/copyright"
+      },
+      {
+        "path": "delivery-notices/originals/MaaDeps-v3.0.2/directml-bin/copyright",
+        "sha256": "a05138e3a085ff60a44881eedfa58dccb03ecc1d7b1f6ae888418e8c2fec4b8d",
+        "archive_entry": "./vcpkg/installed/maa-x64-windows/share/directml-bin/copyright"
+      },
+      {
+        "path": "delivery-notices/originals/MaaDeps-v3.0.2/directx-dxc/copyright",
+        "sha256": "27a49e35d1da96eba18fba54bc882667ff0ff8c0254f16f2b6e165d605ba7df8",
+        "archive_entry": "./vcpkg/installed/maa-x64-windows/share/directx-dxc/copyright"
+      },
+      {
+        "path": "delivery-notices/originals/MaaDeps-v3.0.2/maa-fastdeploy/copyright",
+        "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "archive_entry": "./vcpkg/installed/maa-x64-windows/share/maa-fastdeploy/copyright"
+      },
+      {
+        "path": "delivery-notices/originals/MaaDeps-v3.0.2/maa-onnxruntime/copyright",
+        "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+        "archive_entry": "./vcpkg/installed/maa-x64-windows/share/maa-onnxruntime/copyright"
+      },
+      {
+        "path": "delivery-notices/originals/MaaDeps-v3.0.2/opencv4/copyright",
+        "sha256": "e5313db48cd388bb81b5f748aa9ba8b979e592e49ca7cc612ad8c4b01168f6f2",
+        "archive_entry": "./vcpkg/installed/maa-x64-windows/share/opencv4/copyright"
+      }
+    ]
+  }
+}

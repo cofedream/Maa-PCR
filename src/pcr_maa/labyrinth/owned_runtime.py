@@ -39,6 +39,7 @@ class OwnedRequest:
     keep_old_run: bool = False
     server: str = 'cn-bilibili'
     cpu_only: bool = False
+    webgpu: bool = False
 
     def clear(self):
         self.username = self.password = ''
@@ -47,14 +48,15 @@ class OwnedRequest:
 def parse_request(value):
     credentials = value.pop('credentials', None) if type(value) is dict else None
     try:
-        if (type(value) is not dict or set(value) - {'version', 'settings', 'account_id', 'connection', 'keep_old_run', 'server', 'cpu_only'}
+        if (type(value) is not dict or set(value) - {'version', 'settings', 'account_id', 'connection', 'keep_old_run', 'server', 'cpu_only', 'webgpu'}
                 or not {'version', 'settings', 'account_id', 'connection'} <= set(value)
                 or type(value['version']) is not int or value['version'] != 1
                 or type(value['account_id']) is not int or not 0 < value['account_id'] <= 2**63-1):
             raise ConfigurationError('invalid_configuration')
         keep_old_run = value.get('keep_old_run', False)
         cpu_only = value.get('cpu_only', False)
-        if type(keep_old_run) is not bool or type(cpu_only) is not bool:
+        webgpu = value.get('webgpu', False)
+        if type(keep_old_run) is not bool or type(cpu_only) is not bool or type(webgpu) is not bool or (cpu_only and webgpu):
             raise ConfigurationError('invalid_configuration')
         settings = Settings.parse(value['settings'])
         from .servers import get_server
@@ -68,7 +70,7 @@ def parse_request(value):
                 or '\x00' in credentials['password']):
             raise ConfigurationError('invalid_configuration')
         return OwnedRequest(settings, value['account_id'], connection,
-                            credentials['username'], credentials['password'], keep_old_run, server, cpu_only)
+                            credentials['username'], credentials['password'], keep_old_run, server, cpu_only, webgpu)
     except (KeyError, TypeError, ValueError):
         raise ConfigurationError('invalid_configuration') from None
     finally:
@@ -433,7 +435,8 @@ class OwnedRuntime:
                 if self.request.settings.strategy.auto_database_update:
                     self.database.start_update(self._database_progress)
                 self._progress(dict(stage='resources'))
-                try:resource=native.load_resource(self.root/'assets/resource', cpu_only=self.request.cpu_only)
+                try:resource=native.load_resource(self.root/'assets/resource', cpu_only=self.request.cpu_only,
+                                                 webgpu=self.request.webgpu)
                 except native.InferenceDeviceError:raise BatchStopped('runtime_ocr_preparation_failed') from None
                 except TimeoutError:raise BatchStopped('runtime_resources_timeout') from None
                 self._checkpoint()

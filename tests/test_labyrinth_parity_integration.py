@@ -17,7 +17,7 @@ def request(server='cn-bilibili'):
         credentials=dict(username='fixture-uid',password='fixture-access-key'))
 
 
-@pytest.mark.parametrize('cpu_option', [{}, {'cpu_only': True}])
+@pytest.mark.parametrize('cpu_option', [{}, {'cpu_only': True}, {'webgpu': True}])
 @pytest.mark.parametrize('server',list(SERVERS))
 def test_owner_server_and_strategy_snapshot_are_bound_without_retaining_input_credentials(server,tmp_path,cpu_option):
     value=request(server)
@@ -30,12 +30,19 @@ def test_owner_server_and_strategy_snapshot_are_bound_without_retaining_input_cr
     try:
         assert parsed.server==server
         assert parsed.cpu_only is cpu_option.get('cpu_only', False)
+        assert parsed.webgpu is cpu_option.get('webgpu', False)
         assert parsed.settings.strategy.response_interval_ms==500
         assert parsed.settings.strategy.auto_database_update is False
         assert credentials=={} and 'credentials' not in value
         assert parsed.username=='fixture-uid'
     finally:parsed.clear()
     assert parsed.username==parsed.password==''
+
+
+@pytest.mark.parametrize('options', [{'webgpu': 'true'}, {'webgpu': True, 'cpu_only': True}])
+def test_owner_rejects_invalid_webgpu_request(options):
+    with pytest.raises(ConfigurationError):
+        parse_request(request() | options)
 
 
 @pytest.mark.parametrize('server',['unknown','../../cn-bilibili',None,123,True])

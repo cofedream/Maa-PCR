@@ -215,6 +215,7 @@ def test_failed_guard_with_complete_native_events_is_not_sent(action):
         native.require_native_input(receipt, ('ConsumerClick',))
     assert caught.value.receipt is receipt and receipt['input_execution'] == 'not_sent'
     assert receipt['native_evidence']['complete'] and not receipt['native_evidence']['action_started']
+    assert receipt['native_evidence'].get('stop_action') == ('GuardStop' if action == ('GuardStop', 'StopTask') else None)
 
 
 @pytest.mark.parametrize('variant', ['no_events', 'unfinished', 'unpaired', 'partial_input', 'unknown_action'])
@@ -263,5 +264,6 @@ def test_sdk_task_and_guard_stop_proof(tmp_path):
     receipt = native.run(tasker, 'Consumer')
     assert not controller.clicks and not controller.swipes
     assert not tasker.running
+    assert receipt['native_evidence']['stop_action'] == 'GuardStop'
     with pytest.raises(native.NativeInputNotSent):
         native.require_native_input(receipt, ('RejectedInput',))

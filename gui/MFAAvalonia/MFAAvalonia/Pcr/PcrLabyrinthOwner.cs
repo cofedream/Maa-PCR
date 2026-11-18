@@ -134,10 +134,12 @@ internal static class PcrLabyrinthOwner
 
     // 实时日志面板一行；VM 会再带前缀写一份进共享日志，以便落盘与导出。
     private static void Trace(TaskQueueViewModel vm,string text) => vm.AddLabyrinthLog(text);
-    private static string MissingResult(string stage,bool cpuOnly,uint? code)
+    private static string InferenceMode(JObject request) => request.Value<bool>("cpu_only") ? "强制 CPU"
+        : request.Value<bool>("webgpu") ? "请求 WebGPU" : "自动推理";
+
+    private static string MissingResult(string stage,string mode,uint? code)
     {
         var exit=code.HasValue ? $"0x{code.Value:X8}" : "尚不可用";
-        var mode=cpuOnly ? "强制 CPU" : "自动推理";
         return $"黎明界执行组件未返回有效结果。最后阶段：{stage} 推理设置：{mode}，退出码：{exit}。";
     }
 
@@ -175,7 +177,8 @@ internal static class PcrLabyrinthOwner
                     throw new InvalidOperationException("请先在设备栏选择有效的 ADB 目标。");
                 request=new JObject { ["version"]=1,["settings"]=snapshot,["account_id"]=accountId,["server"]=settings.Server,
                     ["keep_old_run"]=settings.KeepOldRun,
-                    ["cpu_only"]=Instances.PerformanceUserControlModel.GpuOption is { IsDirectML: false, Device: InferenceDevice.CPU },
+                    ["webgpu"]=settings.UseWebGpu,
+                    ["cpu_only"]=!settings.UseWebGpu && Instances.PerformanceUserControlModel.GpuOption is { IsDirectML: false, Device: InferenceDevice.CPU },
                     ["connection"]=new JObject { ["adb_path"]=path,["serial"]=serial },
                     ["credentials"]=new JObject { ["username"]=settings.Username,["password"]=settings.Password } };
                 current=run=new Run(vm);
@@ -219,26 +222,33 @@ internal static class PcrLabyrinthOwner
             var lastLogged=string.Empty;
             var resumeProgress=string.Empty;
             string? lastStage="validating";
+            bool CanRetryCpu() => request.ContainsKey("credentials") && !request.Value<bool>("cpu_only")
+                && !vm.LabyrinthSettings.IsPaused && !vm.LabyrinthSettings.PausePending;
+            async Task RetryCpuAsync(string reason) {
+                await Task.Run(worker.Dispose);
+                cancel.Token.ThrowIfCancellationRequested();
+                request["cpu_only"]=true;
+                request["webgpu"]=false;
+                lastStage="validating";
+                startup.CancelAfter(StartupWait(lastStage)!.Value);
+                vm.LabyrinthSettings.Progress=reason+"，本次改用 CPU 重试。";
+                Trace(vm,vm.LabyrinthSettings.Progress);
+                worker=await StartWorkerAsync();
+            }
             while (true) {
                 cancel.Token.ThrowIfCancellationRequested();
                 if (!await worker.Lines.Reader.WaitToReadAsync(cancel.Token)) {
                     // The pipes may close just before Windows signals the process handle.
                     var exitCode=await Task.Run(() => worker.WaitForExitCode(1000));
                     cancel.Token.ThrowIfCancellationRequested();
-                    if (lastStage=="ocr_warmup" && exitCode==0xC0000005 && request.ContainsKey("credentials")
-                        && !request.Value<bool>("cpu_only") && !vm.LabyrinthSettings.IsPaused && !vm.LabyrinthSettings.PausePending) {
-                        await Task.Run(worker.Dispose);
-                        cancel.Token.ThrowIfCancellationRequested();
-                        request["cpu_only"]=true;
-                        lastStage="validating";
-                        startup.CancelAfter(StartupWait(lastStage)!.Value);
-                        vm.LabyrinthSettings.Progress="自动推理在首次文字识别预热时退出（0xC0000005），本次改用 CPU 重试。";
-                        Trace(vm,vm.LabyrinthSettings.Progress);
-                        worker=await StartWorkerAsync();
+                    if (exitCode==0xC0000005 && CanRetryCpu()
+                        && (lastStage=="ocr_warmup" || (lastStage=="resources" && request.Value<bool>("webgpu")))) {
+                        var mode=request.Value<bool>("webgpu") ? "WebGPU" : "自动推理";
+                        await RetryCpuAsync(mode+"在初始化文字识别时退出（0xC0000005）");
                         continue;
                     }
                     terminalOutcome="worker_no_result";
-                    throw new InvalidOperationException(MissingResult(vm.LabyrinthSettings.Progress,request.Value<bool>("cpu_only"),exitCode));
+                    throw new InvalidOperationException(MissingResult(vm.LabyrinthSettings.Progress,InferenceMode(request),exitCode));
                 }
                 if (!worker.Lines.Reader.TryRead(out var line)) continue;
                 if (line.Error) continue; // never display SDK exception text or tokens
@@ -309,7 +319,7 @@ internal static class PcrLabyrinthOwner
                     vm.LabyrinthSettings.Progress=stage switch {
                         "validating"=>"正在校验黎明界配置…", "dependencies"=>"正在加载黎明界执行组件…",
                         "resources"=>"正在加载本地识别资源…", "connecting"=>"正在连接所选设备…",
-                        "ocr_warmup"=>request.Value<bool>("cpu_only") ? "正在首次预热文字识别（强制 CPU）…" : "正在首次预热文字识别（自动推理）…",
+                        "ocr_warmup"=>$"正在首次预热文字识别（{InferenceMode(request)}）…",
                         "ocr_ready"=>"首次文字识别预热完成。",
                         "authenticating"=>"正在登录协议账号并核对游戏玩家 ID…",
                         "recovering"=>"正在核对上次停止后的旧局状态…",
@@ -331,6 +341,11 @@ internal static class PcrLabyrinthOwner
                     if ((string?)value["outcome"]=="complete" && (bool?)value["batch_complete"]!=true)
                         throw new InvalidOperationException("黎明界通关结果不完整，本次未确认完成。");
                     var outcome=(string?)value["outcome"];
+                    if (outcome=="runtime_ocr_preparation_failed" && request.Value<bool>("webgpu") && CanRetryCpu()
+                        && lastStage is ("resources" or "ocr_warmup")) {
+                        await RetryCpuAsync("WebGPU 未通过文字识别初始化");
+                        continue;
+                    }
                     terminalOutcome=outcome ?? "unknown";
                     finished=!string.IsNullOrWhiteSpace(outcome) && outcome!="stopped";
                     vm.LabyrinthSettings.Progress=outcome=="complete" ? "目标次数已全部完成。" : "本次任务已停止。";

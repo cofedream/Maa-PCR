@@ -335,5 +335,5 @@ def test_sdk_observed_versions(sdk):
     versions = {'python': platform.python_version(), 'maafw_package': version('maafw'),
                 'framework_runtime': Library.version(), 'pytest': version('pytest')}
     (sdk[3] / 'versions.json').write_text(json.dumps(versions, indent=2), encoding='utf-8')
-    assert versions['maafw_package'] == '5.13.0'
-    assert versions['framework_runtime'] == 'v5.13.0'
+    assert versions['maafw_package'].removeprefix('v') == '5.16.1'
+    assert versions['framework_runtime'] == 'v5.16.1'

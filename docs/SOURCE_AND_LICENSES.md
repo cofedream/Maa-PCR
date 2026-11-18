@@ -20,7 +20,9 @@ CPython 的原始许可证汇编保留在 `runtime/python/LICENSE.txt`，第三�
 
 ## 固定版本源码
 
-源码包附带 MaaFramework 5.13.0、必要 MaaUtils、C# binding 5.10.0、固定 MaaAgentBinary、MaaTouch 及 minitouch/minicap 的源码归档和必要 vendor 源码，共 9 份。版本、commit、来源与每份哈希记录在 dependency materials 中。
+源码包附带 MaaFramework 5.16.1、对应的 MaaUtils 和 XDeviceBridge 源码。各归档的提交、下载地址和 SHA-256 见 `third_party/materials/MaaFramework-5.16.1.json`。该清单同时记录 Windows 安装轮子及 MaaDeps v3.0.2 中与轮子一致的 8 个运行库。原始许可随包提供。
+
+源码包也保留 C# binding 5.10.0、固定 MaaAgentBinary、MaaTouch、minitouch、minicap 和所需的第三方源码。旧版 MaaFramework 的归档和来源记录供历史版本核对。
 
 未复制未授权的模拟器 SDK 头文件或原始 SDK DLL。MaaFramework 的 LGPL 包装代码保留，编译相关模拟器接口时需要按上游说明另行取得厂商 SDK 并遵守厂商条款；运行时动态使用玩家已经安装的模拟器组件。完整 MaaDeps 工具归档未重许可或附带，原生依赖版权原文单独保留。
 

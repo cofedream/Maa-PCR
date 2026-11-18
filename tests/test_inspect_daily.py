@@ -532,6 +532,9 @@ def test_home_gate_persistent_negative_stops_without_input(kind):
     assert not completed(result, 'ObserveHome')
     import json
     budget = json.loads((native.ROOT / 'assets/resource/pipeline/return_home.json').read_text(encoding='utf-8'))['ReturnHomeGate']['timeout'] / 1000
-    assert completed(result, 'UnknownStop') and budget <= elapsed < budget + 8
+    proof = result['native_evidence']
+    assert proof['complete'] and proof['task_id'] == result['task_id']
+    assert proof['stop_action'] == 'UnknownStop' and not proof['action_started']
+    assert budget <= elapsed < budget + 8
     assert not controller.clicks and not controller.swipes and not tasker.running
     assert result['daily_complete'] is False

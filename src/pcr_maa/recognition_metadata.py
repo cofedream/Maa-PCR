@@ -1,4 +1,4 @@
-"""Image-free receipt fields for the pinned Maa 5.13 binding, never image evidence."""
+"""Image-free receipt fields for the supported Maa bindings, never image evidence."""
 import ctypes
 import json
 from functools import lru_cache
@@ -13,7 +13,8 @@ from maa.tasker import Tasker
 @lru_cache(maxsize=1)
 def _api():
     # Only _handle bridges the fixed Python binding to the public C API.
-    if Library.version() != 'v5.13.0' or version('maafw') != '5.13.0':
+    loaded = Library.version()
+    if loaded not in ('v5.13.0', 'v5.16.1') or version('maafw').removeprefix('v') != loaded[1:]:
         raise RuntimeError('Unsupported Maa metadata binding; no retry')
     return Library.framework()
 
