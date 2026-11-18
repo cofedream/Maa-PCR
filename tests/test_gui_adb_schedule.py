@@ -34,6 +34,18 @@ def test_new_adb_player_gui_schedule_does_not_require_mumu_identity(tmp_path,ser
     cfg=config(tmp_path,serial)
     assert chain.validate(cfg,**args())==cfg
 
+@pytest.mark.parametrize('serial', ['emulator-5584', '127.0.0.1:5585'])
+def test_bluestacks_builtin_adb_reaches_owner(tmp_path, serial):
+    import json
+    from pcr_maa.alpha_owner import config_snapshot
+    cfg = config(tmp_path, serial)
+    adb = tmp_path / 'BlueStacks_nxt' / 'HD-Adb.exe'
+    adb.parent.mkdir()
+    adb.write_text('SYNTHETIC NEVER EXECUTE')
+    cfg['connection']['adb_path'] = str(adb)
+    assert json.loads(config_snapshot(cfg))['connection'] == cfg['connection']
+
+
 @pytest.mark.parametrize('serial', ['emulator-5556', '192.168.1.4:5555'])
 def test_cli_still_requires_stable_identity(tmp_path, serial):
     with pytest.raises(ValueError,match='schedule_identity_source_unverified'):

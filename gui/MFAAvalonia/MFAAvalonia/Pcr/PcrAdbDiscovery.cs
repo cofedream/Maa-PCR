@@ -65,7 +65,7 @@ internal sealed class PcrAdbDiscovery
     {
         if (!AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(device.AdbPath, device.AdbSerial,
                 out var path, out var serial))
-            throw new InvalidOperationException("请选择本机已有的 adb.exe 和有效的本机或局域网 IPv4:端口，或 emulator-串号。");
+            throw new InvalidOperationException("请选择本机已有的 adb.exe 或 HD-Adb.exe，并填写有效的本机或局域网 IPv4:端口，或 emulator-串号。");
         return new MaaAdbController(path, serial, PcrMuMuDisplay.StandardCapture, AdbInputMethods.None,
             "{}", Path.Combine(AppPaths.InstallRoot, "libs", "MaaAgentBinary"),
             LinkOption.None, CheckStatusOption.None);

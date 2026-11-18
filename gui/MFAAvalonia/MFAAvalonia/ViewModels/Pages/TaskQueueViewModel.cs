@@ -1712,7 +1712,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                 }
                 if (savedDevice == null || !AdbEditorDialogViewModel.TryNormalizePcrAdbTarget(
                         savedDevice.AdbPath, savedDevice.AdbSerial, out var path, out var serial))
-                    throw new InvalidOperationException("保存的设备路径或地址无效，或 adb.exe 已不存在。");
+                    throw new InvalidOperationException("保存的设备路径或地址无效，或 ADB 程序已不存在。");
                 // Saved Finder Extras/options are data, not authority. Preserve
                 // the exact transport; fresh Owner checks still happen at Start.
                 var target = new AdbDeviceInfo(savedDevice.Name, path, serial,
@@ -1856,7 +1856,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
             if (_isDisposed == 0)
             {
                 SetConnected(false);
-                PcrDiscoveryStatus = $"连接失败：{ex.Message} 请确认模拟器已启动，核对所选 adb.exe 和地址后重新连接。";
+                PcrDiscoveryStatus = $"连接失败：{ex.Message} 请确认模拟器已启动，核对所选 ADB 程序和地址后重新连接。";
             }
         }
         finally
