@@ -17,17 +17,25 @@ def _legacy_adb_path():
 
 ADB_PATH = _legacy_adb_path()
 SERIAL = "127.0.0.1:16384"
+ADB_FILENAMES = ('adb.exe', 'hd-adb.exe')
+
+
+def adb_path_supported(path):
+    """True only for an existing absolute adb.exe or HD-Adb.exe path."""
+    if (not isinstance(path, str) or not path or path.startswith(('\\\\', '//'))
+            or any(c in path for c in '\r\n\x00')
+            or not Path(path).is_absolute()
+            or Path(path).name.lower() not in ADB_FILENAMES
+            or not Path(path).is_file()):
+        return False
+    return True
 
 
 def validate_connection(value):
     """Validate data only. Never launch ADB, discover, or connect a device."""
     if not isinstance(value, dict) or set(value) != {'adb_path', 'serial'}:
         raise ValueError('连接配置仅接受 adb_path 与唯一 serial 地址')
-    path = value['adb_path']
-    if (not isinstance(path, str) or not path or path.startswith(('\\\\', '//'))
-            or any(c in path for c in '\r\n\x00')
-            or not Path(path).is_absolute() or Path(path).name.lower() not in ('adb.exe', 'hd-adb.exe')
-            or not Path(path).is_file()):
+    if not adb_path_supported(value['adb_path']):
         raise ValueError('ADB 路径无效：须为本机已有的 adb.exe 或 HD-Adb.exe 的绝对路径（可含中文/空格）')
     validate_serial(value['serial'])
     return dict(value)

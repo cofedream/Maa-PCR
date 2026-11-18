@@ -1,5 +1,6 @@
 """Offline SDK contract tests; run with --noconftest (no production OCR/images)."""
 import json
+import threading
 import time
 from types import SimpleNamespace
 
@@ -200,16 +201,20 @@ def test_sdk_stop_during_synthetic_input_does_not_confirm_or_resend(sdk, monkeyp
     from pcr_maa.context_backend import ContextTasker
     events = []
     active = []
+    finished = threading.Event()
     original_click = sdk[2].click
 
     def click(x, y):
-        events.append('input_started')
-        active[0].post_stop()
-        assert active[0].stop_requested
-        events.append('stop_requested_while_input_active')
-        result = original_click(x, y)
-        events.append('input_returned')
-        return result
+        try:
+            events.append('input_started')
+            active[0].post_stop()
+            assert active[0].stop_requested
+            events.append('stop_requested_while_input_active')
+            result = original_click(x, y)
+            events.append('input_returned')
+            return result
+        finally:
+            finished.set()
 
     monkeypatch.setattr(sdk[2], 'click', click)
 
@@ -220,13 +225,29 @@ def test_sdk_stop_during_synthetic_input_does_not_confirm_or_resend(sdk, monkeyp
                 native.run(facade, 'Nested')
             with pytest.raises(RuntimeError, match='blocked'):
                 native.run(facade, 'Nested')
+            assert finished.wait(5)
             events.append('nested_returned_unknown')
 
     invoke(sdk, callback)
+    assert finished.wait(5)
     assert events == ['input_started', 'stop_requested_while_input_active',
                       'input_returned', 'nested_returned_unknown']
     assert sdk[2].clicks == [[10, 20]]
     (sdk[3] / 'stop-during-input.json').write_text(json.dumps(events, indent=2), encoding='utf-8')
+
+
+def test_latched_stop_request_remains_readable_after_facade_closes():
+    from pcr_maa.context_backend import ContextTasker
+
+    owner = SimpleNamespace(inited=True, running=True, stopping=False,
+                            post_stop=lambda: None)
+    with ContextTasker(SimpleNamespace(tasker=owner)) as facade:
+        facade.post_stop()
+    assert facade.stop_requested is True
+
+    with ContextTasker(SimpleNamespace(tasker=owner)) as facade:
+        pass
+    assert facade.stop_requested is False
 
 
 @pytest.mark.parametrize('failure', ['exception', 'interrupt', 'none', 'failed', 'stopping', 'lazy-detail'])
