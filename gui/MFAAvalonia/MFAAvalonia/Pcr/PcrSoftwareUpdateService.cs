@@ -37,7 +37,7 @@ public static class PcrSoftwareUpdateService
             if (update?["revision"]?.Type != JTokenType.Integer || (long)update["revision"]! < 1
                 || update["version"]?.Type != JTokenType.String)
                 return "Maa-PCR（版本清单无效）";
-            return $"{update["version"]} / R{update["revision"]}";
+            return (string)update["version"]!;
         }
         catch { return "Maa-PCR（开发模式）"; }
     }
@@ -75,7 +75,7 @@ public static class PcrSoftwareUpdateService
             RequireCheckResponse(result);
             ViewModel.PcrUpdateAvailable = status == "update_available";
             ViewModel.PcrLatestVersion = ViewModel.PcrUpdateAvailable
-                ? $"{result["version"]} / R{result["revision"]}" : "";
+                ? (string)result["version"]! : "";
             ViewModel.PcrUpdateStatus = ViewModel.PcrUpdateAvailable
                 ? $"发现稳定版 {ViewModel.PcrLatestVersion}" : "已是最新稳定版。";
             Instances.RootViewModel.WindowUpdateInfo = ViewModel.PcrUpdateAvailable ? ViewModel.PcrUpdateStatus : "";
@@ -273,7 +273,7 @@ public static class PcrSoftwareUpdateService
             || !Regex.IsMatch((string)result["archive_sha256"]!, "^[0-9a-f]{64}$"))
             throw new InvalidOperationException("invalid_update_response");
         var kind = (string?)result["archive_kind"] == "delta" ? "增量补丁" : "完整运行包";
-        return $"本地{kind}已通过校验：{result["current_version"]} / R{result["current_revision"]} → {result["version"]} / R{result["revision"]}。";
+        return $"本地{kind}已通过校验：{result["current_version"]} → {result["version"]}。";
     }
 
     public static async Task RecoverAsync()

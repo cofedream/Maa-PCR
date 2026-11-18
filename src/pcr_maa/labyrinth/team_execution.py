@@ -174,20 +174,32 @@ class MaaTeam:
         characters=self.characters;nav=CharacterNavigation(characters,self.stamp,roster=self.roster)
         if any(not c['trusted'] for c in observation['members']):raise BatchStopped('team_identity_unknown')
         selected=observation['selected']
-        for role in sorted(set(selected)-set(desired))+sorted(set(desired)-set(selected)):
-            before=sorted(selected);after=sorted(set(before)^{role})
-            if role not in before:
+        tab=observation.get('boss_tab') if page=='boss' else None
+        removals=sorted(set(selected)-set(desired))
+        additions=sorted(set(desired)-set(selected))
+        while removals or additions:
+            before=sorted(selected)
+            if removals:
+                role=removals.pop(0)
+            else:
                 # Member feedback omits candidates; acquire the current full list before seeking.
                 if observation.get('members_only'):observation,_=characters.read(batch,page,roster=self.roster)
+                if observation['selected']!=before or observation.get('boss_tab')!=tab:raise BatchStopped('team_selection_changed')
+                visible={c['character_id'] for c in observation.get('cards',()) if c['trusted']}
+                role=next((uid for uid in additions if uid in visible),additions[0])
+                additions.remove(role)
                 attribute=self.optimizer.profiles[role].data.get('attribute')
                 observation,_=nav.seek(batch,enter_id,page,observation,(role,),block_id=block_id,filters=(attribute,) if attribute else ())
-                if observation['selected']!=before:raise BatchStopped('team_selection_changed')
+                if observation['selected']!=before or observation.get('boss_tab')!=tab:raise BatchStopped('team_selection_changed')
+            after=sorted(set(before)^{role})
             fields=dict(enter_id=enter_id,block_id=block_id,role_id=role,selected=role in after)
             def send(oid):
-                batch.checkpoint();_,sent=characters.run('ToggleOnce',dict(mode='toggle',page=page,roster=list(self.roster),role_id=role,expected_selected=before),input=True)
+                params=dict(mode='toggle',page=page,roster=list(self.roster),role_id=role,expected_selected=before)
+                if page=='boss':params['expected_tab']=tab
+                batch.checkpoint();_,sent=characters.run('ToggleOnce',params,input=True)
                 return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
             clicked=batch.transaction('team_toggle',fields,send)
-            batch.checkpoint();actual,receipt=characters.wait_for(batch,page,lambda value:value['selected']==after and all(c['trusted'] for c in value['members']),roster=self.roster,members_only=True)
+            batch.checkpoint();actual,receipt=characters.wait_for(batch,page,lambda value:value['selected']==after and value.get('boss_tab')==tab and all(c['trusted'] for c in value['members']),roster=self.roster,members_only=True)
             batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,native=receipt,input_native=clicked['input_native'],selection_verified=True),**fields)
             selected=after;observation=actual
         actual,receipt=characters.read(batch,page,roster=self.roster)
@@ -297,8 +309,9 @@ class MaaTeam:
             nav=CharacterNavigation(self.characters,self.stamp,roster=self.roster);all_teams=self.boss_all_teams[key]
             for index in range(1,4):
                 if observation['boss_tab']!=index:observation=nav.move(batch,enter_id,page,observation,tab=index,block_id=block_id)
-                observation,_=self.characters.read(batch,page,roster=self.roster)
-                if observation['selected']!=all_teams[index-1] or any(not c['trusted'] for c in observation['members']):raise BatchStopped('team_readback_unknown')
+                observation,_=self.characters.read(batch,page,roster=self.roster,members_only=True)
+                if (observation['boss_tab']!=index or observation['selected']!=all_teams[index-1]
+                        or any(not c['trusted'] for c in observation['members'])):raise BatchStopped('team_readback_unknown')
             expected=all_teams[2];params['expected_teams']=all_teams
         params.update(expected_selected=expected,expected_size=len(expected))
         def send(oid):

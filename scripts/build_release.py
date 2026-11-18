@@ -69,13 +69,15 @@ R83_MANIFEST_SHA256 = 'c99d8df0cc52b31722107e823a8782c1da0db76cfa2f1346e14e09852
 R84_MANIFEST_SHA256 = '1a245bd395e1bde63a8f761ca56c7ece0628f7bc479b491902ee078eddac11df'
 R85_MANIFEST_SHA256 = '8c548b5bb627047c66a626ea7d8ba330bbb295385d6b5b16b96c7976184240a2'
 R86_MANIFEST_SHA256 = 'eb282da9d57d5e8b9d9697486111fbe08f37472011c6ab7c7ebd55ab28829a54'
+R87_MANIFEST_SHA256 = 'f3851fbcc0dc9d359c7648e5f71e00d2baeaea80132b657af893938da47f5df5'
 GUI_PROJECT = 'gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj'
 PAYLOAD_DIRS = ('src', 'vendor', 'assets', 'third_party', 'licenses', 'docs')
 PAYLOAD_SCRIPTS = ('pcr.py', 'validate-alpha-config.py', 'start-alpha-agent.py',
                    'start-alpha-owned-agent.py', 'start-labyrinth-owned-agent.py',
                    'player-maintenance.py', 'player-update.py', 'recover-player-update.ps1',
                    'ocr_benchmark.py', 'ocr_inventory.py',
-                   'read-guide-snapshot.py', 'prepare-clan-guide.py')
+                   'read-guide-snapshot.py', 'prepare-clan-guide.py',
+                   'check-labyrinth-network.py')
 IGNORED = {'__pycache__', '.git', '.runtime', '.venv', 'bin', 'obj', 'tests'}
 CRT_FILES = ('concrt140.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'msvcp140_2.dll',
              'msvcp140_atomic_wait.dll', 'msvcp140_codecvt_ids.dll', 'vccorlib140.dll',
@@ -382,12 +384,16 @@ def package_outputs(player, output, base=None, base_manifest=None):
         spec.loader.exec_module(patcher)
         base_path = Path(base) / maintenance.MANIFEST if base else Path(base_manifest)
         base_version = maintenance._version(maintenance._read_json(base_path))
-        patch = output / ('Maa-PCR-R' + str(base_version['revision']) + '-to-R' + str(version['revision']) + '.patch.zip')
+        if version['revision'] >= 88:
+            patch = output / f"Maa-PCR-{base_version['version']}-to-{version['version']}.patch.zip"
+        else:
+            # Published 0.1.x indexes pin the original file names.
+            patch = output / f"Maa-PCR-R{base_version['revision']}-to-R{version['revision']}.patch.zip"
         if base:
             result = patcher.build_patch(base, player, patch)
         else:
             expected = {38: R38_MANIFEST_SHA256, 39: R39_MANIFEST_SHA256,
-                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256, 61: R61_MANIFEST_SHA256, 64: R64_MANIFEST_SHA256, 65: R65_MANIFEST_SHA256, 66: R66_MANIFEST_SHA256, 67: R67_MANIFEST_SHA256, 68: R68_MANIFEST_SHA256, 69: R69_MANIFEST_SHA256, 70: R70_MANIFEST_SHA256, 71: R71_MANIFEST_SHA256, 72: R72_MANIFEST_SHA256, 73: R73_MANIFEST_SHA256, 74: R74_MANIFEST_SHA256, 75: R75_MANIFEST_SHA256, 76: R76_MANIFEST_SHA256, 77: R77_MANIFEST_SHA256, 78: R78_MANIFEST_SHA256, 79: R79_MANIFEST_SHA256, 80: R80_MANIFEST_SHA256, 81: R81_MANIFEST_SHA256, 82: R82_MANIFEST_SHA256, 83: R83_MANIFEST_SHA256, 84: R84_MANIFEST_SHA256, 85: R85_MANIFEST_SHA256, 86: R86_MANIFEST_SHA256}.get(base_version['revision'])
+                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256, 61: R61_MANIFEST_SHA256, 64: R64_MANIFEST_SHA256, 65: R65_MANIFEST_SHA256, 66: R66_MANIFEST_SHA256, 67: R67_MANIFEST_SHA256, 68: R68_MANIFEST_SHA256, 69: R69_MANIFEST_SHA256, 70: R70_MANIFEST_SHA256, 71: R71_MANIFEST_SHA256, 72: R72_MANIFEST_SHA256, 73: R73_MANIFEST_SHA256, 74: R74_MANIFEST_SHA256, 75: R75_MANIFEST_SHA256, 76: R76_MANIFEST_SHA256, 77: R77_MANIFEST_SHA256, 78: R78_MANIFEST_SHA256, 79: R79_MANIFEST_SHA256, 80: R80_MANIFEST_SHA256, 81: R81_MANIFEST_SHA256, 82: R82_MANIFEST_SHA256, 83: R83_MANIFEST_SHA256, 84: R84_MANIFEST_SHA256, 85: R85_MANIFEST_SHA256, 86: R86_MANIFEST_SHA256, 87: R87_MANIFEST_SHA256}.get(base_version['revision'])
             if expected is None:
                 raise ValueError('unsupported_patch_baseline')
             result = patcher.build_patch_from_manifest(base_path, player, patch, expected)
@@ -568,8 +574,8 @@ def build(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--revision', type=int, default=87)
-    parser.add_argument('--version', default='v0.1.40')
+    parser.add_argument('--revision', type=int, default=88)
+    parser.add_argument('--version', default='v0.2.0')
     parser.add_argument('--dotnet', type=Path)
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--nuget-source', type=Path, help='optional official package cache/feed for offline builds')

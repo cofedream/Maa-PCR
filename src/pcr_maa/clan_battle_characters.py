@@ -9,6 +9,7 @@ import numpy as np
 from maa.custom_recognition import CustomRecognition
 
 from .guide_trial_characters import GuideTrialCharacters
+from .frame_recognition import same_frame_context
 from .labyrinth.character_recognition import load_character_pack
 
 
@@ -400,6 +401,7 @@ class ClanBattleCharacters(GuideTrialCharacters):
         try:
             if context.tasker.stopping or argv.image is None or argv.image.shape != (720, 1280, 3):
                 return None
+            context = same_frame_context(context, argv.image)
             params = json.loads(argv.custom_recognition_param)
             mode = params.get('mode')
             if mode == 'opening_observe':

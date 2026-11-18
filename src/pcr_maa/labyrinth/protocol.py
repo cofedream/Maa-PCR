@@ -22,8 +22,12 @@ from .servers import get_server
 class ProtocolFailure(RuntimeError):
     pass
 
-SDK_LOGIN_TIMEOUT_SECONDS = 40
-AUTH_REQUEST_TIMEOUT_SECONDS = 20
+# One request may spend 10 s on connect/TLS and 10 s on the response. A login
+# step performs at most two sequential requests, so the outer walls below keep
+# one handshake spike from cancelling an otherwise valid login.
+REQUEST_TIMEOUT_SECONDS = (10, 10)
+SDK_LOGIN_TIMEOUT_SECONDS = 60
+AUTH_REQUEST_TIMEOUT_SECONDS = 45
 
 class Endpoint(Enum):
     TOP='labyrinth/top'
@@ -55,6 +59,12 @@ class LabyrinthClient:
             try:self.auth.headers['APP-VER']=validate_version(app_version)
             except ValueError:raise ProtocolFailure('game_version_unavailable') from None
         self.http=http
+        # One keep-alive session per contiguous protocol phase. Every labyrinth
+        # endpoint otherwise pays a fresh TCP+TLS handshake, and a single slow
+        # handshake at retire leaves the ledger in flight. The session is dropped
+        # whenever the game client takes over, so a long idle gap cannot surface
+        # as a stale keep-alive request later.
+        self._session=None
         self.manual_captcha=manual_captcha
         self.captcha_http=captcha_http
         self.logged_in=False
@@ -103,6 +113,20 @@ class LabyrinthClient:
     @staticmethod
     def _positive_id(value):
         return type(value) is int and 0<value<=9223372036854775807
+
+    def _poster(self):
+        """Injected transport in tests; otherwise one keep-alive session."""
+        if self.http is not None:return self.http
+        if self._session is None:
+            import requests
+            self._session=requests.Session()
+        return self._session.post
+
+    def _close_session(self):
+        session,self._session=self._session,None
+        if session is not None:
+            try:session.close()
+            except Exception:pass
 
     @asynccontextmanager
     async def _operation(self,phase=None):
@@ -312,6 +336,7 @@ class LabyrinthClient:
             self.auth.headers.pop('SID',None)
             self.auth.headers.pop('REQUEST-ID',None)
             self.auth.viewer_id=0
+            self._close_session()
             self._phase='game'
             return True
 
@@ -367,10 +392,11 @@ class LabyrinthClient:
         data=dict(fields,viewer_id=base64.b64encode(self.auth.encrypt(str(self.auth.viewer_id).encode(),key)).decode('ascii'))
         body=self.auth.encrypt(msgpack.packb(data,use_bin_type=False),key)
         try:
+            post=self._poster()
             for attempt in (1,2):
                 self._check_open()
-                response=await asyncio.to_thread(self.http or requests.post,self.auth.validate_root(self.auth.root)+endpoint.value,
-                    data=body,headers=dict(self.auth.headers),timeout=(5,10),allow_redirects=False)
+                response=await asyncio.to_thread(post,self.auth.validate_root(self.auth.root)+endpoint.value,
+                    data=body,headers=dict(self.auth.headers),timeout=REQUEST_TIMEOUT_SECONDS,allow_redirects=False)
                 self._check_open()
                 status=response.status_code
                 size=len(response.content)
@@ -481,6 +507,7 @@ class LabyrinthClient:
         self.auth.username=self.auth.password=''
         self.auth.viewer_id=0
         self.auth.headers.clear()
+        self._close_session()
         task=self._active_task
         if task is not None and not task.done():
             try:current=asyncio.current_task()
