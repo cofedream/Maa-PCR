@@ -48,11 +48,13 @@ class InferenceDeviceError(RuntimeError):
     pass
 
 
-def load_resource(path=RESOURCE, *, cpu_only=False):
+def load_resource(path=RESOURCE, *, cpu_only=False, webgpu=False):
     setup()
     resource = Resource()
     if cpu_only and not resource.use_cpu():
         raise InferenceDeviceError("Cannot select CPU for inference")
+    if webgpu and not resource.use_webgpu():
+        raise InferenceDeviceError("Cannot select WebGPU for inference")
     job = wait_job(resource.post_bundle(path), seconds=90)
     if not job.succeeded:
         raise RuntimeError(f"Native Resource load failed: {path}")
@@ -212,6 +214,7 @@ class _InputEvidence:
                         action['non_input'] = (msg.endswith('.Succeeded') and raw.get('success') is True
                             and raw.get('action_id') == aid and raw.get('name') == detail['name']
                             and raw.get('action') in ('DoNothing', 'StopTask'))
+                        action['stopped'] = action['non_input'] and raw.get('action') == 'StopTask'
         except Exception as exc:
             # SDK notification callbacks swallow exceptions; invalidate the proof.
             self.error = f'{type(exc).__name__}: {exc}'
@@ -253,6 +256,10 @@ class _InputEvidence:
             result['non_input_actions'] = [a['name'] for a in proof['actions'].values() if a['non_input']]
             result.update(source='native_task_events', complete=proof['finished']
                           and not proof['recognitions'] and all(a['finished'] for a in proof['actions'].values()))
+            # A successful StopTask can end the task before Maa writes its node detail.
+            last_action = proof['actions'].get(next(reversed(proof['actions']), None))
+            if result['complete'] and not proof['failed'] and last_action and last_action.get('stopped'):
+                result['stop_action'] = last_action['name']
             return result
 
 
@@ -334,8 +341,8 @@ def run(tasker, entry, *, reset_hits=()):
     finally:
         proof.close()
     from . import player_log
-    player_log.observe(receipt, entry, getattr(diagnostics, 'pending', ()))
     receipt['native_evidence'] = proof.receipt_proof(receipt['task_id'])
+    player_log.observe(receipt, entry, getattr(diagnostics, 'pending', ()))
     proof=getattr(tasker,'_labyrinth_input_evidence',{}).get(job.job_id)
     if (reset_hits and type(proof) is dict
             and proof.get('entry')==entry and proof.get('started') is True

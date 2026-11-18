@@ -573,15 +573,19 @@ internal static class StartupActionsChecks
 
     private static void CheckWarmupFallback(TaskQueueViewModel vm, string root, string script)
     {
-        foreach (var (scenario, stage, initialCpu, secondFailure, code, expected) in new[] {
-            ("fallback", "ocr_warmup", false, false, 0xC0000005u, "auto,cpu"),
-            ("both-fail", "ocr_warmup", false, true, 0xC0000005u, "auto,cpu"),
-            ("cpu-only", "ocr_warmup", true, true, 0xC0000005u, "cpu"),
-            ("other-code", "ocr_warmup", false, true, 37u, "auto"),
-            ("post-login", "authenticating", false, true, 0xC0000005u, "auto") })
+        foreach (var (scenario, stage, initialCpu, webgpu, secondFailure, code, expected) in new[] {
+            ("fallback", "ocr_warmup", false, false, false, 0xC0000005u, "auto,cpu"),
+            ("both-fail", "ocr_warmup", false, false, true, 0xC0000005u, "auto,cpu"),
+            ("cpu-only", "ocr_warmup", true, false, true, 0xC0000005u, "cpu"),
+            ("other-code", "ocr_warmup", false, false, true, 37u, "auto"),
+            ("post-login", "authenticating", false, false, true, 0xC0000005u, "auto"),
+            ("webgpu-crash", "ocr_warmup", true, true, false, 0xC0000005u, "webgpu,cpu"),
+            ("webgpu-load-failure", "resources", false, true, false, 0u, "webgpu,cpu"),
+            ("webgpu-post-login", "authenticating", false, true, true, 0xC0000005u, "webgpu") })
         {
             var gpu=initialCpu ? PerformanceUserControlModel.GpuDeviceOption.CPU : PerformanceUserControlModel.GpuDeviceOption.Auto;
             Instances.PerformanceUserControlModel.GpuOption=gpu;
+            vm.LabyrinthSettings.UseWebGpu=webgpu;
             var marker=Path.Combine(root, scenario+"-attempts.txt");
             File.WriteAllText(script, $$"""
                 import ctypes, json, sys
@@ -589,10 +593,14 @@ internal static class StartupActionsChecks
                 assert request['credentials']['username'] == 'synthetic-startup-user'
                 assert request['credentials']['password'] == 'synthetic-startup-password'
                 cpu = request['cpu_only']
+                webgpu = request['webgpu']
+                assert not (cpu and webgpu)
                 with open({{System.Text.Json.JsonSerializer.Serialize(marker)}}, 'a') as stream:
-                    print('cpu' if cpu else 'auto', file=stream)
+                    print('cpu' if cpu else 'webgpu' if webgpu else 'auto', file=stream)
                 print(json.dumps({'kind':'progress','stage':'{{stage}}'}), flush=True)
                 if not cpu or {{(secondFailure ? "True" : "False")}}:
+                    if {{code}} == 0:
+                        print(json.dumps({'kind':'result','outcome':'runtime_ocr_preparation_failed'}), flush=True)
                     ctypes.windll.kernel32.ExitProcess(ctypes.c_uint32({{code}}))
                 print(json.dumps({'kind':'progress','stage':'ocr_ready'}), flush=True)
                 print(json.dumps({'kind':'result','outcome':'stopped'}), flush=True)
@@ -600,12 +608,13 @@ internal static class StartupActionsChecks
             Complete((Task)typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner", true)!
                 .GetMethod("RequestStartAsync", Hidden)!.Invoke(null, [vm])!);
             Require(string.Join(",",File.ReadAllLines(marker))==expected && !vm.IsRunning
-                && Instances.PerformanceUserControlModel.GpuOption==gpu, "warmup_attempts:"+scenario);
-            Require(scenario=="fallback" ? vm.LabyrinthSettings.Status.Contains("已停止本次任务")
+                && Instances.PerformanceUserControlModel.GpuOption==gpu && vm.LabyrinthSettings.UseWebGpu==webgpu, "warmup_attempts:"+scenario);
+            Require(!secondFailure ? vm.LabyrinthSettings.Status.Contains("已停止本次任务")
                 : vm.LabyrinthSettings.Status.Contains($"0x{code:X8}") &&
-                  vm.LabyrinthSettings.Status.Contains(expected.EndsWith("cpu") ? "强制 CPU" : "自动推理"),
+                  vm.LabyrinthSettings.Status.Contains(expected.EndsWith("cpu") ? "强制 CPU" : webgpu ? "请求 WebGPU" : "自动推理"),
                 "warmup_result:"+scenario);
         }
+        vm.LabyrinthSettings.UseWebGpu=false;
     }
 
     private static void CheckAfterActions(MaaProcessor processor)

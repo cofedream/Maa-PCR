@@ -426,7 +426,7 @@ def test_build_defaults_to_current_release_identity_without_running_build(tmp_pa
     captured = []
     monkeypatch.setattr(builder, 'build', lambda args: captured.append(args) or {'status': 'not_executed'})
     assert builder.main(['--output', str(tmp_path / 'unused-output')]) == 0
-    assert captured[0].revision == 86 and captured[0].version == 'v0.1.39'
+    assert captured[0].revision == 87 and captured[0].version == 'v0.1.40'
     assert not (tmp_path / 'unused-output').exists()
 
 

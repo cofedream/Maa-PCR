@@ -115,8 +115,9 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
     stop = StopSignal(io.StringIO())
     owned = OwnedRuntime(request(), stop, events.append, root=tmp_path)
     calls = []
-    def resource(_, *, cpu_only):
+    def resource(_, *, cpu_only, webgpu):
         assert cpu_only is owned.request.cpu_only
+        assert webgpu is owned.request.webgpu
         calls.append('resource')
         if resource_timeout:
             raise TimeoutError('synthetic resource timeout')
@@ -174,10 +175,11 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
     return owned, events, calls
 
 
-@pytest.mark.parametrize('cpu_only', [False, True])
-def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_path, monkeypatch, cpu_only):
+@pytest.mark.parametrize('cpu_only,webgpu', [(False, False), (True, False), (False, True)])
+def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_path, monkeypatch, cpu_only, webgpu):
     owned, events, calls = runtime(tmp_path, monkeypatch)
     owned.request.cpu_only = cpu_only
+    owned.request.webgpu = webgpu
     assert not (tmp_path / 'assets/labyrinth/protocol-version.json').exists()
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
     assert [value['stage'] for value in events] == [
@@ -191,17 +193,19 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     assert 'synthetic-password' not in json.dumps(events)
 
 
-def test_rejected_cpu_selection_stops_before_loading_models_or_connecting(tmp_path, monkeypatch):
+@pytest.mark.parametrize('device', ['cpu', 'webgpu'])
+def test_rejected_inference_selection_stops_before_loading_models_or_connecting(tmp_path, monkeypatch, device):
     from pcr_maa import native
     load_resource = native.load_resource
     owned, _, calls = runtime(tmp_path, monkeypatch)
-    owned.request.cpu_only = True
+    owned.request.cpu_only = device == 'cpu'
+    owned.request.webgpu = device == 'webgpu'
     monkeypatch.setattr(native, 'load_resource', load_resource)
     monkeypatch.setattr(native, 'Resource', lambda: NS(
-        use_cpu=lambda: calls.append('cpu') or False,
-        post_bundle=lambda *_: pytest.fail('loaded models after CPU selection failed')))
+        post_bundle=lambda *_: pytest.fail('loaded models after inference selection failed'),
+        **{f'use_{device}': lambda: calls.append(device) or False}))
     assert owned.run() == dict(outcome='runtime_ocr_preparation_failed', batch_complete=False)
-    assert calls == ['cpu']
+    assert calls == [device]
 
 
 def test_failed_ocr_preparation_stops_before_login_without_retry(tmp_path, monkeypatch):

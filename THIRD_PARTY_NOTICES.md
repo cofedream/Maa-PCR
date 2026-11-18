@@ -7,6 +7,13 @@ same-tag source ZIP alongside the runtime ZIP. R39 is a development candidate
 until the acceptance gate passes; historical r24/r25/r26 records below retain
 their original scope, not a new blanket licensing or distribution verdict.
 
+Current builds use MaaFramework 5.16.1 for the Python runtime and the GUI
+native libraries. The original MaaFramework, MaaUtils, and XDeviceBridge
+sources and notices accompany the package. See
+`third_party/materials/MaaFramework-5.16.1.json` for the fixed sources,
+wheel hash, and original MaaDeps v3.0.2 notices and DLL matches. The table
+below describes the historical R39 candidate.
+
 | Component | Version and retained material |
 | --- | --- |
 | Modified MFAAvalonia and local GUI projects | GUI component 2.16.6; player release v0.1.0 / R39 is separate. GPL-3.0 GUI source and original notices accompany matching source. |

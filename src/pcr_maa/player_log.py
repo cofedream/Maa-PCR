@@ -132,8 +132,11 @@ def observe(receipt, entry, recognition_frames=()):
                         caption += f", reco={row['reco_id']}"
                         frame = original
                 _state['failure_picture'] = (caption + '）', frame)
-            _emit('native', text=f"task={receipt.get('task_id')} node={node} "
-                f"success={success}{_action_output(rows)}")
+            stopped = (receipt.get('native_evidence') or {}).get('stop_action')
+            stop_note = f' stop={stopped}' if isinstance(stopped, str) and re.fullmatch(
+                r'[A-Za-z][A-Za-z0-9_]{0,127}', stopped) else ''
+            _emit('native', text=f"task={task_id} node={node} "
+                f"success={success}{stop_note}{_action_output(rows)}")
     except Exception:
         pass
 
