@@ -142,12 +142,16 @@ internal static class LiveViewChecks
             WaitCapture();
             processor.ResetLiveViewScreencapJob();
 
-            Check(resource.OverridePipeline("""{"PreviewBusiness":{"recognition":"DirectHit","action":"DoNothing","pre_delay":0,"post_delay":0}}"""),
+            // Hold the tasker in an action while leaving its controller free to finish stopping.
+            Check(resource.Register(new HoldPreviewAction(fake)), "business_fixture_action_registered");
+            Check(resource.OverridePipeline("""
+                {"PreviewBusiness":{"action":"Custom","custom_action":"HoldPreviewAction","pre_delay":0,"post_delay":0}}
+                """),
                 "business_fixture_pipeline_loaded");
             fake.Entered.Reset();
             fake.Hold.Reset();
             var business = tasker.AppendTask("PreviewBusiness", "{}");
-            Check(fake.Entered.Wait(TimeSpan.FromSeconds(5)) && tasker.IsRunning, "native_business_capture_is_active");
+            Check(fake.Entered.Wait(TimeSpan.FromSeconds(5)) && tasker.IsRunning, "native_business_action_is_active");
             Check(Poll() == MaaProcessor.LiveViewCaptureState.Cached, "native_running_guard_covers_ui_flag_gap");
             var stop = tasker.Stop();
             Check(tasker.IsStopping, "native_stop_is_in_progress");
@@ -169,6 +173,17 @@ internal static class LiveViewChecks
             tasker.Stop().Wait();
             PlatformControllerFactory.Create = previousFactory;
             processor.MaaTasker = null;
+        }
+    }
+
+    private sealed class HoldPreviewAction(PreviewController fixture) : IMaaCustomAction
+    {
+        public string Name { get; set; } = nameof(HoldPreviewAction);
+
+        public bool Run<T>(T context, in RunArgs args, in RunResults results) where T : IMaaContext
+        {
+            fixture.Entered.Set();
+            return fixture.Hold.Wait(TimeSpan.FromSeconds(10));
         }
     }
 
