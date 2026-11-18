@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -60,11 +61,15 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     }
     partial void OnServerChanged(string value) {
         if (!ready || switchingAccount) return;
+        networkCheckCancel?.Cancel();
         var wasReady=ready; ready=false;
         try { Username=""; Password=""; ExpectedPlayerId=""; ShowCredentials=false; credentialsDirty=true; }
         finally { ready=wasReady; }
         CredentialsStatus="服务器已更改，请重新填写该服务器的玩家 ID、登录 UID 与凭据。";
         NetworkCheckStatus="";
+    }
+    partial void OnAutoDatabaseUpdateChanged(bool value) {
+        if (ready) networkCheckCancel?.Cancel();
     }
     public string[] SpecialEquipmentModes { get; } = { "关闭", "自动装备" };
     [ObservableProperty] private string specialEquipmentMode = "关闭";
@@ -155,6 +160,10 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private string networkCheckStatus = "";
     public string NetworkCheckText => NetworkCheckPending ? "正在自检…" : "网络自检";
     public bool HasNetworkCheckStatus => NetworkCheckStatus.Length>0;
+    // A completed report is discarded when the account, channel or database
+    // toggle it was started from has changed; the in-flight child is cancelled.
+    private const string StaleNetworkCheckStatus="自检期间已切换账号、渠道或更改数据库设置，本次结果已丢弃，请重新自检。";
+    private CancellationTokenSource? networkCheckCancel;
     private PcrLabyrinthCharacterCatalog? characterCatalog;
     public PcrLabyrinthCharacterCatalog CharacterCatalog => characterCatalog ??= CreateCharacterCatalog();
     [ObservableProperty]
@@ -239,6 +248,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private void ApplyAccount(PcrLabyrinthAccount account) {
         var wasReady=ready; ready=false; switchingAccount=true;
         try {
+            networkCheckCancel?.Cancel();
             RelicPriorityNotice="";
             NetworkCheckStatus="";
             relicPriorityMigrated=false;
@@ -411,18 +421,32 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [RelayCommand] public async Task CheckNetworkAsync() {
         if (NetworkCheckPending || !ready) return;
         if (!vm.CanEditPcrTarget || PcrProfileRunGate.Busy) { NetworkCheckStatus="任务或连接进行中，不能自检。"; return; }
+        var startedAccount=SelectedAccount;
+        var startedServer=Server;
+        var startedDatabase=AutoDatabaseUpdate;
+        using var cancel=new CancellationTokenSource();
+        networkCheckCancel=cancel;
         NetworkCheckPending=true;
         NetworkCheckStatus="正在检查游戏服、登录服和 GitHub 的连接…";
         try {
-            var report=await PcrLabyrinthNetworkCheck.RunAsync(Server,AutoDatabaseUpdate);
+            var report=await PcrLabyrinthNetworkCheck.RunAsync(startedServer,startedDatabase,cancel.Token);
+            if (cancel.IsCancellationRequested
+                || !PcrLabyrinthNetworkCheck.IsCurrent(startedServer,startedAccount,startedDatabase,
+                    Server,SelectedAccount,AutoDatabaseUpdate)) {
+                NetworkCheckStatus=StaleNetworkCheckStatus;
+                return;
+            }
             NetworkCheckStatus=PcrLabyrinthNetworkCheck.Describe(report);
             vm.Processor.AddLog(NetworkCheckStatus);
         } catch (OperationCanceledException) {
-            NetworkCheckStatus="网络自检超时，请稍后重试。";
+            NetworkCheckStatus=cancel.IsCancellationRequested ? StaleNetworkCheckStatus : "网络自检超时，请稍后重试。";
         } catch (Exception ex) {
             NetworkCheckStatus="网络自检未完成："+(ex is InvalidOperationException or InvalidDataException
                 ? ex.Message : "请稍后重试。");
-        } finally { NetworkCheckPending=false; }
+        } finally {
+            if (ReferenceEquals(networkCheckCancel,cancel)) networkCheckCancel=null;
+            NetworkCheckPending=false;
+        }
     }
     public void HideCredentials() => ShowCredentials=false;
     private void ClearSdkSession(PcrLabyrinthAccount account) {

@@ -108,6 +108,12 @@ internal static class PcrLabyrinthNetworkCheck
             _ => "网络自检：存在无法连接的目标。" + details + "请检查代理、防火墙或网络环境后重试。" };
     }
 
+    // A report belongs only to the selection it was started from.
+    internal static bool IsCurrent(string startedServer, PcrLabyrinthAccount? startedAccount, bool startedDatabase,
+        string currentServer, PcrLabyrinthAccount? currentAccount, bool currentDatabase) =>
+        startedServer==currentServer && startedDatabase==currentDatabase
+        && ReferenceEquals(startedAccount,currentAccount);
+
     private static string Reason(string? code) => code switch {
         "dns_failed" => "域名解析失败", "tcp_refused" => "端口拒绝",
         "tcp_timeout" => "连接超时", "tls_timeout" => "握手超时",
@@ -118,14 +124,16 @@ internal static class PcrLabyrinthNetworkCheck
         "sdk" => host == "line1-sdk-center-login-sh.biligame.net",
         _ => host == "github.com" };
 
-    internal static async Task<Report> RunAsync(string server, bool database)
+    internal static async Task<Report> RunAsync(string server, bool database, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
         var root = PcrAlphaOwner.Repository;
         PcrRuntimePaths.RequireUpdateComplete(AppContext.BaseDirectory, root);
         var script = Path.Combine(root, Script);
         if (!File.Exists(script)) throw new InvalidOperationException("网络自检组件缺失，请重新解压完整程序包。");
         var child = new PcrWindowsChild();
-        using var deadline = new CancellationTokenSource(Deadline);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+        deadline.CancelAfter(Deadline);
         try {
             child.StartWithEnvironment(PcrRuntimePaths.ResolvePython(root), root,
                 PcrNetworkProxy.DirectEnvironment(), "-X", "utf8", "-B", "-u", script);

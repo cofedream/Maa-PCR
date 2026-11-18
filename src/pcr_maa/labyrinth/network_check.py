@@ -1,9 +1,10 @@
 """Bounded on-demand connectivity check for the labyrinth's fixed hosts.
 
 Only the selected channel's game root, the fixed SDK login host and the fixed
-database host can be dialled. One attempt performs DNS, TCP and a single TLS
-handshake; no HTTP request, credential, response body or certificate text
-leaves this module. Callers receive fixed reason codes and millisecond values.
+database host can be dialled. One attempt performs DNS, then a bounded TCP/TLS
+handshake against the resolved addresses; no HTTP request, credential, response
+body or certificate text leaves this module. Callers receive fixed reason codes
+and millisecond values.
 """
 import json
 import socket
@@ -17,6 +18,7 @@ from .servers import SERVERS, get_server
 
 TIMEOUT_SECONDS = 10
 ATTEMPTS = 2
+ADDRESS_LIMIT = 3
 SLOW_MILLIS = 2500
 SDK_HOST = 'line1-sdk-center-login-sh.biligame.net'
 DATABASE_HOST = urlsplit(MANIFEST_URL).hostname
@@ -63,40 +65,60 @@ def _context():
 
 def _attempt(host, *, timeout=TIMEOUT_SECONDS):
     row = dict(dns_ms=None, tcp_ms=None, tls_ms=None, ok=False, error=None)
-    sock = tls = None
     try:
         started = time.monotonic()
         infos = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
-        row['dns_ms'] = _elapsed_ms(started)
-        if not infos:
-            raise OSError()
-        family, kind, proto, _, address = infos[0]
-        sock = socket.socket(family, kind, proto)
-        sock.settimeout(timeout)
-        started = time.monotonic()
-        sock.connect(address)
-        row['tcp_ms'] = _elapsed_ms(started)
-        started = time.monotonic()
-        tls = _context().wrap_socket(sock, server_hostname=host)
-        row['tls_ms'] = _elapsed_ms(started)
-        row['ok'] = True
     except socket.gaierror:
         row['error'] = 'dns_failed'
-    except ConnectionRefusedError:
-        row['error'] = 'tcp_refused'
-    except TimeoutError:
-        row['error'] = 'tls_timeout' if row['tcp_ms'] is not None else 'tcp_timeout'
-    except ssl.SSLError:
-        row['error'] = 'tls_failed'
-    except OSError:
+        return row
+    row['dns_ms'] = _elapsed_ms(started)
+    addresses = []
+    seen = set()
+    for family, kind, proto, _, address in infos:
+        key = (family, address)
+        if key in seen:
+            continue
+        seen.add(key)
+        addresses.append((family, kind, proto, address))
+        if len(addresses) == ADDRESS_LIMIT:
+            break
+    if not addresses:
         row['error'] = 'unreachable'
-    finally:
-        if tls is not None:
-            try: tls.close()
-            except OSError: pass
-        elif sock is not None:
-            try: sock.close()
-            except OSError: pass
+        return row
+    # A hostname may resolve to several addresses (for example an unusable IPv6
+    # first). Dial each in resolver order; one reachable address is enough.
+    last_error = 'unreachable'
+    for family, kind, proto, address in addresses:
+        sock = tls = None
+        tcp_ms = tls_ms = None
+        try:
+            sock = socket.socket(family, kind, proto)
+            sock.settimeout(timeout)
+            started = time.monotonic()
+            sock.connect(address)
+            tcp_ms = _elapsed_ms(started)
+            started = time.monotonic()
+            tls = _context().wrap_socket(sock, server_hostname=host)
+            tls_ms = _elapsed_ms(started)
+            row.update(tcp_ms=tcp_ms, tls_ms=tls_ms, ok=True, error=None)
+            return row
+        except ConnectionRefusedError:
+            last_error = 'tcp_refused'
+        except TimeoutError:
+            last_error = 'tls_timeout' if tcp_ms is not None else 'tcp_timeout'
+        except ssl.SSLError:
+            last_error = 'tls_failed'
+        except OSError:
+            last_error = 'unreachable'
+        finally:
+            row.update(tcp_ms=tcp_ms, tls_ms=tls_ms)
+            if tls is not None:
+                try: tls.close()
+                except OSError: pass
+            elif sock is not None:
+                try: sock.close()
+                except OSError: pass
+    row['error'] = last_error
     return row
 
 

@@ -40,23 +40,32 @@ class FakeContext:
     def __init__(self):
         self.error = None
         self.calls = []
+        self.tls = []
 
     def wrap_socket(self, sock, server_hostname):
         self.calls.append(server_hostname)
         if self.error is not None:
             raise self.error
-        return FakeTls()
+        tls = FakeTls()
+        self.tls.append(tls)
+        return tls
 
 
 @pytest.fixture
 def dial(monkeypatch):
     """Install a deterministic resolver/socket/context and expose their state."""
-    state = dict(sockets=[], context=FakeContext(), connect_error=None)
-    monkeypatch.setattr(check.socket, 'getaddrinfo',
-                        lambda *args, **kwargs: [(socket.AF_INET, socket.SOCK_STREAM, 0, '', ('127.0.0.1', 443))])
+    state = dict(sockets=[], context=FakeContext(), connect_error=None,
+                 connect_errors=[], addresses=None)
+    def resolve(*args, **kwargs):
+        return state['addresses'] or [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, '', ('127.0.0.1', 443))]
+    monkeypatch.setattr(check.socket, 'getaddrinfo', resolve)
     def factory(family, kind, proto):
         sock = FakeSocket()
-        sock.connect_error = state['connect_error']
+        index = len(state['sockets'])
+        sock.connect_error = (state['connect_errors'][index]
+                              if index < len(state['connect_errors'])
+                              else state['connect_error'])
         state['sockets'].append(sock)
         return sock
     monkeypatch.setattr(check.socket, 'socket', factory)
@@ -101,6 +110,38 @@ def test_tls_failures_are_fixed_codes(dial, error, code):
     row = check._attempt('example.invalid')
     assert (row['ok'], row['error']) == (False, code)
     assert dial['sockets'][0].closed is True
+
+
+def test_unreachable_first_address_falls_back_to_the_next(dial):
+    dial['addresses'] = [
+        (socket.AF_INET6, socket.SOCK_STREAM, 0, '', ('2001:db8::1', 443, 0, 0)),
+        (socket.AF_INET, socket.SOCK_STREAM, 0, '', ('127.0.0.1', 443))]
+    dial['connect_errors'] = [OSError('no route to host'), None]
+    row = check._attempt('example.invalid')
+    assert (row['ok'], row['error']) == (True, None)
+    assert len(dial['sockets']) == 2
+    assert dial['sockets'][0].closed is True
+    assert all(tls.closed for tls in dial['context'].tls)
+    assert row['tcp_ms'] is not None and row['tls_ms'] is not None
+
+
+def test_all_addresses_fail_with_the_last_reason(dial):
+    dial['addresses'] = [
+        (socket.AF_INET, socket.SOCK_STREAM, 0, '', ('127.0.0.1', 443)),
+        (socket.AF_INET, socket.SOCK_STREAM, 0, '', ('127.0.0.2', 443))]
+    dial['connect_errors'] = [TimeoutError(), ConnectionRefusedError()]
+    row = check._attempt('example.invalid')
+    assert (row['ok'], row['error']) == (False, 'tcp_refused')
+    assert all(sock.closed for sock in dial['sockets'])
+
+
+def test_address_probe_is_bounded(dial):
+    dial['addresses'] = [
+        (socket.AF_INET, socket.SOCK_STREAM, 0, '', ('127.0.0.%d' % index, 443))
+        for index in range(1, 6)]
+    dial['connect_errors'] = [OSError()] * 5
+    check._attempt('example.invalid')
+    assert len(dial['sockets']) == check.ADDRESS_LIMIT
 
 
 def test_probe_host_retries_once_and_keeps_the_success(monkeypatch):

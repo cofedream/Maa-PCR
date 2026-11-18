@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// Offline checks for the labyrinth network self-check: the request is fixed,
@@ -53,6 +54,25 @@ internal static class LabyrinthNetworkChecks
         Require(!healthyText.Contains("l3-prod", StringComparison.Ordinal)
                 && !healthyText.Contains("github.com", StringComparison.Ordinal),
             "labyrinth_network_text_never_echoes_a_host");
+
+        var isCurrent = type.GetMethod("IsCurrent", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var accountType = assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthAccount", true)!;
+        var ctor = accountType.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, null,
+            new[] { typeof(string), typeof(string), typeof(string), typeof(JObject), typeof(string) }, null)!;
+        object Account(string id) => ctor.Invoke(new object[] { id, id, "cn-bilibili", new JObject(), "" })!;
+        var accountA = Account("a");
+        var accountB = Account("b");
+        bool Current(string server1, object account1, bool database1,
+            string server2, object account2, bool database2) =>
+            (bool)isCurrent.Invoke(null, new[] { server1, account1, database1, server2, account2, database2 })!;
+        Require(Current("cn-bilibili", accountA, true, "cn-bilibili", accountA, true),
+            "labyrinth_network_result_stays_current");
+        Require(!Current("cn-bilibili", accountA, true, "cn-mumu", accountA, true),
+            "labyrinth_network_result_discarded_on_channel_switch");
+        Require(!Current("cn-bilibili", accountA, true, "cn-bilibili", accountB, true),
+            "labyrinth_network_result_discarded_on_account_switch");
+        Require(!Current("cn-bilibili", accountA, true, "cn-bilibili", accountA, false),
+            "labyrinth_network_result_discarded_on_database_toggle");
 
         var slowText = Describe(describe, read, Healthy
             .Replace("\"summary\":\"ok\"", "\"summary\":\"slow\"")
