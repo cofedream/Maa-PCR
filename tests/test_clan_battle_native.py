@@ -763,6 +763,45 @@ def test_v2_formation_scans_every_destination_without_exceeding_swipe_budget(for
     assert state['swipes'] == last
 
 
+@pytest.mark.parametrize('stale', [False, True])
+def test_v2_formation_hint_preserves_click_order_and_full_search_fallback(formation_replay, plan, monkeypatch, stale):
+    from pcr_maa.labyrinth import character_recognition
+    port = formation_replay
+    port.selected = []
+    first, second, *rest = plan['unit_ids']
+    state = dict(page=0, down=0, clicks=[])
+    original_run = port.run
+
+    def run(node, *, click=False):
+        if node == 'CBAction_characters_top':
+            assert click and state['page'] > 0
+            state['page'] -= 1
+            return {}
+        if node == 'CBEditTeam':
+            state['clicks'].append(state['page'])
+        return original_run(node, click=click)
+
+    def advance(section):
+        state['page'] += 1
+        state['down'] += 1
+        return state['page'] <= 4
+
+    def match(frame, uid, roi):
+        location = 4 if uid == first else 1 if uid == second and (not stale or not port.selected) else 0
+        if state['page'] == location:
+            return dict(unit_id=uid, box=[roi[0], roi[1], 126, 126])
+
+    port._reset_list = module.NativeClanBattle._reset_list.__get__(port)
+    port._next_list, port.characters.match, port.run = advance, match, run
+    port.read_page = lambda section: None
+    port._list_hit = lambda section, position: position == 'top' and state['page'] == 0
+    monkeypatch.setattr(character_recognition, 'scrollbar', lambda *a, **k: {'absolute_top': state['page']})
+    port.form_team()
+    assert port.selected == [first, second, *rest] and port.inputs == ['CBEditTeam'] * 5
+    assert state['clicks'] == [4, 0 if stale else 1, 0, 0, 0]
+    assert state['down'] == 4
+
+
 
 @pytest.mark.parametrize('version', [1, 2])
 def test_formation_next_swipe_timing_is_optional_and_does_not_change_other_scrolls(calibration, calibration_v2, plan, version):

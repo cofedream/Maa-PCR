@@ -13,6 +13,46 @@ from pcr_maa.preset_execution import Journal
 from pcr_maa.replay import SavedImages
 from test_labyrinth_character_port import offline
 
+
+@pytest.mark.parametrize('mismatch', [None, 'tab', 'role', 'untrusted'])
+def test_boss_start_checks_all_three_fresh_member_views_before_one_guarded_click(monkeypatch, mismatch):
+    from pcr_maa.labyrinth.team_execution import MaaTeam
+    key = (1, 30701)
+    parties = [['1051'], ['1059'], ['1076']]
+    tab = [3]
+    checked, clicks = [], []
+    def read(batch, page, *, roster, members_only=False):
+        index = tab[0]
+        if members_only:
+            checked.append(index)
+        bad = mismatch if members_only and index == 2 else None
+        return dict(boss_tab=1 if bad=='tab' else index,
+            selected=[] if bad=='role' else parties[index-1],
+            members=[dict(trusted=bad!='untrusted')]), {}
+    def move(self, batch, enter, page, before, **kwargs):
+        tab[0] = kwargs['tab']
+        return read(batch, page, roster=())[0]
+    def run(suffix, params, *, input):
+        assert input and suffix == 'StartOnce' and params['expected_teams'] == parties
+        assert params['expected_selected'] == parties[-1] and 'members_only' not in params
+        clicks.append(suffix)
+        return None, {}
+    monkeypatch.setattr(m.CharacterNavigation, 'move', move)
+    team = object.__new__(MaaTeam)
+    team.pages, team.prepared, team.boss_all_teams = {key:'boss'}, {key: parties[0]}, {key: parties}
+    team.started, team.roster, team._characters = set(), tuple(r[0] for r in parties), NS(read=read, run=run)
+    team.stamp = lambda **fields: fields
+    batch = NS(checkpoint=lambda: None, transaction=lambda op, fields, send: send('offline'),
+        observation=lambda value, **kw: value)
+    result = lambda enter, block: dict(verified=True, outcome='won', enter_id=enter, block_id=block)
+    if mismatch:
+        with pytest.raises(BatchStopped, match='team_readback_unknown'):
+            team.start_once(batch, *key, result)
+        assert checked == [1, 2] and not clicks
+    else:
+        assert team.start_once(batch, *key, result)['outcome'] == 'won'
+        assert checked == [1, 2, 3] and clicks == ['StartOnce']
+
 ROOT=Path(__file__).resolve().parents[1]
 Q=ROOT.parent/'evidence/resume-20261006/upstream-complete-20261007/isolation-after109'
 SCREEN=ROOT/'.runtime/acceptance-after109/.runtime/labyrinth-work/runs/fae5ea0af024459ab94990d88a510fa5/acceptance-ending/screen.png'
@@ -146,5 +186,42 @@ def test_add_after_member_feedback_acquires_full_list_before_each_seek(monkeypat
     team.roster=ROSTER;team.optimizer=NS(profiles={r:NS(data={'attribute':'DARK'}) for r in ROSTER})
     actual,_=team._edit(batch,117,20502,'battle',['1075','1351'],view())
     assert actual['selected']==['1075','1351'] and not actual.get('members_only')
-    assert calls==['toggle:1059','members','full','seek','toggle:1075','members',
-        'full','seek','toggle:1351','members','full']
+    # 1351 is already visible. 1075 still gets its own fresh list, search and checked click.
+    assert calls==['toggle:1059','members','full','seek','toggle:1351','members',
+        'full','seek','toggle:1075','members','full']
+
+
+@pytest.mark.parametrize('role,expected,filter_name,fast,allowed',[
+    ('1001',['1001'],'ALL',True,True),
+    ('1001',['1001'],'EFFECTIVE_EFFECT',False,True),
+    ('1001',['1001'],None,False,True),
+    ('1001',['1001','1002'],'FIRE',True,False),
+    ('1002',['1001'],'FIRE',False,True),
+])
+def test_toggle_uses_member_scope_only_for_guarded_removal(monkeypatch,role,expected,filter_name,fast,allowed):
+    monkeypatch.setattr(m,'_selected_filter',lambda *_:filter_name)
+    scopes=[]
+    def recognize(*args,**kwargs):
+        scopes.append(kwargs.get('members_only',False))
+        card=lambda uid:dict(character_id=uid,trusted=True,box=[40,60,100,100])
+        return dict(stable=True,selected=['1001'],members=[card('1001')],
+            cards=[] if scopes[-1] else [card('1002')])
+    reader=m.CharacterRecognition('Test',NS(stopped=lambda:False,matcher=NS(names={'1001','1002'}),recognize=recognize))
+    ctx=NS(tasker=NS(stopping=False),run_recognition=lambda name,img:NS(hit=name in ('LabyTeamTitle','LabyTeamMembersLabel')))
+    result=reader.analyze(ctx,NS(image=None,custom_recognition_param=json.dumps(dict(
+        mode='toggle',page='battle',role_id=role,expected_selected=expected))))
+    assert scopes==[fast] and (result is not None)==allowed
+
+
+def test_boss_removal_refuses_a_different_tab_even_with_the_right_member(monkeypatch):
+    monkeypatch.setattr(m,'_selected_filter',lambda *_:'ALL')
+    member=dict(character_id='1001',trusted=True,box=[60,540,110,110])
+    def recognize(*a,**kw):
+        assert kw['members_only']
+        return dict(stable=True,boss_tab=2,selected=['1001'],members=[member],cards=[])
+    reader=m.CharacterRecognition('Test',NS(stopped=lambda:False,matcher=NS(names={'1001'}),recognize=recognize))
+    ctx=NS(tasker=NS(stopping=False),run_recognition=lambda name,img:NS(hit='BossTabLabel' in name or name=='LabyTeamTitle'))
+    params=dict(mode='toggle',page='boss',role_id='1001',expected_selected=['1001'])
+    for tab in (1,2):
+        result=reader.analyze(ctx,NS(image=None,custom_recognition_param=json.dumps(dict(params,expected_tab=tab))))
+        assert (result is not None)==(tab==2)

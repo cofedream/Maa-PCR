@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 from maa.custom_recognition import CustomRecognition
 from .. import native
+from ..frame_recognition import same_frame_context
 from .batch import BatchStopped
 from .scene import MaaSceneRuntime,SceneRecognition,OBSERVATION_TIMEOUT_SECONDS,_primitive,_box,_checkpoint,runtime_resource,_RULES
 from .strategies import Relic,shop_relic,choose_relic
@@ -282,6 +283,7 @@ class ShopRecognition(CustomRecognition):
         return None
     def analyze(self,context,argv):
         if self.stopped is not None and self.stopped():return self.AnalyzeResult(None,dict(status='unknown',reason='stopped'))
+        context = same_frame_context(context, argv.image)
         def read(key):
             return _words(context.run_recognition('LabyShopRead_'+key,argv.image),key)
         words={key:read(key) for key in ('DialogTitle','DialogBody','Confirm')}

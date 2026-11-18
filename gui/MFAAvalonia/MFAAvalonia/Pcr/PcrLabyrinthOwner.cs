@@ -177,8 +177,8 @@ internal static class PcrLabyrinthOwner
                     throw new InvalidOperationException("请先在设备栏选择有效的 ADB 目标。");
                 request=new JObject { ["version"]=1,["settings"]=snapshot,["account_id"]=accountId,["server"]=settings.Server,
                     ["keep_old_run"]=settings.KeepOldRun,
-                    ["webgpu"]=settings.UseWebGpu,
-                    ["cpu_only"]=!settings.UseWebGpu && Instances.PerformanceUserControlModel.GpuOption is { IsDirectML: false, Device: InferenceDevice.CPU },
+                    ["webgpu"]=Instances.PerformanceUserControlModel.UseWebGpu,
+                    ["cpu_only"]=!Instances.PerformanceUserControlModel.UseWebGpu && Instances.PerformanceUserControlModel.GpuOption is { IsDirectML: false, Device: InferenceDevice.CPU },
                     ["connection"]=new JObject { ["adb_path"]=path,["serial"]=serial },
                     ["credentials"]=new JObject { ["username"]=settings.Username,["password"]=settings.Password } };
                 current=run=new Run(vm);

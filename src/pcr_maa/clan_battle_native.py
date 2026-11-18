@@ -12,6 +12,7 @@ from maa.custom_recognition import CustomRecognition
 from copy import deepcopy
 
 from . import native
+from .frame_recognition import same_frame_context
 from .guide_trial_native import NativeGuideTrial
 from .clan_battle_recovery import ClanDisconnected, observe_disconnect_after_failure, recover_disconnect
 from .labyrinth.game_session import game_session_pipeline
@@ -888,6 +889,7 @@ class ClanBattlePage(CustomRecognition):
     def analyze(self, context, argv):
         try:
             params = json.loads(argv.custom_recognition_param)
+            context = same_frame_context(context, argv.image)
             if 'navigation' in params:
                 detail, target = self.navigation_action(context, argv.image, params)
                 return None if context.tasker.stopping else self.AnalyzeResult(box=target, detail=detail)
@@ -1512,7 +1514,7 @@ class NativeClanBattle(NativeGuideTrial):
             self.checkpoint()
             time.sleep(.05)
 
-    def _reset_list(self, section):
+    def _reset_list(self, section, *, find_on_return=None):
         if section == 'formation' and self.calibration.get('version') == 2:
             from .labyrinth.character_recognition import scrollbar
             for _ in range(16):
@@ -1522,6 +1524,12 @@ class NativeClanBattle(NativeGuideTrial):
                 before = scrollbar(self.tasker.controller.cached_image, 'battle', include_geometry=True)['absolute_top']
                 if before is None:
                     raise RuntimeError('clan_battle_list_position_unknown')
+                if find_on_return is not None:
+                    uid, last_seen_top = find_on_return
+                    if self._formation_candidate(self.tasker.controller.cached_image, uid, hint_only=True):
+                        return True
+                    if before <= last_seen_top:
+                        find_on_return = None
                 self.run('CBAction_characters_top', click=True)
                 self.read_page(section)
                 after = scrollbar(self.tasker.controller.cached_image, 'battle', include_geometry=True)['absolute_top']
@@ -1568,9 +1576,54 @@ class NativeClanBattle(NativeGuideTrial):
             raise RuntimeError('clan_battle_list_unchanged_no_retry')
         return True
 
+    def _formation_candidate(self, frame, uid, *, hint_only=False):
+        from .clan_battle_characters import box_inside_roi
+        matches = [(row, roi) for roi in self.calibration['formation']['candidates']
+                   if (row := self.characters.match(frame, uid, roi))]
+        if len(matches) > 1 and not hint_only:
+            raise RuntimeError('clan_battle_candidate_ambiguous')
+        if len(matches) != 1:
+            return False
+        candidate, roi = matches[0]
+        box = candidate['box']
+        modern = self.calibration.get('version') == 2
+        if box_inside_roi(box, roi) and (not modern or box[1]+box[3] < roi[1]+roi[3]):
+            return True
+        visible = [box[0], box[1], box[2], roi[1]+roi[3]-box[1]]
+        if hint_only or (modern and candidate.get('unit_id') == uid
+                and box[1]+box[3] >= roi[1]+roi[3] and box_inside_roi(visible, roi)):
+            return False
+        raise RuntimeError('clan_battle_candidate_clipped')
+
+    def _find_formation_unit(self, uid, later, hints, *, check_current):
+        from .labyrinth.character_recognition import scrollbar
+        near = hints.pop(uid, None)
+        if near is not None:
+            if self._reset_list('formation', find_on_return=(uid, near)):
+                return True
+        else:
+            if check_current:
+                self.read_team(require_stars=False)
+                if self._formation_candidate(self.tasker.controller.cached_image, uid, hint_only=True):
+                    return True
+            self._reset_list('formation')
+        max_swipes = 48 if self.calibration.get('version') == 2 else 16
+        for page_index in range(max_swipes + 1):
+            self.read_team(require_stars=False)
+            frame = self.tasker.controller.cached_image
+            if self._formation_candidate(frame, uid):
+                return True
+            if later:
+                top = scrollbar(frame, 'battle', include_geometry=True)['absolute_top']
+                if top is not None:
+                    for other in later:
+                        if other not in hints and self._formation_candidate(frame, other, hint_only=True):
+                            hints[other] = top
+            if page_index == max_swipes or not self._next_list('formation'):
+                return False
+
     def form_team(self):
         from .clan_battle import select_support
-        from .clan_battle_characters import box_inside_roi
         team = self.read_team(require_stars=False)
         if (team['member_count'] == 5 and set(team['unit_ids']) == set(self.plan['unit_ids'])
                 and sum(type(star) is int for star in team.get('stars', [])) != 5):
@@ -1595,41 +1648,18 @@ class NativeClanBattle(NativeGuideTrial):
                 self.tasker.resource.override_pipeline({'CBEditTeam': dict(custom_recognition_param=dict(mode='clear', count=team['member_count']))})
                 self.run('CBEditTeam', click=True)
                 team = self._read_team_after_edit(team['member_count'])
-        max_swipes = 48 if self.calibration.get('version') == 2 else 16
-        for uid in self.plan['unit_ids']:
+        planned = self.plan['unit_ids']
+        use_hints = self.calibration.get('version') == 2 and self.support_unit_id is None
+        hints = {}
+        for index, uid in enumerate(planned):
             if uid == self.support_unit_id or uid in team['unit_ids']:
                 continue
-            self._reset_list('formation')
-            found = False
-            for page_index in range(max_swipes + 1):
-                self.read_team(require_stars=False)
-                frame = self.tasker.controller.cached_image
-                matches = [(row, roi) for roi in self.calibration['formation']['candidates']
-                           if (row := self.characters.match(frame, uid, roi))]
-                if len(matches) > 1:
-                    raise RuntimeError('clan_battle_candidate_ambiguous')
-                if matches:
-                    candidate, roi = matches[0]
-                    box = candidate['box']
-                    if (not box_inside_roi(box, roi) or self.calibration.get('version') == 2
-                            and box[1]+box[3] == roi[1]+roi[3]):
-                        visible = [box[0], box[1], box[2], roi[1]+roi[3]-box[1]]
-                        if (self.calibration.get('version') == 2 and candidate.get('unit_id') == uid
-                                and box[1]+box[3] >= roi[1]+roi[3] and box_inside_roi(visible, roi)):
-                            # A card touching or crossing the bottom needs the next guarded list step.
-                            matches = []
-                        else:
-                            raise RuntimeError('clan_battle_candidate_clipped')
-                if matches:
-                    self.tasker.resource.override_pipeline({'CBEditTeam': dict(custom_recognition_param=dict(mode='add', unit_id=uid))})
-                    self.run('CBEditTeam', click=True)
-                    team = self._read_team_after_edit(team['member_count'], added_unit_id=uid)
-                    found = True
-                    break
-                if page_index == max_swipes or not self._next_list('formation'):
-                    break
-            if not found:
+            later = [other for other in planned[index+1:] if other not in team['unit_ids']] if use_hints else ()
+            if not self._find_formation_unit(uid, later, hints, check_current=use_hints and index > 0):
                 raise RuntimeError('clan_battle_character_not_found:' + str(uid))
+            self.tasker.resource.override_pipeline({'CBEditTeam': dict(custom_recognition_param=dict(mode='add', unit_id=uid))})
+            self.run('CBEditTeam', click=True)
+            team = self._read_team_after_edit(team['member_count'], added_unit_id=uid)
         if self.support_unit_id is not None:
             self.run('CBAction_open_support', click=True)
             self.wait(['CBPage_support'], seconds=10)

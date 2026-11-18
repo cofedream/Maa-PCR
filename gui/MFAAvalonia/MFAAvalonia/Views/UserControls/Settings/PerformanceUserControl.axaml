@@ -26,7 +26,8 @@
                           Focusable="False"
                           HorizontalAlignment="Center"
                           IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                          ItemsSource="{Binding GpuOptions}" SelectedIndex="{Binding GpuIndex}"
+                          ItemsSource="{Binding InferenceOptions}" SelectedItem="{Binding InferenceOption, Mode=TwoWay}"
+                          ToolTip.Tip="全局识别设备，用于日常、黎明界和公会战。下次开始任务时生效。"
                           VerticalAlignment="Center"
                           Width="215" />
 

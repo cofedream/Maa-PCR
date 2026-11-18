@@ -77,8 +77,6 @@
     </StackPanel>
     <CheckBox Name="KeepOldRunToggle" Content="保留旧局" IsChecked="{Binding LabyrinthSettings.KeepOldRun, Mode=TwoWay}" />
     <TextBlock Text="默认关闭：再次开始会先放弃旧局，确认结束后新开。开启后保留旧局；已推进且无法续跑时，可手动完成旧局，或关闭此开关重新开始。" TextWrapping="Wrap" FontSize="12" />
-    <CheckBox Name="WebGpuToggle" Content="使用 WebGPU 加速识别（试用）" IsChecked="{Binding LabyrinthSettings.UseWebGpu, Mode=TwoWay}"
-              ToolTip.Tip="仅用于黎明界。开启后优先使用 WebGPU，登录前识别初始化失败会改用 CPU。" />
     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
      <Button Content="{Binding LabyrinthSettings.SaveButtonText}" Command="{Binding LabyrinthSettings.SaveCommand}" />
      <TextBlock Grid.Column="1" Text="{Binding LabyrinthSettings.Status}" TextWrapping="Wrap" VerticalAlignment="Center" />

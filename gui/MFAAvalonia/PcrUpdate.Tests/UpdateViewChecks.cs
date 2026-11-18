@@ -42,6 +42,25 @@ internal static class UpdateViewChecks
             if (!result) throw new InvalidOperationException(name);
             count++;
         }
+        GlobalConfiguration.RemoveValues(["PcrUseWebGpu"]);
+        Directory.CreateDirectory(AppPaths.InstancesDirectory);
+        var legacyPath = Path.Combine(AppPaths.InstancesDirectory, "pcr-labyrinth-v1.json");
+        File.WriteAllText(legacyPath, """{"PcrLabyrinthSettingsV1":"{\"use_webgpu\":true}"}""");
+        var gpu = new PerformanceUserControlModel();
+        cache[typeof(PerformanceUserControlModel)] = new Lazy<object>(() => gpu);
+        var rootType = typeof(MFAAvalonia.ViewModels.Windows.RootViewModel);
+        cache[rootType] = new Lazy<object>(() => RuntimeHelpers.GetUninitializedObject(rootType));
+        var performance = new PerformanceUserControl();
+        var picker = performance.GetLogicalDescendants().OfType<ComboBox>().Single();
+        Dispatcher.UIThread.RunJobs();
+        Require(gpu.UseWebGpu && picker.SelectedItem == gpu.InferenceOption && gpu.InferenceOption?.Name == "WebGPU（试用）",
+            "gpu_picker_migrates_previous_labyrinth_setting");
+        picker.SelectedIndex = 0;
+        Dispatcher.UIThread.RunJobs();
+        Require(!gpu.UseWebGpu && !new PerformanceUserControlModel().UseWebGpu, "global_gpu_off_overrides_old_account");
+        picker.SelectedIndex = picker.ItemCount - 1;
+        Dispatcher.UIThread.RunJobs();
+        Require(gpu.UseWebGpu && new PerformanceUserControlModel().UseWebGpu, "global_gpu_choice_survives_reopen");
         Require(Find("检查更新").Command == model.CheckPcrUpdateCommand, "real_check_button_bound");
         Require(Find("下载并安装").Command == model.InstallPcrUpdateCommand, "real_online_install_button_bound");
         Require(Find("导入更新包").Command == model.UpdateResourceFromLocalPackageCommand, "real_local_import_button_bound");
@@ -63,7 +82,7 @@ internal static class UpdateViewChecks
         Dispatcher.UIThread.RunJobs();
         Require(!model.PcrCheckStableUpdates && !ConfigurationManager.Current.GetValue(PcrSoftwareUpdateService.CheckSetting, true),
             "startup_check_switch_saves_isolated_setting");
-        model.PcrUpdateStatus = "本地增量补丁已通过校验：v0.1.8 / R52 → v0.1.8-r53-candidate / R53。";
+        model.PcrUpdateStatus = "本地增量补丁已通过校验：v0.1.40 → v0.2.0。";
         var size = new Size(720, 840);
         var window = new Window { Content = view, Width = size.Width, Height = size.Height,
             Position = new PixelPoint(-10000, -10000), ShowInTaskbar = false,

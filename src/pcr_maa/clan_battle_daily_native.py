@@ -11,6 +11,7 @@ from maa.custom_recognition import CustomRecognition
 from .clan_battle_native import ClanBattlePage, NativeClanBattle, OPENING_CLOCK_PATTERN, _current_period, _detail, _node, _result_detail, _roi, result_damage_line, result_damage_nodes
 from .clan_battle_characters import ClanBattleCharacters, box_inside_roi
 from .guide_trial_native import NativeGuideTrial
+from .frame_recognition import same_frame_context
 
 
 PAGE_FIELDS = {
@@ -282,6 +283,7 @@ class ClanBattleDailyPage(CustomRecognition):
             params = json.loads(argv.custom_recognition_param)
             if type(params) is not dict or set(params) != {'page'}:
                 return None
+            context = same_frame_context(context, argv.image)
             values = self.read(context, argv.image, params['page'])
             return self.AnalyzeResult(box=[0, 0, 1, 1], detail=values)
         except Exception:
@@ -702,6 +704,7 @@ class ClanBattleDailyExecutionPage(ClanBattleDailyPage):
             params = json.loads(argv.custom_recognition_param)
             if set(params) - {'page', 'action'}:
                 return None
+            context = same_frame_context(context, argv.image)
             value = self.read(context, argv.image, params['page'])
             target = self.action(context, argv.image, params['action']) if 'action' in params else [0, 0, 1, 1]
             if context.tasker.stopping:
@@ -785,6 +788,7 @@ class _DailyTeamReader(ClanBattleCharacters):
     def analyze(self, context, argv):
         try:
             params = json.loads(argv.custom_recognition_param)
+            context = same_frame_context(context, argv.image)
             if params in ({'mode': 'formal_start_confirmation'}, {'mode': 'result_reward_observed'}, {'mode': 'result_reward_confirm'}):
                 if context.tasker.stopping or argv.image is None or argv.image.shape != (720, 1280, 3):
                     return None
