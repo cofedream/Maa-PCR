@@ -17,6 +17,8 @@ from types import SimpleNamespace
 from urllib.parse import unquote
 from uuid import uuid4
 
+from ..device import adb_path_supported
+
 # The preference path is package-specific, so every GameServer (Bilibili and
 # channel clients) is read/written under its own package.  The key/value pair
 # below is the game's own Unity setting, verified on the Bilibili client 11.7.2
@@ -34,14 +36,8 @@ STOP_FAILED_HINT = ('客户端未完全关闭，跳过修改黎明界角色加�
                     '“菜单 → 设定”中手动关闭，任务继续。')
 STOP_QUERY_FAILED_HINT = ('无法确认客户端是否已关闭（进程查询超时或失败）；已跳过修改黎明界角色加入动画；'
                           '建议在黎明界迷宫右上角“菜单 → 设定”中手动关闭，任务继续。')
-WRITE_FAILED_HINT = ('修改黎明界角色加入动画失败；建议在黎明界迷宫右上角'
+WRITE_FAILED_HINT = ('写入黎明界角色加入动画失败，原配置未改动；建议在黎明界迷宫右上角'
                      '“菜单 → 设定”中手动关闭，任务继续。')
-WRITE_INTERRUPTED_HINT = ('写入黎明界角色加入动画时被中断，已恢复原配置；建议在黎明界迷宫右上角'
-                          '“菜单 → 设定”中手动关闭，任务继续。')
-WRITE_UNRESTORED_HINT = ('写入黎明界角色加入动画失败且未能恢复原配置；请在黎明界迷宫右上角'
-                         '“菜单 → 设定”中确认设置，任务继续。')
-WRITE_BACKUP_FAILED_HINT = ('无法备份客户端配置，已跳过修改黎明界角色加入动画；建议在黎明界迷宫右上角'
-                            '“菜单 → 设定”中手动关闭，任务继续。')
 ERROR_HINT = ('检查黎明界角色加入动画时出错；建议在黎明界迷宫右上角'
               '“菜单 → 设定”中手动关闭，任务继续。')
 STOP_STOPPED = 'stopped'
@@ -49,9 +45,6 @@ STOP_RUNNING = 'running'
 STOP_QUERY_FAILED = 'query_failed'
 WRITE_WRITTEN = 'written'
 WRITE_FAILED = 'failed'
-WRITE_BACKUP_FAILED = 'backup_failed'
-WRITE_INTERRUPTED_RESTORED = 'interrupted_restored'
-WRITE_INTERRUPTED_UNRESTORED = 'interrupted_unrestored'
 
 
 def pref_path(package):
@@ -164,26 +157,18 @@ def _stop(run, package, stopped):
     return STOP_RUNNING
 
 
-def _write(run, pref, original, new_xml, stopped):
+def _write(run, pref, new_xml, stopped):
     suffix = f'{os.getpid()}_{uuid4().hex[:8]}'
+    temp = f'{pref}.pcr_maa_{suffix}.tmp'
     remote = f'/data/local/tmp/pcr_maa_animation_{suffix}.xml'
-    backup = f'/data/local/tmp/pcr_maa_animation_backup_{suffix}.xml'
     local = None
-
-    def restore():
-        result = _call(run, ['shell', f'cat {backup} > {pref}'], timeout=20)
-        if result.returncode != 0:
-            return WRITE_INTERRUPTED_UNRESTORED
-        restored = _read(run, pref)
-        return (WRITE_INTERRUPTED_RESTORED if restored == original
-                else WRITE_INTERRUPTED_UNRESTORED)
-
     try:
-        # Keep an on-device copy of the exact document before the in-place
-        # overwrite.  A failed or interrupted write is restored from this copy.
-        result = _call(run, ['shell', f'cat {pref} > {backup}'], timeout=20)
-        if result.returncode != 0 or _read(run, backup) != original:
-            return WRITE_BACKUP_FAILED
+        # Create the candidate in the same directory and let -p carry the
+        # original owner/mode/timestamps.  The original is never opened for
+        # writing, so an interrupted write can only damage the temp file.
+        result = _call(run, ['shell', f'cp -p {pref} {temp}'], timeout=20)
+        if result.returncode != 0:
+            return WRITE_FAILED
         with tempfile.NamedTemporaryFile('w', encoding='utf-8', newline='', suffix='.xml',
                                          delete=False) as stream:
             stream.write(new_xml)
@@ -193,22 +178,29 @@ def _write(run, pref, original, new_xml, stopped):
             return WRITE_FAILED
         if stopped():
             return WRITE_FAILED
-        result = _call(run, ['shell', f'cat {remote} > {pref}'], timeout=20)
+        result = _call(run, ['shell', f'cat {remote} > {temp}'], timeout=20)
         if result.returncode != 0:
-            return restore()
-        result = _call(run, ['exec-out', 'cat', pref], timeout=20)
-        if result.returncode == 0 and state(_stdout(result)) == 'off':
+            return WRITE_FAILED
+        # Validate the complete candidate before replacing the original.
+        candidate = _read(run, temp)
+        if candidate is None or state(candidate) != 'off':
+            return WRITE_FAILED
+        # Same-directory rename is atomic; the validated temp becomes the file.
+        result = _call(run, ['shell', f'mv -f {temp} {pref}'], timeout=20)
+        if result.returncode == 0:
             return WRITE_WRITTEN
-        # The write command acknowledged, but the document is not the expected
-        # one (partial/truncated).  Put the original bytes back before leaving.
-        return restore()
+        # A transport timeout can follow a completed rename.  Read back before
+        # claiming the original is still untouched.
+        current = _read(run, pref)
+        return (WRITE_WRITTEN if current is not None and state(current) == 'off'
+                else WRITE_FAILED)
     finally:
         if local is not None:
             try:
                 os.unlink(local)
             except OSError:
                 pass
-        _call(run, ['shell', f'rm -f {remote} {backup}'], timeout=5)
+        _call(run, ['shell', f'rm -f {remote} {temp}'], timeout=5)
 
 
 def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
@@ -223,13 +215,8 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
     """
     if stopped():
         return 'stopped'
-    if runner is None:
-        try:
-            if (not os.path.isfile(adb_path)
-                    or os.path.basename(str(adb_path)).lower() != 'adb.exe'):
-                return 'adb_missing'
-        except (TypeError, OSError):
-            return 'adb_missing'
+    if runner is None and not adb_path_supported(adb_path):
+        return 'adb_missing'
     run = ((lambda args, **kwargs: _run(adb_path, serial, args, **kwargs))
            if runner is None else runner)
     pref = pref_path(package)
@@ -280,7 +267,7 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
         if new_xml is None:
             log(UNKNOWN_HINT)
             return 'unknown'
-        write = _write(run, pref, xml, new_xml, stopped)
+        write = _write(run, pref, new_xml, stopped)
         if write == WRITE_WRITTEN:
             if stopped():
                 return 'stopped'
@@ -288,15 +275,6 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
             return 'fixed'
         if stopped():
             return 'stopped'
-        if write == WRITE_INTERRUPTED_RESTORED:
-            log(WRITE_INTERRUPTED_HINT)
-            return 'write_interrupted'
-        if write == WRITE_INTERRUPTED_UNRESTORED:
-            log(WRITE_UNRESTORED_HINT)
-            return 'write_unrestored'
-        if write == WRITE_BACKUP_FAILED:
-            log(WRITE_BACKUP_FAILED_HINT)
-            return 'write_failed'
         log(WRITE_FAILED_HINT)
         return 'write_failed'
     except Exception:

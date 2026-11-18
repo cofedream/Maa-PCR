@@ -19,8 +19,9 @@ XML = f'''<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 
 class Adb:
     def __init__(self, *, package=PKG, root=False, xml=XML, root_works=True, stop_works=True,
-                 read_requires_root=False, pidof_timeout=False, pidof_error=False,
-                 write_interrupt=False, restore_fails=False, backup_fails=False):
+                 read_requires_root=False, force_stop_fails=False, pidof_timeout=False,
+                 pidof_error=False, write_interrupt=False, copy_fails=False,
+                 rename_fails=False):
         self.package = package
         self.pref = setting.pref_path(package)
         self.root = root
@@ -28,11 +29,12 @@ class Adb:
         self.root_works = root_works
         self.stop_works = stop_works
         self.read_requires_root = read_requires_root
+        self.force_stop_fails = force_stop_fails
         self.pidof_timeout = pidof_timeout
         self.pidof_error = pidof_error
         self.write_interrupt = write_interrupt
-        self.restore_fails = restore_fails
-        self.backup_fails = backup_fails
+        self.copy_fails = copy_fails
+        self.rename_fails = rename_fails
         self.calls = []
         self.files = {}
 
@@ -63,7 +65,8 @@ class Adb:
                 return NS(returncode=0, stdout=self.files[path], stderr='')
             return NS(returncode=1, stdout='', stderr='No such file')
         if args == ['shell', 'am', 'force-stop', self.package]:
-            return NS(returncode=0, stdout='', stderr='')
+            return NS(returncode=1 if self.force_stop_fails else 0, stdout='',
+                      stderr='force-stop failed\n' if self.force_stop_fails else '')
         if args == ['shell', 'pidof', self.package]:
             if self.pidof_timeout:
                 raise TimeoutExpired(['pidof', self.package], 5)
@@ -75,21 +78,34 @@ class Adb:
         if args and args[0] == 'push':
             self.files[args[2]] = Path(args[1]).read_text(encoding='utf-8')
             return NS(returncode=0, stdout='1 file pushed\n', stderr='')
+        if args and args[0] == 'shell' and args[1].startswith('cp -p '):
+            source, target = args[1][6:].split(' ', 1)
+            source, target = source.strip(), target.strip()
+            if self.copy_fails:
+                return NS(returncode=1, stdout='', stderr='copy failed')
+            self.files[target] = self.files.get(source, self.xml)
+            return NS(returncode=0, stdout='', stderr='')
         if args and args[0] == 'shell' and args[1].startswith('cat ') and ' > ' in args[1]:
             source, target = args[1][4:].split(' > ', 1)
             source, target = source.strip(), target.strip()
-            if target != self.pref and 'backup' in target and self.backup_fails:
-                return NS(returncode=1, stdout='', stderr='backup failed')
-            if target == self.pref and 'backup' not in source and self.write_interrupt:
-                # Simulate a partial in-place write before the command times out.
-                self.xml = '<map>\n'
+            if target == self.pref:
+                raise AssertionError('the atomic path must not truncate the pref')
+            if self.write_interrupt:
+                # Simulate a partial candidate write before the command times out.
+                self.files[target] = '<map>\n'
                 raise TimeoutExpired(['cat'], 20)
-            if target == self.pref and 'backup' in source and self.restore_fails:
-                return NS(returncode=1, stdout='', stderr='restore failed')
-            self.files[target] = self.files.get(source, self.xml)
-            self.xml = self.files[target]
+            self.files[target] = self.files.get(source, '')
+            return NS(returncode=0, stdout='', stderr='')
+        if args and args[0] == 'shell' and args[1].startswith('mv -f '):
+            source, target = args[1][6:].split(' ', 1)
+            source, target = source.strip(), target.strip()
+            if self.rename_fails or source not in self.files:
+                return NS(returncode=1, stdout='', stderr='rename failed')
+            self.xml = self.files.pop(source)
             return NS(returncode=0, stdout='', stderr='')
         if args and args[0] == 'shell' and args[1].startswith('rm -f '):
+            for path in args[1][6:].split():
+                self.files.pop(path, None)
             return NS(returncode=0, stdout='', stderr='')
         raise AssertionError(f'unexpected adb call: {args!r}')
 
@@ -121,6 +137,10 @@ def test_enabled_with_root_closes_client_and_writes_off():
     assert setting.state(adb.xml) == 'off'
     assert ['shell', 'am', 'force-stop', PKG] in adb.calls
     assert any(args[0] == 'push' for args in adb.calls)
+    assert any(args[0] == 'shell' and args[1].startswith('cp -p ')
+               for args in adb.calls)
+    assert any(args[0] == 'shell' and args[1].startswith('mv -f ')
+               for args in adb.calls)
     # Only the dialog entry changed; the same-prefix entry keeps its value.
     assert adb.xml.count(setting.ON) == 1
     assert adb.xml.count(setting.OFF) == 1
@@ -197,12 +217,13 @@ def test_stop_failure_skips_write():
     assert setting.state(adb.xml) == 'on'
 
 
-def test_process_query_timeout_skips_write_and_reports_unknown():
-    adb = Adb(root=True, pidof_timeout=True)
+def test_force_stop_failure_and_pidof_timeout_skip_write():
+    adb = Adb(root=True, force_stop_fails=True, pidof_timeout=True)
     logs = []
     result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
         log=logs.append, stopped=lambda: False, runner=adb)
     assert result == 'stop_unverified'
+    assert ['shell', 'am', 'force-stop', PKG] in adb.calls
     assert any('进程查询超时' in line for line in logs)
     assert not any(args[0] == 'push' for args in adb.calls)
     assert setting.state(adb.xml) == 'on'
@@ -219,36 +240,41 @@ def test_process_query_transport_error_skips_write():
     assert setting.state(adb.xml) == 'on'
 
 
-def test_backup_failure_skips_write_and_keeps_the_original():
-    adb = Adb(root=True, backup_fails=True)
+def test_temp_copy_failure_keeps_the_original_document():
+    adb = Adb(root=True, copy_fails=True)
     logs = []
     result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
         log=logs.append, stopped=lambda: False, runner=adb)
     assert result == 'write_failed'
-    assert any('无法备份' in line for line in logs)
+    assert adb.xml == XML
+    assert any('原配置未改动' in line for line in logs)
     assert not any(args[0] == 'push' for args in adb.calls)
-    assert setting.state(adb.xml) == 'on'
 
 
-def test_write_interruption_restores_the_original_document():
+def test_write_interruption_of_the_temp_keeps_the_original_document():
     adb = Adb(root=True, write_interrupt=True)
     logs = []
     result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
         log=logs.append, stopped=lambda: False, runner=adb)
-    assert result == 'write_interrupted'
+    assert result == 'write_failed'
     assert adb.xml == XML
-    assert any('已恢复原配置' in line for line in logs)
-    assert not any('已关闭' in line for line in logs)
+    assert any('原配置未改动' in line for line in logs)
+    assert any(args[0] == 'shell' and args[1].startswith('cp -p ')
+               for args in adb.calls)
+    assert not any(args[0] == 'shell' and args[1].startswith('mv -f ')
+                   for args in adb.calls)
 
 
-def test_write_interruption_with_failed_restore_is_reported():
-    adb = Adb(root=True, write_interrupt=True, restore_fails=True)
+def test_rename_failure_keeps_the_original_document():
+    adb = Adb(root=True, rename_fails=True)
     logs = []
     result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
         log=logs.append, stopped=lambda: False, runner=adb)
-    assert result == 'write_unrestored'
-    assert adb.xml == '<map>\n'
-    assert any('未能恢复' in line for line in logs)
+    assert result == 'write_failed'
+    assert adb.xml == XML
+    assert any('原配置未改动' in line for line in logs)
+    assert any(args[0] == 'shell' and args[1].startswith('mv -f ')
+               for args in adb.calls)
 
 
 def test_missing_entry_logs_unknown_without_stopping_the_client():
@@ -273,3 +299,15 @@ def test_missing_adb_is_silent_and_touches_nothing(tmp_path):
     assert setting.ensure_animation_off(str(tmp_path / 'missing-adb.exe'), 'serial', PKG,
         log=logs.append) == 'adb_missing'
     assert logs == []
+
+
+def test_hd_adb_path_is_supported(tmp_path):
+    from pcr_maa.device import adb_path_supported
+    hd = tmp_path / 'HD-Adb.exe'
+    adb = tmp_path / 'adb.exe'
+    other = tmp_path / 'adb2.exe'
+    for path in (hd, adb, other):
+        path.write_bytes(b'')
+    assert adb_path_supported(str(hd))
+    assert adb_path_supported(str(adb))
+    assert not adb_path_supported(str(other))
