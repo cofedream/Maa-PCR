@@ -110,6 +110,31 @@ class Adb:
         raise AssertionError(f'unexpected adb call: {args!r}')
 
 
+def test_client_flush_before_exit_keeps_other_preferences():
+    adb = Adb(root=True)
+    flushed = XML.replace('</map>', '    <int name="volume" value="73" />\n</map>')
+
+    def run(args, **kwargs):
+        if args == ['shell', 'am', 'force-stop', PKG]:
+            adb.xml = flushed
+        return adb(args, **kwargs)
+
+    assert setting.ensure_animation_off('adb.exe', 'serial', PKG, runner=run) == 'fixed'
+    assert adb.xml == setting.rewrite_off(flushed)
+
+
+def test_animation_already_off_after_exit_skips_write():
+    adb = Adb(root=True)
+
+    def run(args, **kwargs):
+        if args == ['shell', 'am', 'force-stop', PKG]:
+            adb.xml = setting.rewrite_off(XML)
+        return adb(args, **kwargs)
+
+    assert setting.ensure_animation_off('adb.exe', 'serial', PKG, runner=run) == 'already_off'
+    assert not any(call[0] == 'push' for call in adb.calls)
+
+
 def test_state_and_rewrite_only_the_dialog_entry():
     assert setting.state(XML) == 'on'
     assert setting.rewrite_off(XML) is not None

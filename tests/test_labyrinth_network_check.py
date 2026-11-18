@@ -166,6 +166,47 @@ def test_probe_host_stops_after_the_first_success(monkeypatch):
     assert len(calls) == 1
 
 
+def test_tcp_tls_and_second_attempt_share_deadline(dial, monkeypatch):
+    now = [0.]
+    limits = []
+    monkeypatch.setattr(check.time, 'monotonic', lambda: now[0])
+    monkeypatch.setattr(check.time, 'sleep', lambda seconds: now.__setitem__(0, now[0] + seconds))
+
+    def connect(sock, _):
+        limits.append(sock.timeout)
+        now[0] += min(4, sock.timeout)
+
+    def handshake(sock, server_hostname):
+        limits.append(sock.timeout)
+        now[0] += sock.timeout
+        raise TimeoutError()
+
+    monkeypatch.setattr(FakeSocket, 'connect', connect)
+    monkeypatch.setattr(dial['context'], 'wrap_socket', handshake)
+    result = check.probe_host('example.invalid', deadline=20.)
+    assert result['attempts'] == 2 and not result['ok']
+    assert limits == pytest.approx([10, 10, 5.7, 1.7]) and now[0] == pytest.approx(20.)
+
+
+def test_stalled_dns_preserves_finished_targets(monkeypatch):
+    from threading import Event
+    release = Event()
+    hosts = check.target_hosts()
+
+    def probe(host, *, deadline):
+        if host == hosts[0][1]:
+            release.wait(5)
+        return dict(dns_ms=1, tcp_ms=1, tls_ms=1, ok=True, error=None, attempts=1)
+
+    monkeypatch.setattr(check, 'REPORT_SECONDS', .4)
+    monkeypatch.setattr(check, 'probe_host', probe)
+    try:
+        report = check.snapshot()
+    finally:
+        release.set()
+    assert [row['error'] for row in report['results']] == ['deadline_exceeded', None, None]
+
+
 @pytest.mark.parametrize('rows,summary', [
     ([dict(dns_ms=1, tcp_ms=100, tls_ms=200, ok=True, error=None)] * 3, 'ok'),
     ([dict(dns_ms=1, tcp_ms=1000, tls_ms=2000, ok=True, error=None)] * 3, 'slow'),

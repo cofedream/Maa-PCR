@@ -183,7 +183,7 @@ def _write(run, pref, new_xml, stopped):
             return WRITE_FAILED
         # Validate the complete candidate before replacing the original.
         candidate = _read(run, temp)
-        if candidate is None or state(candidate) != 'off':
+        if candidate != new_xml or state(candidate) != 'off' or stopped():
             return WRITE_FAILED
         # Same-directory rename is atomic; the validated temp becomes the file.
         result = _call(run, ['shell', f'mv -f {temp} {pref}'], timeout=20)
@@ -192,7 +192,7 @@ def _write(run, pref, new_xml, stopped):
         # A transport timeout can follow a completed rename.  Read back before
         # claiming the original is still untouched.
         current = _read(run, pref)
-        return (WRITE_WRITTEN if current is not None and state(current) == 'off'
+        return (WRITE_WRITTEN if current == new_xml
                 else WRITE_FAILED)
     finally:
         if local is not None:
@@ -263,7 +263,14 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
                 return 'stop_unverified'
             log(STOP_FAILED_HINT)
             return 'stop_failed'
-        new_xml = rewrite_off(xml)
+        if stopped():
+            return 'stopped'
+        # Unity can flush unrelated preferences while it is exiting.
+        xml = _read(run, pref)
+        if state(xml) == 'off':
+            log('黎明界角色加入动画已是“不播放”。')
+            return 'already_off'
+        new_xml = rewrite_off(xml) if state(xml) == 'on' else None
         if new_xml is None:
             log(UNKNOWN_HINT)
             return 'unknown'

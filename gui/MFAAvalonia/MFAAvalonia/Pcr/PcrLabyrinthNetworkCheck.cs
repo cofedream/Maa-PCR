@@ -23,7 +23,7 @@ internal static class PcrLabyrinthNetworkCheck
         "l1-prod-uo-gs-gzlj.bilibiligame.net", "l3-prod-all-gs-gzlj.bilibiligame.net",
         "line1-sdk-center-login-sh.biligame.net", "github.com" };
     private static readonly HashSet<string> Codes = new(StringComparer.Ordinal) {
-        "dns_failed", "tcp_refused", "tcp_timeout", "tls_timeout", "tls_failed", "unreachable" };
+        "dns_failed", "tcp_refused", "tcp_timeout", "tls_timeout", "tls_failed", "unreachable", "deadline_exceeded" };
     internal sealed record Probe(string Target, string Host, bool Ok, int? DnsMs, int? TcpMs,
         int? TlsMs, string? Error, int Attempts);
     internal sealed record Report(string Summary, IReadOnlyList<Probe> Probes);
@@ -116,7 +116,7 @@ internal static class PcrLabyrinthNetworkCheck
 
     private static string Reason(string? code) => code switch {
         "dns_failed" => "域名解析失败", "tcp_refused" => "端口拒绝",
-        "tcp_timeout" => "连接超时", "tls_timeout" => "握手超时",
+        "tcp_timeout" => "连接超时", "tls_timeout" => "握手超时", "deadline_exceeded" => "达到自检总时限",
         "tls_failed" => "证书或 TLS 校验失败", _ => "网络不可达" };
 
     private static bool HostMatches(string target, string host) => target switch {

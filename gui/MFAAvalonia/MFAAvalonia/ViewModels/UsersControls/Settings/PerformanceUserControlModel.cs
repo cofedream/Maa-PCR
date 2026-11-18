@@ -239,7 +239,7 @@ public partial class PerformanceUserControlModel : ViewModelBase
 
     partial void OnGpuOptionChanged(GpuDeviceOption? value)
     {
-        if (!_gpuInitCompleted)
+        if (!_gpuInitCompleted || UseWebGpu)
         {
             return;
         }
@@ -248,7 +248,7 @@ public partial class PerformanceUserControlModel : ViewModelBase
         {
             DispatcherHelper.PostOnMainThread(() =>
             {
-                if (_gpuInitCompleted && Instances.IsResolved<RootViewModel>())
+                if (_gpuInitCompleted && !UseWebGpu && Instances.IsResolved<RootViewModel>())
                 {
                     ChangeGpuOption(MaaProcessorManager.Instance.Current.MaaTasker?.Resource, value);
                     MaaProcessorManager.Instance.Current.SetTasker();
