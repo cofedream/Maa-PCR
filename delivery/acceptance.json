@@ -1,31 +1,30 @@
 {
   "schema_version": 1,
   "status": "passed",
-  "revision": 86,
-  "expected_version": "v0.1.39",
-  "verified_at_utc": "2026-11-17T12:44:57.297648+00:00",
-  "base_release_manifest_sha256": "8c548b5bb627047c66a626ea7d8ba330bbb295385d6b5b16b96c7976184240a2",
-  "accepted_owned_payload_sha256": "9ffcb9f6d86ce0b178f02858f5fd7102b45834e81ef2050abe7c106fdc452bf4",
-  "accepted_staging_manifest_sha256": "67f8e42c527071c051f219c72f19e6ad6c00b645872e1854244753505e184236",
+  "revision": 88,
+  "expected_version": "v0.2.0",
+  "verified_at_utc": "2026-11-18T17:18:12.117649+00:00",
+  "base_release_manifest_sha256": "f3851fbcc0dc9d359c7648e5f71e00d2baeaea80132b657af893938da47f5df5",
+  "accepted_owned_payload_sha256": "9c9357ece11dc7a4fcf4afca66886c9ddc30a1a33be09adce1d0712c2d0e388d",
+  "accepted_staging_manifest_sha256": "ad22d5bb7c95b515e92842dc4a6ceb80c3ae879bd11e561e70ad179304bfece7",
   "accepted_ci_artifact": {
     "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 44073774513,
+    "run_id": 44347161891,
     "run_attempt": 1,
-    "artifact_id": 14326961021,
-    "source_commit": "e7427dde2f4105907515ecf8ab4df8d9e4236ac6",
+    "artifact_id": 14450107090,
+    "source_commit": "955bcda92ac82c0e59026a196c12c1afdc208669",
     "runtime_archive": {
-      "name": "Maa-PCR-v0.1.39-win-x64.zip",
-      "size": 350109277,
-      "sha256": "8f28048fe8b546844b156032191f8894f071dd4118ce83a82fe0cb2f8503269f"
+      "name": "Maa-PCR-v0.2.0-win-x64.zip",
+      "size": 377404740,
+      "sha256": "1b4a61fbe8ed0d77bd4c9ca6bce9e4b1b002824ab2e47bc5d086d7e0ba316d29"
     }
   },
   "offline_tests_passed": true,
   "isolated_update_passed": true,
   "gui_verified": true,
-  "gui_mode": "Isolated Windows settings diagnostic",
   "clean_build_verified": true,
   "public_tests": {
-    "passed": 7694,
+    "passed": 7783,
     "skipped": 401,
     "failed": 0,
     "errors": 0
@@ -36,36 +35,32 @@
     "failed": 0,
     "errors": 0
   },
-  "gui_checks": {
-    "settings": 193,
-    "accounts_and_filters": 60,
-    "startup": 158,
-    "startup_dotnet": 158
-  },
-  "packaged_source_alignment_verified": true,
-  "original_r85_delta_and_full_updates_verified": true,
-  "isolated_rollback_and_recovery_verified": true,
-  "packaged_replays": {
-    "event_counts_and_confirmation": true,
-    "delayed_joined_popup_and_duplicate_selection": true
-  },
+  "packaged_global_webgpu_and_cpu_ocr": true,
+  "original_v0140_delta_and_full_updates_verified": true,
+  "isolated_rollback_verified": true,
   "evidence_sha256": {
-    "CI_BINDING.json": "e9d46e5914c5284477443c0a7e18325020cd1a0945bc665f060b45819ce465b0",
-    "ci-artifact/build/SOURCE_ALIGNMENT.json": "4ffbef0e66729eded9bbbe234afdd17a825a6f9347307ef468f3609b30630b9d",
-    "ci-artifact/public-tests.xml": "af89c129c34d54a198ecda183531388fd0eae4df5f69681dbb62a17a54db6f62",
-    "ci-artifact/bundled-runtime.xml": "e1b9f04315d3fd4827575f755e8b064920460e70777626aff9dc056a5742659d",
-    "ci-artifact/startup-actions.log": "81f39eae3acacf6f7b3814236d68417a45a4148ad723f84fc7913752ed569a65",
-    "ci-artifact/startup-actions-dotnet.log": "adaa638ad1f9b323721e3f0810b4390a6868ec06e6b2f4ccb5cc4153dd450cb6",
-    "packaged-window.json": "55dccc221e2c42069c68a1a58ca114117b033aae3783b13db264d6c815f32450",
-    "package-checks/final-ci/PACKAGE_CHECKS.json": "4b0a36b6cb06d5c08f171e32aff09969be4bbb1ce44d67ae126a1a627e06ca8b",
-    "ORIGINAL_UPDATER.json": "f7a0b530921a9777adbbd7f1fa44c4d1b8a4878cfaa220cdd263b00c8ef1fdec",
-    "packages/result.json": "1b2f98e8025bedf1775f8451bae607697cbe6326d4780481e70f1e85c2fcdada",
-    "original/result.json": "eec321d569cdf277bf077024c088fb9b2304165facbd5f32e45b37506145e818",
-    "window-preparation/result.json": "a9fb31914913e6b0e2da2b3f678eee709ffca05f9f035986609cc1d6f1518ab2",
-    "event-replay/result.json": "2bd127fc63df154d12fdac57dba1bc40b5fbb0058f572547bfbdb18fc79636fa",
-    "joined-replay/result.json": "4d514323fb57c6624b75b0fea385694d49790d2a8d754476a8dc3459781e93c8"
+    "ci/CI_BINDING.json": "29e7cc022bf22030e715713d41316487e680f0b8224616a8b465baed017cccf6",
+    "ci/public-tests.xml": "2f5aaaab77c218d3e1a009466d7500e2abc15d3970348a1542cfa7474c1efe05",
+    "ci/bundled-runtime.xml": "e0b15a2192ecd3ae2c170c024a87fa22614d7153746aac303837815f9751f0e5",
+    "ci/build/SOURCE_ALIGNMENT.json": "e3aebc5f43d5b827c092a0ef9913234316a042ea76fe4ebfc8ea6ceb352d2118",
+    "ci/startup-actions.log": "c7a45ed1b6807dc301cf7e734e723bfc8abf8cbf8d448ec01564aa4e76014faa",
+    "ci/startup-actions-dotnet.log": "ac60dd4e186c7199a8db0521c03d99fd6c70cede0d6e02b583212aa5b3a22a16",
+    "contributor-tests/result.json": "63a3c3d4450c91f1e5d3f679e74fc78d1206fef487161a0151b8b5256c906dda",
+    "gui-check3/result.json": "2b175a069e3eb5e5a2b741b20c53b2c8775d4b4ed608b493cfd4a8278d5ae6f9",
+    "integrated-startup2/result.json": "8a15095e08d9a6ca67d93df7e6a2dd9813374974c6d6394a9c33982e99251901",
+    "settings-check2/result.json": "1cd690f5e31006819f8e284e85cc8b801c82d716780b5aae82d7754eac431f47",
+    "provider-order-test/result.json": "bb6204223a2565e55fd64f3e542a350bb17376a35e47b72c5755c404d3122452",
+    "packaged-webgpu/result.json": "b9d9826c69ee80d3c353e722896bfe23e6d3861d82382307f7fdfbc1432de15f",
+    "packaged-cpu/result.json": "74386bd1e26991847d18b66fa1a649ad261a809c457a648b3a83b09d0eaf30df",
+    "packaged-invalid/result.json": "a3c306193aca97453a69c42cc957d5203c288bba9503c68375007c75ac881045",
+    "upgrade-runner/result.json": "2ec4e892fb0d37e38ea6f36d06d5401e50b685c8457e2a75760144ab26f19d09",
+    "upgrade/verification.json": "b14187da23ec4d801b8ab943314bd143acda3d278a9dda6b486232d884310d06",
+    "packaged-webgpu-log/maafw.log": "43525b2fb024ea03a6516185d0dbfef10c264a80338866e26872d0d5f90245aa",
+    "packaged-cpu-log/maafw.log": "f8d93f1fa8ee56ef003ad8baa58f323a033d2e94e0345db1d31c3b1962b301fe"
   },
   "limits": [
-    "Candidate acceptance used saved frames and synthetic accounts. The preceding revival sweep live test used the corrected source on R85."
+    "Global native inference used a fixed image and an offline controller.",
+    "Contributor changes were checked with simulated network and device responses.",
+    "The earlier difficulty-5 completion used the performance trial build, before integration of the contributor PRs."
   ]
 }
