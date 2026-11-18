@@ -1,5 +1,6 @@
 """Preflight for the local Labyrinth character-join animation setting."""
 from pathlib import Path
+from subprocess import TimeoutExpired
 from types import SimpleNamespace as NS
 
 from pcr_maa.labyrinth import animation_setting as setting
@@ -18,7 +19,8 @@ XML = f'''<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 
 class Adb:
     def __init__(self, *, package=PKG, root=False, xml=XML, root_works=True, stop_works=True,
-                 read_requires_root=False):
+                 read_requires_root=False, pidof_timeout=False, pidof_error=False,
+                 write_interrupt=False, restore_fails=False, backup_fails=False):
         self.package = package
         self.pref = setting.pref_path(package)
         self.root = root
@@ -26,6 +28,11 @@ class Adb:
         self.root_works = root_works
         self.stop_works = stop_works
         self.read_requires_root = read_requires_root
+        self.pidof_timeout = pidof_timeout
+        self.pidof_error = pidof_error
+        self.write_interrupt = write_interrupt
+        self.restore_fails = restore_fails
+        self.backup_fails = backup_fails
         self.calls = []
         self.files = {}
 
@@ -42,17 +49,27 @@ class Adb:
             return NS(returncode=0, stdout='restarting adbd as root\n', stderr='')
         if args == ['wait-for-device']:
             return NS(returncode=0, stdout='', stderr='')
-        if args == ['exec-out', 'cat', self.pref]:
+        if args[:2] == ['exec-out', 'cat']:
+            path = args[2]
             if self.read_requires_root and not self.root:
                 # Real adb exec-out returns 0 and puts the remote error on stdout.
                 return NS(returncode=0,
-                          stdout=f'cat: {self.pref}: Permission denied\n', stderr='')
-            if self.xml is None:
-                return NS(returncode=1, stdout='', stderr='No such file')
-            return NS(returncode=0, stdout=self.files.get(self.pref, self.xml), stderr='')
+                          stdout=f'cat: {path}: Permission denied\n', stderr='')
+            if path == self.pref:
+                if self.xml is None:
+                    return NS(returncode=1, stdout='', stderr='No such file')
+                return NS(returncode=0, stdout=self.files.get(self.pref, self.xml), stderr='')
+            if path in self.files:
+                return NS(returncode=0, stdout=self.files[path], stderr='')
+            return NS(returncode=1, stdout='', stderr='No such file')
         if args == ['shell', 'am', 'force-stop', self.package]:
             return NS(returncode=0, stdout='', stderr='')
         if args == ['shell', 'pidof', self.package]:
+            if self.pidof_timeout:
+                raise TimeoutExpired(['pidof', self.package], 5)
+            if self.pidof_error:
+                return NS(returncode=1, stdout='',
+                          stderr='error: device offline\n')
             return NS(returncode=0 if not self.stop_works else 1,
                       stdout='1234\n' if not self.stop_works else '', stderr='')
         if args and args[0] == 'push':
@@ -60,8 +77,17 @@ class Adb:
             return NS(returncode=0, stdout='1 file pushed\n', stderr='')
         if args and args[0] == 'shell' and args[1].startswith('cat ') and ' > ' in args[1]:
             source, target = args[1][4:].split(' > ', 1)
-            self.files[target.strip()] = self.files.get(source.strip(), self.xml)
-            self.xml = self.files[target.strip()]
+            source, target = source.strip(), target.strip()
+            if target != self.pref and 'backup' in target and self.backup_fails:
+                return NS(returncode=1, stdout='', stderr='backup failed')
+            if target == self.pref and 'backup' not in source and self.write_interrupt:
+                # Simulate a partial in-place write before the command times out.
+                self.xml = '<map>\n'
+                raise TimeoutExpired(['cat'], 20)
+            if target == self.pref and 'backup' in source and self.restore_fails:
+                return NS(returncode=1, stdout='', stderr='restore failed')
+            self.files[target] = self.files.get(source, self.xml)
+            self.xml = self.files[target]
             return NS(returncode=0, stdout='', stderr='')
         if args and args[0] == 'shell' and args[1].startswith('rm -f '):
             return NS(returncode=0, stdout='', stderr='')
@@ -169,6 +195,60 @@ def test_stop_failure_skips_write():
     assert any('未完全关闭' in line for line in logs)
     assert not any(args[0] == 'push' for args in adb.calls)
     assert setting.state(adb.xml) == 'on'
+
+
+def test_process_query_timeout_skips_write_and_reports_unknown():
+    adb = Adb(root=True, pidof_timeout=True)
+    logs = []
+    result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
+        log=logs.append, stopped=lambda: False, runner=adb)
+    assert result == 'stop_unverified'
+    assert any('进程查询超时' in line for line in logs)
+    assert not any(args[0] == 'push' for args in adb.calls)
+    assert setting.state(adb.xml) == 'on'
+
+
+def test_process_query_transport_error_skips_write():
+    adb = Adb(root=True, pidof_error=True)
+    logs = []
+    result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
+        log=logs.append, stopped=lambda: False, runner=adb)
+    assert result == 'stop_unverified'
+    assert any('进程查询超时或失败' in line for line in logs)
+    assert not any(args[0] == 'push' for args in adb.calls)
+    assert setting.state(adb.xml) == 'on'
+
+
+def test_backup_failure_skips_write_and_keeps_the_original():
+    adb = Adb(root=True, backup_fails=True)
+    logs = []
+    result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
+        log=logs.append, stopped=lambda: False, runner=adb)
+    assert result == 'write_failed'
+    assert any('无法备份' in line for line in logs)
+    assert not any(args[0] == 'push' for args in adb.calls)
+    assert setting.state(adb.xml) == 'on'
+
+
+def test_write_interruption_restores_the_original_document():
+    adb = Adb(root=True, write_interrupt=True)
+    logs = []
+    result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
+        log=logs.append, stopped=lambda: False, runner=adb)
+    assert result == 'write_interrupted'
+    assert adb.xml == XML
+    assert any('已恢复原配置' in line for line in logs)
+    assert not any('已关闭' in line for line in logs)
+
+
+def test_write_interruption_with_failed_restore_is_reported():
+    adb = Adb(root=True, write_interrupt=True, restore_fails=True)
+    logs = []
+    result = setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
+        log=logs.append, stopped=lambda: False, runner=adb)
+    assert result == 'write_unrestored'
+    assert adb.xml == '<map>\n'
+    assert any('未能恢复' in line for line in logs)
 
 
 def test_missing_entry_logs_unknown_without_stopping_the_client():

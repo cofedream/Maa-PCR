@@ -32,10 +32,26 @@ UNKNOWN_HINT = ('无法识别黎明界角色加入动画配置；建议在黎明
                 '“菜单 → 设定”中手动关闭该选项，任务继续。')
 STOP_FAILED_HINT = ('客户端未完全关闭，跳过修改黎明界角色加入动画；建议在黎明界迷宫右上角'
                     '“菜单 → 设定”中手动关闭，任务继续。')
+STOP_QUERY_FAILED_HINT = ('无法确认客户端是否已关闭（进程查询超时或失败）；已跳过修改黎明界角色加入动画；'
+                          '建议在黎明界迷宫右上角“菜单 → 设定”中手动关闭，任务继续。')
 WRITE_FAILED_HINT = ('修改黎明界角色加入动画失败；建议在黎明界迷宫右上角'
                      '“菜单 → 设定”中手动关闭，任务继续。')
+WRITE_INTERRUPTED_HINT = ('写入黎明界角色加入动画时被中断，已恢复原配置；建议在黎明界迷宫右上角'
+                          '“菜单 → 设定”中手动关闭，任务继续。')
+WRITE_UNRESTORED_HINT = ('写入黎明界角色加入动画失败且未能恢复原配置；请在黎明界迷宫右上角'
+                         '“菜单 → 设定”中确认设置，任务继续。')
+WRITE_BACKUP_FAILED_HINT = ('无法备份客户端配置，已跳过修改黎明界角色加入动画；建议在黎明界迷宫右上角'
+                            '“菜单 → 设定”中手动关闭，任务继续。')
 ERROR_HINT = ('检查黎明界角色加入动画时出错；建议在黎明界迷宫右上角'
               '“菜单 → 设定”中手动关闭，任务继续。')
+STOP_STOPPED = 'stopped'
+STOP_RUNNING = 'running'
+STOP_QUERY_FAILED = 'query_failed'
+WRITE_WRITTEN = 'written'
+WRITE_FAILED = 'failed'
+WRITE_BACKUP_FAILED = 'backup_failed'
+WRITE_INTERRUPTED_RESTORED = 'interrupted_restored'
+WRITE_INTERRUPTED_UNRESTORED = 'interrupted_unrestored'
 
 
 def pref_path(package):
@@ -78,7 +94,9 @@ def _call(run, args, **kwargs):
     try:
         return run(args, **kwargs)
     except Exception:
-        return SimpleNamespace(returncode=1, stdout='', stderr='')
+        # None is distinct from a completed command.  In particular, a timed-out
+        # process query must never be mistaken for exit status 1 ("no process").
+        return SimpleNamespace(returncode=None, stdout='', stderr='')
 
 
 def _stdout(result):
@@ -116,50 +134,81 @@ def _read(run, pref):
 
 def _stop(run, package, stopped):
     if stopped():
-        return False
+        return STOP_QUERY_FAILED
     _call(run, ['shell', 'am', 'force-stop', package], timeout=20)
     for _ in range(5):
         if stopped():
-            return False
+            return STOP_QUERY_FAILED
         result = _call(run, ['shell', 'pidof', package], timeout=5)
+        if result.returncode is None:
+            # Timeout/transport failure is not evidence that the client exited.
+            return STOP_QUERY_FAILED
         output = _stdout(result).strip()
+        stderr = getattr(result, 'stderr', '')
+        if type(stderr) is not str:
+            stderr = ''
         if result.returncode in (0, 1) and not output:
-            return True
-        if result.returncode not in (0, 1):
+            # A completed pidof with no output is "not running" only when adb
+            # itself did not report a transport/device error on stderr.
+            return STOP_QUERY_FAILED if stderr.strip() else STOP_STOPPED
+        if result.returncode == 127:
             # Very old images may not ship pidof; fall back to the process table.
             table = _call(run, ['shell', 'ps', '-A'], timeout=10)
             if table.returncode != 0:
-                return False
-            return not any(line.split() and line.split()[-1] == package
-                           for line in _stdout(table).splitlines())
-    return False
+                return STOP_QUERY_FAILED
+            running = any(line.split() and line.split()[-1] == package
+                          for line in _stdout(table).splitlines())
+            return STOP_RUNNING if running else STOP_STOPPED
+        if result.returncode not in (0, 1):
+            return STOP_QUERY_FAILED
+    return STOP_RUNNING
 
 
-def _write(run, pref, xml, stopped):
-    remote = f'/data/local/tmp/pcr_maa_animation_{os.getpid()}_{uuid4().hex[:8]}.xml'
+def _write(run, pref, original, new_xml, stopped):
+    suffix = f'{os.getpid()}_{uuid4().hex[:8]}'
+    remote = f'/data/local/tmp/pcr_maa_animation_{suffix}.xml'
+    backup = f'/data/local/tmp/pcr_maa_animation_backup_{suffix}.xml'
     local = None
+
+    def restore():
+        result = _call(run, ['shell', f'cat {backup} > {pref}'], timeout=20)
+        if result.returncode != 0:
+            return WRITE_INTERRUPTED_UNRESTORED
+        restored = _read(run, pref)
+        return (WRITE_INTERRUPTED_RESTORED if restored == original
+                else WRITE_INTERRUPTED_UNRESTORED)
+
     try:
+        # Keep an on-device copy of the exact document before the in-place
+        # overwrite.  A failed or interrupted write is restored from this copy.
+        result = _call(run, ['shell', f'cat {pref} > {backup}'], timeout=20)
+        if result.returncode != 0 or _read(run, backup) != original:
+            return WRITE_BACKUP_FAILED
         with tempfile.NamedTemporaryFile('w', encoding='utf-8', newline='', suffix='.xml',
                                          delete=False) as stream:
-            stream.write(xml)
+            stream.write(new_xml)
             local = stream.name
         result = _call(run, ['push', local, remote], timeout=20)
         if result.returncode != 0:
-            return False
+            return WRITE_FAILED
         if stopped():
-            return False
+            return WRITE_FAILED
         result = _call(run, ['shell', f'cat {remote} > {pref}'], timeout=20)
         if result.returncode != 0:
-            return False
+            return restore()
         result = _call(run, ['exec-out', 'cat', pref], timeout=20)
-        return result.returncode == 0 and state(_stdout(result)) == 'off'
+        if result.returncode == 0 and state(_stdout(result)) == 'off':
+            return WRITE_WRITTEN
+        # The write command acknowledged, but the document is not the expected
+        # one (partial/truncated).  Put the original bytes back before leaving.
+        return restore()
     finally:
         if local is not None:
             try:
                 os.unlink(local)
             except OSError:
                 pass
-        _call(run, ['shell', f'rm -f {remote}'], timeout=5)
+        _call(run, ['shell', f'rm -f {remote} {backup}'], timeout=5)
 
 
 def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
@@ -218,22 +267,38 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
                 return 'unknown'
         if stopped():
             return 'stopped'
-        if not _stop(run, package, stopped):
+        stop = _stop(run, package, stopped)
+        if stop != STOP_STOPPED:
             if stopped():
                 return 'stopped'
+            if stop == STOP_QUERY_FAILED:
+                log(STOP_QUERY_FAILED_HINT)
+                return 'stop_unverified'
             log(STOP_FAILED_HINT)
             return 'stop_failed'
         new_xml = rewrite_off(xml)
         if new_xml is None:
             log(UNKNOWN_HINT)
             return 'unknown'
-        if not _write(run, pref, new_xml, stopped):
+        write = _write(run, pref, xml, new_xml, stopped)
+        if write == WRITE_WRITTEN:
             if stopped():
                 return 'stopped'
-            log(WRITE_FAILED_HINT)
+            log('已关闭黎明界角色加入动画（设为“不播放”）。')
+            return 'fixed'
+        if stopped():
+            return 'stopped'
+        if write == WRITE_INTERRUPTED_RESTORED:
+            log(WRITE_INTERRUPTED_HINT)
+            return 'write_interrupted'
+        if write == WRITE_INTERRUPTED_UNRESTORED:
+            log(WRITE_UNRESTORED_HINT)
+            return 'write_unrestored'
+        if write == WRITE_BACKUP_FAILED:
+            log(WRITE_BACKUP_FAILED_HINT)
             return 'write_failed'
-        log('已关闭黎明界角色加入动画（设为“不播放”）。')
-        return 'fixed'
+        log(WRITE_FAILED_HINT)
+        return 'write_failed'
     except Exception:
         log(ERROR_HINT)
         return 'error'
