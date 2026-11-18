@@ -180,13 +180,30 @@ internal static class PcrMuMuDisplay
             commands[name] = Cmd("shell", "false");
         foreach (var name in new[] {"Connect", "KillServer", "TestConnection"}) commands[name] = Cmd("get-state");
         commands["Monitor"] = Cmd("shell", "cat"); commands["UUID"] = Cmd("get-serialno");
-        commands["ScreencapEncode"] = Cmd("exec-out", mapping.Physical == "0" ? "screencap -p" : $"screencap -p -d {mapping.Physical}");
-        commands["ScreencapRawWithGzip"] = Cmd("exec-out", mapping.Physical == "0" ? "screencap | gzip -1" : $"screencap -d {mapping.Physical} | gzip -1");
+        // Device-side stderr must be dropped on the default-display path:
+        // Android 14+ `screencap` prints a multi-display warning to stderr when
+        // no display id is given, and adb's non-PTY shell merges device stderr
+        // into the binary stream, so Maa's PNG head/tail check would fail.
+        commands["ScreencapEncode"] = Cmd("exec-out", mapping.Physical == "0" ? "screencap -p 2>/dev/null" : $"screencap -p -d {mapping.Physical}");
+        commands["ScreencapRawWithGzip"] = Cmd("exec-out", mapping.Physical == "0" ? "screencap 2>/dev/null | gzip -1" : $"screencap -d {mapping.Physical} | gzip -1");
         // Android 9 input lacks -d. Its independently verified default is 0.
         var input = mapping.Logical == 0 ? "input" : $"input -d {mapping.Logical}";
         commands["Click"] = Cmd("shell", $"{input} tap {{X}} {{Y}}");
         commands["Swipe"] = Cmd("shell", $"{input} swipe {{X1}} {{Y1}} {{X2}} {{Y2}} {{DURATION}}");
         return new JObject { ["command"] = commands }.ToString(Formatting.None);
+    }
+
+    // A preview connection has no input and loads no business resources, so it
+    // only overrides the two lossless capture commands. Same reason as
+    // StandardOptions: drop the Android 14+ device-side screencap warning so it
+    // cannot corrupt the PNG/gzip stream MaaFramework decodes.
+    internal static string DefaultCaptureOptions()
+    {
+        JArray Cmd(params string[] tail) => new(new[] {"{ADB}", "-s", "{ADB_SERIAL}"}.Concat(tail));
+        return new JObject { ["command"] = new JObject {
+            ["ScreencapEncode"] = Cmd("exec-out", "screencap -p 2>/dev/null"),
+            ["ScreencapRawWithGzip"] = Cmd("exec-out", "screencap 2>/dev/null | gzip -1") } }
+            .ToString(Formatting.None);
     }
 
     internal static MaaController CreateStandardController(JObject binding, string agentPath, Mapping mapping,

@@ -126,8 +126,8 @@ def runtime(tmp_path, monkeypatch, *, resource_timeout=False, stop_on_connect=Fa
         def __init__(self, *args, config):
             assert int(args[2]) == 6 and int(args[3]) == 1
             assert config == {'command': {
-                'ScreencapEncode': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap -p'],
-                'ScreencapRawWithGzip': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap | gzip -1']}}
+                'ScreencapEncode': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap -p 2>/dev/null'],
+                'ScreencapRawWithGzip': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap 2>/dev/null | gzip -1']}}
             calls.append('controller')
         def set_screenshot_target_short_side(self, size): return size == 720
         def post_connection(self):
