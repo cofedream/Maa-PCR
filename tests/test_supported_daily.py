@@ -654,6 +654,24 @@ def test_remaining_is_partial_once(tmp_path, monkeypatch):
     assert r['steps'][2]['status'] == 'partial'
 
 
+@pytest.mark.parametrize('final_status,claimable,complete', [
+    ('claimed', False, True), ('no_claimable', False, True),
+    ('remaining', True, False), ('claimed', None, False), ('deferred_stamina', False, False),
+])
+def test_final_rewards_only_resolve_verified_early_remainders(tmp_path, monkeypatch, final_status, claimable, complete):
+    early, final = success('rewards'), success('rewards_final')
+    early['items']['gifts']['status'] = 'remaining'
+    final['items']['gifts'].update(status=final_status, claimable_after=claimable,
+                                   stamina_deferred_verified=final_status == 'deferred_stamina')
+    report, calls = invoke(tmp_path, monkeypatch, {'rewards': early, 'rewards_final': final})
+    assert calls.count('rewards') == calls.count('rewards_final') == 1
+    assert report['steps'][2]['status'] == 'partial'
+    assert report['supported_chain_complete'] is complete
+    assert report['outcome'] == ('complete' if complete else 'partial')
+    assert chain._read_report(tmp_path) == report
+    assert ('余下奖励已在收尾领完' in chain.summary(report, player=True)) is complete
+
+
 @pytest.mark.parametrize('error', [RuntimeError('failed'), KeyboardInterrupt()])
 def test_exception_keeps_evidence(tmp_path, monkeypatch, error):
     r, calls = invoke(tmp_path, monkeypatch, {'deep': error})
