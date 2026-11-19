@@ -186,6 +186,21 @@ def test_unknown_after_confirmation_keeps_known_ack_without_replay(tmp_path,monk
     assert batch.journal.events()[-1]['state']=='settled'
     assert batch.journal.events()[-1]['result']['input_action_verified'] is True
 
+def test_confirmed_move_waits_for_late_challenge_without_another_input(monkeypatch):
+    from pcr_maa.labyrinth import autoplay
+    from pcr_maa.labyrinth.scene import Scene
+    runner = autoplay.AutoplayRunner.__new__(autoplay.AutoplayRunner)
+    elapsed = [0.0]
+    pages = iter([Scene('connecting', receipt(), {}), Scene('normal_challenge', receipt(2), {})])
+    runner.runtime = SimpleNamespace(tasker=None, observe=lambda **_: next(pages),
+                                     perform=lambda *a, **k: pytest.fail('unexpected input while waiting'))
+    monkeypatch.setattr('pcr_maa.native.active_now', lambda: elapsed[0])
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *a: elapsed.__setitem__(0, 20.0))
+    current, target = route_for([1, 2]).nodes
+    page = runner._node_transition_readback(SimpleNamespace(checkpoint=lambda: None), current, target, confirmed=True)
+    assert page.kind == 'normal_challenge'
+
+
 @pytest.mark.parametrize('wrapped',[False,True])
 def test_battle_defeat_never_counts_a_clear(wrapped,tmp_path):
     route=route_for([1,8])
