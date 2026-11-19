@@ -1346,10 +1346,9 @@ class CharacterRecognizer:
                 # A collision defeats the first crop's confidence margin.
                 if counts[match.character_id]>1:match=replace(match,trusted=False)
                 if not match.trusted:
-                    hint=min(member_hints,key=lambda b:abs(b[0]-box[0]),default=None)
-                    fallback=None
-                    if hint is not None:
-                        hx,hy,hw,hh=hint;fallback=(hx+6,hy+6,hw-14,hw-14)
+                    hx,hy,hw,hh=min(member_hints,key=lambda b:abs(b[0]-box[0]),default=box)
+                    # Tight crops can cut off face detail that separates similar portraits.
+                    fallback=(hx+3,hy+3,hw-6,hw-6)
                     match=self.matcher.refine(frame,icon,match,fallback=fallback,
                         mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
 

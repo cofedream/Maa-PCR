@@ -105,6 +105,8 @@ def test_duplicate_member_matches_are_rechecked_within_the_roster(monkeypatch, r
 
     def refine(frame, box, match, **options):
         assert not match.trusted and options['roster'] == roster
+        assert options['fallback'][0] == box[0] - 3
+        assert options['fallback'][2] == box[2] + 8
         checked.append(box[0])
         return corrected if resolved and box[0] == 212 else original
 
