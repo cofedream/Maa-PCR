@@ -40,8 +40,8 @@ internal static class CapturePerformanceChecks
         var options = displayType.GetMethod("StandardOptions", hidden)!;
         JObject Commands(object value) => (JObject)JObject.Parse((string)options.Invoke(null, [value])!)["command"]!;
         var defaults = Commands(mapping);
-        Check((string?)defaults["ScreencapEncode"]?.Last == "screencap -p", "default encoded screenshot uses Android compatible command");
-        Check((string?)defaults["ScreencapRawWithGzip"]?.Last == "screencap | gzip -1", "default gzip screenshot uses same default display");
+        Check((string?)defaults["ScreencapEncode"]?.Last == "screencap -p 2>/dev/null", "default encoded screenshot suppresses device stderr");
+        Check((string?)defaults["ScreencapRawWithGzip"]?.Last == "screencap 2>/dev/null | gzip -1", "default gzip screenshot suppresses device stderr");
         Check((string?)defaults["Click"]?.Last == "input tap {X} {Y}", "default logical input omits display flag");
         var mapped = Commands(Mapping(2, "42"));
         Check((string?)mapped["ScreencapEncode"]?.Last == "screencap -p -d 42", "encoded screenshot binds physical display");
@@ -49,6 +49,11 @@ internal static class CapturePerformanceChecks
         Check((string?)mapped["Click"]?.Last == "input -d 2 tap {X} {Y}", "input binds independent logical display");
         try { Commands(Mapping(2, "0")); throw new Exception("invalid screenshot mapping accepted"); }
         catch (TargetInvocationException ex) when (ex.InnerException is InvalidOperationException) { count++; }
+        // Preview has no input and must drop the Android 14+ device-side warning.
+        var preview = (JObject)JObject.Parse((string)displayType.GetMethod("DefaultCaptureOptions", hidden)!.Invoke(null, null)!)["command"]!;
+        Check(preview.Count == 2, "preview overrides only capture commands");
+        Check((string?)preview["ScreencapEncode"]?.Last == "screencap -p 2>/dev/null", "preview encoded screenshot suppresses device stderr");
+        Check((string?)preview["ScreencapRawWithGzip"]?.Last == "screencap 2>/dev/null | gzip -1", "preview gzip screenshot suppresses device stderr");
         var begin = type.GetMethod("Begin", hidden)!;
         var write = type.GetMethod("Write", BindingFlags.Instance | BindingFlags.NonPublic)!;
         foreach (var rotate in new[] { false, true })

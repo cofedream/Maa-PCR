@@ -466,9 +466,13 @@ class OwnedRuntime:
                 connection=self.request.connection
                 self._progress(dict(stage='connecting'))
                 from ..capture_performance import begin_capture_report, finish_capture_report
+                # Android 14+ `screencap` prints a multi-display warning to
+                # stderr when no display id is given; adb's non-PTY shell merges
+                # device stderr into the capture stream, corrupting the PNG/gzip
+                # that Maa decodes. Drop that stderr on the device side.
                 capture_config={'command': {
-                    'ScreencapEncode': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap -p'],
-                    'ScreencapRawWithGzip': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap | gzip -1']}}
+                    'ScreencapEncode': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap -p 2>/dev/null'],
+                    'ScreencapRawWithGzip': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap 2>/dev/null | gzip -1']}}
                 capture_report=begin_capture_report(self.root,self.run_id,native.RUNTIME/'maa/maafw.log',
                     options=capture_config,serial=connection['serial'],
                     display_binding=dict(basis='default_screen_only',logical=0,physical=None))
