@@ -228,9 +228,7 @@ def test_confirm_once_then_poll_through_download_screen_until_home(monkeypatch):
     assert batch.operations == ['client_data_download_confirm']
     assert inputs == [CONFIRM]
     windows = [row['LabyGameSessionAfterTitleObserved']['timeout'] for row in overrides]
-    assert all(1 <= window <= 90_000 for window in windows)
-    assert any(window == 75_000 for window in windows)
-    assert any(window == 30_000 for window in windows)
+    assert windows == [30_000] * 4
     assert not any(op in ('client_download_retry', 'client_title_start')
                    for op in batch.operations)
 

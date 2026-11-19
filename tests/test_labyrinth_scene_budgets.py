@@ -248,7 +248,7 @@ def test_startup_download_retry_never_outlives_business_deadline(slow, monkeypat
         assert native.RUN_DEADLINE.get() == min(parent, 85)
         slow.now = min(parent, 75) + (-1 if on_time and not captures else 1)
         captures.append(1)
-        return dict(recognition=[dict(name=name, algorithm='And',
+        return dict(native_ok=True, recognition=[dict(name=name, algorithm='And',
             box=[1, 1, 20, 20] if name == names[-1] else None) for name in names])
 
     monkeypatch.setattr(native, 'run', capture)
