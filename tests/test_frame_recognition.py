@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 from maa.custom_recognition import CustomRecognition
@@ -6,14 +8,18 @@ from pcr_maa import frame_recognition, native
 from pcr_maa.replay import SavedImages
 
 
-@pytest.mark.parametrize(('loaded', 'binding', 'supported'), [
-    ('v5.13.0', '5.13.0', True), ('v5.16.1', 'v5.16.1', True),
-    ('v5.16.1', '5.13.0', False), ('v5.17.0', '5.17.0', False),
+@pytest.mark.parametrize(('loaded', 'bindings', 'supported'), [
+    ('v5.13.0', ('5.13.0',), True), ('v5.16.1', ('v5.16.1',), True),
+    ('v5.16.1', (None, 'v5.16.1'), True),
+    ('v5.16.1', (None,), False), ('v5.16.1', (), False),
+    ('v5.16.1', ('5.13.0', '5.16.1'), False),
+    ('v5.16.1', ('5.13.0',), False), ('v5.17.0', ('5.17.0',), False),
 ])
-def test_native_binding_must_match(monkeypatch, loaded, binding, supported):
+def test_native_binding_must_match(monkeypatch, loaded, bindings, supported):
     from pcr_maa import recognition_metadata as metadata
     monkeypatch.setattr(metadata.Library, 'version', lambda: loaded)
-    monkeypatch.setattr(metadata, 'version', lambda name: binding)
+    monkeypatch.setattr(metadata, 'distributions',
+                        lambda *, name: [SimpleNamespace(version=value) for value in bindings])
     assert metadata.supports_metadata_binding() is supported
 
 

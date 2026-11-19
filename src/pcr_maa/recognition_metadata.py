@@ -2,7 +2,7 @@
 import ctypes
 import json
 from functools import lru_cache
-from importlib.metadata import version
+from importlib.metadata import distributions
 
 from maa.buffer import RectBuffer, StringBuffer
 from maa.define import MaaActId, MaaBool, MaaNodeId, MaaRecoId, TaskDetail
@@ -12,7 +12,12 @@ from maa.tasker import Tasker
 
 def supports_metadata_binding():
     loaded = Library.version()
-    return loaded in ('v5.13.0', 'v5.16.1') and version('maafw').removeprefix('v') == loaded[1:]
+    if loaded not in ('v5.13.0', 'v5.16.1'):
+        return False
+    # An in-place update can leave an old dist-info directory without METADATA.
+    versions = {value.removeprefix('v') for package in distributions(name='maafw')
+                if (value := package.version)}
+    return versions == {loaded[1:]}
 
 
 @lru_cache(maxsize=1)

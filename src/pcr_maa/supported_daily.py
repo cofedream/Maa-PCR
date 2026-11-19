@@ -264,7 +264,10 @@ def _read_report(directory):
                 require(step['status'] != 'running')
         if outcome in ('complete', 'partial'):
             require(all(s['status'] not in ('not_run', 'running', 'stopped', 'failed', 'interrupted') for s in steps))
-            require((outcome == 'partial') == any(s['status'] == 'partial' for s in steps))
+            if outcome == 'partial':
+                require(any(s['status'] == 'partial' for s in steps))
+            else:
+                require(not _has_unresolved_partial(steps))
         require(report['supported_chain_complete'] is (outcome == 'complete'))
         if outcome == 'stopped_by_request':
             require(report.get('stop_acknowledged') is True)
@@ -658,6 +661,24 @@ def _status(name, result, *, exit_page='home'):
     return 'stopped'
 
 
+def _early_rewards_resolved(steps):
+    if not steps or steps[-1]['name'] != 'rewards_final' or steps[-1]['status'] != 'complete':
+        return False
+    early = next((step for step in steps if step['name'] == 'rewards' and step['status'] == 'partial'), None)
+    if early is None:
+        return False
+    final = steps[-1]['result']['items']
+    return all(final[name]['status'] in ('claimed', 'no_claimable')
+               and final[name].get('claimable_after') is False
+               for name, item in early['result']['items'].items() if item['status'] == 'remaining')
+
+
+def _has_unresolved_partial(steps):
+    early_rewards_resolved = _early_rewards_resolved(steps)
+    return any(step['status'] == 'partial' and (step['name'] != 'rewards' or not early_rewards_resolved)
+               for step in steps)
+
+
 def execute_supported(tasker, config, *, game_day, context, directory, execute=False,
                       source='live supported chain', include_schedule_onekey=False,
                       schedule_authorizations=(), schedule_attest_current_plan=False,
@@ -826,7 +847,7 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
                     report.update(outcome='stopped', error='unresolved_schedule_blocks_other_modules')
                     break
         else:
-            partial = any(s['status'] == 'partial' for s in report['steps'])
+            partial = _has_unresolved_partial(report['steps'])
             report.update(outcome='partial' if partial else 'complete', supported_chain_complete=not partial)
     except (Exception, KeyboardInterrupt) as exc:
         report.update(outcome='interrupted' if isinstance(exc, KeyboardInterrupt) else 'failed',
@@ -1055,10 +1076,12 @@ def summary(report, *, player=False):
         if report_detail:
             report_detail = [message, '结果未确认时不要直接重跑、删账或换日。',
                              '诊断信息：' + str(report['error'])]
+    early_rewards_resolved = _early_rewards_resolved(report.get('steps', []))
     return '\n'.join([heading, *[labels[s['name']] + '：' +
         ('未找到已选关卡或列表未识别，请先在游戏核对勾选（未提交）'
          if s['name'] == 'normal' and s.get('result', {}).get('outcome') == 'empty_or_unreadable_selection'
          else '已执行并结算，日目标未满' if s['name'] in ('event', 'event_current', 'event_revival') and s['status'] == 'partial'
+         else '余下奖励已在收尾领完' if s['name'] == 'rewards' and early_rewards_resolved
          else '深渊前哨未开放，已安全跳过' if s['name'] == 'abyss' and s['status'] == 'skipped_event_unavailable'
          else states.get(s['status'], s['status'])) + detail(s)
         for s in report.get('steps', [])], *report_detail,

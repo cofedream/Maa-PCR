@@ -210,10 +210,11 @@ class MaaOpening:
         # only the observed page may be closed, on a fresh guarded click. Then
         # read the map; a repeated/unknown page still stops this transition.
         names.append('LabyOpeningItemRewardObserved')
-        # Guild 5 can expose the map before its unclaimed character grant appears.
-        if not grant_pending:names.append('LabyMapObserved')
+        # The map can appear briefly before either guild's starting relic reward.
+        item_pending=guild_id==9
+        if not (grant_pending or item_pending):names.append('LabyMapObserved')
         entry='LabyOpeningAfterInvitationObserved'
-        timeout=15000 if grant_pending else 3000
+        timeout=15000 if grant_pending or item_pending else 3000
         hit,_=self._choice(batch,entry,names,timeout=timeout)
         if hit=='LabyOpeningItemRewardObserved':
             fields=dict(phase='opening_item_reward_close')
@@ -223,9 +224,10 @@ class MaaOpening:
                 return self.stamp(source='maa',operation_id=oid,**fields,native=sent,
                     input_native=sent,input_action_verified=True)
             batch.transaction('opening_item_reward_close',fields,close)
+            if item_pending and not grant_pending:names.append('LabyMapObserved')
             # The close animation may leave the same reward visible on fresh frames.
             for _ in range(3):
-                hit,_=self._choice(batch,entry,names,timeout=timeout)
+                hit,_=self._choice(batch,entry,names,timeout=15000 if grant_pending else 3000)
                 if hit!='LabyOpeningItemRewardObserved':break
             else:
                 raise BatchStopped('opening_readback_unknown')

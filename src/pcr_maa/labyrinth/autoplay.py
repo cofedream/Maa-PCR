@@ -1113,11 +1113,11 @@ class AutoplayRunner:
                 if kind!=target.block_type:raise BatchStopped('node_type_conflict')
                 return not confirmed
             return following.kind in _ARRIVALS[target.block_type]
-        # Reuse the single pure wait. Each ACK retains its original 15s budget;
-        # MAP/UNKNOWN/partial confirmation never sends a second tap.
+        # An accepted move can remain in data connection before the destination opens.
+        # Preview and confirmed movement both wait without sending another tap.
         return MaaSceneRuntime.wait_for(self.runtime,batch,
             _ARRIVALS[target.block_type]|{'map','move_confirmation'},
-            source=('map','move_confirmation'),accept=arrived,timeout=15,
+            source=('map','move_confirmation'),accept=arrived,timeout=30 if confirmed else 15,
             reason='autoplay_readback_unknown' if confirmed else 'node_preview_unknown')
 
     def _move(self,batch,route,scene,*,located=None):

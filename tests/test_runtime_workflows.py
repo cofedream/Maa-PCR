@@ -120,7 +120,12 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
             '.runtime/ci/build/Maa-PCR-*-source.zip',
             '.runtime/ci/build/Maa-PCR-v*-to-v*.patch.zip',
         }
-    assert '--base-manifest delivery/baselines/r88-package-manifest.json' in text
+    verify = steps['Verify Release Baseline']
+    assert 'python -X utf8 -B scripts/release_baselines.py' in verify
+    assert ('--tag $env:PCR_RELEASE_TAG' in verify) == (folder == 'release')
+    assert text.index('- name: Verify Release Baseline') < text.index('- name: Install Locked Test Dependencies')
+    assert '--release-baseline' in text
+    assert '--base-manifest delivery/baselines/' not in text
 
 
 def test_release_promotes_only_the_exact_reviewed_ci_artifact_without_rebuilding():
@@ -195,7 +200,7 @@ def test_ci_extracts_only_manifest_bound_crt_and_rejects_tampering(tmp_path, mon
     monkeypatch.chdir(tmp_path)
     payload = {'runtime/python/' + name: ('synthetic ' + name).encode() for name in build.CRT_FILES}
     manifest = json.dumps(player_manifest(payload, 51)).encode()
-    monkeypatch.setattr(build, 'R51_MANIFEST_SHA256', hashlib.sha256(manifest).hexdigest())
+    monkeypatch.setitem(build.BASELINE_HASHES, 51, hashlib.sha256(manifest).hexdigest())
     baseline = tmp_path / 'delivery/baselines/r51-package-manifest.json'
     baseline.parent.mkdir(parents=True)
     baseline.write_bytes(manifest + (b' ' if tampered == 'baseline' else b''))

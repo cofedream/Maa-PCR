@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13.16'
+      - name: Verify Release Baseline
+        run: |
+          python -X utf8 -B scripts/release_baselines.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.101'
@@ -31,15 +35,15 @@ jobs:
           import hashlib, sys, zipfile
           from pathlib import Path
           sys.path.insert(0, 'scripts')
-          from build_release import CRT_FILES, R51_MANIFEST_SHA256, digest, download, maintenance
+          from build_release import BASELINE_HASHES, CRT_FILES, digest, download, maintenance
           baseline = Path('delivery/baselines/r51-package-manifest.json')
-          if digest(baseline) != R51_MANIFEST_SHA256:
+          if digest(baseline) != BASELINE_HASHES[51]:
               raise ValueError('R51_crt_baseline_manifest_mismatch')
           rows = maintenance._rows(maintenance._read_json(baseline))
           archive = download({'url': 'https://github.com/shiwandehongbai/Maa-PCR/releases/download/v0.1.7/Maa-PCR-v0.1.7-win-x64.zip',
                               'sha256': 'bc6d844e2dba47d6ce6305c64812ff5a71ac449e822388e9bde2f218dc546db3'}, Path('.runtime/downloads'))
           with zipfile.ZipFile(archive) as source:
-              if hashlib.sha256(source.read(maintenance.MANIFEST)).hexdigest() != R51_MANIFEST_SHA256:
+              if hashlib.sha256(source.read(maintenance.MANIFEST)).hexdigest() != BASELINE_HASHES[51]:
                   raise ValueError('R51_crt_archive_manifest_mismatch')
               target = Path('.runtime/ci/vc-redist-r51')
               target.mkdir(parents=True, exist_ok=False)
@@ -51,7 +55,7 @@ jobs:
                   (target / name).write_bytes(data)
           '@ | python -X utf8 -B -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r88-package-manifest.json --vc-redist .runtime/ci/vc-redist-r51
+          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --release-baseline --vc-redist .runtime/ci/vc-redist-r51
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: GUI Update Contract Checks
         run: |

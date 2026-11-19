@@ -8,6 +8,11 @@ import shutil
 import stat
 import zipfile
 
+if __package__:
+    from .release_baselines import BASELINE_HASHES, baseline_filename
+else:
+    from release_baselines import BASELINE_HASHES, baseline_filename
+
 
 GAME_IMAGES = frozenset('assets/resource/image/' + name for name in (
     'adventure_title.png', 'event_exhausted_hard.png', 'home_gift.png',
@@ -41,48 +46,7 @@ GENERATED_LAUNCHERS = frozenset(('离线更新 Maa PCR.bat', '导入补丁包.ba
                                  '导出诊断 Maa PCR.bat', '启动 Maa PCR.bat'))
 DELIVERY_FILES = frozenset((
     'delivery/runtime-downloads.json', 'delivery/acceptance.json',
-    'delivery/baselines/r38-package-manifest.json',
-    'delivery/baselines/r39-package-manifest.json',
-    'delivery/baselines/r41-package-manifest.json',
-    'delivery/baselines/r45-package-manifest.json',
-    'delivery/baselines/r46-package-manifest.json',
-    'delivery/baselines/r49-package-manifest.json',
-    'delivery/baselines/r50-package-manifest.json',
-    'delivery/baselines/r51-package-manifest.json',
-    'delivery/baselines/r52-package-manifest.json',
-    'delivery/baselines/r53-package-manifest.json',
-    'delivery/baselines/r55-package-manifest.json',
-    'delivery/baselines/r56-package-manifest.json',
-    'delivery/baselines/r57-package-manifest.json',
-    'delivery/baselines/r58-package-manifest.json',
-    'delivery/baselines/r59-package-manifest.json',
-    'delivery/baselines/r60-package-manifest.json',
-    'delivery/baselines/r61-package-manifest.json',
-    'delivery/baselines/r64-package-manifest.json',
-    'delivery/baselines/r65-package-manifest.json',
-    'delivery/baselines/r66-package-manifest.json',
-    'delivery/baselines/r67-package-manifest.json',
-    'delivery/baselines/r68-package-manifest.json',
-    'delivery/baselines/r69-package-manifest.json',
-    'delivery/baselines/r70-package-manifest.json',
-    'delivery/baselines/r71-package-manifest.json',
-    'delivery/baselines/r72-package-manifest.json',
-    'delivery/baselines/r73-package-manifest.json',
-    'delivery/baselines/r74-package-manifest.json',
-    'delivery/baselines/r75-package-manifest.json',
-    'delivery/baselines/r76-package-manifest.json',
-    'delivery/baselines/r77-package-manifest.json',
-    'delivery/baselines/r78-package-manifest.json',
-    'delivery/baselines/r79-package-manifest.json',
-    'delivery/baselines/r80-package-manifest.json',
-    'delivery/baselines/r81-package-manifest.json',
-    'delivery/baselines/r82-package-manifest.json',
-    'delivery/baselines/r83-package-manifest.json',
-    'delivery/baselines/r84-package-manifest.json',
-    'delivery/baselines/r85-package-manifest.json',
-    'delivery/baselines/r86-package-manifest.json',
-    'delivery/baselines/r87-package-manifest.json',
-    'delivery/baselines/r88-package-manifest.json',
+    *(baseline_filename(revision) for revision in BASELINE_HASHES),
 ))
 TEXT_SUFFIXES = frozenset((
     '.py', '.cs', '.md', '.txt', '.json', '.toml', '.yml', '.yaml', '.xml',

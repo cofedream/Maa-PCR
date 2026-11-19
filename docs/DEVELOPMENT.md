@@ -20,7 +20,7 @@
 
 v0.2.1 使用内部修订号 89。正式 v0.2.0 使用增量包 `Maa-PCR-v0.2.0-to-v0.2.1.patch.zip`。其他受支持的旧版由更新器选择完整包。
 
-正式 R66 清单 SHA-256：`68f18726b9828d6b1040b067b8b23325c6553d1a198c5466d2a2631d82d9c58b`。
+`scripts/release_baselines.py` 记录当前发布版本、上一版修订号和正式清单的 SHA-256。构建和封版使用 `--release-baseline` 读取同一份配置。Windows 工作流先核对源码版本和基线，再安装构建依赖、运行测试。
 
 - `pyproject.toml` 是 Python 项目的版本元数据。
 - `scripts/build_release.py` 的 `--version`、`--revision` 决定候选包身份；当前默认值对应上述源码版本，不代表修改后的源码已经正式验收。

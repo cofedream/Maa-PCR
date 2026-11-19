@@ -24,53 +24,14 @@ sys.path.insert(0, str(ROOT / 'src'))
 from pcr_maa import player_maintenance as maintenance
 
 if __package__:
+    from .release_baselines import BASELINE_HASHES, RELEASE_REVISION, RELEASE_VERSION, check_release_baseline
     from .source_delivery import LOCAL_ONLY_FILES
 else:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from release_baselines import BASELINE_HASHES, RELEASE_REVISION, RELEASE_VERSION, check_release_baseline
     from source_delivery import LOCAL_ONLY_FILES
 
 SDK_VERSION = '10.0.101'
-R38_MANIFEST_SHA256 = '59fa329ba5ac76de8e51ee10765573a7be737b81228137aa2aaf0cac55726668'
-R39_MANIFEST_SHA256 = 'b009f708728937026ef66828aef4e7c5d924f4de248f7eaaf7792dd168cdd6bd'
-R41_MANIFEST_SHA256 = '792ec2058f6ecb196832c996de9f188b159f0ecc33673a1f83054bda77f7cbd4'
-R45_MANIFEST_SHA256 = '76419fcf5772b6ff936c556bfd50200002b9b85b0c34717ba7e61ec2453034fb'
-R46_MANIFEST_SHA256 = '4b3d3ab862c609e076b8386303141e70c91d303b4b18d6169619a318b90dfd7b'
-R49_MANIFEST_SHA256 = 'de76ebf890e75cb15f345ee7b022de5b25b14f3c630b0e5ad374ca58c65d641e'
-R50_MANIFEST_SHA256 = '3314215f352678c082cf72c21b5e32d449396b2415b41ab7e27f4bf93b5a756f'
-R51_MANIFEST_SHA256 = 'a5fc27677b22e43133266a041fa75b8e85f7d30bd20f26497abaea5e00e62885'
-R52_MANIFEST_SHA256 = 'a1aa22db44eb19f5a2e8279c337f1b20b8097d93b4f8ef666be4cec5492bd85e'
-R53_MANIFEST_SHA256 = 'c27d3e9f144aa0af1c06bcaa58374012c55b275024f68e800cb2c9623b776776'
-R55_MANIFEST_SHA256 = '92798604770de2332c56b953486f969bd87f8a03a01d4595e5fbaa719548ed78'
-R56_MANIFEST_SHA256 = '1021513015b057b14da36898aa7ea9b1e7e5f8fef174617c5d0de6d578951575'
-R57_MANIFEST_SHA256 = 'aeafa623f25910427b08dbe27f78718a2d31c3670e3e4271497feea2c633c07b'
-R58_MANIFEST_SHA256 = '8eee3c459ec4405dfb583ded58b8561dd4497771ac49f3ce52f9ba1b04cd1a32'
-R59_MANIFEST_SHA256 = '6b20732e5e9a988f290696b435688bb4dd26ed1c10c69138f054deb8a08ad4ed'
-R60_MANIFEST_SHA256 = 'bbda52a6990393ccd41a86148682e15e2f548bb9f109bb270c7417ec0c25e3fe'
-R61_MANIFEST_SHA256 = 'ea4396bff4162622af42008bb8c109addc06b30663fadac455c52fbac8589a4a'
-R64_MANIFEST_SHA256 = '05cb9d27d89f860abaa8965003602eee574aa15e8c454bae3d01dbc68a0298ad'
-R65_MANIFEST_SHA256 = '64cee56fb55858feac9daa73997ccf2eac66d6a1ad251065f040a3a146c0d698'
-R66_MANIFEST_SHA256 = '68f18726b9828d6b1040b067b8b23325c6553d1a198c5466d2a2631d82d9c58b'
-R67_MANIFEST_SHA256 = '61c70d299c5ef0242a716543474e9f227b91a6e2d19fddd1e6c77f32f6de3b1c'
-R68_MANIFEST_SHA256 = '20079bc05a78e59cee4c6dacf03f926c35a93de9233c7ddd25c116f02ca5ff5f'
-R69_MANIFEST_SHA256 = '1aae6c870c950a8af08e31b5587e8f503d6445d837a481d3b304ac3749c054af'
-R70_MANIFEST_SHA256 = '0874649a122c34dea2c6715b9667a332289b8ae6e1bd8bb0659bcf80cf834fd8'
-R71_MANIFEST_SHA256 = 'ae7ae607f6e483ab85f38eeba048603a152da7d73dae487099e441056d23453c'
-R72_MANIFEST_SHA256 = '96e933259ffe70c18888b777d2d63c7e7934608daff868c7deac5367c59da5c1'
-R73_MANIFEST_SHA256 = 'b94de28b0de627499077a4c47e16428cae79d79ab07913f10ccbf9a9998c8a05'
-R74_MANIFEST_SHA256 = 'cb6c6182bd70f207e8afe3aa45eda2d0d8596679d7a1efeab09c0fb653eb10ab'
-R75_MANIFEST_SHA256 = '04adf05df7b9dd91de533dcd00827477c60eea2b3f129a52847c90df16f4afb7'
-R76_MANIFEST_SHA256 = '16610f8aa288551b30f2e764ed1aa3b6a96a643d329b4247c02f2b11d940ebd4'
-R77_MANIFEST_SHA256 = '378b275b25bc24727cd84256e80bcbaec4f43d4009e6f4add976b31d89e557cb'
-R78_MANIFEST_SHA256 = 'b97e57784aa58d212b9eb567815f44c65a9dfde6a8b172bf15f0654e6be04a1a'
-R79_MANIFEST_SHA256 = 'd61b28aca9270338af32b23b14e931c1d2aba6e072e23287471949c7352cbaf5'
-R80_MANIFEST_SHA256 = 'd9f4a851247fb61f82eaf33a65cb707a948214bfc6d9e0e1251fe36bac153c8e'
-R81_MANIFEST_SHA256 = '94dad3257a791e07c1ce03933e2997397d5e1f54dd4ded2bf99adc4d09229ce1'
-R82_MANIFEST_SHA256 = '35aa5cd9beca352f61bedfb0b8a0f95765262c2e77f58b2a00d65a069f53903c'
-R83_MANIFEST_SHA256 = 'c99d8df0cc52b31722107e823a8782c1da0db76cfa2f1346e14e098526094389'
-R84_MANIFEST_SHA256 = '1a245bd395e1bde63a8f761ca56c7ece0628f7bc479b491902ee078eddac11df'
-R85_MANIFEST_SHA256 = '8c548b5bb627047c66a626ea7d8ba330bbb295385d6b5b16b96c7976184240a2'
-R86_MANIFEST_SHA256 = 'eb282da9d57d5e8b9d9697486111fbe08f37472011c6ab7c7ebd55ab28829a54'
-R87_MANIFEST_SHA256 = 'f3851fbcc0dc9d359c7648e5f71e00d2baeaea80132b657af893938da47f5df5'
-R88_MANIFEST_SHA256 = '3054967069d5bbe7cc2c08f89cf5ffaf3b16ff7034aa060a982e151098bfcf04'
 GUI_PROJECT = 'gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj'
 PAYLOAD_DIRS = ('src', 'vendor', 'assets', 'third_party', 'licenses', 'docs')
 PAYLOAD_SCRIPTS = ('pcr.py', 'validate-alpha-config.py', 'start-alpha-agent.py',
@@ -393,8 +354,7 @@ def package_outputs(player, output, base=None, base_manifest=None):
         if base:
             result = patcher.build_patch(base, player, patch)
         else:
-            expected = {38: R38_MANIFEST_SHA256, 39: R39_MANIFEST_SHA256,
-                        41: R41_MANIFEST_SHA256, 45: R45_MANIFEST_SHA256, 46: R46_MANIFEST_SHA256, 49: R49_MANIFEST_SHA256, 50: R50_MANIFEST_SHA256, 51: R51_MANIFEST_SHA256, 52: R52_MANIFEST_SHA256, 53: R53_MANIFEST_SHA256, 55: R55_MANIFEST_SHA256, 56: R56_MANIFEST_SHA256, 57: R57_MANIFEST_SHA256, 58: R58_MANIFEST_SHA256, 59: R59_MANIFEST_SHA256, 60: R60_MANIFEST_SHA256, 61: R61_MANIFEST_SHA256, 64: R64_MANIFEST_SHA256, 65: R65_MANIFEST_SHA256, 66: R66_MANIFEST_SHA256, 67: R67_MANIFEST_SHA256, 68: R68_MANIFEST_SHA256, 69: R69_MANIFEST_SHA256, 70: R70_MANIFEST_SHA256, 71: R71_MANIFEST_SHA256, 72: R72_MANIFEST_SHA256, 73: R73_MANIFEST_SHA256, 74: R74_MANIFEST_SHA256, 75: R75_MANIFEST_SHA256, 76: R76_MANIFEST_SHA256, 77: R77_MANIFEST_SHA256, 78: R78_MANIFEST_SHA256, 79: R79_MANIFEST_SHA256, 80: R80_MANIFEST_SHA256, 81: R81_MANIFEST_SHA256, 82: R82_MANIFEST_SHA256, 83: R83_MANIFEST_SHA256, 84: R84_MANIFEST_SHA256, 85: R85_MANIFEST_SHA256, 86: R86_MANIFEST_SHA256, 87: R87_MANIFEST_SHA256, 88: R88_MANIFEST_SHA256}.get(base_version['revision'])
+            expected = BASELINE_HASHES.get(base_version['revision'])
             if expected is None:
                 raise ValueError('unsupported_patch_baseline')
             result = patcher.build_patch_from_manifest(base_path, player, patch, expected)
@@ -416,7 +376,7 @@ def build_bootstrap_patch(base_manifest, player, patch, output):
     target = maintenance._read_json(player / maintenance.MANIFEST)
     if maintenance._version(old)['revision'] != 38 or maintenance._version(target)['revision'] != 39:
         raise ValueError('bootstrap_requires_R38_to_R39')
-    if digest(base_manifest) != R38_MANIFEST_SHA256:
+    if digest(base_manifest) != BASELINE_HASHES[38]:
         raise ValueError('bootstrap_requires_frozen_R38_manifest')
     helper = ROOT / 'scripts/bootstrap-r38-update.py'
     if not helper.is_file():
@@ -575,8 +535,8 @@ def build(args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--revision', type=int, default=89)
-    parser.add_argument('--version', default='v0.2.1')
+    parser.add_argument('--revision', type=int, default=RELEASE_REVISION)
+    parser.add_argument('--version', default=RELEASE_VERSION)
     parser.add_argument('--dotnet', type=Path)
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--nuget-source', type=Path, help='optional official package cache/feed for offline builds')
@@ -584,9 +544,12 @@ def main(argv=None):
     parser.add_argument('--wheelhouse', type=Path, help='optional directory of hash-locked official wheels')
     baseline = parser.add_mutually_exclusive_group()
     baseline.add_argument('--base', type=Path, help='immutable exact manifest-bound patch baseline')
-    baseline.add_argument('--base-manifest', type=Path, help='exact public R38, R39, R41, R45, R46, R49, R50, R51, R52, R53, R55, R56, R57, R58, R59, R60, R61, R64, R65, R66, R67, R68, R69, R70, R71, R72, R73, R74, R75, R76, R77, R78, R79, R80, R81, R82, R83, R84, R85 or R86 manifest; installation verifies old files')
+    baseline.add_argument('--base-manifest', type=Path, help='exact pinned public baseline manifest')
+    baseline.add_argument('--release-baseline', action='store_true', help='use the verified current release baseline')
     args = parser.parse_args(argv)
     try:
+        if args.release_baseline:
+            args.base_manifest = check_release_baseline(revision=args.revision, version=args.version)
         print(json.dumps(build(args), ensure_ascii=False))
         return 0
     except (ValueError, OSError, subprocess.SubprocessError, zipfile.BadZipFile) as error:
