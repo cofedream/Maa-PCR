@@ -14,7 +14,7 @@ No private captures or per-card learned templates are needed.
 
 from collections import Counter
 
-from dataclasses import dataclass,asdict
+from dataclasses import dataclass,asdict,replace
 
 from functools import lru_cache
 
@@ -1333,16 +1333,20 @@ class CharacterRecognizer:
         if page in ('battle','boss'):
 
             member_hints=member_slots(frame,refine=False)
-
+            mask=IconMask(right=True,top_left=True)
+            samples=[]
             for box in member_slots(frame):
-
                 x,y,w,h=box;icon=(x+6,y+6,w-14,w-14)
-
                 attribute=card_attribute(frame,box)
-                mask=IconMask(right=True,top_left=True);match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
+                match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
+                samples.append((box,icon,attribute,match))
 
+            counts=Counter(match.character_id for _,_,_,match in samples if match.trusted)
+            for box,icon,attribute,match in samples:
+                # A collision defeats the first crop's confidence margin.
+                if counts[match.character_id]>1:match=replace(match,trusted=False)
                 if not match.trusted:
-                    hint=min(member_hints,key=lambda b:abs(b[0]-x),default=None)
+                    hint=min(member_hints,key=lambda b:abs(b[0]-box[0]),default=None)
                     fallback=None
                     if hint is not None:
                         hx,hy,hw,hh=hint;fallback=(hx+6,hy+6,hw-14,hw-14)
@@ -1350,7 +1354,6 @@ class CharacterRecognizer:
                         mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
 
                 item=dict(box=list(box),icon_box=list(icon),selected=True,**asdict(match))
-
                 item['candidates']=[asdict(candidate) for candidate in match.candidates];members.append(item)
 
         # Candidate collisions stay unknown; they do not invalidate independent

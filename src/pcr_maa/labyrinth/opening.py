@@ -54,11 +54,10 @@ class MaaOpening:
         token=native.RUN_DEADLINE.set(deadline)
         try:
             MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(
-                batch,{'joined','role_reward','free_role_reward','map'},timeout=INVITATION_TRANSITION_TIMEOUT_SECONDS,
+                batch,{'joined'},source={'map','role_reward','free_role_reward'},timeout=INVITATION_TRANSITION_TIMEOUT_SECONDS,
                 reason='opening_readback_unknown',acquisition_fields=dict(
                     enter_id=enter_id,invitation_operation_id=invited['operation_id']))
-            # A MAP background supplies no identities; the shared fullpack joined
-            # reader must independently confirm the actual arrivals.
+            # Read the actual arrivals independently from the joined-page anchors.
             batch.checkpoint()
             _,receipt=self.characters.read(batch,'joined',stable=False,timeout=JOINED_CONFIRMATION_TIMEOUT_SECONDS)
             return receipt
@@ -134,7 +133,8 @@ class MaaOpening:
             sent=self._run('LabyOpeningAnyJoinedCloseOnce',input=True)
             return self.stamp(source='maa',operation_id=oid,**close_fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('opening_close',close_fields,close)
-        batch.checkpoint();hit,receipt=self._after_invitation(batch,guild_id,enter_id=enter_id)
+        batch.checkpoint();hit,receipt=self._after_invitation(batch,guild_id,enter_id=enter_id,
+            grant_pending=guild_id==5 and previous is None)
         closed=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**close_fields,page=hit,native=receipt,input_native=clicked['input_native']),**close_fields)
         granted=self.grants.get(claim)
         if closed['page']=='joined':
@@ -160,9 +160,9 @@ class MaaOpening:
         for pipeline,root in ((date_changed_pipeline(),'LabyDateChangedObserved'),(reconnect_pipeline(),'LabyDisconnect6002Observed')):
             nodes.update({key:deepcopy(pipeline[key]) for key in [root]+pipeline[root]['all_of']})
         if not self.tasker.resource.override_pipeline(nodes):raise BatchStopped('opening_pipeline_unavailable')
-    def _choice(self,batch,entry,names):
+    def _choice(self,batch,entry,names,*,timeout=3000):
         from .game_session import _root,_box
-        if not self.tasker.resource.override_pipeline({entry:dict(recognition='Or',any_of=names,action='DoNothing',next=[],timeout=3000,pre_delay=0,post_delay=0)}):
+        if not self.tasker.resource.override_pipeline({entry:dict(recognition='Or',any_of=names,action='DoNothing',next=[],timeout=timeout,pre_delay=0,post_delay=0)}):
             raise BatchStopped('opening_pipeline_unavailable')
         batch.checkpoint();receipt=self._run(entry);batch.checkpoint();raw=_root(receipt,entry).get('recognition')
         if (type(raw) is not list or not 1<=len(raw)<=len(names) or any(type(row) is not dict for row in raw)
@@ -195,16 +195,13 @@ class MaaOpening:
             'LabyOpeningGrantCloseOnce':dict(guard,action='Click',target=True,max_hit=1)}
         if not self.tasker.resource.override_pipeline(nodes):raise BatchStopped('opening_pipeline_unavailable')
         return 'LabyOpeningGrantObserved'
-    def _after_invitation(self,batch,guild_id,*,enter_id=None):
+    def _after_invitation(self,batch,guild_id,*,enter_id=None,grant_pending=False):
         self._install_joined()
         # invite() installs this before the invitation; re-install so a direct
         # transition call also has the item-page nodes.
         if not self.tasker.resource.override_pipeline(opening_catalog_pipeline()):
             raise BatchStopped('opening_pipeline_unavailable')
         names=['LabyDateChangedObserved','LabyDisconnect6002Observed']
-        # The extra 1-role grant page exists only for guild 5. The user verified on
-        # device (2026-11-13) that the new guilds 6..10 present no gift page, so
-        # never generalize this branch from configuration alone.
         if guild_id==5:names.append(self.prepare_grant())
         # A departure guild's starting relic can also present a one-shot item
         # result before the map. Guild 5's relic joins 1068 (the joined page
@@ -212,8 +209,12 @@ class MaaOpening:
         # Keep the item branch before MAP: the modal dims the map anchors, and
         # only the observed page may be closed, on a fresh guarded click. Then
         # read the map; a repeated/unknown page still stops this transition.
-        names.append('LabyOpeningItemRewardObserved');names.append('LabyMapObserved')
-        hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)
+        names.append('LabyOpeningItemRewardObserved')
+        # Guild 5 can expose the map before its unclaimed character grant appears.
+        if not grant_pending:names.append('LabyMapObserved')
+        entry='LabyOpeningAfterInvitationObserved'
+        timeout=15000 if grant_pending else 3000
+        hit,_=self._choice(batch,entry,names,timeout=timeout)
         if hit=='LabyOpeningItemRewardObserved':
             fields=dict(phase='opening_item_reward_close')
             if type(enter_id) is int and enter_id>0:fields['enter_id']=enter_id
@@ -224,7 +225,7 @@ class MaaOpening:
             batch.transaction('opening_item_reward_close',fields,close)
             # The close animation may leave the same reward visible on fresh frames.
             for _ in range(3):
-                hit,_=self._choice(batch,'LabyOpeningAfterInvitationObserved',names)
+                hit,_=self._choice(batch,entry,names,timeout=timeout)
                 if hit!='LabyOpeningItemRewardObserved':break
             else:
                 raise BatchStopped('opening_readback_unknown')
