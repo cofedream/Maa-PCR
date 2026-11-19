@@ -231,7 +231,7 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
         metadata['update'].update(revision=revision, version='v0.1.0' if revision == 39 else 'r38-synthetic')
         save_manifest(player, metadata)
     baseline = base / builder.maintenance.MANIFEST
-    monkeypatch.setattr(builder, 'R38_MANIFEST_SHA256', builder.digest(baseline))
+    monkeypatch.setitem(builder.BASELINE_HASHES, 38, builder.digest(baseline))
     output = target.parent / 'artifacts'
     output.mkdir()
     result = builder.package_outputs(target, output, base_manifest=baseline)
@@ -281,7 +281,7 @@ def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revisio
         metadata['update'].update(revision=revision, version=version)
         save_manifest(player, metadata)
     baseline = base / builder.maintenance.MANIFEST
-    monkeypatch.setattr(builder, f'R{base_revision}_MANIFEST_SHA256', builder.digest(baseline) if trusted else '0' * 64)
+    monkeypatch.setitem(builder.BASELINE_HASHES, base_revision, builder.digest(baseline) if trusted else '0' * 64)
     patch_name = (f'Maa-PCR-{base_version}-to-{target_version}.patch.zip' if target_revision >= 88
                   else f'Maa-PCR-R{base_revision}-to-R{target_revision}.patch.zip')
     output = target.parent / 'artifacts'
@@ -433,10 +433,30 @@ def test_build_defaults_to_current_release_identity_without_running_build(tmp_pa
     assert not (tmp_path / 'unused-output').exists()
 
 
+def test_current_release_preflight_rejects_drift_before_build(tmp_path):
+    from scripts import release_baselines as baselines
+
+    source = baselines.check_release_baseline()
+    manifest = tmp_path / source.relative_to(ROOT)
+    manifest.parent.mkdir(parents=True)
+    manifest.write_bytes(source.read_bytes())
+    project = tmp_path / 'pyproject.toml'
+    project.write_text(f'[project]\nversion = "{baselines.RELEASE_VERSION[1:]}"\n', encoding='utf-8')
+    assert baselines.check_release_baseline(root=tmp_path) == manifest
+    with pytest.raises(ValueError, match='release_identity_mismatch'):
+        baselines.check_release_baseline(root=tmp_path, version='v9.9.9')
+    manifest.write_bytes(manifest.read_bytes() + b' ')
+    with pytest.raises(ValueError, match='requires_exact'):
+        baselines.check_release_baseline(root=tmp_path)
+    project.write_text('[project]\nversion = "9.9.9"\n', encoding='utf-8')
+    with pytest.raises(ValueError, match='release_project_version_mismatch'):
+        baselines.check_release_baseline(root=tmp_path)
+
+
 @pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8'), (53, 'v0.1.9'), (55, 'v0.1.10'), (56, 'v0.1.11'), (57, 'v0.1.12'), (58, 'v0.1.13'), (59, 'v0.1.14'), (60, 'v0.1.15'), (61, 'v0.1.16'), (64, 'v0.1.17'), (65, 'v0.1.18'), (66, 'v0.1.19'), (67, 'v0.1.20'), (68, 'v0.1.21'), (69, 'v0.1.22'), (70, 'v0.1.23'), (71, 'v0.1.24'), (72, 'v0.1.25'), (73, 'v0.1.26'), (74, 'v0.1.27'), (75, 'v0.1.28'), (76, 'v0.1.29'), (77, 'v0.1.30'), (78, 'v0.1.31'), (79, 'v0.1.32'), (80, 'v0.1.33'), (81, 'v0.1.34'), (87, 'v0.1.40'), (88, 'v0.2.0')])
 def test_public_manifest_is_exact_pinned_release_baseline(revision, version):
     path = ROOT / f'delivery/baselines/r{revision}-package-manifest.json'
-    assert builder.digest(path) == getattr(builder, f'R{revision}_MANIFEST_SHA256')
+    assert builder.digest(path) == builder.BASELINE_HASHES[revision]
     manifest = builder.maintenance._read_json(path)
     assert manifest['update']['revision'] == revision
     assert manifest['update']['version'] == version

@@ -68,11 +68,13 @@ def _port(resource, stages):
     return MaaOpening(tasker, stamp), batch, controller, tasker, state
 
 
-@pytest.mark.parametrize('delayed', [False, True], ids=['immediate-map', 'lingering-reward'])
-def test_item_page_is_closed_once_then_the_map_is_read(offline, delayed):
+@pytest.mark.parametrize('opening_frames', ['reward-first', 'map-first', 'lingering-reward'])
+def test_item_page_is_closed_once_then_the_map_is_read(offline, opening_frames):
     item = _image(ITEM, ITEM_MANIFEST)
     map_ = _image(MAP, MAP_MANIFEST)
-    port, batch, controller, tasker, state = _port(offline, [[item], [item, map_] if delayed else [map_]])
+    before_close = [map_, item] if opening_frames == 'map-first' else [item]
+    after_close = [item, map_] if opening_frames == 'lingering-reward' else [map_]
+    port, batch, controller, tasker, state = _port(offline, [before_close, after_close])
     try:
         page, receipt = port._after_invitation(batch, 9, enter_id=13833)
     finally:

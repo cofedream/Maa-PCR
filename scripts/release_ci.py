@@ -6,7 +6,8 @@ import sys
 
 sys.dont_write_bytecode = True
 from assemble_release import seal, require_acceptance, owned_payload_sha256
-from build_release import ROOT, R38_MANIFEST_SHA256, R39_MANIFEST_SHA256, R41_MANIFEST_SHA256, R45_MANIFEST_SHA256, R46_MANIFEST_SHA256, R49_MANIFEST_SHA256, R50_MANIFEST_SHA256, R51_MANIFEST_SHA256, R52_MANIFEST_SHA256, R53_MANIFEST_SHA256, R55_MANIFEST_SHA256, R56_MANIFEST_SHA256, R57_MANIFEST_SHA256, R58_MANIFEST_SHA256, R59_MANIFEST_SHA256, R60_MANIFEST_SHA256, R61_MANIFEST_SHA256, R64_MANIFEST_SHA256, R65_MANIFEST_SHA256, R66_MANIFEST_SHA256, R67_MANIFEST_SHA256, R68_MANIFEST_SHA256, R69_MANIFEST_SHA256, R70_MANIFEST_SHA256, R71_MANIFEST_SHA256, R72_MANIFEST_SHA256, R73_MANIFEST_SHA256, R74_MANIFEST_SHA256, R75_MANIFEST_SHA256, R76_MANIFEST_SHA256, R77_MANIFEST_SHA256, R78_MANIFEST_SHA256, R79_MANIFEST_SHA256, R80_MANIFEST_SHA256, R81_MANIFEST_SHA256, R82_MANIFEST_SHA256, R83_MANIFEST_SHA256, R84_MANIFEST_SHA256, R85_MANIFEST_SHA256, R86_MANIFEST_SHA256, R87_MANIFEST_SHA256, R88_MANIFEST_SHA256, package_outputs, save, digest
+from build_release import ROOT, package_outputs, save, digest
+from release_baselines import check_release_baseline, require_patch_base
 from source_delivery import prepare, pack, refresh_player_snapshot
 from source_gate import gate
 
@@ -20,6 +21,7 @@ def main():
     baseline = parser.add_mutually_exclusive_group()
     baseline.add_argument('--base', type=Path)
     baseline.add_argument('--base-manifest', type=Path)
+    baseline.add_argument('--release-baseline', action='store_true')
     args = parser.parse_args()
     manifest_path = args.player / 'package-manifest.json'
     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
@@ -28,174 +30,10 @@ def main():
     require_acceptance(acceptance, revision, owned_payload_sha256(manifest), version=args.tag)
     require_acceptance(acceptance, revision, owned_payload_sha256(manifest),
                        version=manifest['update']['version'])
-    if revision == 39:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R38_MANIFEST_SHA256:
-            raise ValueError('R39_requires_exact_R38_patch_base')
-    if revision == 41:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R39_MANIFEST_SHA256:
-            raise ValueError('R41_requires_exact_R39_patch_base')
-    if revision == 45:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R41_MANIFEST_SHA256:
-            raise ValueError('R45_requires_exact_R41_patch_base')
-    if revision == 46:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R45_MANIFEST_SHA256:
-            raise ValueError('R46_requires_exact_R45_patch_base')
-    if revision == 49:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R46_MANIFEST_SHA256:
-            raise ValueError('R49_requires_exact_R46_patch_base')
-    if revision == 50:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R49_MANIFEST_SHA256:
-            raise ValueError('R50_requires_exact_R49_patch_base')
-    if revision == 51:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R50_MANIFEST_SHA256:
-            raise ValueError('R51_requires_exact_R50_patch_base')
-    if revision == 52:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R51_MANIFEST_SHA256:
-            raise ValueError('R52_requires_exact_R51_patch_base')
-    if revision == 53:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R52_MANIFEST_SHA256:
-            raise ValueError('R53_requires_exact_R52_patch_base')
-    if revision == 55:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R53_MANIFEST_SHA256:
-            raise ValueError('R55_requires_exact_R53_patch_base')
-    if revision == 56:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R55_MANIFEST_SHA256:
-            raise ValueError('R56_requires_exact_R55_patch_base')
-    if revision == 57:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R56_MANIFEST_SHA256:
-            raise ValueError('R57_requires_exact_R56_patch_base')
-    if revision == 58:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R57_MANIFEST_SHA256:
-            raise ValueError('R58_requires_exact_R57_patch_base')
-    if revision == 59:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R58_MANIFEST_SHA256:
-            raise ValueError('R59_requires_exact_R58_patch_base')
-    if revision == 60:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R59_MANIFEST_SHA256:
-            raise ValueError('R60_requires_exact_R59_patch_base')
-    if revision == 61:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R60_MANIFEST_SHA256:
-            raise ValueError('R61_requires_exact_R60_patch_base')
-    if revision == 64:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R61_MANIFEST_SHA256:
-            raise ValueError('R64_requires_exact_R61_patch_base')
-    if revision == 65:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R64_MANIFEST_SHA256:
-            raise ValueError('R65_requires_exact_R64_patch_base')
-    if revision == 66:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R65_MANIFEST_SHA256:
-            raise ValueError('R66_requires_exact_R65_patch_base')
-    if revision == 67:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R66_MANIFEST_SHA256:
-            raise ValueError('R67_requires_exact_R66_patch_base')
-    if revision == 68:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R67_MANIFEST_SHA256:
-            raise ValueError('R68_requires_exact_R67_patch_base')
-    if revision == 69:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R68_MANIFEST_SHA256:
-            raise ValueError('R69_requires_exact_R68_patch_base')
-    if revision == 70:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R69_MANIFEST_SHA256:
-            raise ValueError('R70_requires_exact_R69_patch_base')
-    if revision == 71:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R70_MANIFEST_SHA256:
-            raise ValueError('R71_requires_exact_R70_patch_base')
-    if revision == 72:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R71_MANIFEST_SHA256:
-            raise ValueError('R72_requires_exact_R71_patch_base')
-    if revision == 73:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R72_MANIFEST_SHA256:
-            raise ValueError('R73_requires_exact_R72_patch_base')
-    if revision == 74:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R73_MANIFEST_SHA256:
-            raise ValueError('R74_requires_exact_R73_patch_base')
-    if revision == 75:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R74_MANIFEST_SHA256:
-            raise ValueError('R75_requires_exact_R74_patch_base')
-    if revision == 76:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R75_MANIFEST_SHA256:
-            raise ValueError('R76_requires_exact_R75_patch_base')
-    if revision == 77:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R76_MANIFEST_SHA256:
-            raise ValueError('R77_requires_exact_R76_patch_base')
-    if revision == 78:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R77_MANIFEST_SHA256:
-            raise ValueError('R78_requires_exact_R77_patch_base')
-    if revision == 79:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R78_MANIFEST_SHA256:
-            raise ValueError('R79_requires_exact_R78_patch_base')
-    if revision == 80:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R79_MANIFEST_SHA256:
-            raise ValueError('R80_requires_exact_R79_patch_base')
-    if revision == 81:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R80_MANIFEST_SHA256:
-            raise ValueError('R81_requires_exact_R80_patch_base')
-    if revision == 82:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R81_MANIFEST_SHA256:
-            raise ValueError('R82_requires_exact_R81_patch_base')
-    if revision == 83:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R82_MANIFEST_SHA256:
-            raise ValueError('R83_requires_exact_R82_patch_base')
-    if revision == 84:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R83_MANIFEST_SHA256:
-            raise ValueError('R84_requires_exact_R83_patch_base')
-    if revision == 85:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R84_MANIFEST_SHA256:
-            raise ValueError('R85_requires_exact_R84_patch_base')
-    if revision == 86:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R85_MANIFEST_SHA256:
-            raise ValueError('R86_requires_exact_R85_patch_base')
-    if revision == 87:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R86_MANIFEST_SHA256:
-            raise ValueError('R87_requires_exact_R86_patch_base')
-    if revision == 88:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R87_MANIFEST_SHA256:
-            raise ValueError('R88_requires_exact_R87_patch_base')
-    if revision == 89:
-        baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
-        if baseline_path is None or digest(baseline_path) != R88_MANIFEST_SHA256:
-            raise ValueError('R89_requires_exact_R88_patch_base')
+    if args.release_baseline:
+        args.base_manifest = check_release_baseline(revision=revision, version=args.tag)
+    baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
+    require_patch_base(revision, baseline_path)
     args.output.mkdir(parents=True, exist_ok=False)
     prepared = args.output / 'prepared-source'
     prepare(ROOT, prepared, revision=revision, player_manifest=manifest_path)
