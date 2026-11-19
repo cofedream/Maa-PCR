@@ -14,6 +14,20 @@ from test_pixel_free_resources import native_probe
 TAIL = [60, 448, 1140, 49]
 
 
+@pytest.mark.parametrize('pixels,expected', [(297, True), (289, False)])
+def test_dimmed_hard_badge_accepts_small_color_variation(pixels, expected):
+    image = np.full((720, 1280, 3), 247, dtype=np.uint8)
+    badge = np.full((320, 3), 247, dtype=np.uint8)
+    badge[:pixels] = [123, 95, 149]
+    image[242:252, 239:271] = badge.reshape((10, 32, 3))
+
+    def observe(context, argv):
+        result = context.run_recognition('EventExhaustedHardDimBadge', argv.image)
+        return bool(result and result.hit)
+
+    assert native_probe(image, observe, f'event-exhausted-hard-badge-{pixels}') is expected
+
+
 @pytest.mark.parametrize('gray', [240, 244, 247, 250])
 def test_complete_neutral_short_tail(gray):
     image = np.full((720, 1280, 3), gray, dtype=np.uint8)
