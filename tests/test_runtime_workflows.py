@@ -120,7 +120,7 @@ def test_workflow_runs_all_prepared_probes_and_retains_failure_evidence(name, fo
             '.runtime/ci/build/Maa-PCR-*-source.zip',
             '.runtime/ci/build/Maa-PCR-v*-to-v*.patch.zip',
         }
-    assert '--base-manifest delivery/baselines/r87-package-manifest.json' in text
+    assert '--base-manifest delivery/baselines/r88-package-manifest.json' in text
 
 
 def test_release_promotes_only_the_exact_reviewed_ci_artifact_without_rebuilding():
