@@ -219,7 +219,12 @@ def _patch(data, old, old_bytes, new, new_bytes):
 
 def _verify(root, rows):
     for name, row in rows.items():
-        path = _path(root, name)
+        try:
+            path = _path(root, name)
+        except ValueError as error:
+            if str(error) == 'payload_missing':
+                error.add_note(str(root / name))
+            raise
         _require(path.stat().st_size == row['size'] and _sha(path) == row['sha256'],
                  'payload_hash_mismatch')
 

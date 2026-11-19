@@ -1015,7 +1015,9 @@ def summary(report, *, player=False):
                         else:
                             message = '已尝试领取。'
                         messages.append(label + '：' + message)
-            if result.get('consumption_sent') is True and result.get('settlement_verified') is not True:
+            if result.get('outcome') == 'result_verified_followup_incomplete':
+                messages.append('已读到扫荡结果，剩余次数或返回主页尚未核对完成。请保留记录，避免重复扫荡。')
+            elif result.get('consumption_sent') is True and result.get('settlement_verified') is not True:
                 messages.append('本步已尝试发送消费，结算结果未确认。')
             elif result.get('consumption_sent') is False:
                 messages.append('本步未发送消费操作。')
