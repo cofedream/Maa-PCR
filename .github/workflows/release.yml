@@ -68,13 +68,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Seal Matching Assets
         run: |
-          python -X utf8 -B scripts/release_ci.py --player .runtime/release/build/player --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --output .runtime/release/assets --base-manifest delivery/baselines/r86-package-manifest.json
+          python -X utf8 -B scripts/release_ci.py --player .runtime/release/build/player --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --output .runtime/release/assets --base-manifest delivery/baselines/r88-package-manifest.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create $env:PCR_RELEASE_TAG .runtime/release/assets/*.zip .runtime/release/assets/update-index.json .runtime/release/assets/SHA256SUMS.txt .runtime/release/assets/RELEASE_RECEIPT.json .runtime/release/assets/SOURCE_ALIGNMENT.json --verify-tag --generate-notes
+          gh release create $env:PCR_RELEASE_TAG .runtime/release/assets/*.zip .runtime/release/assets/update-index.json .runtime/release/assets/SHA256SUMS.txt .runtime/release/assets/RELEASE_RECEIPT.json .runtime/release/assets/SOURCE_ALIGNMENT.json --verify-tag --title "Maa-PCR $env:PCR_RELEASE_TAG" --generate-notes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish Runtime Test Evidence
         if: always()

@@ -38,12 +38,14 @@
    <StackPanel Spacing="12" IsEnabled="{Binding CanEditPcrTarget}">
     <StackPanel Spacing="6">
      <TextBlock Text="{Binding LabyrinthSettings.AccountSummary}" TextWrapping="Wrap" />
-     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
       <ComboBox Name="AccountSelector" ItemsSource="{Binding LabyrinthSettings.Accounts}" SelectedItem="{Binding LabyrinthSettings.SelectedAccount, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="黎明界账号">
        <ComboBox.ItemTemplate><DataTemplate x:DataType="pcr:PcrLabyrinthAccount"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
       <Button Grid.Column="1" Content="新增账号" Command="{Binding LabyrinthSettings.AddAccountCommand}" />
+      <Button Grid.Column="2" Content="{Binding LabyrinthSettings.NetworkCheckText}" Command="{Binding LabyrinthSettings.CheckNetworkCommand}" IsEnabled="{Binding !LabyrinthSettings.NetworkCheckPending}" ToolTip.Tip="只检查游戏服、登录服与 GitHub 的连通性和握手耗时，不会登录游戏。" />
      </Grid>
+     <TextBlock Text="{Binding LabyrinthSettings.NetworkCheckStatus}" IsVisible="{Binding LabyrinthSettings.HasNetworkCheckStatus}" TextWrapping="Wrap" FontSize="12" />
      <Expander Name="AccountSettings" Header="账号与服务器" IsExpanded="False"><StackPanel Spacing="8" Margin="0,8">
       <TextBlock Text="每个账号单独保存目标和策略。玩家 ID 与登录凭据加密保存在本机当前 Windows 用户下，切换账号不会登录游戏。" TextWrapping="Wrap" />
       <TextBlock Text="账号名称" /><TextBox Name="AccountNameInput" Text="{Binding LabyrinthSettings.AccountName, Mode=TwoWay}" MaxLength="40" />
@@ -77,8 +79,6 @@
     </StackPanel>
     <CheckBox Name="KeepOldRunToggle" Content="保留旧局" IsChecked="{Binding LabyrinthSettings.KeepOldRun, Mode=TwoWay}" />
     <TextBlock Text="默认关闭：再次开始会先放弃旧局，确认结束后新开。开启后保留旧局；已推进且无法续跑时，可手动完成旧局，或关闭此开关重新开始。" TextWrapping="Wrap" FontSize="12" />
-    <CheckBox Name="WebGpuToggle" Content="使用 WebGPU 加速识别（试用）" IsChecked="{Binding LabyrinthSettings.UseWebGpu, Mode=TwoWay}"
-              ToolTip.Tip="仅用于黎明界。开启后优先使用 WebGPU，登录前识别初始化失败会改用 CPU。" />
     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
      <Button Content="{Binding LabyrinthSettings.SaveButtonText}" Command="{Binding LabyrinthSettings.SaveCommand}" />
      <TextBlock Grid.Column="1" Text="{Binding LabyrinthSettings.Status}" TextWrapping="Wrap" VerticalAlignment="Center" />

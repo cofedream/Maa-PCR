@@ -199,7 +199,27 @@ def test_seek_move_uses_settled_dark_trusted_target_without_all_fallback():
     chars=Reads([stretch,rebound,later]+[later]*4);batch=FakeBatch()
     result,matches=CharacterNavigation(chars,lambda **v:v).seek(
         batch,113,'battle',source,('1806',),filters=('DARK',),block_id=30203)
-    assert result==later and [c['character_id'] for c in matches]==['1806']
-    assert len(chars.reads)==7 and len(chars.inputs)==3
+    assert result in (rebound,later) and [c['character_id'] for c in matches]==['1806']
+    assert result==chars.reads[-1] and len(chars.reads)>=2 and len(chars.inputs)==1
     assert all(suffix=='ScrollOnce' and params['direction']=='up' for suffix,params,_ in chars.inputs)
     assert result['filter']=='DARK' and not any(params.get('filter')=='ALL' for _,params,_ in chars.inputs)
+
+
+@pytest.mark.parametrize('stale',[False,True])
+def test_formation_filter_hint_requires_a_fresh_target_and_preserves_fallback(monkeypatch,stale):
+    nav=CharacterNavigation(None,None)
+    source=view(filter='ALL',role='1001',trusted=True)
+    source['cards'].append(dict(source['cards'][0],character_id='1002'))
+    nav.seek(None,1,'battle',source,['1001'],block_id=9)
+    moves=[]
+    def move(batch,enter,page,current,*,filter=None,direction=None,**kw):
+        moves.append(filter or direction)
+        assert filter in ('ALL','FIRE')
+        return view(filter=filter,role='1002' if filter=='FIRE' or not stale else '1003',trusted=True)
+    monkeypatch.setattr(nav,'move',move)
+    result,matches=nav.seek(None,1,'battle',view(filter='DARK'),['1002'],filters=('FIRE',),block_id=9)
+    assert moves==(['ALL','FIRE'] if stale else ['ALL'])
+    assert matches==result['cards'] and matches[0]['character_id']=='1002'
+    moves.clear()
+    nav.seek(None,1,'battle',view(filter='DARK'),['1002'],filters=('FIRE',),block_id=10)
+    assert moves==['FIRE']

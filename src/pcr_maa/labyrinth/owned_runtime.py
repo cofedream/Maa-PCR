@@ -380,6 +380,26 @@ class OwnedRuntime:
             try:self.timings.transition(None)
             except Exception:self.timing_collection = 'incomplete'
 
+    def _prepare_animation_setting(self, server):
+        """Best-effort local client option; never fail the Labyrinth task.
+
+        The option only exists in the client SharedPreferences.  Reading it and
+        changing it need the device ADB root; stopping the client first keeps
+        Unity from overwriting the file from memory.  The client is started
+        later by MaaGamePort, so no launch happens here.
+        """
+        from .animation_setting import ensure_animation_off
+        try:
+            ensure_animation_off(
+                self.request.connection['adb_path'],
+                self.request.connection['serial'],
+                server.package,
+                log=self._log,
+                stopped=self.stop,
+            )
+        except Exception:
+            self._log('检查黎明界角色加入动画时出错；建议在游戏内手动关闭，任务继续。')
+
     def run(self):
         if self.stop():return dict(outcome='stopped',batch_complete=False)
         self._progress(dict(stage='dependencies'))
@@ -420,6 +440,9 @@ class OwnedRuntime:
                 from .autoplay import AutoplayRunner
                 if not callable(getattr(MaaSceneRuntime,'observe',None)) or not callable(getattr(AutoplayRunner,'play',None)):
                     raise BatchStopped('runtime_components_missing')
+                self._checkpoint()
+                self._prepare_animation_setting(get_server(server))
+                self._checkpoint()
                 native.RUNTIME=area/'runs'/self.run_id/'native'
                 from .diagnostics import RuntimeDiagnostics
                 from .database import DatabaseCache, DATABASE_SNAPSHOT

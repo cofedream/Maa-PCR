@@ -585,7 +585,7 @@ internal static class StartupActionsChecks
         {
             var gpu=initialCpu ? PerformanceUserControlModel.GpuDeviceOption.CPU : PerformanceUserControlModel.GpuDeviceOption.Auto;
             Instances.PerformanceUserControlModel.GpuOption=gpu;
-            vm.LabyrinthSettings.UseWebGpu=webgpu;
+            Instances.PerformanceUserControlModel.UseWebGpu=webgpu;
             var marker=Path.Combine(root, scenario+"-attempts.txt");
             File.WriteAllText(script, $$"""
                 import ctypes, json, sys
@@ -608,13 +608,13 @@ internal static class StartupActionsChecks
             Complete((Task)typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner", true)!
                 .GetMethod("RequestStartAsync", Hidden)!.Invoke(null, [vm])!);
             Require(string.Join(",",File.ReadAllLines(marker))==expected && !vm.IsRunning
-                && Instances.PerformanceUserControlModel.GpuOption==gpu && vm.LabyrinthSettings.UseWebGpu==webgpu, "warmup_attempts:"+scenario);
+                && Instances.PerformanceUserControlModel.GpuOption==gpu && Instances.PerformanceUserControlModel.UseWebGpu==webgpu, "warmup_attempts:"+scenario);
             Require(!secondFailure ? vm.LabyrinthSettings.Status.Contains("已停止本次任务")
                 : vm.LabyrinthSettings.Status.Contains($"0x{code:X8}") &&
                   vm.LabyrinthSettings.Status.Contains(expected.EndsWith("cpu") ? "强制 CPU" : webgpu ? "请求 WebGPU" : "自动推理"),
                 "warmup_result:"+scenario);
         }
-        vm.LabyrinthSettings.UseWebGpu=false;
+        Instances.PerformanceUserControlModel.UseWebGpu=false;
     }
 
     private static void CheckAfterActions(MaaProcessor processor)

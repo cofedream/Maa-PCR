@@ -341,8 +341,8 @@ def scan_effective(characters,batch,stamp,enter_id,block_id,*,page,roster):
         if formation_complete(observation):
             views=(observation,)
         else:
-            observation=nav.edge(batch,enter_id,page,observation,'up',block_id=block_id)
-            views=nav.scroll_views(batch,enter_id,page,observation,'down',block_id=block_id)
+            observation=nav.edge(batch,enter_id,page,observation,'up',block_id=block_id,verify_effective_edge=True)
+            views=nav.scroll_views(batch,enter_id,page,observation,'down',block_id=block_id,verify_effective_edge=True)
         for observation in views:
             if observation['filter']!='EFFECTIVE_EFFECT':raise BatchStopped('effective_filter_changed')
             for card in observation['cards']:

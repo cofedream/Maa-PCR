@@ -147,6 +147,11 @@ class ContextTasker:
 
     @property
     def stop_requested(self):
+        if self._closed:
+            # The latched status stays readable if the owner callback unwinds
+            # while a controller input callback is still completing.  The other
+            # facade operations remain closed.
+            return self._stop_requested
         self._check_open()
         if self._context.tasker.stopping:
             self._stop_requested = True

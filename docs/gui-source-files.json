@@ -338,6 +338,7 @@
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthCaptchaMessage.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthCharacters.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthEvents.cs",
+    "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthNetworkCheck.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthRatings.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthRatingsView.axaml",

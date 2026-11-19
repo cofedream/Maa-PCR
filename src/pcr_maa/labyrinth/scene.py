@@ -10,6 +10,7 @@ from pathlib import Path
 import hashlib,json,math,re,time
 from maa.custom_recognition import CustomRecognition
 from .. import native
+from ..frame_recognition import same_frame_context
 from .batch import BatchStopped
 from .timing import Timings
 from .session import reconnect_pipeline
@@ -293,6 +294,7 @@ class SceneRecognition(CustomRecognition):
     def analyze(self,context,argv):
         if self.stopped is not None and self.stopped():return self.AnalyzeResult(None,dict(kind='unknown',reason='stopped'))
         if tuple(argv.image.shape[:2])!=(720,1280):return self.AnalyzeResult(None,dict(kind='unknown',reason='frame_size_unknown'))
+        context = same_frame_context(context, argv.image)
         guard=json.loads(argv.custom_recognition_param or '{}') if type(argv.custom_recognition_param) is str else (argv.custom_recognition_param or {})
         if type(guard) is not dict:guard={}
         scope=_probe_scope(guard.get('probe_kinds'))

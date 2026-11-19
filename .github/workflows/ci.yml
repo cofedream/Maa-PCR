@@ -51,7 +51,7 @@ jobs:
                   (target / name).write_bytes(data)
           '@ | python -X utf8 -B -
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r86-package-manifest.json --vc-redist .runtime/ci/vc-redist-r51
+          python -X utf8 -B scripts/build_release.py --output .runtime/ci/build --base-manifest delivery/baselines/r88-package-manifest.json --vc-redist .runtime/ci/vc-redist-r51
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: GUI Update Contract Checks
         run: |
@@ -141,7 +141,7 @@ jobs:
             .runtime/ci/build/*.log
             .runtime/ci/build/Maa-PCR-*-win-x64.zip
             .runtime/ci/build/Maa-PCR-*-source.zip
-            .runtime/ci/build/Maa-PCR-R*-to-R*.patch.zip
+            .runtime/ci/build/Maa-PCR-v*-to-v*.patch.zip
           if-no-files-found: warn
   source-scan:
     runs-on: ubuntu-latest

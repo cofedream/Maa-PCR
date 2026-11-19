@@ -9,6 +9,7 @@ import numpy as np
 from maa.custom_recognition import CustomRecognition
 
 from . import native
+from .frame_recognition import same_frame_context
 from .preset_execution import Journal
 
 
@@ -114,6 +115,7 @@ class InheritancePage(CustomRecognition):
     def analyze(self, context, argv):
         try:
             mode = json.loads(argv.custom_recognition_param)
+            context = same_frame_context(context, argv.image)
             if mode == 'read_ub_auto_clear':
                 if not self.ub_auto_clear:
                     return None

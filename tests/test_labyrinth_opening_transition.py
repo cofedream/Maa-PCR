@@ -178,6 +178,11 @@ def test_grant_with_unreadable_name_requires_same_character_at_close(tmp_path, m
         port = MaaOpening(tasker, lambda **fields: fields)
         page, seen = port._after_invitation(NS(checkpoint=lambda: None), guild_id=5)
         assert page == 'joined' and seen['native_ok'] and not controller.clicks
+        map_frame = native.read_image(native.ROOT / 'tests/data/labyrinth-map-ex-20261022-target.png')
+        controller.stages = [[map_frame, map_frame, grant]]
+        controller.frame = 0
+        page, seen = port._after_invitation(NS(checkpoint=lambda: None), guild_id=5, grant_pending=True)
+        assert page == 'joined' and seen['native_ok'] and not controller.clicks
         for changed in (joined('1025'), joined('1068','1025'), joined()):
             controller.stages = [[changed]]
             with pytest.raises((BatchStopped, native.NativeInputNotSent)):

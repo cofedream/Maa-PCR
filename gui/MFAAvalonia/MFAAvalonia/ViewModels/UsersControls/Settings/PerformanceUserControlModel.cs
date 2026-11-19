@@ -10,6 +10,9 @@ using MFAAvalonia.ViewModels.Windows;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json.Linq;
+using MFAAvalonia.Pcr;
 
 #if WINDOWS
 using SharpDX;
@@ -21,12 +24,57 @@ namespace MFAAvalonia.ViewModels.UsersControls.Settings;
 public partial class PerformanceUserControlModel : ViewModelBase
 {
     private bool _gpuInitCompleted;
+    private readonly LocalizationViewModel<GpuDeviceOption> webGpuChoice = new() { Name = "WebGPU（试用）" };
+    public IEnumerable<LocalizationViewModel<GpuDeviceOption>> InferenceOptions => GpuOptions.Append(webGpuChoice);
+    public LocalizationViewModel<GpuDeviceOption>? InferenceOption
+    {
+        get => UseWebGpu ? webGpuChoice : GpuOptions.ElementAtOrDefault(GpuIndex);
+        set
+        {
+            if (value == null || value == InferenceOption) return;
+            if (value == webGpuChoice) { UseWebGpu = true; return; }
+            var index = GpuOptions.IndexOf(value);
+            if (index < 0) return;
+            UseWebGpu = false;
+            GpuIndex = index;
+        }
+    }
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(InferenceOption))]
+    private bool useWebGpu = ReadWebGpuPreference();
+    private const string WebGpuKey = "PcrUseWebGpu";
+
+    internal static bool ReadWebGpuPreference()
+    {
+        var saved = GlobalConfiguration.GetValue(WebGpuKey);
+        if (saved.Length != 0) return bool.TryParse(saved, out var enabled) && enabled;
+        var legacy = InstanceConfiguration.ReadValueFromFile("pcr-labyrinth-v1", PcrLabyrinthSettings.Key);
+        if (legacy.Length == 0) return false;
+        try
+        {
+            if (JObject.Parse(legacy)["use_webgpu"] is JValue { Type: JTokenType.Boolean } previous)
+            {
+                var value = previous.Value<bool>();
+                GlobalConfiguration.SetValue(WebGpuKey, value.ToString());
+                return value;
+            }
+        }
+        catch (JsonException) { /* An unreadable old profile must not override the default. */ }
+        return false;
+    }
+
+    partial void OnUseWebGpuChanged(bool value) => GlobalConfiguration.SetValue(WebGpuKey, value.ToString());
 
     protected override void Initialize()
     {
         _gpuInitCompleted = false;
         GpuOption = GpuOptions[GpuIndex].Other;
         _gpuInitCompleted = true;
+        GpuOptions.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(InferenceOptions));
+            OnPropertyChanged(nameof(InferenceOption));
+        };
         base.Initialize();
     }
     //禁用切换GPU
@@ -181,7 +229,7 @@ public partial class PerformanceUserControlModel : ViewModelBase
 
     partial void OnGpuOptionsChanged(AvaloniaList<LocalizationViewModel<GpuDeviceOption>> value) => HandlePropertyChanged(ConfigurationKeys.GPUs, value);
 
-    [ObservableProperty] private int _gpuIndex = ConfigurationManager.Current.GetValue(ConfigurationKeys.GPUOption, 0);
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(InferenceOption))] private int _gpuIndex = ConfigurationManager.Current.GetValue(ConfigurationKeys.GPUOption, 0);
     partial void OnGpuIndexChanged(int value) => HandlePropertyChanged(ConfigurationKeys.GPUOption, value, () =>
     {
         GpuOption = GpuOptions[value].Other;
@@ -191,7 +239,7 @@ public partial class PerformanceUserControlModel : ViewModelBase
 
     partial void OnGpuOptionChanged(GpuDeviceOption? value)
     {
-        if (!_gpuInitCompleted)
+        if (!_gpuInitCompleted || UseWebGpu)
         {
             return;
         }
@@ -200,7 +248,7 @@ public partial class PerformanceUserControlModel : ViewModelBase
         {
             DispatcherHelper.PostOnMainThread(() =>
             {
-                if (_gpuInitCompleted && Instances.IsResolved<RootViewModel>())
+                if (_gpuInitCompleted && !UseWebGpu && Instances.IsResolved<RootViewModel>())
                 {
                     ChangeGpuOption(MaaProcessorManager.Instance.Current.MaaTasker?.Resource, value);
                     MaaProcessorManager.Instance.Current.SetTasker();
@@ -213,30 +261,51 @@ public partial class PerformanceUserControlModel : ViewModelBase
         MaaProcessorManager.Instance.Current.SetTasker();
     }
 
+    public MaaResource CreateInferenceResource(IReadOnlyList<string> paths)
+    {
+        if (!UseWebGpu)
+        {
+            var (provider, device) = DeviceSelection(GpuOption);
+            return LoadInferenceResource(paths, provider, device);
+        }
+        // The bundled native 5.16.1 ABI defines WebGPU as 5. The managed 5.10 enum predates it.
+        const InferenceExecutionProvider webGpu = (InferenceExecutionProvider)5;
+        try { return LoadInferenceResource(paths, webGpu, (int)InferenceDevice.Auto); }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"WebGPU 资源初始化失败，本次任务改用 CPU：{ex.Message}");
+            return LoadInferenceResource(paths, InferenceExecutionProvider.CPU, (int)InferenceDevice.CPU);
+        }
+    }
+
+    private static (InferenceExecutionProvider, int) DeviceSelection(GpuDeviceOption? option)
+    {
+        if (option is { IsDirectML: true })
+            return (InferenceExecutionProvider.DirectML, option.Adapter.AdapterId);
+        var device = option?.Device ?? InferenceDevice.Auto;
+        return (device == InferenceDevice.CPU ? InferenceExecutionProvider.CPU : InferenceExecutionProvider.Auto, (int)device);
+    }
+
+    private static MaaResource LoadInferenceResource(IReadOnlyList<string> paths, InferenceExecutionProvider provider, int device)
+    {
+        var resource = new MaaResource();
+        try
+        {
+            if (!resource.SetOption_InferenceExecutionProvider(provider) || !resource.SetOption_InferenceDevice(device))
+                throw new InvalidOperationException("识别设备初始化失败");
+            foreach (var path in paths)
+                if (resource.AppendBundle(path).Wait() != MaaJobStatus.Succeeded)
+                    throw new InvalidOperationException($"识别资源加载失败：{path}");
+            return resource;
+        }
+        catch { resource.Dispose(); throw; }
+    }
+
     public void ChangeGpuOption(MaaResource? resource, GpuDeviceOption? option)
     {
-        // LoggerHelper.Info($"MaaResource: {resource != null}");
-        // LoggerHelper.Info($"GpuDeviceOption: {option != null}");
-        if (option != null && resource != null)
-        {
-            if (option.IsDirectML)
-            {
-                var v1 = resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.DirectML);
-                var v2 = resource.SetOption_InferenceDevice(option.Adapter.AdapterId);
-                LoggerHelper.Info("启用 DirectML：" + (v1 && v2 ? "成功" : "失败"));
-            }
-            else if (option.Device == InferenceDevice.CPU)
-            {
-                var v1 = resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.CPU);
-                var v2 = resource.SetOption_InferenceDevice(option.Device);
-                LoggerHelper.Info("启用 CPU 推理：" + (v1 && v2 ? "成功" : "失败"));
-            }
-            else
-            {
-                var v1 = resource.SetOption_InferenceExecutionProvider(InferenceExecutionProvider.Auto);
-                var v2 = resource.SetOption_InferenceDevice(option.Device);
-                LoggerHelper.Info("启用 GPU 推理：" + (v1 && v2 ? "成功" : "失败"));
-            }
-        }
+        if (resource == null || option == null) return;
+        var (provider, device) = DeviceSelection(option);
+        var applied = resource.SetOption_InferenceExecutionProvider(provider) && resource.SetOption_InferenceDevice(device);
+        LoggerHelper.Info($"设置识别设备 {provider}：{(applied ? "成功" : "失败")}");
     }
 }

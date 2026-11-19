@@ -14,7 +14,7 @@ No private captures or per-card learned templates are needed.
 
 from collections import Counter
 
-from dataclasses import dataclass,asdict
+from dataclasses import dataclass,asdict,replace
 
 from functools import lru_cache
 
@@ -27,6 +27,8 @@ import cv2
 import numpy as np
 
 from maa.custom_recognition import CustomRecognition
+
+from ..frame_recognition import same_frame_context
 
 from .batch import BatchStopped
 
@@ -1331,16 +1333,20 @@ class CharacterRecognizer:
         if page in ('battle','boss'):
 
             member_hints=member_slots(frame,refine=False)
-
+            mask=IconMask(right=True,top_left=True)
+            samples=[]
             for box in member_slots(frame):
-
                 x,y,w,h=box;icon=(x+6,y+6,w-14,w-14)
-
                 attribute=card_attribute(frame,box)
-                mask=IconMask(right=True,top_left=True);match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
+                match=self.matcher.match(frame,icon,mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
+                samples.append((box,icon,attribute,match))
 
+            counts=Counter(match.character_id for _,_,_,match in samples if match.trusted)
+            for box,icon,attribute,match in samples:
+                # A collision defeats the first crop's confidence margin.
+                if counts[match.character_id]>1:match=replace(match,trusted=False)
                 if not match.trusted:
-                    hint=min(member_hints,key=lambda b:abs(b[0]-x),default=None)
+                    hint=min(member_hints,key=lambda b:abs(b[0]-box[0]),default=None)
                     fallback=None
                     if hint is not None:
                         hx,hy,hw,hh=hint;fallback=(hx+6,hy+6,hw-14,hw-14)
@@ -1348,7 +1354,6 @@ class CharacterRecognizer:
                         mask=mask,attribute=attribute,roster=roster,_prepared=prepared)
 
                 item=dict(box=list(box),icon_box=list(icon),selected=True,**asdict(match))
-
                 item['candidates']=[asdict(candidate) for candidate in match.candidates];members.append(item)
 
         # Candidate collisions stay unknown; they do not invalidate independent
@@ -1545,6 +1550,8 @@ class CharacterRecognition(CustomRecognition):
 
             if self.recognizer.stopped() or context.tasker.stopping:return None
 
+            context = same_frame_context(context, argv.image)
+
             for interrupt in ('LabyDateChangedObserved','LabyDisconnect6002Observed'):
 
                 seen=context.run_recognition(interrupt,argv.image)
@@ -1677,6 +1684,13 @@ class CharacterRecognition(CustomRecognition):
 
             count=int(count_word['text'][0]) if count_word is not None else None
 
+            # Removal targets a current member. The full same-frame member check below
+            # still guards the click. Keep the full candidate/empty-notice guard on other filters.
+            expected=params.get('expected_selected')
+            if (mode=='toggle' and page in ('battle','boss') and current_filter in ('ALL',*ATTRIBUTE_HUES)
+                    and type(expected) is list and params.get('role_id') in expected):
+                members_only=True
+
             observation=self.recognizer.recognize(argv.image,page,roster=params.get('roster'),
                 expected_roster=expected_roster if page=='opening' else None,
                 current_filter=current_filter,observed_count=count,**({'members_only':True} if members_only else {}))
@@ -1703,6 +1717,7 @@ class CharacterRecognition(CustomRecognition):
             if mode=='toggle':
 
                 if not observation['stable']:return None
+                if page=='boss' and 'expected_tab' in params and observation['boss_tab']!=params['expected_tab']:return None
 
                 role=params.get('role_id');expected=params.get('expected_selected')
 
@@ -1919,10 +1934,10 @@ class MaaCharacters:
 
 
 
-    def probe(self,batch,page):
+    def probe(self,batch,page,*,roster=None):
         """One pure native read for optional same-page successor comparison."""
         batch.checkpoint()
-        try:observation,_=self.run('Read',dict(mode='read',page=page,roster=None))
+        try:observation,_=self.run('Read',dict(mode='read',page=page,roster=list(roster) if roster else None))
         except BatchStopped as error:
             batch.checkpoint()
             if error.args not in (('game_session_readback_unknown',),('character_readback_unknown',)):raise
@@ -2024,6 +2039,7 @@ class CharacterNavigation:
     def __init__(self,characters,stamp,*,roster=None,expected_roster=None):
         self.characters,self.stamp,self.roster=characters,stamp,roster
         self.expected_roster=tuple(expected_roster) if expected_roster else None
+        self.formation_sightings={}
 
     def move(self,batch,enter_id,page,observation,*,direction=None,filter=None,tab=None,block_id=None):
 
@@ -2166,7 +2182,34 @@ class CharacterNavigation:
                 matched=True
         return matched
 
-    def scroll_views(self,batch,enter_id,page,observation,direction,*,block_id=None,limit=24,reason='character_list_edge_unknown'):
+    @staticmethod
+    def _effective_edge_matches(before,after,direction):
+        """Require the same fully identified layout and thumb at the measured end."""
+        page=before.get('page')
+        if (page not in ('battle','boss') or before.get('filter')!='EFFECTIVE_EFFECT'
+                or any(before.get(k)!=after.get(k) for k in ('page','filter','boss_tab','selected','count'))):
+            return False
+        positions=[]
+        for view in (before,after):
+            bar=view.get('scrollbar',{});pos=bar.get('position')
+            if (view.get('stable') is not True or bar.get('visible') is not True or bar.get('can_scroll') is not True
+                    or type(pos) not in (int,float) or not 0<=pos<=1 or (pos>.02 if direction=='up' else pos<.98)):
+                return False
+            positions.append(pos)
+        if abs(positions[0]-positions[1])>.01:return False
+        left,right=before.get('cards',()),after.get('cards',())
+        if not left or len(left)!=len(right):return False
+        _,top,_,height=VIEWPORTS[page]
+        whole=False
+        for a,b in zip(left,right):
+            if (not a.get('trusted') or not b.get('trusted') or not a.get('character_id')
+                    or a['character_id']!=b.get('character_id') or a.get('selected')!=b.get('selected')):return False
+            box,other=a.get('box'),b.get('box')
+            if not box or not other or len(box)!=4 or len(other)!=4 or any(abs(x-y)>2 for x,y in zip(box,other)):return False
+            whole |= top<=box[1] and box[1]+box[3]<=top+height
+        return whole
+
+    def scroll_views(self,batch,enter_id,page,observation,direction,*,block_id=None,limit=24,reason='character_list_edge_unknown',verify_effective_edge=False):
         """Yield every settled frame, including the one that confirms the edge."""
         yield observation
         same=0;anchor=observation
@@ -2179,10 +2222,22 @@ class CharacterNavigation:
             if not unchanged:anchor=observation
             yield observation
             if same>=2:return
+            if verify_effective_edge and unchanged and self._effective_edge_matches(previous,observation,direction):
+                # The first post-swipe capture can show elastic stretch. Confirm on a fresh frame after settling.
+                verify_effective_edge=False
+                fresh=self.characters.probe(batch,page,roster=self.roster)
+                if fresh is None or not fresh.get('stable'):continue
+                if any(observation.get(k)!=fresh.get(k) for k in ('page','filter','boss_tab','selected')):
+                    raise BatchStopped('character_feedback_unknown')
+                yield fresh
+                if self._effective_edge_matches(observation,fresh,direction):return
+                if not self.same_scroll_view(observation,fresh,direction):
+                    same=0;anchor=fresh
+                observation=fresh
         raise BatchStopped(reason)
 
-    def edge(self,batch,enter_id,page,observation,direction,*,block_id=None,limit=24):
-        for observation in self.scroll_views(batch,enter_id,page,observation,direction,block_id=block_id,limit=limit):
+    def edge(self,batch,enter_id,page,observation,direction,*,block_id=None,limit=24,verify_effective_edge=False):
+        for observation in self.scroll_views(batch,enter_id,page,observation,direction,block_id=block_id,limit=limit,verify_effective_edge=verify_effective_edge):
             pass
         return observation
 
@@ -2194,12 +2249,25 @@ class CharacterNavigation:
 
         wanted=set(targets);filter_order=tuple(dict.fromkeys((*filters,'ALL'))) if page!='roster' else (None,)
         exhausted_filters=[]
+        formation=page in ('battle','boss')
+        scope=(enter_id,block_id,page,observation.get('boss_tab'))
 
         def found():
+            cards=[c for c in observation['cards'] if c['trusted']]
+            if formation and observation.get('boss_tab')!=scope[-1]:raise BatchStopped('boss_team_tab_unknown')
+            if formation and observation.get('stable'):
+                for card in cards:
+                    self.formation_sightings[scope,card['character_id']]=observation['filter']
+            return [c for c in cards if c['character_id'] in wanted]
 
-            return [c for c in observation['cards'] if c['trusted'] and c['character_id'] in wanted]
+        if matches:=found():return observation,matches
 
-        if found():return observation,found()
+        # Try a previously sighted fallback filter once. Only a fresh hit can select a role.
+        if formation and len(wanted)==1:
+            hint=self.formation_sightings.pop((scope,next(iter(wanted))),None)
+            if hint in filter_order[1:] and hint!=observation['filter']:
+                observation=self.move(batch,enter_id,page,observation,filter=hint,block_id=block_id)
+                if matches:=found():return observation,matches
 
         for filter in filter_order:
 
@@ -2207,8 +2275,12 @@ class CharacterNavigation:
 
                 observation=self.move(batch,enter_id,page,observation,filter=filter,block_id=block_id)
 
-            if found():return observation,found()
-            observation=self.edge(batch,enter_id,page,observation,'up',block_id=block_id)
+            if matches:=found():return observation,matches
+            if formation:
+                for observation in self.scroll_views(batch,enter_id,page,observation,'up',block_id=block_id):
+                    if matches:=found():return observation,matches
+            else:
+                observation=self.edge(batch,enter_id,page,observation,'up',block_id=block_id)
 
             for observation in self.scroll_views(batch,enter_id,page,observation,'down',block_id=block_id):
                 matches=found()

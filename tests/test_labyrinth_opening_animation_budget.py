@@ -10,7 +10,7 @@ from test_labyrinth_autoplay import receipt
 
 @pytest.mark.parametrize('parent', [float('inf'), 10.])
 def test_three_opening_animations_finish_with_slow_guards_and_respect_parent(monkeypatch,parent):
-    state=NS(now=0.,clicks=0,confirmed=False)
+    state=NS(now=0.,clicks=0,reads=0,confirmed=False)
     monkeypatch.setattr(native,'active_now',lambda:state.now)
     def advance(seconds):
         state.now+=seconds
@@ -21,6 +21,9 @@ def test_three_opening_animations_finish_with_slow_guards_and_respect_parent(mon
     runtime.stamp=lambda **fields:fields
     def observe(**kwargs):
         advance(3.)
+        state.reads+=1
+        if state.reads==1:
+            return scene.Scene('map',receipt(),{'area':1})
         return scene.Scene('unknown' if state.clicks<3 else 'joined',receipt(),{})
     def perform(current,action):
         assert current.kind=='unknown' and action=='advance_character_animation'
@@ -41,7 +44,7 @@ def test_three_opening_animations_finish_with_slow_guards_and_respect_parent(mon
     try:
         if parent==float('inf'):
             assert port._wait_invitation_joined(batch,1,dict(operation_id='invitation'))['native_ok']
-            assert state.clicks==3 and state.confirmed and state.now==45.5
+            assert state.clicks==3 and state.confirmed and state.now==50.
         else:
             with pytest.raises(scene.BatchStopped,match='opening_readback_unknown'):
                 port._wait_invitation_joined(batch,1,dict(operation_id='invitation'))

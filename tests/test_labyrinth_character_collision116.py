@@ -94,6 +94,31 @@ def test_duplicate_actual_member_identity_still_stops(monkeypatch):
         m.CharacterRecognizer().recognize(image,'battle',roster=proof['roster'],current_filter='ALL')
 
 
+@pytest.mark.parametrize('resolved', [True, False])
+def test_duplicate_member_matches_are_rechecked_within_the_roster(monkeypatch, resolved):
+    import numpy as np
+    frame = np.full((720, 1280, 3), 240, np.uint8)
+    roster = ['1170', '1293']
+    original = m.IconMatch('1170', None, None, .51, .41, .10, True, ())
+    corrected = m.IconMatch('1293', None, None, .64, .57, .07, True, ())
+    checked = []
+
+    def refine(frame, box, match, **options):
+        assert not match.trusted and options['roster'] == roster
+        checked.append(box[0])
+        return corrected if resolved and box[0] == 212 else original
+
+    recognizer = m.CharacterRecognizer(matcher=NS(match=lambda *a, **k: original, refine=refine))
+    monkeypatch.setattr(m, 'member_slots', lambda *a, **k: ((61, 539, 133, 133), (206, 537, 135, 135)))
+    if resolved:
+        observation = recognizer.recognize(frame, 'battle', roster=roster, members_only=True)
+        assert observation['selected'] == roster
+    else:
+        with pytest.raises(BatchStopped, match='^character_identity_ambiguous$'):
+            recognizer.recognize(frame, 'battle', roster=roster, members_only=True)
+    assert checked == [67, 212]
+
+
 @pytest.mark.parametrize('mode',['toggle','invite'])
 def test_opening_collisions_never_authorize_selection_or_invitation(mode,monkeypatch):
     image,proof=sample();original=[c for c in proof['cards'] if c['character_id']=='1051']

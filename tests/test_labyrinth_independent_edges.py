@@ -259,3 +259,26 @@ def test_conflicting_whole_card_after_unknown_resets_edge_confirmation(monkeypat
     monkeypatch.setattr(nav, 'move', move)
     assert nav.edge(None, 1, 'boss', boss_bottom('1003'), 'down') == reads[-1]
     assert calls == ['down'] * 4
+
+
+@pytest.mark.parametrize('fresh_agrees',[True,False,None])
+def test_effective_edge_verifies_after_settling_or_resumes_swiping(monkeypatch,fresh_agrees):
+    anchor=boss_bottom('1003',last='1006')
+    changed=boss_bottom('1003',last='1007')
+    fresh=anchor if fresh_agrees else changed
+    class Characters:
+        def probe(self,batch,page,*,roster):
+            assert len(swipes)==1
+            return fresh if fresh_agrees is not None else None
+    nav=cr.CharacterNavigation(Characters(),None)
+    swipes=[]
+    def move(*args,**kwargs):
+        swipes.append(kwargs['direction'])
+        return anchor if len(swipes)==1 or fresh_agrees is None else changed
+    monkeypatch.setattr(nav,'move',move)
+    seen=list(nav.scroll_views(None,1,'boss',anchor,'down',verify_effective_edge=True))
+    assert seen[-1]==(anchor if fresh_agrees is None else fresh)
+    assert swipes==['down']*({True:1,False:3,None:2}[fresh_agrees])
+    assert not nav._effective_edge_matches(anchor,boss_bottom(None,last='1006'),'down')
+    assert not nav._effective_edge_matches(anchor,anchor,'up')
+    assert not nav._effective_edge_matches(anchor,dict(anchor,filter='FIRE'),'down')
