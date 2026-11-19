@@ -56,6 +56,35 @@ public static class PcrRuntimePaths
         }
     }
 
+    public static void RemoveEmptyLegacyMaaMetadata(string appDirectory, string repository)
+    {
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(appDirectory));
+        if (!string.Equals(root, Path.TrimEndingDirectorySeparator(Path.GetFullPath(repository)), StringComparison.OrdinalIgnoreCase)
+            || !File.Exists(Path.Combine(root, "package-manifest.json"))) return;
+
+        var sitePackages = Path.Combine(root, "runtime", "python", "Lib", "site-packages");
+        var current = Path.Combine(sitePackages, "maafw-5.16.1.dist-info", "METADATA");
+        var legacy = Path.Combine(sitePackages, "maafw-5.13.0.dist-info");
+        if (!File.Exists(current) || !Directory.Exists(legacy)) return;
+
+        try
+        {
+            RequireUpdateComplete(root, root);
+            var volume = Path.GetPathRoot(root)!;
+            if (!PcrLogFiles.IsRegularPath(volume, current) || !PcrLogFiles.IsRegularPath(volume, legacy)) return;
+            var licenses = Path.Combine(legacy, "licenses");
+            var entries = Directory.GetFileSystemEntries(legacy);
+            if (entries.Length == 1 && string.Equals(entries[0], licenses, StringComparison.OrdinalIgnoreCase)
+                && Directory.Exists(licenses) && PcrLogFiles.IsRegularPath(volume, licenses))
+                Directory.Delete(licenses);
+            Directory.Delete(legacy);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            // Non-recursive deletion leaves file-bearing or busy folders in place.
+        }
+    }
+
     public static string ResolvePython(string repository)
     {
         var root = Path.GetFullPath(repository);

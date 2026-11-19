@@ -51,7 +51,11 @@ sealed class Program
         using var productMutex = new System.Threading.Mutex(true,
             MFAAvalonia.Pcr.PcrFormalPreflight.SettingsOnly ? "PCRAlphaV1.PlayerSettingsDiagnostic" : "PCRAlphaV1.FixedDeviceOwner", out var ownsMutex);
         if (!ownsMutex) return;
-        if (!diagnostic) MFAAvalonia.Pcr.PcrAlphaOwner.Install(repository);
+        if (!diagnostic)
+        {
+            MFAAvalonia.Pcr.PcrRuntimePaths.RemoveEmptyLegacyMaaMetadata(AppContext.BaseDirectory, repository);
+            MFAAvalonia.Pcr.PcrAlphaOwner.Install(repository);
+        }
         if (diagnostic) args = Array.Empty<string>(); // never forward diagnostic flags as launch commands
         // 快速识别参数：用于更新时判断该可执行文件是否为 MFAAvalonia
         if (args.Length > 0 && args[0] == "--identify")
