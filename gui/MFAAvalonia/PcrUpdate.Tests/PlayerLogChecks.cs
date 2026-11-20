@@ -30,6 +30,13 @@ internal static class PlayerLogChecks
     private static object? Call(object? target, string name, params object?[] args) =>
         (target?.GetType() ?? Store).GetMethod(name, Hidden)!.Invoke(target, args);
     private static object? Property(object target, string name) => target.GetType().GetProperty(name, Hidden)!.GetValue(target);
+    private static (byte[] Bytes, int PictureCount, long Revision) Export(object log, string? notes = null, params string[] pictures) =>
+        ((byte[], int, long))Call(log, "Export", pictures, notes)!;
+    private static string ReadEntry(ZipArchive zip, string name)
+    {
+        using var reader = new StreamReader(zip.GetEntry(name)!.Open());
+        return reader.ReadToEnd();
+    }
     private static void Set(object target, string name, object? value) => target.GetType().GetField(name, Hidden)!.SetValue(target,value);
     private static void New(object target, string name) => Set(target,name,Activator.CreateInstance(target.GetType().GetField(name,Hidden)!.FieldType));
     private static void Complete(Task task)
@@ -42,42 +49,60 @@ internal static class PlayerLogChecks
     {
         var root = Path.Combine(directory, "player-logs"); Directory.CreateDirectory(root);
         CheckConnectionNativeLog(root);
-        var log = Call(null,"Begin",root,"daily")!;
+        var log = Call(null,"Begin",root,"daily","connection")!;
         var path = (string)Property(log,"DirectoryPath")!;
         Call(log,"Append","测试 password=SECRET token=HIDDEN UID:123456789",false);
         File.WriteAllText(Path.Combine(path,"credentials.json"),"SECRET_DO_NOT_EXPORT");
-        var bytes = (byte[])Call(log,"Export",(object)Array.Empty<string>())!;
+        var manifestPath = Path.Combine(path, "manifest.json");
+        var started = JObject.Parse(File.ReadAllText(manifestPath));
+        Call(log,"Finish","worker_no_result","合成故障摘要");
+        var restored = Call(null,"Latest",root,"daily")!;
+        var (bytes, pictureCount, _) = Export(restored,
+            "复现说明一 access_key=MY_PRIVATE_KEY Authorization: Bearer MY_BEARER\n账号：秘密账号\n密码：「隐私」\npassword=\"MY QUOTED KEY\"",
+            Path.Combine(path, "image-" + new string('a', 32) + ".png"));
         using (var zip = new ZipArchive(new MemoryStream(bytes)))
         {
             Check(zip.GetEntry("credentials.json") == null, "explicit_file_allowlist");
             using var reader = new StreamReader(zip.GetEntry("events.log")!.Open());
             var text = reader.ReadToEnd();
             Check(!text.Contains("SECRET") && !text.Contains("HIDDEN") && !text.Contains("123456789"), "redacted_text");
+            var feedback = ReadEntry(zip, "feedback.txt");
+            Check(feedback.Contains("来源：设备连接") && feedback.Contains("合成故障摘要")
+                && feedback.Contains("复现说明一") && !feedback.Contains("MY_PRIVATE_KEY") && !feedback.Contains("MY_BEARER")
+                && !feedback.Contains("秘密账号") && !feedback.Contains("隐私") && !feedback.Contains("QUOTED KEY"),
+                "export_bound_context_and_redacted_notes");
+            var finished = JObject.Parse(ReadEntry(zip, "manifest.json"));
+            Check(JToken.DeepEquals(started["version"],finished["version"])
+                && started["started_at"] != null && JToken.DeepEquals(started["started_at"],finished["started_at"])
+                && (string?)finished["outcome"] == "worker_no_result", "manifest_preserves_start_version_time_and_result");
+            Check(pictureCount == 0 && !zip.Entries.Any(e => e.Name.EndsWith(".png")), "missing_selected_picture_not_counted");
         }
         Check(bytes.Length <= 16*1024*1024, "actual_zip_limit");
         var before = File.ReadAllText(Path.Combine(path,"events.log"));
         Call(log,"Receive",new JObject { ["run_id"]=new string('b',32),["function"]="daily",["event"]="text",["text"]="wrong run" });
         Check(File.ReadAllText(Path.Combine(path,"events.log")) == before,"wrong_run_ignored");
-        var github = (string)Call(log,"GitHubLink","测试失败")!;
-        var mail = (string)Call(log,"MailLink","测试失败")!;
+        var github = (string)Call(log,"GitHubLink")!;
+        var mail = (string)Call(log,"MailLink")!;
         Check(github.StartsWith("https://github.com/shiwandehongbai/Maa-PCR/issues/new?"),"correct_repository");
         Check(mail.StartsWith("mailto:a877236828@gmail.com?"),"latest_feedback_email");
-        Call(log,"Finish","worker_no_result");
+        Check(!Uri.UnescapeDataString(github).Contains("合成故障摘要") && !Uri.UnescapeDataString(mail).Contains("合成故障摘要"),
+            "compose_contains_no_diagnostic_text");
+        CheckLegacyManifest(root);
         for (var i=0;i<4;i++)
         {
-            var other = Call(null,"Begin",root,"daily")!;
+            var other = Call(null,"Begin",root,"daily","task")!;
             var folder=(string)Property(other,"DirectoryPath")!;
             File.WriteAllBytes(Path.Combine(folder,"native.log"),new byte[6*1024*1024]);
-            Call(other,"Finish","complete");
+            Call(other,"Finish","complete",null);
         }
-        var latest = Call(null,"Begin",root,"daily")!;
+        var latest = Call(null,"Begin",root,"daily","task")!;
         Call(latest,"Append","new run",false);
         var area=Path.GetDirectoryName((string)Property(latest,"DirectoryPath")!)!;
         Check(Directory.GetFiles(area,"*",SearchOption.AllDirectories).Where(p=>Path.GetFileName(p)!="credentials.json")
             .Sum(p=>new FileInfo(p).Length)<=16*1024*1024,"feature_cache_limit");
         Check(File.Exists(Path.Combine(path,"credentials.json")),"unrelated_file_not_removed_by_rotation");
         Check(File.Exists(Path.Combine(path,"events.log")),"recent_error_kept_before_successful_runs");
-        var clan = Call(null,"Begin",root,"clan")!;
+        var clan = Call(null,"Begin",root,"clan","task")!;
         Check((string)Property(clan,"DirectoryPath")! != (string)Property(latest,"DirectoryPath")!,"separate_feature_directories");
         Check(new StartSettingsUserControlModel().ShowBatchStartup == false,"ineffective_batch_area_hidden");
         foreach (var id in new[]{"pcr-alpha-v1",PcrClanGuide.ProfileId,"pcr-labyrinth-v1"})
@@ -114,9 +139,32 @@ internal static class PlayerLogChecks
         CheckRunHandoff(owner);
         Console.WriteLine($"PCR player log checks passed: {count}; cache/ZIP <=16MiB, isolation, redaction, stale output, three rendered profiles, awaitable cleanup; game inputs=0; messages sent=0");
     }
+    private static void CheckLegacyManifest(string directory)
+    {
+        var root = Path.Combine(directory, "legacy");
+        var run = new string('b', 32);
+        var folder = Path.Combine(root, ".runtime", "player-logs", "labyrinth", run);
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "manifest.json"),
+            new JObject { ["schema"]="pcr-player-log-v1", ["function"]="labyrinth", ["run_id"]=run,
+                ["version"]="v0.1.25 / R72", ["outcome"]="channel_client_close_failed" }.ToString());
+        var restored = Call(null, "Latest", root, "labyrinth")!;
+        using var zip = new ZipArchive(new MemoryStream(Export(restored).Bytes));
+        var feedback = ReadEntry(zip, "feedback.txt");
+        Check(feedback.Contains("v0.1.25 / R72") && feedback.Contains("channel_client_close_failed")
+            && feedback.Contains("来源：未记录") && feedback.Contains("开始时间：未记录"), "legacy_feedback_recovers_only_recorded_fields");
+        var manifestPath = Path.Combine(folder, "manifest.json");
+        var invalid = JObject.Parse(File.ReadAllText(manifestPath));
+        invalid["source"] = new JObject();
+        invalid["started_at"] = new JArray();
+        invalid["summary"] = new JValue(123);
+        File.WriteAllText(manifestPath, invalid.ToString());
+        using var invalidZip = new ZipArchive(new MemoryStream(Export(Call(null, "Latest", root, "labyrinth")!).Bytes));
+        Check(ReadEntry(invalidZip, "feedback.txt") == feedback, "bad_optional_manifest_fields_do_not_block_export");
+    }
     internal static void CheckMissingResult(TaskQueueViewModel vm)
     {
-        var bytes = (byte[])Call(Property(vm, "PlayerLog"), "Export", (object)Array.Empty<string>())!;
+        var bytes = Export(Property(vm, "PlayerLog")!).Bytes;
         using var zip = new ZipArchive(new MemoryStream(bytes));
         using var events = new StreamReader(zip.GetEntry("events.log")!.Open());
         using var manifest = new StreamReader(zip.GetEntry("manifest.json")!.Open());
@@ -139,10 +187,10 @@ internal static class PlayerLogChecks
             Line(time, pid, "ROTATED_CONNECTION_LINE"));
         File.SetLastWriteTimeUtc(Path.Combine(nativeRoot, "debug", "maa.bak.2026.11.07-01.02.03.001.log"), DateTime.UtcNow.AddMinutes(-1));
         File.WriteAllText(Path.Combine(nativeRoot, "debug", "private.log"), Line(time, pid, "UNLISTED_LOG"));
-        var log = Call(null, "Begin", nativeRoot, "daily")!;
+        var log = Call(null, "Begin", nativeRoot, "daily", "connection")!;
         Call(log, "CaptureConnectionNativeLog", nativeRoot, time.AddSeconds(-1), time.AddSeconds(1));
-        Call(log, "Finish", "failed");
-        var bytes = (byte[])Call(log, "Export", (object)Array.Empty<string>())!;
+        Call(log, "Finish", "failed", null);
+        var bytes = Export(log).Bytes;
         using (var zip = new ZipArchive(new MemoryStream(bytes)))
         {
             using var reader = new StreamReader(zip.GetEntry("native.log")!.Open());
@@ -155,11 +203,11 @@ internal static class PlayerLogChecks
             Check(!text.Contains("SECRET") && !text.Contains("HIDDEN") && !text.Contains("123456789"), "connection_native_redaction");
             Check(zip.GetEntry("native.log")!.Length <= 512 * 1024 && bytes.Length <= 16 * 1024 * 1024, "connection_native_bounded_export");
         }
-        var empty = Call(null, "Begin", nativeRoot, "clan")!;
+        var empty = Call(null, "Begin", nativeRoot, "clan", "connection")!;
         Call(empty, "CaptureConnectionNativeLog", Path.Combine(nativeRoot, "missing"), time, DateTime.Now);
         Check(File.ReadAllText(Path.Combine((string)Property(empty, "DirectoryPath")!, "events.log")).Contains("未取得本次连接的底层日志"),
             "connection_without_native_log_explains_missing_evidence");
-        Call(empty, "Finish", "failed");
+        Call(empty, "Finish", "failed", null);
     }
     private static void CheckFeedback(PcrLiveLogView view,TaskQueueViewModel vm,string root,string id,bool fromError)
     {
@@ -179,7 +227,11 @@ internal static class PlayerLogChecks
             var store=Property(vm,"PlayerLog")!;
             var imagePath=Path.Combine((string)Property(store,"DirectoryPath")!,"image-"+new string('f',32)+".png");
             using(var picture=new RenderTargetBitmap(new PixelSize(1280,720))) picture.Save(imagePath);
+            vm.PcrStartError="";
+            var feedbackButton = view.GetLogicalDescendants().OfType<Button>().First(b => (string?)b.Content == "反馈问题");
+            Check(feedbackButton.IsEffectivelyVisible && feedbackButton.IsEnabled, "feedback_available_without_start_error:"+label);
             vm.PcrStartError=fromError?"合成报错：此测试没有实际游戏、账号或反馈提交。":"";
+            vm.IsRunning=fromError;
             var entry=view.GetLogicalDescendants().OfType<Button>().First(b=>(string?)b.Content==(fromError?"反馈问题":"导出本次日志"));
             Check(entry.IsEffectivelyVisible && entry.IsEnabled,"toolbar_entry:"+label);
             entry.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
@@ -194,22 +246,58 @@ internal static class PlayerLogChecks
                 while(!ready()&&DateTime.UtcNow<end){Dispatcher.UIThread.RunJobs();System.Threading.Thread.Sleep(2);}
                 Check(ready(),"feedback_action_completes:"+id);
             }
+            var mailCount = 0;
+            void OpenMail()
+            {
+                mailCount++;
+                Click("写反馈邮件");
+                Until(() => opens.Count(s => s.StartsWith("mailto:a877236828@gmail.com")) == mailCount);
+            }
             Click("预览截图");Check(opens.Contains(imagePath),"preview_is_explicit_and_intercepted:"+id);
             Click("复制反馈邮箱");Check(copies.Contains("a877236828@gmail.com"),"copy_latest_email:"+id);
+            var notes=dialog!.GetLogicalDescendants().OfType<TextBox>().Single(t=>t.Name=="PlayerFeedbackNotes");
+            notes.Text="合成复现说明（首次）";
             Click("打开 GitHub 反馈页");Until(()=>opens.Any(s=>s.StartsWith("https://github.com/shiwandehongbai/Maa-PCR/issues/new?")));
-            using(var zip=ZipFile.OpenRead(target))Check(zip.Entries.Any(e=>e.FullName.EndsWith(".png")),"selected_picture_exported:"+id);
+            using(var zip=ZipFile.OpenRead(target))
+            {
+                Check(zip.Entries.Any(e=>e.FullName.EndsWith(".png")),"selected_picture_exported:"+id);
+                Check(ReadEntry(zip, "feedback.txt").Contains("合成复现说明（首次）"), "notes_in_first_export:"+id);
+            }
+            Check(dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t=>t.Text?.Contains("包含 1 张截图")==true), "actual_picture_count:"+id);
             Check(new FileInfo(target).Length<=16*1024*1024,"feedback_zip_limit:"+id);
+            if (fromError)
+            {
+                using (var zip = ZipFile.OpenRead(target))
+                    Check((string?)JObject.Parse(ReadEntry(zip, "manifest.json"))["outcome"] == "running", "initial_export_during_run:"+id);
+                Call(vm, "FinishPlayerLog", "failed");
+                vm.IsRunning=false;
+                OpenMail();
+                using var finishedZip = ZipFile.OpenRead(target);
+                var finished = JObject.Parse(ReadEntry(finishedZip, "manifest.json"));
+                Check((string?)finished["outcome"] == "failed" && ((string?)finished["summary"])?.Contains("合成报错") == true
+                    && ReadEntry(finishedZip, "feedback.txt").Contains("合成复现说明（首次）"), "finished_run_regenerates_same_selection_and_notes:"+id);
+            }
+            notes.Text="合成复现说明（修订）";
+            OpenMail();
+            using(var zip=ZipFile.OpenRead(target))
+            {
+                Check(zip.Entries.Any(e=>e.FullName.EndsWith(".png")),"reexport_same_picture_selection:"+id);
+                Check(ReadEntry(zip, "feedback.txt").Contains("合成复现说明（修订）"), "changed_note_reexported:"+id);
+            }
             foreach(var box in dialog!.GetLogicalDescendants().OfType<CheckBox>())box.IsChecked=false;
-            Click("写反馈邮件");Until(()=>opens.Any(s=>s.StartsWith("mailto:a877236828@gmail.com")));
+            OpenMail();
             using(var zip=ZipFile.OpenRead(target))Check(!zip.Entries.Any(e=>e.FullName.EndsWith(".png")),"unselected_picture_removed:"+id);
-            Click("复制反馈说明");Check(copies.Any(s=>s.Contains("运行编号")),"copy_feedback_without_mail_client:"+id);
+            Check(dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t=>t.Text?.Contains("包含 0 张截图")==true), "actual_empty_picture_count:"+id);
+            Check(!opens.Select(Uri.UnescapeDataString).Any(s=>s.Contains("合成复现说明")), "compose_does_not_share_notes:"+id);
+            Click("复制反馈说明");Check(copies.Any(s=>s.Contains("运行编号") && s.Contains("合成复现说明（修订）")),"copy_feedback_without_mail_client:"+id);
             Click("打开日志包位置");Check(opens.Contains(Path.GetDirectoryName(target)!),"open_saved_package_directory:"+id);
             Check(dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t=>t.Text?.Contains("尚未发送")==true),"prepare_never_claims_sent:"+id);
-            using var frame=new RenderTargetBitmap(new PixelSize(680,490));frame.Render(dialog);
+            using var frame=new RenderTargetBitmap(new PixelSize(680,580));frame.Render(dialog);
             frame.Save(Path.Combine(root,label+"-feedback-window.png"));
         }
         finally
         {
+            vm.IsRunning=false;
             dialog?.Close();Dispatcher.UIThread.RunJobs();
             foreach(var pair in previous)pair.Key.SetValue(null,pair.Value);
         }
@@ -254,6 +342,8 @@ internal static class PlayerLogChecks
                 Check(!newText.Contains("执行资源已释放")&&!newText.Contains("本次任务未完成"),"new_run_has_no_old_completion_text:"+label);
                 var oldManifest=JObject.Parse(File.ReadAllText(Path.Combine((string)Property(oldLog,"DirectoryPath")!,"manifest.json")));
                 Check((string?)oldManifest["outcome"]==(status==MFATask.MFATaskStatus.SUCCEEDED?"complete":status==MFATask.MFATaskStatus.FAILED?"failed":"stopped"),"old_log_keeps_its_terminal_outcome:"+label);
+                if(status==MFATask.MFATaskStatus.FAILED)
+                    Check((string?)oldManifest["summary"]=="本次任务未完成，请查看本次实时日志。","terminal_summary_kept_before_new_run:"+label);
                 if(restartOnUnlock)
                 {
                     Check(oldLogClosedAtUnlock==true,"log_closed_before_unlock:"+label);

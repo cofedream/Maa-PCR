@@ -866,7 +866,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "4ce0793f23dee748af049034533e0d73b97b5c6726439b358180f3f0b674fb94",
+      "local_sha256": "d9964599cc044bf9e9a2fbbb59909afcb35295d202ff262abdbee26c5f6633fa",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -8608,7 +8608,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/batch.py",
-      "local_sha256": "69ac4b3f2097380ee13a0d33fdc7ef84e4efb8869ebce1cb3140b5d53a9bdcc3",
+      "local_sha256": "ce3e9229b7bc972ebbfe52aa0d36e7e2f3abc83773856b98869c83c6def6bcdf",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8734,7 +8734,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/owned_runtime.py",
-      "local_sha256": "4ce0793f23dee748af049034533e0d73b97b5c6726439b358180f3f0b674fb94",
+      "local_sha256": "d9964599cc044bf9e9a2fbbb59909afcb35295d202ff262abdbee26c5f6633fa",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

@@ -6,6 +6,7 @@ processes. Protocol and Maa phases are composed by ProtocolAcquisitionPort.
 import contextlib
 import io
 import json
+import os
 import re
 import sys
 import threading
@@ -14,6 +15,28 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import uuid4
 from .config import GUILD_IDS, Settings, valid_guild_id
+
+
+_INFERENCE_SELECTION = re.compile(
+    rb'^\[[0-9.: -]+\]\[INF\]\[Px([0-9]+)\]\[Tx[0-9]+\]'
+    rb'\[(Inference|ONNX)ResMgr\.cpp\]\[L[0-9]+\]\[MaaNS::ResourceNS::\2ResMgr::use_(cpu|directml|webgpu)\]'
+    rb'(?: Using (DML|WebGPU) execution provider with device_id -?[0-9]+)?[ \t]*\r?\n', re.MULTILINE)
+
+
+def _selected_inference_backend(trace):
+    # shortcut: provider selection is logged at startup, revisit this bound if setup lines move later.
+    try:
+        with trace.open('rb') as stream:
+            startup = stream.read(128 * 1024)
+    except OSError:
+        return None
+    selected = None
+    pid = str(os.getpid()).encode('ascii')
+    labels = {(b'cpu', None): 'CPU', (b'directml', b'DML'): 'DirectML', (b'webgpu', b'WebGPU'): 'WebGPU'}
+    for source_pid, _, method, provider in _INFERENCE_SELECTION.findall(startup):
+        if source_pid == pid:
+            selected = labels.get((method, provider or None), selected)
+    return selected
 
 
 class ConfigurationError(ValueError):
@@ -416,7 +439,7 @@ class OwnedRuntime:
         from .owner_messages import captcha_message
         from .game_port import MaaGamePort
         from .timing import NativeTimings
-        from .. import native
+        from .. import native, player_log
         from maa.controller import AdbController
         from maa.tasker import Tasker
         from maa.define import MaaAdbScreencapMethodEnum, MaaAdbInputMethodEnum
@@ -449,6 +472,7 @@ class OwnedRuntime:
                 self._prepare_animation_setting(get_server(server))
                 self._checkpoint()
                 native.RUNTIME=area/'runs'/self.run_id/'native'
+                trace=native.RUNTIME/'maa/maafw.log'
                 from .diagnostics import RuntimeDiagnostics
                 from .database import DatabaseCache, DATABASE_SNAPSHOT
                 try:
@@ -465,8 +489,19 @@ class OwnedRuntime:
                 self._progress(dict(stage='resources'))
                 try:resource=native.load_resource(self.root/'assets/resource', cpu_only=self.request.cpu_only,
                                                  webgpu=self.request.webgpu)
-                except native.InferenceDeviceError:raise BatchStopped('runtime_ocr_preparation_failed') from None
+                except native.InferenceDeviceError:
+                    player_log.text('文字识别初始化失败（resources）：MaaFramework 未接受推理设置。')
+                    raise BatchStopped('runtime_ocr_preparation_failed') from None
                 except TimeoutError:raise BatchStopped('runtime_resources_timeout') from None
+                from maa.library import Library
+                try:
+                    version=Library.version()  # Resource loading above has already bound the SDK.
+                except Exception:
+                    version=None
+                if type(version) is str and re.fullmatch(r'v?[0-9]{1,3}(?:\.[0-9]{1,3}){2}',version):
+                    player_log.text(f'MaaFramework 版本：{version}。')
+                backend=_selected_inference_backend(trace)
+                player_log.text(f'MaaFramework 选用的推理后端：{backend or "未确认"}。')
                 self._checkpoint()
                 connection=self.request.connection
                 self._progress(dict(stage='connecting'))
@@ -478,7 +513,7 @@ class OwnedRuntime:
                 capture_config={'command': {
                     'ScreencapEncode': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap -p 2>/dev/null'],
                     'ScreencapRawWithGzip': ['{ADB}', '-s', '{ADB_SERIAL}', 'exec-out', 'screencap 2>/dev/null | gzip -1']}}
-                capture_report=begin_capture_report(self.root,self.run_id,native.RUNTIME/'maa/maafw.log',
+                capture_report=begin_capture_report(self.root,self.run_id,trace,
                     options=capture_config,serial=connection['serial'],
                     display_binding=dict(basis='default_screen_only',logical=0,physical=None))
                 self.controller=AdbController(connection['adb_path'],connection['serial'],
@@ -488,7 +523,11 @@ class OwnedRuntime:
                     raise BatchStopped('controller_configuration_failed')
                 try:connected=native.wait_job(self.controller.post_connection(),seconds=30).succeeded
                 except TimeoutError:raise BatchStopped('controller_connection_timeout') from None
-                finally:finish_capture_report(capture_report)
+                finally:
+                    capture=finish_capture_report(capture_report)
+                    method=(capture or {}).get('actual_backend')
+                    if method in ('Encode','RawWithGzip'):
+                        player_log.text(f'ADB 选用的截图方式：{method}。')
                 if not connected:
                     raise BatchStopped('controller_connection_failed')
                 self._checkpoint()
@@ -497,11 +536,17 @@ class OwnedRuntime:
                     raise BatchStopped('controller_connection_failed')
                 self.tasker._labyrinth_diagnostics=self.diagnostics
                 self._progress(dict(stage='ocr_warmup'))
-                self._prepare_ocr()
+                try:
+                    self._prepare_ocr()
+                finally:
+                    if backend is None:
+                        backend=_selected_inference_backend(trace)
+                        if backend is not None:
+                            player_log.text(f'MaaFramework 选用的推理后端：{backend}。')
                 self._progress(dict(stage='ocr_ready'))
                 timings=self.timings
                 self.native_timings=NativeTimings(self.tasker,self.controller,timings,
-                    trace_path=native.RUNTIME/'maa/maafw.log')
+                    trace_path=trace)
                 from ..ocr_diagnostics import FailureDiagnostics, fingerprints
                 try:
                     self.ocr_diagnostics=FailureDiagnostics(native.ROOT/'.runtime/ocr-failures',
@@ -534,18 +579,24 @@ class OwnedRuntime:
                 self._finish_timings()
                 return result
         except BatchStopped as error:
+            if self.timings.phase and error.args in (('runtime_ocr_preparation_failed',),('runtime_resources_timeout',)):
+                player_log.text(f'文字识别初始化停止（阶段 {self.timings.phase[0]}）：{error.args[0]}。')
             return dict(outcome=str(error),batch_complete=False)
         except ProtocolFailure as error:
             return dict(outcome=str(error),batch_complete=False)
-        except (ImportError, ModuleNotFoundError):
+        except ImportError:
+            if self.timings.phase:
+                player_log.text(f'黎明界组件导入失败（阶段 {self.timings.phase[0]}）。')
             return dict(outcome='runtime_components_missing',batch_complete=False)
-        except Exception:
+        except Exception as error:
+            kind=type(error).__name__
+            if self.timings.phase and re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}',kind):
+                player_log.text(f'黎明界组件异常（阶段 {self.timings.phase[0]}，异常类型 {kind}）。')
             return dict(outcome='adapter_failed',batch_complete=False)
         finally:
             try:self.timings.transition(None)
             except Exception:self.timing_collection = 'incomplete'
             if self.tasker is not None:
-                from .. import player_log
                 player_log.capture(self.tasker, 'complete' if self.ocr_success else 'stopped')
             self.request.clear()
             if self.ocr_diagnostics is not None:

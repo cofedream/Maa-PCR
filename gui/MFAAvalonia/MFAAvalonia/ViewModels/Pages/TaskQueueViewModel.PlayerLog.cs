@@ -26,12 +26,12 @@ public partial class TaskQueueViewModel
         }
     }
     public bool CanExportPlayerLog => !PcrTargetBusy && !PcrCleanupPending && (!IsRunning || PcrHasStartError) && PlayerLog != null;
-    internal void BeginPlayerLog(string message = "已请求开始，正在校验当前功能和运行资源…")
+    internal void BeginPlayerLog(string message = "已请求开始，正在校验当前功能和运行资源…", string source = "task")
     {
         try
         {
             if (playerLog is { IsFinished: false }) playerLog.Finish("stopped");
-            playerLog = PcrPlayerRunLog.Begin(PcrAlphaOwner.Repository, PlayerLogFunction);
+            playerLog = PcrPlayerRunLog.Begin(PcrAlphaOwner.Repository, PlayerLogFunction, source);
         }
         catch { playerLog = null; }
         var run = CurrentPcrFeedbackRun;
@@ -65,13 +65,17 @@ public partial class TaskQueueViewModel
         }
         catch { /* Keep the execution protocol independent of logging. */ }
     }
-    internal void FinishPlayerLog(string outcome)
+    internal void FinishPlayerLog(string outcome) => FinishPlayerLogWithSummary(outcome, null);
+
+    internal void FinishPlayerLogWithSummary(string outcome, string? summary)
     {
-        AddPcrLiveLog(outcome switch { "complete" => "本次任务已结束，执行资源已释放。",
+        var endMessage = outcome switch { "complete" => "本次任务已结束，执行资源已释放。",
             "cleanup_unconfirmed" => "执行资源退出尚未确认，原记录已保留。",
             "not_started" => "本次没有进入任务执行，请查看校验或启动原因。",
-            _ => "本次任务已停止，执行资源已释放。" });
-        try { playerLog?.Finish(outcome); } catch { }
+            _ => "本次任务已停止，执行资源已释放。" };
+        AddPcrLiveLog(endMessage);
+        if (string.IsNullOrWhiteSpace(summary)) summary = string.IsNullOrWhiteSpace(PcrStartError) ? PcrRunSummary : PcrStartError;
+        try { playerLog?.Finish(outcome, string.IsNullOrWhiteSpace(summary) ? endMessage : summary); } catch { }
     }
     partial void OnPcrStartErrorChanged(string value)
     {

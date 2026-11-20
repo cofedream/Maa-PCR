@@ -33,7 +33,12 @@ def test_safe_cached_picture_and_bounded_display_packet(tmp_path, function):
     frame = np.zeros((720, 1280, 3), np.uint8)
     player_log.capture(NS(controller=NS(cached_image=frame)), 'failed')
     player_log.flush()
-    assert [r['event'] for r in rows] == ['text', 'native', 'image']
+    if function == 'labyrinth':
+        assert [r['event'] for r in rows] == ['text', 'native', 'text', 'image']
+        assert '供对照，最后节点 CBPage_battle，读取于 ' in rows[-2]['text']
+        assert rows[-1]['name'] in rows[-2]['text']
+    else:
+        assert [r['event'] for r in rows] == ['text', 'native', 'image']
     assert all(r['run_id'] == run and r['function'] == function for r in rows)
     saved = tmp_path / '.runtime/player-logs' / function / run / rows[-1]['name']
     assert saved.is_file()
@@ -202,3 +207,104 @@ def test_failure_picture_requires_the_current_recognition_and_a_shareable_node(t
     miss(6, 'LabyClientProfileObserved', [record(6, 'LabyClientProfileObserved', 9, frame)])
     assert len(list(tmp_path.rglob('*.png'))) == 1
     assert any('失败原帧' in r.get('text', '') and '未取得' in r['text'] for r in rows)
+
+
+def test_labyrinth_restart_exports_last_confirmed_business_frame(tmp_path, monkeypatch):
+    import cv2
+    from pathlib import Path
+    from pcr_maa import native
+    from pcr_maa.labyrinth.scene import MaaSceneRuntime
+    from pcr_maa.ocr_diagnostics import FailureDiagnostics
+    from pcr_maa.replay import SavedImages
+
+    monkeypatch.setattr(native, 'RUNTIME', tmp_path/'native')
+    rows = []
+    player_log.configure(tmp_path, 'b'*32, 'labyrinth', rows.append)
+    shop = native.read_image(Path(__file__).parent/'data/labyrinth-shop-relics-20261108.png')
+    title = np.full_like(shop, 193)
+    controller = SavedImages([[shop], [title]])
+    resource = native.load_resource()
+    tasker = native.bind(resource, controller)
+    diagnostics = FailureDiagnostics(tmp_path/'ocr', 'test', 'labyrinth', {}).attach(tasker)
+    entry = 'LabyClientTitleStartOnce'
+    try:
+        scene = MaaSceneRuntime(tasker).observe(probe_kinds=('shop',))
+        assert scene.kind == 'shop'
+        assert not list(tmp_path.rglob('*.png'))
+        controller.stage = 1
+        assert resource.override_pipeline({entry: dict(recognition='DirectHit', action='DoNothing',
+                                                       next=[], pre_delay=0, post_delay=0)})
+        assert native.run(tasker, entry)['native_ok']
+        player_log.capture(NS(controller=NS(cached_image=title)), 'stopped')
+        player_log.flush()
+        saved, = (tmp_path/'.runtime/player-logs').rglob('*.png')
+        assert np.array_equal(cv2.imdecode(np.fromfile(saved, np.uint8), cv2.IMREAD_COLOR), shop)
+        assert any('前序业务画面（shop，LabySceneObserved' in log and saved.name in log
+                   and f"task={scene.native['task_id']}" in log and '记录于' in log
+                   for log in (r.get('text', '') for r in rows))
+        assert not controller.clicks and not controller.swipes
+    finally:
+        diagnostics.finish(False)
+        native.stop_tasker(tasker)
+
+
+def _confirmed_scene(kind, frame, *, task_id=10, frame_task_id=None, reco_id=12):
+    node = 'LabySceneObserved'
+    receipt = dict(native_ok=True, tasker_inited=True, task_id=task_id, nodes=[
+        dict(name=node, completed=True, recognition=dict(kind=kind, payload={}))])
+    row = dict(task_id=task_id if frame_task_id is None else frame_task_id,
+               entry=node, node=node, hit=True, reco_id=reco_id)
+    player_log.observe(receipt, node, [(row, frame)])
+
+
+@pytest.mark.parametrize('kind,task_id,reco_id', [
+    ('unknown', 10, 12), ('home', 10, 12), ('shop', 9, 12), ('shop', 10, 0),
+])
+def test_labyrinth_unconfirmed_scene_cannot_supply_a_picture_at_login(tmp_path, kind, task_id, reco_id):
+    rows = []
+    player_log.configure(tmp_path, 'd'*32, 'labyrinth', rows.append)
+    frame = np.zeros((12, 16, 3), np.uint8)
+    _confirmed_scene(kind, frame, frame_task_id=task_id, reco_id=reco_id)
+    node = 'LabyChannelBeforeLoginStopOnce'
+    player_log.observe(dict(native_ok=True, nodes=[dict(name=node)]), node)
+    player_log.capture(NS(controller=NS(cached_image=frame)), 'stopped')
+    player_log.flush()
+    assert not list(tmp_path.rglob('*.png'))
+    assert '本次黎明界运行没有可分享的业务画面' in rows[-1]['text']
+
+
+@pytest.mark.parametrize('kind', ['unknown', 'home'])
+def test_labyrinth_unapproved_current_scene_falls_back_to_confirmed_picture(tmp_path, kind):
+    import cv2
+    rows = []
+    player_log.configure(tmp_path, 'f'*32, 'labyrinth', rows.append)
+    previous = np.full((12, 16, 3), 11, np.uint8)
+    current = np.full_like(previous, 22)
+    _confirmed_scene('shop', previous)
+    _confirmed_scene(kind, current, task_id=11)
+    player_log.capture(NS(controller=NS(cached_image=current)), 'stopped')
+    player_log.flush()
+    saved, = tmp_path.rglob('*.png')
+    assert np.array_equal(cv2.imdecode(np.fromfile(saved, np.uint8), cv2.IMREAD_COLOR), previous)
+    assert any('前序业务画面（shop' in r.get('text', '') and saved.name in r['text'] for r in rows)
+
+
+@pytest.mark.parametrize('failure_available', [True, False])
+def test_labyrinth_failure_frame_takes_precedence_over_previous_picture(tmp_path, failure_available):
+    import cv2
+    rows = []
+    player_log.configure(tmp_path, 'e'*32, 'labyrinth', rows.append)
+    previous = np.full((12, 16, 3), 10, np.uint8)
+    failed_frame = np.full_like(previous, 20)
+    _confirmed_scene('shop', previous)
+    node = 'LabyBusinessObserved'
+    row = dict(task_id=20, reco_id=21, entry=node, node=node, hit=False)
+    player_log.observe(dict(nodes=[], native_ok=False, task_id=20), node,
+                       [(row, failed_frame if failure_available else None)])
+    player_log.capture(NS(), 'stopped')
+    player_log.flush()
+    saved, = tmp_path.rglob('*.png')
+    expected = failed_frame if failure_available else previous
+    assert np.array_equal(cv2.imdecode(np.fromfile(saved, np.uint8), cv2.IMREAD_COLOR), expected)
+    caption = '识别失败原帧' if failure_available else '前序业务画面'
+    assert any(caption in r.get('text', '') and saved.name in r['text'] for r in rows)
