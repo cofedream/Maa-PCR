@@ -32,9 +32,8 @@ _OPERATIONS=('client_channel_prompt','client_download_retry','client_data_downlo
 # a bounded wait, not a download-progress claim; the client may restart itself,
 # so only a fresh title/HOME/popup frame ends the window.
 _DATA_DOWNLOAD_WAIT_SECONDS=300
-# Maa rejects one native task after 90 s, so the download wait polls in windows
-# shorter than that. An ordinary startup wait is already bounded by 75/120 s.
-_DATA_DOWNLOAD_POLL_SECONDS=30
+# Leave room for recognition and receipt cleanup before a native task deadline.
+_AFTER_TITLE_POLL_SECONDS=30
 # The SDK reports its own deadline when a task outlives the window it was
 # dispatched in (same tuple the shop and game-port polls convert). A window end
 # is not a native fault, but nothing else may be swallowed as "still waiting".
@@ -246,10 +245,8 @@ class _WaitWindowElapsed(Exception):
 def _clean_wait_miss(receipt):
     """A read-only page wait that ended with no page, not a broken receipt.
 
-    Only the client's own data fetch uses this: its progress screen is not one
-    of our pages, so the bounded startup probe has to run more than once. The
-    proof still requires a complete native task whose recognition failed and
-    whose action never started; anything else remains an unknown readback.
+    The proof requires a complete native task whose recognition failed and
+    whose action never started. An unfinished task remains an unknown readback.
     """
     proof=receipt.get('native_evidence') or {} if type(receipt) is dict else {}
     return (type(receipt) is dict and receipt.get('native_ok') is False
@@ -375,10 +372,9 @@ class MaaGameSession:
             while True:
                 self._checkpoint(batch);remaining=expires-native.active_now()
                 if remaining<=0:raise BatchStopped('game_session_readback_unknown')
-                # A native task may run at most 90s. While the client is fetching
-                # its new data there is no page to prove, so each read-only window
-                # stays short and a clean miss is retried inside the extension.
-                window=min(remaining,_DATA_DOWNLOAD_POLL_SECONDS) if downloading else remaining
+                # Channels already poll inside their window. Bound each direct
+                # SDK read, including when the client fetches its own data.
+                window=min(remaining,_AFTER_TITLE_POLL_SECONDS) if downloading or not self.server.channel else remaining
                 if not self.tasker.resource.override_pipeline({entry:dict(timeout=max(1,int(window*1000)))}):
                     raise BatchStopped('game_session_pipeline_unavailable')
                 if self.server.channel:
@@ -390,9 +386,15 @@ class MaaGameSession:
                         if not downloading:raise BatchStopped('game_session_readback_unknown') from None
                         self._checkpoint(batch);continue
                 else:
-                    with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)
-                if downloading and receipt.get('native_ok') is not True:
+                    try:
+                        with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)
+                    except RuntimeError as error:
+                        if len(error.args)!=1 or error.args[0] not in _DEADLINE_ERRORS:
+                            raise
+                        raise BatchStopped('game_session_readback_unknown') from error
+                if receipt.get('native_ok') is not True:
                     if not _clean_wait_miss(receipt):raise BatchStopped('game_session_readback_unknown')
+                    previous_page=previous_native=wait_native=None
                     self._checkpoint(batch);continue
                 self._checkpoint(batch);raw=_root(receipt,entry).get('recognition')
                 if (type(raw) is not list or not 1<=len(raw)<=len(names)

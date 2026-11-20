@@ -657,6 +657,56 @@ def test_worker_updates_runtime_then_restarts_only_gui(online_case, kind):
     assert result['game_tasks_started'] is False
 
 
+@pytest.mark.parametrize('missing', ['download', 'installer', 'restart'])
+def test_missing_update_files_report_step_and_local_log(online_case, monkeypatch, capsys, missing):
+    case = online_case
+    player = case['player']
+    opener, _ = fake_opener(case)
+    downloaded = updater.download_update(player, opener=opener)
+    archive = Path(downloaded['archive'])
+    capsys.readouterr()
+    args = ['launch', '--player', str(player), '--archive', str(archive),
+            '--archive-sha256', downloaded['sha256']]
+    stage = 'launch'
+    if missing == 'download':
+        archive.unlink()
+        missing_file = archive.name
+    elif missing == 'installer':
+        missing_file = 'player-maintenance.py'
+        (player / 'scripts' / missing_file).unlink()
+    else:
+        args[0] = 'worker'
+        stage = 'restart'
+        missing_file = 'MFAAvalonia.exe'
+        apply = maintenance.apply_update
+
+        def lose_gui(*a, **kw):
+            result = apply(*a, **kw)
+            (player / missing_file).unlink()
+            return result
+
+        worker = updater.run_worker
+        monkeypatch.setattr(maintenance, 'apply_update', lose_gui)
+        monkeypatch.setattr(updater, 'run_worker',
+                            lambda *a, **kw: worker(*a, **kw, process_probe=lambda _: []))
+        if sys.platform == 'win32':
+            import ctypes
+            monkeypatch.setattr(ctypes.windll.user32, 'MessageBoxW', lambda *_: 0)
+
+    assert updater.main(args) == 1
+    result = json.loads(capsys.readouterr().out)
+    expected_error = 'payload_missing' if missing == 'installer' else 'FileNotFoundError'
+    assert result['stage'] == stage and result['error'] == expected_error
+    log = Path(result['log_path'])
+    assert log.parent == player / '.runtime/player-maintenance'
+    evidence = log.read_text(encoding='utf-8')
+    assert evidence.startswith('stage=' + stage) and missing_file in evidence
+    manifest = case['target_bytes'] if missing == 'restart' else case['old_bytes']
+    assert (player / maintenance.MANIFEST).read_bytes() == manifest
+    for name, data in case['private'].items():
+        assert (player / name).read_bytes() == data
+
+
 @pytest.mark.parametrize('original', [b'{', b'[]', b'null', b'{"NoAutoStart":false}',
                                       b'{"Keep":"one","Keep":"two"}'])
 def test_worker_rejects_invalid_restart_settings_without_launch(online_case, original):

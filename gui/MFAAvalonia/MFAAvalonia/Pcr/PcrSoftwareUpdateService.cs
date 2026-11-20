@@ -356,7 +356,21 @@ public static class PcrSoftwareUpdateService
         LoggerHelper.Warning($"PCR 更新操作失败：{ex.Message}");
         ViewModel.PcrUpdateVisible = true;
         ViewModel.PcrUpdateIndeterminate = false;
-        ViewModel.PcrUpdateStatus = FailureMessage(ex.Message);
+        var message = FailureMessage(ex.Message);
+        if (ex.Data["update_stage"] is string stage)
+        {
+            var step = stage switch
+            {
+                "download" => "下载或校验更新包",
+                "inspect" => "校验本地更新包",
+                "launch" or "recover" => "准备外置维护器",
+                _ => "安装更新"
+            };
+            message += $"\n失败步骤：{step}";
+            if (ex.Data["update_log"] is string log)
+                message += $"\n更新记录：{log}";
+        }
+        ViewModel.PcrUpdateStatus = message;
         ToastHelper.Warn("Maa-PCR 更新", ViewModel.PcrUpdateStatus);
         RefreshRecoveryState();
     }
@@ -423,7 +437,14 @@ public static class PcrSoftwareUpdateService
             if (output.Length > 65536) throw new InvalidOperationException("invalid_update_response");
             var result = JObject.Parse(output, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
             if (process.ExitCode != 0 || (string?)result["status"] == "failed")
-                throw new InvalidOperationException((string?)result["error"] ?? "updater_failed");
+            {
+                var failure = new InvalidOperationException((string?)result["error"] ?? "updater_failed");
+                if (result["stage"]?.Type == JTokenType.String)
+                    failure.Data["update_stage"] = (string)result["stage"]!;
+                if (result["log_path"]?.Type == JTokenType.String)
+                    failure.Data["update_log"] = (string)result["log_path"]!;
+                throw failure;
+            }
             return result;
         }
         catch

@@ -957,6 +957,18 @@ def test_rewards_mixed_schedule_preserves_native_budget_and_permission(tmp_path,
     assert report['count_context_source'] == 'not-applicable'
 
 
+@pytest.mark.parametrize('outcome,known', [
+    ('result_verified_followup_incomplete', True),
+    ('unknown_settlement', False),
+])
+def test_player_summary_distinguishes_seen_sweep_result(outcome, known):
+    report = dict(steps=[dict(name='event_revival', status='stopped', result=dict(
+        outcome=outcome, consumption_sent=True, settlement_verified=False))])
+    text = chain.summary(report, player=True)
+    assert ('已读到扫荡结果' in text) is known
+    assert ('结算结果未确认' in text) is not known
+
+
 @pytest.mark.parametrize('step_name', ['rewards', 'rewards_final'])
 @pytest.mark.parametrize('item_name,label', [('missions', '每日任务'), ('gifts', '礼物')])
 @pytest.mark.parametrize('receipt,expected', [

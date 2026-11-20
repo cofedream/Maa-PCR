@@ -175,6 +175,54 @@ def test_repeated_popups_stop_after_the_capped_closings():
                                'client_announcement_close']
 
 
+@pytest.mark.parametrize('failure', [None, 'unfinished', 'native_deadline'])
+def test_official_startup_uses_short_proven_reads_after_title(monkeypatch, failure):
+    batch = FakeBatch()
+    entry = 'LabyGameSessionAfterTitleObserved'
+    wait = 'LabyGameSessionTitleStabilityWait'
+    pages = ['LabyDateChangedObserved', 'LabyDisconnect6002Observed',
+             'LabyClientNoticeObserved', 'LabyClientAnnouncementObserved',
+             'LabyClientAfterTitleHomeObserved']
+    elapsed = [0]
+    overrides = {}
+    calls = []
+    monkeypatch.setattr(native, 'active_now', lambda: elapsed[0])
+    adapter = MaaGameSession(NS(stopping=False, resource=NS(
+        override_pipeline=lambda data: overrides.update(data) or True)),
+        lambda **fields: fields, server='cn-bilibili')
+
+    def run(_, node):
+        calls.append(node)
+        if node == wait:
+            elapsed[0] += .5
+            return dict(native_ok=True, tasker_inited=True, task_id=len(calls),
+                        nodes=[dict(name=wait, completed=True)])
+        assert node == entry and 0 < overrides[entry]['timeout'] <= 30000
+        if failure == 'native_deadline':
+            raise RuntimeError('Native task exceeded 90 seconds or inspection deadline')
+        if elapsed[0] < 60:
+            elapsed[0] += overrides[entry]['timeout'] / 1000
+            return dict(native_ok=False, tasker_inited=True, task_id=len(calls),
+                        native_evidence=dict(source='native_task_events', task_id=len(calls),
+                            started=True, finished=failure != 'unfinished', complete=failure != 'unfinished',
+                            recognition_failed=True, action_started=False))
+        return dict(native_ok=True, tasker_inited=True, task_id=len(calls),
+                    nodes=[dict(name=entry, completed=True,
+            recognition=[dict(name=name, algorithm='And',
+                box=[1, 1, 10, 10] if name == pages[-1] else None) for name in pages])])
+
+    monkeypatch.setattr(native, 'run', run)
+    if failure:
+        with pytest.raises(BatchStopped, match='^game_session_readback_unknown$'):
+            adapter._after_title(batch)
+        assert calls == [entry]
+    else:
+        page, receipt = adapter._after_title(batch)
+        assert page == 'client_home' and receipt['title_stability']['consecutive_frames'] == 2
+        assert calls == [entry, entry, entry, wait, entry]
+    assert not batch.operations
+
+
 @pytest.mark.private_replay
 def test_saved_announcement_frame_completes_two_frame_startup_stability(monkeypatch):
     source = os.environ.get('PCR_LABYRINTH_ANNOUNCEMENT_FRAME')

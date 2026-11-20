@@ -550,10 +550,31 @@ def _run_worker(player, archive=None, *, recover=False, parent_pid=None, archive
     _require(not probe(player), 'player_reopened_before_restart')
     _suppress_restart_tasks(player)
     _require(not probe(player), 'player_reopened_before_restart')
-    (popen or subprocess.Popen)([str(player / 'MFAAvalonia.exe')],
-        cwd=str(player), stdin=subprocess.DEVNULL, close_fds=True,
-        creationflags=0x08000000 if os.name == 'nt' else 0)
+    executable = player / 'MFAAvalonia.exe'
+    try:
+        maintenance._plain(executable)
+        (popen or subprocess.Popen)([str(executable)],
+            cwd=str(player), stdin=subprocess.DEVNULL, close_fds=True,
+            creationflags=0x08000000 if os.name == 'nt' else 0)
+    except FileNotFoundError as error:
+        error.update_stage = 'restart'
+        raise
     return {**result, 'gui_started': True, 'game_tasks_started': False}
+
+
+def _save_update_error(player, stage):
+    try:
+        player = maintenance._root(player)
+        directory = maintenance._path(player, '.runtime/player-maintenance/placeholder',
+                                      optional=True).parent
+        directory.mkdir(parents=True, exist_ok=True)
+        log = directory / ('updater-error-' + uuid4().hex + '.log')
+        with log.open('x', encoding='utf-8') as stream:
+            print('stage=' + stage, file=stream)
+            traceback.print_exc(file=stream)
+        return str(log)
+    except (OSError, ValueError):
+        return None
 
 
 def main(argv=None):
@@ -609,15 +630,24 @@ def main(argv=None):
         return 1
     except Exception as error:
         code = str(error) if re.fullmatch('[a-z][a-z0-9_]{2,127}', str(error)) else type(error).__name__
-        print(json.dumps({'status': 'failed', 'error': code}, ensure_ascii=False), flush=True)
+        stage = getattr(error, 'update_stage', args.command)
+        failure = {'status': 'failed', 'error': code}
+        if isinstance(error, FileNotFoundError) or code in ('payload_missing', 'installer_startup_failed'):
+            failure['stage'] = stage
+            if log_path := _save_update_error(args.player, stage):
+                failure['log_path'] = log_path
+        print(json.dumps(failure, ensure_ascii=False), flush=True)
         if args.command == 'worker':
             traceback.print_exc()
             sys.stderr.flush()
             if os.name == 'nt':
                 import ctypes
+                step = '重启客户端' if stage == 'restart' else '安装更新'
+                log = ('更新记录：' + failure['log_path'] if 'log_path' in failure
+                       else '更新记录目录：' + str(Path.cwd()))
                 ctypes.windll.user32.MessageBoxW(None,
                     '更新未完成，请保留原程序目录。重新打开软件后查看版本；如提示更新中断，请先恢复更新。\n\n'
-                    + '错误：' + code + '\n更新记录目录：' + str(Path.cwd()),
+                    + '失败步骤：' + step + '\n错误：' + code + '\n' + log,
                     'Maa-PCR 更新失败', 0x00010010)
         return 1
 

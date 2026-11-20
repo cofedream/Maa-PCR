@@ -829,7 +829,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "475f52abec24bea1a9ebcd642232a513cf5913c34f296fc86d3da5fcbbdc219a",
+      "local_sha256": "ddedf0639c2b8daf4627691e7d7c126d54a967f798a188b533205788cd6f66e0",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -8680,7 +8680,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/game_session.py",
-      "local_sha256": "475f52abec24bea1a9ebcd642232a513cf5913c34f296fc86d3da5fcbbdc219a",
+      "local_sha256": "ddedf0639c2b8daf4627691e7d7c126d54a967f798a188b533205788cd6f66e0",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
