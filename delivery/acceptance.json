@@ -1,22 +1,22 @@
 {
   "schema_version": 1,
   "status": "passed",
-  "revision": 89,
-  "expected_version": "v0.2.1",
-  "verified_at_utc": "2026-11-19T10:29:50.436714+00:00",
-  "base_release_manifest_sha256": "3054967069d5bbe7cc2c08f89cf5ffaf3b16ff7034aa060a982e151098bfcf04",
-  "accepted_owned_payload_sha256": "85f1190332f6624ffbb2675d4c1f4f4155f04fe25df9b29becd977aef8949a91",
-  "accepted_staging_manifest_sha256": "5de4bb8132164e665eb092d4b70966f02ed678c9a607addf891bf87f3ff9c6da",
+  "revision": 90,
+  "expected_version": "v0.2.2",
+  "verified_at_utc": "2026-11-20T05:52:53.361681+00:00",
+  "base_release_manifest_sha256": "7c7537a99091380b9a35d68d999111b96cf0b64711f283f4aad7cb81baae7f15",
+  "accepted_owned_payload_sha256": "698669ab0aed3c01bf0ad68b6cf4fedd539089e141b2bc8282bef3ae20096020",
+  "accepted_staging_manifest_sha256": "76cc13e93165d7feacc87e71ccd525a08dffb46bb072b18b5416ca1e2dde00f5",
   "accepted_ci_artifact": {
     "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 44497619772,
+    "run_id": 44677045711,
     "run_attempt": 1,
-    "artifact_id": 14518098548,
-    "source_commit": "3c21a306ad3f993ce3f3816188b99ac5ce62b227",
+    "artifact_id": 14604330798,
+    "source_commit": "ef8ca3f514156f9c8cf59ebae879d8fe512c94e7",
     "runtime_archive": {
-      "name": "Maa-PCR-v0.2.1-win-x64.zip",
-      "size": 377405728,
-      "sha256": "f341ddab8dea6363581fc82e19ae8634864fb90ae93b1b3f2125a74eeeca995f"
+      "name": "Maa-PCR-v0.2.2-win-x64.zip",
+      "size": 377406475,
+      "sha256": "7e87d6f061ddd0c94bf3c9c81a0f58132d3c8604ff6435786077338abb6df080"
     }
   },
   "offline_tests_passed": true,
@@ -24,7 +24,7 @@
   "gui_verified": true,
   "clean_build_verified": true,
   "public_tests": {
-    "passed": 7804,
+    "passed": 7822,
     "skipped": 401,
     "failed": 0,
     "errors": 0
@@ -35,58 +35,19 @@
     "failed": 0,
     "errors": 0
   },
-  "labyrinth_live_clears": [
-    {
-      "guild_id": 5,
-      "difficulty": 1,
-      "clears": 1,
-      "opening_operation": "opening_granted_close"
-    },
-    {
-      "guild_id": 9,
-      "difficulty": 2,
-      "clears": 1,
-      "opening_operation": "opening_item_reward_close"
-    }
-  ],
-  "daily_verified": true,
-  "revival_recovered_without_repeat_sweep": true,
-  "v020_delta_and_full_updates_verified": true,
+  "v021_delta_and_full_updates_verified": true,
   "isolated_rollback_verified": true,
-  "legacy_maa_metadata_removed_on_startup": true,
-  "android14_capture_verified": true,
-  "capture_regression_passed": true,
   "evidence_sha256": {
-    "v021-android14-20261119/ci/CI_BINDING.json": "47dd42a8278559d0e6e931c7c706558bf5ac0981f6bd366ae2f193ac5bb27ff8",
-    "v021-android14-20261119/ci/public-tests.xml": "31ec6e134d5df99c94382b0fc10d89c50d02e4da117c872399444aa94e492898",
-    "v021-android14-20261119/ci/bundled-runtime.xml": "05a8bb2c83c46b4bf713a1ff0d2dffd94964510edc24122d3309d695baac55b2",
-    "v021-android14-20261119/ci/build/SOURCE_ALIGNMENT.json": "cf7040d78f4b2e7822dcce71fbedd6e04c985166150b3ce2a261bd4169a99230",
-    "v021-android14-20261119/upgrade/verification.json": "b14187da23ec4d801b8ab943314bd143acda3d278a9dda6b486232d884310d06",
-    "v021-android14-20261119/candidate-gui.json": "51dd0d51a0ff628dafa61160d0eb6eb5f29b41916d91da111b61696e5622575b",
-    "v021-android14-20261119/candidate-gui-full.json": "51dd0d51a0ff628dafa61160d0eb6eb5f29b41916d91da111b61696e5622575b",
-    "v021-final-20261119/daily-verified.json": "a51741b0f874459d20eed6223c8fbb47769753b109751cd20a6d49c82961efe2",
-    "v021-final-20261119/revival-after/result.json": "59a46eb3176a8c859dfcf85c99f57ecb88fa08715b0481688b34020052e4f8f1",
-    "v021-final-20261119/revival-suite/result.json": "34e5839ceac09c7a438ac8383481f0919e3705b54775c5ca087d229fb2493476",
-    "v021-final-20261119/workflows-fixed/result.json": "690c87b3c3ab87bae4878558c94367eeed8a6c27baf221b4dae33267feb54865",
-    "v021-final-20261119/live-candidate-source.json": "bc54ccfbbc2709f8075dec3a316e2571eb4a7b51e69c4f93b9fe1fca03349367",
-    "v021-final-20261119/reward-tail-tests/result.json": "17769109796d7cb7c5344b067421ac0477735af4e668039af66b796b723f85d7",
-    "v021-final-20261119/move-timeout-tests/result.json": "42eb862e726068f6dca0356acf5a16cfde45cebea6430df0dee29d03c5571582",
-    "v021-android14-20261119/android14-capture-verified.json": "415270debc8242ee911c337708e344968cefa40283c1cd976deced6b36256118",
-    "v021-android14-20261119/capture-regression/result.json": "82311b4fe36af68020de1cc40d4933a8c4bbc4fde41ae191f2804c2ad9bed96d",
-    "v021-android14-20261119/device-capture/result.json": "4c45dc01b0f68016cc16ad8b752bee989645e7d45e845a2025fb126542f726d5",
-    "v021-android14-20261119/preview-android14.json": "0c0445d6f894680e20a0055f6c8dd0cbc7b4e0236ff038d9cde38aaa35c29eb2",
-    "v021-final-20261119/move-device-replay/result.json": "0de5d031c239321f7262d9d37e8b1becca95c773ec82174a90af6881ee0b51f0",
-    "v021-final-20261119/boss-member-replay/result.json": "3b77714e26f0b359aec3e0189f3ff07efd61bff77250cd2e9355fe91b9e8f4b1",
-    "v021-final-20261119/boss-live-readonly-check/result.json": "bc196d9cc85f46f24e286f4d31a8351a99755b76122cdcb82b4f22ea8339ed4e",
-    "labyrinth/guild5/events.log": "3e41295862b9c6e1aa08cc11ed98e9abb0260d899c4824c8b70d8e7a89a95ea8",
-    "labyrinth/guild5/manifest.json": "cff0ac396cce7f2e817afbd093d1aace2570d71da7cc040e927fa7d0b54f5762",
-    "labyrinth/guild9/events.log": "d158c461972bd6c0da8f932335b9d55c468ed846b3b31b3b74f07e927a102580",
-    "labyrinth/guild9/manifest.json": "58240d3e26849fcffa251dff6ddafebf9d7b1d123121f43a7484a6d2327fb71b"
+    "v022-release/ci/CI_BINDING.json": "b28f3be0a5fe427763e7422e9ccc867d9f601f4bf6e50a8e7654a383668fd43a",
+    "v022-release/ci/artifact.json": "82cb9fd5db6d71eb7fb4b27ddc609ae2373472bb9529b292086b0c056422f809",
+    "v022-release/ci/public-tests.xml": "60e85ef123fe51fae24d5938aa2ef9b8e60d3eaf77acee7412f800c13f9f53d3",
+    "v022-release/ci/bundled-runtime.xml": "16d9f6ae08065da74594d8b96285c4eefcc2cc9c26da737943fc6c7e32046714",
+    "v022-release/ci/jobs.json": "5de86964ac6e71921c731f1d100d5d3e785953c0a77a9cbdd22bddf810854f74",
+    "v022-release/ci/build/SOURCE_ALIGNMENT.json": "e9114faa32211d51468a06dc845a3c72e5e09606dde2175466978ddf5a7f8a08",
+    "v022-release/upgrade/verification.json": "b14187da23ec4d801b8ab943314bd143acda3d278a9dda6b486232d884310d06",
+    "v022-release/candidate-gui.json": "5165cc34785648b33ae90b72331060dca2f3c9b6e97b91fd1c3e88aa2f6e41df"
   },
   "limits": [
-    "Full gameplay and daily runs preceded the Android capture-only change. On the accepted capture source, both native modes recognized live Labyrinth home on MuMu Android 12 with three physical displays.",
-    "The Android 14+ warning mechanism was reproduced by injecting device-side stderr on MuMu. Affected Android 14+ user hardware still needs field verification.",
-    "The delayed Mercury opening was tested by replay; the difficulty-2 live run covered the actual reward popup and settlement.",
-    "The daily configuration was verified across the first run and guarded restart of the pending modules."
+    "Offline tests and isolated player upgrades used synthetic settings and ledgers. This release did not run new live game, emulator or account tests."
   ]
 }
