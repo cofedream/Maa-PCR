@@ -1134,6 +1134,7 @@
   },
   "StoryEventMapTitle": {
     "recognition": "OCR",
+    "only_rec": true,
     "roi": [
       75,
       10,
