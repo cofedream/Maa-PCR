@@ -688,6 +688,7 @@ public class MaaProcessor
         {
             var oldTasker = MaaTasker;
             MaaTasker = null; // 先设置为 null，防止重复释放
+            ViewModel?.SetConnected(false);
             var taskerStopped = true;
 
             if (oldTasker != null)
@@ -738,7 +739,6 @@ public class MaaProcessor
             }
             if (!agentsStopped || !taskerStopped) MFAAvalonia.Pcr.PcrAlphaOwner.MarkCleanupUnconfirmed(this);
             if (agentsStopped && taskerStopped) MFAAvalonia.Pcr.PcrAlphaOwner.Release(this);
-            ViewModel?.SetConnected(false);
             var screenshotTaskerStopped = DetachScreenshotTasker(requireAllStopped, waitForNativeCleanup);
 
             if (requireAllStopped && (!taskerStopped || !agentsStopped || !screenshotTaskerStopped))

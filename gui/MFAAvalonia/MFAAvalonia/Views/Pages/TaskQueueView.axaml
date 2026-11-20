@@ -381,9 +381,9 @@
                     </StackPanel>
                 </Grid>
                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                    <TextBlock Text="● 已连接" Foreground="{DynamicResource SukiPrimaryColor}" IsVisible="{Binding IsConnected}" FontSize="12" />
-                    <TextBlock Text="○ 未连接" Foreground="{DynamicResource SukiLowText}" IsVisible="{Binding !IsConnected}" FontSize="12" />
-                    <TextBlock Grid.Column="1" Text="{Binding PcrDiscoveryStatus}" FontSize="12" Foreground="{DynamicResource SukiLowText}"
+                    <TextBlock Text="● 已连接" Foreground="{DynamicResource SukiPrimaryColor}" IsVisible="{Binding IsDeviceConnected}" FontSize="12" />
+                    <TextBlock Text="○ 未连接" Foreground="{DynamicResource SukiLowText}" IsVisible="{Binding !IsDeviceConnected}" FontSize="12" />
+                    <TextBlock Grid.Column="1" Text="{Binding PcrDiscoveryStatus}" IsVisible="{Binding ShowPcrDeviceHint}" FontSize="12" Foreground="{DynamicResource SukiLowText}"
                                TextTrimming="CharacterEllipsis" MaxLines="1" ToolTip.Tip="{Binding PcrDiscoveryStatus}" />
                     <Button Grid.Column="2" Content="攻略检查" Click="PcrGuideReview_OnClick" Padding="10,3" IsVisible="{Binding !IsAgentProfile}" />
                 </Grid>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -505,14 +506,18 @@ internal static class StartupActionsChecks
         var previous = processField.GetValue(null);
         try
         {
-            foreach (var outcome in new[] { "complete", "stopped", "defeated", "malformed", "missing-outcome", "worker-no-result", "cancelled" })
+            foreach (var outcome in new[] { "complete", "stopped", "defeated", "malformed", "missing-outcome", "worker-no-result", "cancelled", "controller_connection_failed" })
             {
                 var cpuOnly = outcome is "complete" or "worker-no-result";
                 Instances.PerformanceUserControlModel.GpuOption = cpuOnly
                     ? PerformanceUserControlModel.GpuDeviceOption.CPU : PerformanceUserControlModel.GpuDeviceOption.Auto;
                 var readRequest = "import sys,json\nassert json.loads(sys.stdin.readline())['cpu_only'] is "
                     + (cpuOnly ? "True" : "False") + "\n";
-                File.WriteAllText(script, readRequest + (outcome == "cancelled" ? "json.loads(sys.stdin.readline())\n" :
+                var connectionProgress = outcome is "complete" or "worker-no-result" or "controller_connection_failed"
+                    ? "print(json.dumps({'kind':'progress','stage':'connecting'}),flush=True)\n" : "";
+                if (outcome == "complete")
+                    connectionProgress += "print(json.dumps({'kind':'progress','stage':'ocr_warmup'}),flush=True)\n";
+                File.WriteAllText(script, readRequest + connectionProgress + (outcome == "cancelled" ? "json.loads(sys.stdin.readline())\n" :
                     outcome == "worker-no-result" ? "import os,time\nprint(json.dumps({'kind':'progress','stage':'ocr_warmup'}),flush=True)\nos.close(1)\nos.close(2)\ntime.sleep(.25)\nsys.exit(37)\n" :
                     "print(" +
                     System.Text.Json.JsonSerializer.Serialize(outcome == "malformed" ? "invalid-json" :
@@ -524,6 +529,13 @@ internal static class StartupActionsChecks
                     info.ArgumentList.Add(arg);
                 using var helper = Process.Start(info)!;
                 processField.SetValue(null, helper);
+                var connections = new List<(bool Device, bool Preview)>();
+                void ObserveConnection(object? sender, PropertyChangedEventArgs args)
+                {
+                    if (args.PropertyName == nameof(TaskQueueViewModel.IsDeviceConnected))
+                        connections.Add((vm.IsDeviceConnected, vm.IsConnected));
+                }
+                vm.PropertyChanged += ObserveConnection;
                 try
                 {
                     var request = (Task)typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner", true)!
@@ -531,12 +543,23 @@ internal static class StartupActionsChecks
                     if (outcome == "cancelled") vm.StopTask();
                     Complete(request);
                     if (outcome == "worker-no-result") PlayerLogChecks.CheckMissingResult(vm);
-                    if (outcome is "complete" or "defeated")
+                    if (outcome is "complete" or "defeated" or "controller_connection_failed")
                         Require(helper.WaitForExit(3000), "labyrinth_completion_closes_only_owned_helper:" + outcome + ":" + vm.LabyrinthSettings.Status);
                     else Require(!helper.HasExited, "labyrinth_stop_or_invalid_result_keeps_helper:" + outcome);
                     Require(!vm.IsRunning && vm.CanEditPcrTarget, "labyrinth_cleanup_finishes_before_after_action:" + outcome);
+                    if (outcome is "complete" or "worker-no-result")
+                        Require(connections.SequenceEqual(new[] { (true, false), (false, false) }),
+                            "labyrinth_connected_without_preview_until_worker_exits:" + outcome);
+                    if (outcome == "controller_connection_failed")
+                        Require(connections.Count == 0 && !vm.IsDeviceConnected
+                            && vm.LabyrinthSettings.Status.Contains("连接所选设备失败或超时"),
+                            "labyrinth_connection_failure_never_reports_connected");
                 }
-                finally { if (!helper.HasExited) { helper.Kill(true); helper.WaitForExit(3000); } }
+                finally
+                {
+                    vm.PropertyChanged -= ObserveConnection;
+                    if (!helper.HasExited) { helper.Kill(true); helper.WaitForExit(3000); }
+                }
             }
             CheckWarmupFallback(vm, root, script);
             // Reproduce a database log arriving while the human captcha layer is open.

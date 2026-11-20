@@ -161,7 +161,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         });
     }
 
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(Idle))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(Idle), nameof(ShowPcrDeviceHint))]
     private bool _isRunning;
 
     public bool Idle => !IsRunning && !PcrCleanupPending;
@@ -1465,7 +1465,8 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     private bool _pcrTargetBusy;
     partial void OnPcrTargetBusyChanged(bool value) => PcrProfileRunGate.Notify();
     [ObservableProperty] private bool _pcrSearching;
-    [ObservableProperty] private string _pcrDiscoveryStatus = "选择已登录 PCR 的设备，连接后开始任务。";
+    private const string PcrAdbSelectedStatus = "设备已选择，可直接开始任务，也可点击连接查看画面。";
+    [ObservableProperty] private string _pcrDiscoveryStatus = "请选择已登录 PCR 的设备。";
     private PcrPlayerSettings? _pcrSettings;
     public PcrPlayerSettings PcrSettings => _pcrSettings ??= new PcrPlayerSettings(this);
     public bool IsPcrMode => PcrAlphaPolicy.Enabled;
@@ -1494,6 +1495,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         var run = Interlocked.Increment(ref _pcrFeedbackRun);
         PcrRunSummary = "";
         PcrStartError = "";
+        if (CurrentDevice is AdbDeviceInfo) PcrDiscoveryStatus = PcrAdbSelectedStatus;
         BeginPlayerLog();
         return run;
     }
@@ -1725,7 +1727,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                 }
                 finally { _restoringPcrAdbSelection = false; }
                 SetConnected(false);
-                PcrDiscoveryStatus = "已恢复保存的设备，尚未连接；请点击连接。";
+                PcrDiscoveryStatus = PcrAdbSelectedStatus;
             }
             catch (Exception ex)
             {
@@ -2047,7 +2049,14 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         CurrentDevice = null;
     }
 
-    [ObservableProperty] private bool _isConnected;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsDeviceConnected), nameof(ShowPcrDeviceHint))]
+    private bool _isConnected;
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsDeviceConnected), nameof(ShowPcrDeviceHint))]
+    private bool _isLabyrinthDeviceConnected;
+
+    public bool IsDeviceConnected => IsConnected || IsLabyrinthDeviceConnected;
+    public bool ShowPcrDeviceHint => !IsRunning || !IsDeviceConnected;
 
     public void SetConnected(bool connected)
     {
@@ -2093,7 +2102,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
             }
             SetConnected(false);
             PcrDiscoveryStatus = value is AdbDeviceInfo
-                ? "设备已选择，尚未连接；请点击连接。"
+                ? PcrAdbSelectedStatus
                 : "请先搜索并选择设备。";
             if (value is AdbDeviceInfo selected) PersistPcrAdbTarget(selected);
             // During startup selection restoration the manager is still being

@@ -225,6 +225,7 @@ internal static class PcrLabyrinthOwner
             bool CanRetryCpu() => request.ContainsKey("credentials") && !request.Value<bool>("cpu_only")
                 && !vm.LabyrinthSettings.IsPaused && !vm.LabyrinthSettings.PausePending;
             async Task RetryCpuAsync(string reason) {
+                vm.IsLabyrinthDeviceConnected=false;
                 await Task.Run(worker.Dispose);
                 cancel.Token.ThrowIfCancellationRequested();
                 request["cpu_only"]=true;
@@ -312,6 +313,8 @@ internal static class PcrLabyrinthOwner
                 if (kind=="progress") {
                     var stage=(string?)value["stage"];
                     lastStage=stage;
+                    // The worker starts OCR warmup only after the ADB controller is connected and bound.
+                    if (stage=="ocr_warmup") vm.IsLabyrinthDeviceConnected=true;
                     // Only a pre-login warmup crash may replay this request.
                     if (stage is not ("validating" or "dependencies" or "resources" or "connecting" or "ocr_warmup"))
                         request.Remove("credentials");
@@ -391,6 +394,7 @@ internal static class PcrLabyrinthOwner
         } finally {
             try {
             PcrCaptchaHost.Hide();
+            vm.IsLabyrinthDeviceConnected=false;
             vm.PcrCleanupPending=true;
             Trace(vm,"任务已结束，正在释放执行资源…");
             request.Remove("credentials");

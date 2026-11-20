@@ -47,22 +47,30 @@ internal static class RunBarStateChecks
 
         var button = view.FindControl<Button>("PcrStartStopButton")!;
         ((Panel)button.Parent!).Children.Remove(button);
+        var connected = view.FindControl<Grid>("PcrWorkspace")!.GetLogicalDescendants().OfType<TextBlock>()
+            .Single(text => text.Text == "● 已连接");
+        var deviceStatus = (Grid)connected.Parent!;
+        var disconnected = deviceStatus.Children.OfType<TextBlock>().Single(text => text.Text == "○ 未连接");
+        var deviceHint = deviceStatus.Children.OfType<TextBlock>().Single(text => Grid.GetColumn(text) == 1);
+        ((Panel)deviceStatus.Parent!).Children.Remove(deviceStatus);
         var vm = (TaskQueueViewModel)RuntimeHelpers.GetUninitializedObject(typeof(TaskQueueViewModel));
         var processor = (MaaProcessor)RuntimeHelpers.GetUninitializedObject(typeof(MaaProcessor));
-        typeof(MaaProcessor).GetField("<InstanceId>k__BackingField", Hidden)!.SetValue(processor, "pcr-alpha-v1");
+        typeof(MaaProcessor).GetField("<InstanceId>k__BackingField", Hidden)!.SetValue(processor, PcrClanGuide.ProfileId);
         typeof(TaskQueueViewModel).GetField("_processorField", Hidden)!.SetValue(vm, processor);
         typeof(TaskQueueViewModel).GetField("_taskItemViewModels", Hidden)!
             .SetValue(vm, new ObservableCollection<DragItemViewModel>());
         var discovery = typeof(TaskQueueViewModel).Assembly.GetType("MFAAvalonia.Pcr.PcrAdbDiscovery", true)!;
         typeof(TaskQueueViewModel).GetField("_pcrDiscovery", Hidden)!.SetValue(vm, Activator.CreateInstance(discovery, true));
         vm.ToggleEnable = true;
+        vm.PcrDiscoveryStatus = "已恢复保存的设备。";
 
         var window = new Window
         {
             Width = 320, Height = 120, ShowActivated = false, ShowInTaskbar = false,
             RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light,
             WindowStartupLocation = WindowStartupLocation.Manual,
-            Position = new PixelPoint(-32000, -32000), Content = button, DataContext = vm
+            Position = new PixelPoint(-32000, -32000), DataContext = vm,
+            Content = new StackPanel { Children = { deviceStatus, button } }
         };
         try
         {
@@ -74,10 +82,16 @@ internal static class RunBarStateChecks
 
             Check(!vm.IsRunning && !vm.PcrCleanupPending, "starts_idle");
             Check(VisibleLabels().SequenceEqual(new[] { "开始任务" }) && button.IsEnabled, "idle_shows_start");
+            Check(disconnected.IsVisible && !connected.IsVisible && deviceHint.IsVisible && deviceHint.Text == vm.PcrDiscoveryStatus,
+                "clan_starts_disconnected_with_device_hint");
 
             vm.IsRunning = true;
             Dispatcher.UIThread.RunJobs();
             Check(VisibleLabels().SequenceEqual(new[] { "停止任务" }) && button.IsEnabled, "running_shows_stop");
+            vm.SetConnected(true);
+            Dispatcher.UIThread.RunJobs();
+            Check(vm.LiveViewImage == null && connected.IsVisible && !disconnected.IsVisible && !deviceHint.IsVisible,
+                "clan_task_connection_shows_connected_without_preview");
 
             // A stop request is accepted at once, but the owner keeps the run busy
             // until the owned process is released.
@@ -86,10 +100,13 @@ internal static class RunBarStateChecks
             Check(VisibleLabels().SequenceEqual(new[] { "处理中…" }), "cleanup_shows_processing_without_stop");
             Check(!button.IsEnabled, "cleanup_disables_the_button");
 
+            vm.SetConnected(false);
             vm.IsRunning = false;
             vm.PcrCleanupPending = false;
             Dispatcher.UIThread.RunJobs();
             Check(VisibleLabels().SequenceEqual(new[] { "开始任务" }) && button.IsEnabled, "released_shows_start_again");
+            Check(disconnected.IsVisible && !connected.IsVisible && deviceHint.IsVisible,
+                "clan_task_release_restores_disconnected");
         }
         finally
         {
