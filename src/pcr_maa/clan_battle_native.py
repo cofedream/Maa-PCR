@@ -1036,19 +1036,25 @@ class NativeClanBattle(NativeGuideTrial):
             self._confirm_navigation_popup(exc.reading, **budget)
             raise _SimulationNavigationRestart() from exc
 
-    def run(self, node, *, click=False):
-        starting = click and node == 'CBStart'
+    def _start_reset_hits(self):
+        # A borrowed Owner shares hit counts across knives; renew only this opening's menu nodes.
+        if self.calibration and self.calibration.get('auto_battle') and not self.plan['switches']:
+            return ('CBPauseOpening', 'CBPauseRetry')
+        return ()
+
+    def _annotate_unsent_start(self, receipt):
+        receipt['clan_battle_phase'] = 'simulation_start'
+
+    def _dispatch_clan_node(self, node, *, click, starting):
         if starting:
-            if self.started:
-                raise RuntimeError('clan_battle_start_already_attempted')
             self.started, self.battle_start = True, 'unknown'
         capture = getattr(self, '_opening_capture', None)
         if capture is not None:
             capture.mark('dispatch', node, self.battle_start)
         try:
-            if starting and self.calibration and self.calibration.get('auto_battle') and not self.plan['switches']:
-                # A borrowed Owner shares hit counts across knives; renew only this new opening's menu nodes.
-                result = super().run(node, click=click, reset_hits=('CBPauseOpening', 'CBPauseRetry'))
+            reset_hits = self._start_reset_hits() if starting else ()
+            if reset_hits:
+                result = super().run(node, click=click, reset_hits=reset_hits)
             else:
                 result = super().run(node, click=click)
         except Exception as exc:
@@ -1057,7 +1063,7 @@ class NativeClanBattle(NativeGuideTrial):
                 raise
             if starting and isinstance(exc, native.NativeInputNotSent):
                 self.battle_start = 'not_sent'
-                exc.receipt['clan_battle_phase'] = 'simulation_start'
+                self._annotate_unsent_start(exc.receipt)
                 raise
             disconnected = observe_disconnect_after_failure(self, exc, input_attempted=click)
             if disconnected is not None:
@@ -1078,6 +1084,13 @@ class NativeClanBattle(NativeGuideTrial):
             raise ClanDisconnected(result, self.battle_start)
         if any(row.get('name') == 'LabyClientTitleObserved' for row in result.get('nodes', [])):
             self.invalidate_account_binding()
+        return result
+
+    def run(self, node, *, click=False):
+        starting = click and node == 'CBStart'
+        if starting and self.started:
+            raise RuntimeError('clan_battle_start_already_attempted')
+        result = self._dispatch_clan_node(node, click=click, starting=starting)
         if click and getattr(getattr(self, 'page', None), 'modern', False):
             action = node.removeprefix('CBAction_') if node.startswith('CBAction_') else (
                 'start' if node == 'CBStart' else 'support_back' if node == 'CBAddSupport' else None)

@@ -8,6 +8,19 @@ from pathlib import Path
 import json,os
 from datetime import datetime,timezone
 
+
+def is_retired_invitation(event, intent):
+    evidence = event.get('evidence')
+    return (event.get('state') == 'historical_unknown' and event.get('operation') == 'opening_invite'
+            and event.get('resolution') == 'user_confirmed_retired'
+            and event.get('original_result_unknown') is True and event.get('replay_forbidden') is True
+            and type(event.get('enter_id')) is int and event['enter_id'] > 0
+            and type(evidence) is dict and evidence.get('source') == 'user_confirmation'
+            and evidence.get('retired') is True
+            and all(event.get(key) == intent.get(key) for key in
+                    ('operation', 'operation_id', 'binding', 'enter_id', 'expected_roles')))
+
+
 class RunRecord:
     def __init__(self,directory,run_id,binding,*,resume=False):
         if len(run_id)!=32 or any(x not in '0123456789abcdef' for x in run_id):raise ValueError('invalid_run_id')
