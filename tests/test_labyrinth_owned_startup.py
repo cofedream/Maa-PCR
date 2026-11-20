@@ -13,7 +13,7 @@ from types import SimpleNamespace as NS
 
 import pytest
 from pcr_maa.labyrinth.config import Goal, Settings
-from pcr_maa.labyrinth.owned_runtime import OwnedRequest, OwnedRuntime, StopSignal, run_owned
+from pcr_maa.labyrinth.owned_runtime import OwnedRequest, OwnedRuntime, StopSignal, public_result, run_owned
 from pcr_maa.labyrinth import protocol
 
 
@@ -83,6 +83,20 @@ def request():
     return OwnedRequest(Settings((Goal(1, 1),)), 123,
         dict(adb_path='synthetic-adb.exe', serial='127.0.0.1:65530'),
         'synthetic-user', 'synthetic-password')
+
+
+@pytest.mark.parametrize('completed, valid', [
+    ({1: 1, 6: 0, 10: 2}, True), ({'10': 999}, True),
+    ({1: 1, 11: 0}, False), ({True: 1}, False), ({6: True}, False), ({10: 1000}, False),
+])
+def test_progress_and_result_publish_the_same_guild_counts(tmp_path, completed, valid):
+    events = []
+    owned = OwnedRuntime(request(), StopSignal(io.StringIO()), events.append, root=tmp_path)
+    owned._progress(dict(stage='playing', completed=completed))
+    counts = {'completed': completed} if valid else {}
+    assert events == [dict(kind='progress', stage='playing', **counts)]
+    assert public_result(dict(outcome='complete', batch_complete=True, completed=completed)) == dict(
+        kind='result', outcome='complete', batch_complete=True, **counts)
 
 
 @pytest.mark.skipif(sys.platform != 'win32', reason='Windows NumPy preload')

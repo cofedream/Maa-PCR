@@ -24,9 +24,22 @@ REPORT_LIMIT = 16 * 1024 * 1024
 CONTROL_ERRORS = {'invalid_run_id', 'run_unavailable', 'unsafe_control_path', 'control_file_missing',
                   'control_file_too_large', 'control_snapshot_changed', 'invalid_control_json',
                   'invalid_report', 'invalid_stop_request', 'control_busy', 'cooperative_stop_unsupported'}
+SKIP_REASONS = {
+    'skipped_disabled': '0 次，不执行',
+    'skipped_goal_met': '已达目标',
+    'skipped_insufficient_stamina': '体力不足，安全跳过（日目标未满）',
+    'skipped_insufficient_tickets': '券不足，安全跳过（日目标未满）',
+    'skipped_event_unavailable': '限时活动未开放，已安全跳过',
+    'skipped_no_selection': '未勾选活动关卡，已跳过',
+}
 STEP_STATES = {'not_run', 'running', 'executed', 'complete', 'partial', 'stopped', 'failed',
-               'interrupted', 'skipped_disabled', 'skipped_goal_met', 'skipped_insufficient_stamina',
-               'skipped_insufficient_tickets', 'skipped_event_unavailable', 'skipped_no_selection'}
+               'interrupted', *SKIP_REASONS}
+
+
+def _skip_reason(step):
+    if step['name'] == 'abyss' and step['status'] == 'skipped_event_unavailable':
+        return '深渊前哨未开放，已安全跳过'
+    return SKIP_REASONS.get(step['status'])
 
 
 def build_plan(*, selected_modules=None, rewards_final=_DEFAULT_REWARDS_FINAL,
@@ -838,9 +851,7 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
                 report['outcome'] = step['status']
                 break
             player_log.text(labels.get(step['name'], step['name']) + '：' +
-                ('未勾选活动关卡，已跳过' if step['status'] == 'skipped_no_selection' else
-                 '活动未开放，跳过' if step['status'] == 'skipped_event_unavailable' else
-                 '目标已满足，跳过' if step['status'].startswith('skipped') else '本项执行结束'))
+                (_skip_reason(step) or '本项执行结束'))
             if step.get('result', {}).get('original_execution_unresolved'):
                 report['original_execution_unresolved'] = True
                 if step['status'] != 'skipped_goal_met' and index + 1 < len(report['steps']):
@@ -959,10 +970,7 @@ def summary(report, *, player=False):
                   rewards='每日任务/礼物（早段）', rewards_final='每日任务/礼物（收尾）',
                   very_hard='高难', hard='困难', normal='普通（每关本次次数）')
     states = dict(executed='已执行并结算', complete='本步完成', partial=('仍有奖励未领取' if player else '部分领取，仍有 remaining'),
-        skipped_disabled='0 次，不执行', skipped_goal_met='已达目标', skipped_insufficient_stamina='体力不足，安全跳过（日目标未满）',
-        skipped_insufficient_tickets='券不足，安全跳过（日目标未满）', not_run='未运行',
-        skipped_event_unavailable='限时活动未开放，已安全跳过', skipped_no_selection='未勾选活动关卡，已跳过',
-        stopped='停止，结果或收尾未验证', failed='异常停止', interrupted='中断',
+        not_run='未运行', stopped='停止，结果或收尾未验证', failed='异常停止', interrupted='中断',
         running='报告记为运行中，进程存活未知')
     def detail(step):
         result = step.get('result', {})
@@ -1084,8 +1092,7 @@ def summary(report, *, player=False):
          if s['name'] == 'normal' and s.get('result', {}).get('outcome') == 'empty_or_unreadable_selection'
          else '已执行并结算，日目标未满' if s['name'] in ('event', 'event_current', 'event_revival') and s['status'] == 'partial'
          else '余下奖励已在收尾领完' if s['name'] == 'rewards' and early_rewards_resolved
-         else '深渊前哨未开放，已安全跳过' if s['name'] == 'abyss' and s['status'] == 'skipped_event_unavailable'
-         else states.get(s['status'], s['status'])) + detail(s)
+          else _skip_reason(s) or states.get(s['status'], s['status'])) + detail(s)
         for s in report.get('steps', [])], *report_detail,
         *(['已在步骤边界响应停止请求，后续未运行。'] if report.get('outcome') == 'stopped_by_request' else []),
         *footer])

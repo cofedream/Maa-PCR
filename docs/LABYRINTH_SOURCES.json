@@ -126,7 +126,7 @@
           "sha256": "2fc30ccfccb03d8898a0b8771bb526aeb73109262ea820deae0a84c8f76520cf"
         }
       ],
-      "local_sha256": "a8bf63c6415c4784185c19d910909560c1733ac154368df6890a29c06c56aa50",
+      "local_sha256": "738cbf7574e7a82a3961adc85af33bc549e94ba67099c17c1e06602b02442fbf",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -402,7 +402,7 @@
           "sha256": "e42c109c56a990a33cfac421517044c9c157c2cda7e46f70043e44ea899f9e2d"
         }
       ],
-      "local_sha256": "a0e2b43e6065f47972d113adc26bcc6dd1e2d7909935d5eb88910a20d1a656ce",
+      "local_sha256": "ec935597b25940a97595f1758ed3428f8249b51ae18db31c5ff23f3fb4822b47",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true,
       "upstream_updates": [
@@ -428,7 +428,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "67c1f4a04d6c2effac10b93ddc8c9afe4d046e2093a3478db6de81661b899ec0",
+      "local_sha256": "0cca33533ac12c4a524d10c0daf81d942295e89c55b986ad997b856bc26166e0",
       "upstream_updates": [
         {
           "repository": "https://github.com/SatenRuiko10032/limingjie-assistant",
@@ -850,7 +850,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "b2541beba842e6045a99f253d550644e9f96bf37d61aace759caabcc088cf457",
+      "local_sha256": "9ae4744f8fe280c36df8de11c55cf53b70ee650eea500f6bece5d9701b8f9b1d",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -866,7 +866,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "aecde48ef76b7416a1f67e5cd57075580d2f2d6c454a24afa119d04ae9faf3c0",
+      "local_sha256": "4ce0793f23dee748af049034533e0d73b97b5c6726439b358180f3f0b674fb94",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -8638,7 +8638,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/config.py",
-      "local_sha256": "b2541beba842e6045a99f253d550644e9f96bf37d61aace759caabcc088cf457",
+      "local_sha256": "9ae4744f8fe280c36df8de11c55cf53b70ee650eea500f6bece5d9701b8f9b1d",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8674,7 +8674,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/game_port.py",
-      "local_sha256": "a0e2b43e6065f47972d113adc26bcc6dd1e2d7909935d5eb88910a20d1a656ce",
+      "local_sha256": "ec935597b25940a97595f1758ed3428f8249b51ae18db31c5ff23f3fb4822b47",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8728,13 +8728,13 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/opening.py",
-      "local_sha256": "67c1f4a04d6c2effac10b93ddc8c9afe4d046e2093a3478db6de81661b899ec0",
+      "local_sha256": "0cca33533ac12c4a524d10c0daf81d942295e89c55b986ad997b856bc26166e0",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
     {
       "local": "src/pcr_maa/labyrinth/owned_runtime.py",
-      "local_sha256": "0fbd89392b1883351c2fae4c9d61d132352eff1f8837c8df5de4f553eb7f5259",
+      "local_sha256": "4ce0793f23dee748af049034533e0d73b97b5c6726439b358180f3f0b674fb94",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8764,13 +8764,13 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/protocol.py",
-      "local_sha256": "956dd5a19e32f778bf12b07aa22dfb9591f80b8d0d598d1fe29d0bd79dc13c79",
+      "local_sha256": "738cbf7574e7a82a3961adc85af33bc549e94ba67099c17c1e06602b02442fbf",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
     {
       "local": "src/pcr_maa/labyrinth/records.py",
-      "local_sha256": "3984576e7506423c99f0cade79ad15f80f300398fc4fec2cb77b3dde774202b0",
+      "local_sha256": "8c8dc0acc932aa78bc52c7aebc8833f7548eb08a0e00aa747f9c2c3915b4d8b3",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8830,7 +8830,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/snapshots.py",
-      "local_sha256": "12fad2cdc02c5d6dfa3bf05428890272bc3ad01246db9a52d0fb2d1def1ec767",
+      "local_sha256": "25f3d636e9be2e5aad4702523af3a1ec18abe287ae90bd80680d9b9ccb64b102",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -9586,7 +9586,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/restart.py",
-      "local_sha256": "6a245304638e4e9a69d5b185d74afedd2d68f32d14543a9d3e2fac275ed49508",
+      "local_sha256": "ffa94696a1bcbd9cf8cf3e8cdec67c50bfe3315ba19431500b63e5de90a7541b",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

@@ -7,7 +7,12 @@ from .strategies import MARKS, ALIASES
 
 # 黎明界出发公会序号（游戏 2026-11-13 由 5 个增加到 10 个）；opening_rosters /
 # guild_units 以字符串键保存，校验时与这里比对。
-GUILD_IDS = frozenset(str(i) for i in range(1,11))
+GUILD_COUNT = 10
+GUILD_IDS = frozenset(str(i) for i in range(1, GUILD_COUNT + 1))
+
+
+def valid_guild_id(value):
+    return type(value) is int and 1 <= value <= GUILD_COUNT
 
 @dataclass(frozen=True)
 class Goal:
@@ -169,11 +174,11 @@ class Settings:
         allowed={'version','goals','difficulty','reroll','max_attempts','max_seconds','buy_relics','refresh_shop','route','strategy'}
         if set(v)-allowed: raise ValueError('unknown_bot_setting')
         goals=v.get('goals')
-        if type(goals) is not list or not goals or len(goals)>10: raise ValueError('invalid_goals')
+        if type(goals) is not list or not goals or len(goals)>GUILD_COUNT: raise ValueError('invalid_goals')
         result=[]
         for g in goals:
             if type(g) is not dict or not {'guild_id','clears'}<=set(g) or set(g)-{'guild_id','clears','mode'}: raise ValueError('invalid_goal')
-            if type(g['guild_id']) is not int or not 1<=g['guild_id']<=10 or type(g['clears']) is not int or not 1<=g['clears']<=999:
+            if not valid_guild_id(g['guild_id']) or type(g['clears']) is not int or not 1<=g['clears']<=999:
                 raise ValueError('invalid_goal')
             if g.get('mode','clears') not in ('clears','attempts'):raise ValueError('invalid_goal_mode')
             result.append(Goal(g['guild_id'],g['clears'],g.get('mode','clears')))

@@ -6,6 +6,7 @@ with the caller. Generic card resources come from the pinned upstream pack.
 from collections.abc import Mapping
 from .. import native
 from .batch import BatchStopped
+from .config import valid_guild_id
 from .strategies import UPSTREAM_OPENING_SLOTS
 from .timing import Timings
 
@@ -73,7 +74,7 @@ class MaaOpening:
         from .character_recognition import CharacterNavigation,canonical_id
         from .portrait_cache import joined_portrait_readback
         from .roles import configured_optimizer
-        if type(enter_id) is not int or enter_id<=0 or type(guild_id) is not int or not 1<=guild_id<=10:
+        if type(enter_id) is not int or enter_id<=0 or not valid_guild_id(guild_id):
             raise BatchStopped('opening_identity_required')
         if slots is None:
             # All ten departure guilds carry upstream defaults.  A guild without

@@ -625,11 +625,20 @@ def test_fixed_order_and_scope(tmp_path, monkeypatch):
     assert json.loads((tmp_path/'report.json').read_text(encoding='utf-8')) == r
 
 
-@pytest.mark.parametrize('outcome', ['skipped_goal_met', 'skipped_insufficient_stamina', 'skipped_insufficient_tickets'])
-def test_safe_skip(tmp_path, monkeypatch, outcome):
+@pytest.mark.parametrize('outcome, reason', [
+    ('skipped_goal_met', '已达目标'),
+    ('skipped_insufficient_stamina', '体力不足'),
+    ('skipped_insufficient_tickets', '券不足'),
+])
+def test_safe_skip(tmp_path, monkeypatch, outcome, reason):
+    from pcr_maa import player_log
+    lines = []
+    monkeypatch.setattr(player_log, 'text', lines.append)
     r, calls = invoke(tmp_path, monkeypatch, {'deep': dict(outcome=outcome, home_verified=True)})
     assert len(calls) == 6 and r['supported_chain_complete']
     assert r['steps'][1]['status'] == outcome
+    assert any(line.startswith('深域：' + reason) for line in lines)
+    assert '深域：' + reason in chain.summary(r, player=True)
 
 
 @pytest.mark.parametrize('patch', [dict(home_verified=False), dict(settlement_verified=False),

@@ -159,41 +159,37 @@ class Journal:
             return
         if not isinstance(event, dict) or event.get('state') not in ('in_flight', 'settled', 'historical_unknown'):
             raise ValueError('Journal malformed; parent reconciliation required')
-        guide_exited = False
-        guide_progressed = False
-        if index % 2 and event.get('recovery_scope') == 'guide_trial_external_progress':
-            from .guide_trial_progress import is_progress_history
-            guide_progressed = is_progress_history(event, previous)
-            if not guide_progressed:
-                raise ValueError('Journal sequence invalid')
-        if index % 2 and event.get('recovery_scope') == 'guide_trial_user_exit':
-            from .guide_trial import is_user_exit_history
-            guide_exited = is_user_exit_history(event, previous)
-        clan_simulation_exited = False
-        if index % 2 and event.get('recovery_scope') == 'clan_battle_simulation_user_exit':
-            from .clan_battle import is_simulation_user_exit_history
-            clan_simulation_exited = is_simulation_user_exit_history(event, previous)
-        closed_run = False
-        if index % 2 and event.get('recovery_scope') == 'labyrinth_restart':
-            from .labyrinth.restart import is_closed_run_history
-            closed_run = is_closed_run_history(event, previous)
-        retired_invitation = (index % 2 and event.get('state') == 'historical_unknown'
-            and event.get('operation') == 'opening_invite'
-            and event.get('resolution') == 'user_confirmed_retired'
-            and event.get('original_result_unknown') is True
-            and event.get('replay_forbidden') is True
-            and type(event.get('enter_id')) is int and event['enter_id'] > 0
-            and type(event.get('evidence')) is dict
-            and event.get('evidence', {}).get('source') == 'user_confirmation'
-            and event.get('evidence', {}).get('retired') is True
-            and all(event.get(key) == previous.get(key) for key in
-                    ('operation', 'operation_id', 'binding', 'enter_id', 'expected_roles')))
-        if (event['state'] != ('in_flight' if index % 2 == 0 else 'settled')
-                and not (index % 2 and event['state'] == 'historical_unknown'
-                         and event.get('operation') == 'schedule_onekey')
-                and not retired_invitation and not closed_run and not guide_exited
-                         and not guide_progressed and not clan_simulation_exited):
+        if index % 2 == 0:
+            valid = event['state'] == 'in_flight'
+        else:
+            valid = Journal._valid_result(event, previous)
+        if not valid:
             raise ValueError('Journal sequence invalid')
+
+    @staticmethod
+    def _valid_result(event, intent):
+        scope = event.get('recovery_scope')
+        if scope == 'guide_trial_external_progress':
+            # A later map observation cannot settle the original fight.
+            from .guide_trial_progress import is_progress_history
+            return is_progress_history(event, intent)
+        if event['state'] != 'historical_unknown':
+            return event['state'] == 'settled'
+        if event.get('operation') == 'schedule_onekey':
+            return True
+        if event.get('resolution') == 'user_confirmed_retired':
+            from .labyrinth.records import is_retired_invitation
+            return is_retired_invitation(event, intent)
+        if scope == 'guide_trial_user_exit':
+            from .guide_trial import is_user_exit_history
+            return is_user_exit_history(event, intent)
+        if scope == 'clan_battle_simulation_user_exit':
+            from .clan_battle import is_simulation_user_exit_history
+            return is_simulation_user_exit_history(event, intent)
+        if scope == 'labyrinth_restart':
+            from .labyrinth.restart import is_closed_run_history
+            return is_closed_run_history(event, intent)
+        return False
 
     def _current_events(self):
         stamp = self._file_stamp()

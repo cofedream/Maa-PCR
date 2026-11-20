@@ -975,54 +975,23 @@ class NativeClanDailyAdapter(NativeClanBattle):
                 or not self.tasker.resource.override_pipeline(nodes)):
             raise RuntimeError('clan_battle_daily_pipeline_rejected')
 
+    def _start_reset_hits(self):
+        execution = self.calibration['daily']['execution']
+        nodes = ['CBDailyPauseOpening', 'CBDailyPauseRetry']
+        if 'start_confirmation' in execution or 'carry_start_confirmation' in execution:
+            nodes.append('CBDailyStartConfirmation')
+        if 'result_reward' in execution:
+            nodes.append('CBDailyResultRewardConfirm')
+        return tuple(nodes)
+
+    def _annotate_unsent_start(self, receipt):
+        receipt.update(clan_battle_phase=self.action['kind'] + '_start', daily_intent_id=self.pending['intent_id'])
+
     def run(self, node, *, click=False):
-        from .native import NativeInputNotSent
-        from .clan_battle_recovery import ClanDisconnected, observe_disconnect_after_failure
         starting = click and node == 'CBStart'
-        if starting:
-            if self.started or self.pending is None:
-                raise RuntimeError('clan_battle_daily_start_not_reserved')
-            self.started, self.battle_start = True, 'unknown'
-        capture = getattr(self, '_opening_capture', None)
-        if capture is not None:
-            capture.mark('dispatch', node, self.battle_start)
-        try:
-            if starting:
-                # Reset only the new intent's pause budget, never a previous start or consumption intent.
-                receipt = NativeGuideTrial.run(self, node, click=click,
-                    reset_hits=('CBDailyPauseOpening', 'CBDailyPauseRetry') + tuple(name for key, name in
-                        (('start_confirmation', 'CBDailyStartConfirmation'), ('result_reward', 'CBDailyResultRewardConfirm'))
-                        if key in self.calibration['daily']['execution']
-                        or key == 'start_confirmation' and 'carry_start_confirmation' in self.calibration['daily']['execution']))
-            else:
-                receipt = NativeGuideTrial.run(self, node, click=click)
-        except Exception as exc:
-            self.invalidate_account_binding()
-            if isinstance(exc, ClanDisconnected):
-                raise
-            if starting and isinstance(exc, NativeInputNotSent):
-                self.battle_start = 'not_sent'
-                exc.receipt.update(clan_battle_phase=self.action['kind'] + '_start', daily_intent_id=self.pending['intent_id'])
-                raise
-            disconnected = observe_disconnect_after_failure(self, exc, input_attempted=click)
-            if disconnected is not None:
-                if click:
-                    disconnected.replay_forbidden = True
-                raise disconnected from exc
-            raise
-        self.last_receipt = receipt
-        if starting:
-            self.battle_start = 'sent'
-            if capture is not None:
-                self._opening_anchor_start_receipt = deepcopy(receipt)
-                self._opening_anchor_start_receipt_path = self.directory / f'{self.sequence:03d}-CBStart.json'
-        if capture is not None:
-            capture.mark('returned', node, self.battle_start)
-        if any(row.get('name') == 'LabyDisconnect6002Observed' for row in receipt.get('nodes', [])):
-            self.invalidate_account_binding()
-            raise ClanDisconnected(receipt, self.battle_start)
-        if any(row.get('name') == 'LabyClientTitleObserved' for row in receipt.get('nodes', [])):
-            self.invalidate_account_binding()
+        if starting and (self.started or self.pending is None):
+            raise RuntimeError('clan_battle_daily_start_not_reserved')
+        receipt = self._dispatch_clan_node(node, click=click, starting=starting)
         if click:
             action = node.removeprefix('CBAction_') if node.startswith('CBAction_') else (
                 'start' if node == 'CBStart' else 'support_back' if node == 'CBAddSupport' else None)

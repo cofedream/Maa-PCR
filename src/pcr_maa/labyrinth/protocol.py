@@ -15,6 +15,7 @@ from pathlib import Path
 import sys
 from urllib.parse import urlsplit
 from .. import player_log
+from .config import valid_guild_id
 from .routes import Node
 from .timing import Timings
 from .servers import get_server
@@ -459,7 +460,7 @@ class LabyrinthClient:
             except ProtocolFailure:self.close();raise
 
     async def enter(self,guild_id,difficulty):
-        if type(guild_id) is not int or not 1<=guild_id<=10 or type(difficulty) is not int or not 1<=difficulty<=5:raise ProtocolFailure('request_rejected')
+        if not valid_guild_id(guild_id) or type(difficulty) is not int or not 1<=difficulty<=5:raise ProtocolFailure('request_rejected')
         async with self._operation():
             try:
                 value=await self._request_locked(Endpoint.ENTER,dict(guild_id=guild_id,difficulty=difficulty))

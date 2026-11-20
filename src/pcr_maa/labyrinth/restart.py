@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import re
 
 from .batch import Batch, BatchStopped
+from .config import valid_guild_id
 from ..preset_execution import Journal
 
 
@@ -37,7 +38,7 @@ def _valid_intent(intent):
         return False
     if intent['operation'] == 'enter':
         return (not any(key in intent for key in ('enter_id', 'protocol_enter_id'))
-                and type(intent.get('guild_id')) is int and 1 <= intent['guild_id'] <= 10
+                and valid_guild_id(intent.get('guild_id'))
                 and type(intent.get('difficulty')) is int and 1 <= intent['difficulty'] <= 5)
     enter = _intent_enter_id(intent)
     # Only client navigation can precede a run; consumption and post-creation

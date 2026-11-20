@@ -13,7 +13,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import uuid4
-from .config import Settings
+from .config import GUILD_IDS, Settings, valid_guild_id
 
 
 class ConfigurationError(ValueError):
@@ -241,6 +241,13 @@ class StopSignal:
             self.callbacks.clear()
 
 
+def _valid_guild_counts(completed):
+    return type(completed) is dict and all(
+        (valid_guild_id(guild) or type(guild) is str and guild in GUILD_IDS)
+        and type(count) is int and 0 <= count <= 999
+        for guild, count in completed.items())
+
+
 def public_result(value):
     outcome = value.get('outcome', 'adapter_failed') if type(value) is dict else 'adapter_failed'
     if type(outcome) is not str or re.fullmatch(r'[a-z][a-z_]{0,95}', outcome) is None:
@@ -248,8 +255,7 @@ def public_result(value):
     result = dict(kind='result', outcome=outcome,
                   batch_complete=outcome == 'complete' and value.get('batch_complete') is True)
     completed = value.get('completed') if type(value) is dict else None
-    if (type(completed) is dict and all(str(k) in {'1','2','3','4','5'}
-            and type(v) is int and 0 <= v <= 999 for k,v in completed.items())):
+    if _valid_guild_counts(completed):
         result['completed'] = completed
     return result
 
@@ -322,8 +328,7 @@ class OwnedRuntime:
             self.timings.transition(stage)
             result = dict(kind='progress',stage=stage)
             completed=value.get('completed')
-            if (type(completed) is dict and all(str(k) in {'1','2','3','4','5'}
-                    and type(v) is int and 0<=v<=999 for k,v in completed.items())):
+            if _valid_guild_counts(completed):
                 result['completed']=completed
             self.emit(result)
 
