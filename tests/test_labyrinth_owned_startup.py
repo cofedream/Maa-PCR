@@ -3,6 +3,7 @@ import asyncio
 import builtins
 import io
 import json
+import os
 from pathlib import Path
 import runpy
 import queue
@@ -207,6 +208,54 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     assert 'synthetic-password' not in json.dumps(events)
 
 
+def test_player_feedback_reports_observed_backends_instead_of_request(tmp_path, monkeypatch):
+    from maa.library import Library
+    from pcr_maa import native, player_log, capture_performance
+    owned, _, _ = runtime(tmp_path, monkeypatch)
+    owned.request.webgpu = True
+    logs = []
+    monkeypatch.setattr(player_log, 'text', logs.append)
+    monkeypatch.setattr(Library, 'version', lambda: 'v5.16.1')
+    monkeypatch.setattr(capture_performance, 'finish_capture_report', lambda _: {
+        'actual_backend': 'RawWithGzip', 'private': 'synthetic serial detail'})
+    load = native.load_resource
+
+    def load_with_trace(*args, **kwargs):
+        trace = native.RUNTIME / 'maa/maafw.log'
+        trace.parent.mkdir(parents=True)
+        trace.write_text(
+            '[2026-11-17 20:11:50.550][INF][Px{0}][Tx1][InferenceResMgr.cpp][L109]'
+            '[MaaNS::ResourceNS::InferenceResMgr::use_directml] Using DML execution provider with device_id 0 \n'
+            '[2026-11-17 20:11:50.550][INF][Px{1}][Tx1][InferenceResMgr.cpp][L153]'
+            '[MaaNS::ResourceNS::InferenceResMgr::use_webgpu] Using WebGPU execution provider with device_id 0 \n'
+            '[2026-11-17 20:11:50.550][INF][Px{0}][Tx1] available_providers WebGPU synthetic private detail\n'
+            .format(os.getpid(), os.getpid() + 1), encoding='utf-8')
+        return load(*args, **kwargs)
+
+    monkeypatch.setattr(native, 'load_resource', load_with_trace)
+    assert owned.run() == dict(outcome='stopped', batch_complete=False)
+    assert logs == ['MaaFramework 版本：v5.16.1。', 'MaaFramework 选用的推理后端：DirectML。',
+                    'ADB 选用的截图方式：RawWithGzip。']
+
+
+def test_player_feedback_can_confirm_cpu_during_warmup_without_exposing_trace(tmp_path, monkeypatch):
+    from pcr_maa import native, player_log
+    logs = []
+    monkeypatch.setattr(player_log, 'text', logs.append)
+
+    def write_trace():
+        trace = native.RUNTIME / 'maa/maafw.log'
+        trace.parent.mkdir(parents=True)
+        trace.write_text(
+            f'[2026-11-17 20:13:14.462][INF][Px{os.getpid()}][Tx1][ONNXResMgr.cpp][L41]'
+            '[MaaNS::ResourceNS::ONNXResMgr::use_cpu] \n', encoding='utf-8')
+
+    owned, _, _ = runtime(tmp_path, monkeypatch, ocr_hook=write_trace)
+    assert owned.run() == dict(outcome='stopped', batch_complete=False)
+    assert [line for line in logs if '推理后端' in line] == ['MaaFramework 选用的推理后端：未确认。',
+                                                           'MaaFramework 选用的推理后端：CPU。']
+
+
 def test_animation_setting_preflight_runs_before_controller(tmp_path, monkeypatch):
     from pcr_maa.labyrinth import animation_setting
     owned, events, calls = runtime(tmp_path, monkeypatch)
@@ -257,11 +306,15 @@ def test_rejected_inference_selection_stops_before_loading_models_or_connecting(
 
 
 def test_failed_ocr_preparation_stops_before_login_without_retry(tmp_path, monkeypatch):
+    from pcr_maa import player_log
+    logs = []
+    monkeypatch.setattr(player_log, 'text', logs.append)
     owned, events, calls = runtime(tmp_path, monkeypatch, ocr_job=NS(done=True, succeeded=False))
     assert owned.run() == dict(outcome='runtime_ocr_preparation_failed', batch_complete=False)
     assert calls.count('ocr_prepare') == 1 and 'native_stop' in calls
     assert not {'client', 'authenticate', 'batch'} & set(calls)
     assert events[-1] == dict(kind='progress', stage='ocr_warmup')
+    assert '文字识别初始化停止（阶段 ocr_warmup）：runtime_ocr_preparation_failed。' in logs
     assert owned.request.username == owned.request.password == ''
 
 
@@ -744,7 +797,9 @@ def test_launcher_emits_configuration_stage_before_runner(tmp_path, monkeypatch,
 
 
 def test_failed_pause_notification_keeps_native_cleanup_timeout(tmp_path, monkeypatch):
-    from pcr_maa import native
+    from pcr_maa import native, player_log
+    logs = []
+    monkeypatch.setattr(player_log, 'text', logs.append)
     wait_job = native.wait_job
     owned, _, calls = runtime(tmp_path, monkeypatch)
     clock = [100.0]
@@ -789,6 +844,8 @@ def test_failed_pause_notification_keeps_native_cleanup_timeout(tmp_path, monkey
     assert owned.stop.pause_started is None and owned.stop.paused_seconds == 5
     assert calls.count('native_stop') == calls.count('client_close') == 1
     assert owned.request.username == owned.request.password == ''
+    assert '黎明界组件异常（阶段 ready，异常类型 BrokenPipeError）。' in logs
+    assert all('synthetic closed GUI stdout' not in line for line in logs)
 
 
 def test_timing_read_failure_preserves_business_result_and_cleanup(tmp_path, monkeypatch):

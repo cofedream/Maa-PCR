@@ -55,6 +55,7 @@ def test_trace_never_carries_exception_text():
     joined = '\n'.join(lines)
     assert 'secret transport detail' not in joined
     assert any(line.startswith('本次停止：adapter_failed（位置 ') for line in lines)
+    assert '黎明界批次异常（阶段 未记录，异常类型 TimeoutError）。' in lines
 
 
 def test_known_network_failure_is_visible_and_enter_is_never_resent():
