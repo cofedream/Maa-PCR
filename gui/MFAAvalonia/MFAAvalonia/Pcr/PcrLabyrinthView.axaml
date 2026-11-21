@@ -66,7 +66,13 @@
       </StackPanel>
      </StackPanel></Expander>
     </StackPanel>
-    <TextBlock Name="BasicSettings" Text="目标公会与次数" FontSize="16" FontWeight="SemiBold" />
+    <WrapPanel>
+     <TextBlock Name="BasicSettings" Text="目标公会与次数" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,24,0" />
+     <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="难度（1–5）" VerticalAlignment="Center" />
+      <pcr:PcrCountInput Name="DifficultyInput" Width="110" DraftText="{Binding LabyrinthSettings.Difficulty, Mode=TwoWay}" Minimum="1" Maximum="5" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" AutomationProperties.Name="难度" />
+     </StackPanel>
+    </WrapPanel>
     <ItemsControl Name="GoalsInput" ItemsSource="{Binding LabyrinthSettings.Goals}" HorizontalAlignment="Left"><ItemsControl.ItemTemplate>
      <DataTemplate x:DataType="pcr:PcrLabyrinthGoal"><Grid ColumnDefinitions="180,150,110" Margin="0,0,0,6" ColumnSpacing="12">
       <CheckBox Content="{Binding Name}" IsChecked="{Binding Enabled}" />
@@ -74,9 +80,6 @@
       <pcr:PcrCountInput Grid.Column="2" DraftText="{Binding Clears, Mode=TwoWay}" Minimum="1" Maximum="999" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" IsEnabled="{Binding Enabled}" AutomationProperties.Name="{Binding Name, StringFormat='目标次数：{0}'}" ToolTip.Tip="1–999 次；尝试次数按已结束的真实局计数。" />
      </Grid></DataTemplate>
     </ItemsControl.ItemTemplate></ItemsControl>
-    <StackPanel Spacing="6" Width="200" HorizontalAlignment="Left">
-     <TextBlock Text="难度（1–5）" /><pcr:PcrCountInput Name="DifficultyInput" DraftText="{Binding LabyrinthSettings.Difficulty, Mode=TwoWay}" Minimum="1" Maximum="5" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" AutomationProperties.Name="难度" />
-    </StackPanel>
     <CheckBox Name="KeepOldRunToggle" Content="保留旧局" IsChecked="{Binding LabyrinthSettings.KeepOldRun, Mode=TwoWay}" />
     <TextBlock Text="默认关闭：再次开始会先放弃旧局，确认结束后新开。开启后保留旧局；已推进且无法续跑时，可手动完成旧局，或关闭此开关重新开始。" TextWrapping="Wrap" FontSize="12" />
     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">

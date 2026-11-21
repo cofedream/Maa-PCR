@@ -9688,7 +9688,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml",
-      "local_sha256": "98d60f4f2b0b5e25ed5039a8818bd006b7923b582008a609af7da7d455d0b509",
+      "local_sha256": "8a1651095daac1cedd680a47e03c9f036f91fd3f2a616adfdab0c237d2e0d46e",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

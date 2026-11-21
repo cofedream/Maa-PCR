@@ -278,7 +278,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled && option.Name == "AlphaModules")
         {
             container.Children.Add(new TextBlock {
-                Text = "勾选本次任务；拖动左侧 ≡ 调整执行顺序。已勾选任务从上到下执行，末尾补领固定最后。",
+                Text = "勾选本次任务，拖动行尾的 ≡ 调整顺序。已勾选任务从上到下执行，末尾补领固定最后。",
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) });
             container.Children.Add(new MFAAvalonia.Pcr.PcrModuleOrderList(viewModel, option, interfaceOption,
                 saveConfigurationAction, UpdateSubOptions));
