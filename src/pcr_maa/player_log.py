@@ -1,4 +1,5 @@
 """Display-only events and bounded player pictures; never an execution receipt."""
+from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -14,6 +15,12 @@ _state = None
 _lock = threading.RLock()
 _output_lock = threading.Lock()
 _private_page = re.compile(r'login|captcha|password|authenticat|profile|playe?r?identity|title', re.I)
+_business_scenes = frozenset({
+    'map', 'shop', 'shop_confirmation', 'shop_complete', 'shop_exit_confirmation',
+    'team', 'battle', 'normal_challenge', 'ex_challenge', 'boss_challenge', 'move_confirmation',
+    'battle_victory', 'battle_defeat', 'boss_summary', 'score_result', 'final_clear', 'chest',
+    'joined', 'item_reward', 'role_reward', 'free_role_reward', 'link_reward', 'relic_reward', 'event',
+})
 
 
 def configure(root, run_id, function, emit=None):
@@ -110,6 +117,12 @@ def observe(receipt, entry, recognition_frames=()):
                 return
             if success and matched:
                 _state['node'] = node
+                if _state['function'] == 'labyrinth' and node == 'LabySceneObserved':
+                    kind = _business_scene_kind(receipt) if entry == node else None
+                    if kind is None:
+                        _state['node'] = None
+                    else:
+                        _remember_business_picture(_state, receipt, entry, recognition_frames, kind)
                 if node in ('LabyClientNoticeCloseOnce', 'LabyClientAnnouncementCloseOnce'):
                     # These recognitions prove the popup before the click changes the screen.
                     _state['startup_picture'] = (node, None)
@@ -141,6 +154,33 @@ def observe(receipt, entry, recognition_frames=()):
         pass
 
 
+def _business_scene_kind(receipt):
+    from .labyrinth.batch import BatchStopped
+    from .labyrinth.scene import scene_readback
+    try:
+        kind = scene_readback(receipt).kind
+    except BatchStopped:
+        return None
+    return kind if kind in _business_scenes else None
+
+
+def _remember_business_picture(state, receipt, entry, recognition_frames, kind):
+    task_id = receipt.get('task_id')
+    latest = next(((row, frame) for row, frame in reversed(recognition_frames)
+                   if row.get('task_id') == task_id and row.get('entry') == entry
+                   and row.get('node') == entry), None)
+    if latest is None:
+        return
+    row, frame = latest
+    reco_id = row.get('reco_id')
+    if row.get('hit') is not True or type(reco_id) is not int or reco_id <= 0 or frame is None or not frame.size:
+        return
+    # The recognition diagnostic owns a detached copy; keep just one frame.
+    timestamp = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    caption = f'黎明界前序业务画面（{kind}，{entry}，task={task_id}，reco={reco_id}，记录于 {timestamp}）'
+    state['business_picture'] = (caption, frame)
+
+
 def _action_output(rows):
     """Keep the command's own words: a failed action often ACKs anyway."""
     try:
@@ -163,24 +203,38 @@ def capture(tasker, outcome):
                 return
             popup = state.get('startup_picture')
             failure = state.get('failure_picture')
+            previous = state.get('business_picture') if outcome != 'complete' else None
+            saved = False
             if popup:
                 source, frame = popup
-                _save_picture(state, frame, outcome, f'弹窗关闭前（{source}）', '未取得弹窗识别原帧')
+                saved = _save_picture(state, frame, outcome, f'弹窗关闭前（{source}）', '未取得弹窗识别原帧')
             if failure and outcome != 'complete':
                 caption, frame = failure
-                _save_picture(state, frame, outcome, caption, '未取得本次识别的失败原帧')
+                saved = _save_picture(state, frame, outcome, caption, '未取得本次识别的失败原帧') or saved
             if popup or failure:
+                if not saved and previous:
+                    caption, frame = previous
+                    _save_picture(state, frame, outcome, caption, '前序业务画面不可用')
                 return
             node = state.get('node')
             frame = None
-            reason = '没有可分享的业务画面'
+            reason = ('本次黎明界运行没有可分享的业务画面' if state['function'] == 'labyrinth'
+                      else '没有可分享的业务画面')
             if node and not _private_page.search(node):
                 try:
                     frame = tasker.controller.cached_image
                     reason = '控制器截图缓存为空'
                 except Exception:
                     reason = '无法读取控制器截图缓存'
-            _save_picture(state, frame, outcome, '', reason)
+            if previous and (frame is None or not frame.size):
+                caption, frame = previous
+                _save_picture(state, frame, outcome, caption, '前序业务画面不可用')
+                return
+            caption = ''
+            if state['function'] == 'labyrinth' and frame is not None and frame.size:
+                timestamp = datetime.now(timezone.utc).isoformat(timespec='seconds')
+                caption = f'收尾读取的控制器缓存画面（供对照，最后节点 {node}，读取于 {timestamp}）'
+            _save_picture(state, frame, outcome, caption, reason)
     except Exception:
         text('截图未保存：缓存画面或诊断目录暂不可用。')
 
@@ -230,5 +284,6 @@ def _save_picture(state, frame, outcome, caption, reason):
         if caption:
             _emit('text', text=f'{caption}：{path.name}')
         _emit('image', name=path.name, sha256=hashlib.sha256(data).hexdigest(), outcome=outcome)
+        return True
     except Exception:
         text('截图未保存：缓存画面或诊断目录暂不可用。')

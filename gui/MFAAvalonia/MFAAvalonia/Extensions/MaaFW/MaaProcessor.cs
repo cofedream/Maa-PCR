@@ -4746,7 +4746,7 @@ public class MaaProcessor
         catch (Exception ex)
         {
             var message = "执行资源退出尚未确认，请重启 Maa-PCR 后继续。原记录已保留。";
-            ViewModel?.FinishPlayerLog("cleanup_unconfirmed");
+            ViewModel?.FinishPlayerLogWithSummary("cleanup_unconfirmed", message);
             DispatcherHelper.PostOnMainThread(() =>
             {
                 if (ViewModel is { } vm)
@@ -4771,10 +4771,13 @@ public class MaaProcessor
             // The command queue owns this cleanup; keep the run busy until exit is proved.
             await Task.Run(() => SetTasker(requireAllStopped: true));
         }
-        if (status == MFATask.MFATaskStatus.FAILED && viewModel is { PcrHasStartError: false })
-            DispatcherHelper.PostOnMainThread(() => viewModel.ShowPcrStartError(feedbackRun, "本次任务未完成，请查看本次实时日志。"));
-        viewModel?.FinishPlayerLog(status == MFATask.MFATaskStatus.SUCCEEDED ? "complete"
-            : status == MFATask.MFATaskStatus.FAILED ? "failed" : "stopped");
+        const string failureMessage = "本次任务未完成，请查看本次实时日志。";
+        var needsFailureMessage = status == MFATask.MFATaskStatus.FAILED && viewModel is { PcrHasStartError: false };
+        if (needsFailureMessage && viewModel != null)
+            DispatcherHelper.PostOnMainThread(() => viewModel.ShowPcrStartError(feedbackRun, failureMessage));
+        viewModel?.FinishPlayerLogWithSummary(status == MFATask.MFATaskStatus.SUCCEEDED ? "complete"
+            : status == MFATask.MFATaskStatus.FAILED ? "failed" : "stopped",
+            needsFailureMessage && string.IsNullOrWhiteSpace(viewModel?.PcrRunSummary) ? failureMessage : null);
         // Finish this run's diagnostics before another run can replace the log.
         EndTaskRun();
     }

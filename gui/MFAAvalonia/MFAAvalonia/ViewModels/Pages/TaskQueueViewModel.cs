@@ -1805,7 +1805,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
             Interlocked.Increment(ref _pcrFeedbackRun);
             PcrRunSummary = "";
             PcrStartError = "";
-            BeginPlayerLog("正在连接设备并获取画面，尚未开始任务。");
+            BeginPlayerLog("正在连接设备并获取画面，尚未开始任务。", source: "connection");
             AddPcrLiveLog($"设备：{device.Name}；ADB 地址：{device.AdbSerial}");
             AddPcrLiveLog($"ADB 程序：{device.AdbPath}");
             log = playerLog;
@@ -1865,6 +1865,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         {
             var endedAt = DateTime.Now;
             var outcome = IsConnected ? "complete" : "failed";
+            var summary = IsConnected ? PcrDiscoveryStatus : $"连接阶段：{connection.DiagnosticStage}。{PcrDiscoveryStatus}";
             if (_isDisposed == 0)
             {
                 if (IsConnected) { PcrRunSummary = PcrDiscoveryStatus; AddPcrLiveLog(PcrDiscoveryStatus); }
@@ -1874,7 +1875,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
             {
                 await Task.Run(() => {
                     log?.CaptureConnectionNativeLog(AppPaths.DataRoot, startedAt, endedAt);
-                    log?.Finish(outcome);
+                    log?.Finish(outcome, summary);
                 });
             }
             catch { /* Diagnostics must not prevent native cleanup. */ }

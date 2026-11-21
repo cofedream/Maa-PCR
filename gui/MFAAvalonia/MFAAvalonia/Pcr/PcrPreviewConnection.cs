@@ -23,6 +23,7 @@ internal sealed class PcrPreviewConnection
     private MaaTasker? previousTasker, previousScreenshotTasker;
     private bool previousCleanupUnconfirmed;
     private bool cancelled, closed;
+    private string diagnosticStage = "准备连接";
 
     internal PcrPreviewConnection(MaaProcessor processor, AdbDeviceInfo device,
         Func<AdbDeviceInfo, MaaController> factory)
@@ -47,9 +48,11 @@ internal sealed class PcrPreviewConnection
             if (!controller.SetOption_ScreenshotUseRawSize(true))
                 throw new InvalidOperationException("Maa 截图选项初始化失败。");
             cancellation.Token.ThrowIfCancellationRequested();
+            Volatile.Write(ref diagnosticStage, "连接 ADB 设备");
             if (controller.LinkStart().Wait() != MaaJobStatus.Succeeded || !controller.IsConnected)
                 throw new InvalidOperationException("Maa 设备连接失败（底层连接未成功）。");
             cancellation.Token.ThrowIfCancellationRequested();
+            Volatile.Write(ref diagnosticStage, "获取设备首帧");
             firstFrame = processor.GetImage(controller);
             if (firstFrame == null || !controller.IsConnected
                 || !firstFrame.TryGetRawData(out var pixels, out var width, out var height, out _)
@@ -60,6 +63,7 @@ internal sealed class PcrPreviewConnection
     }
 
     internal CancellationToken Token => cancellation.Token;
+    internal string DiagnosticStage => Volatile.Read(ref diagnosticStage);
     internal Task WaitAsync(TimeSpan timeout) => preparation.WaitAsync(timeout, cancellation.Token);
 
     internal void Cancel()
@@ -79,6 +83,7 @@ internal sealed class PcrPreviewConnection
             cancellation.Token.ThrowIfCancellationRequested();
             if (!preparation.IsCompletedSuccessfully || cleanup != null || preview == null || firstFrame == null)
                 throw new InvalidOperationException("PCR 预览连接尚未就绪。");
+            Volatile.Write(ref diagnosticStage, "显示设备首帧");
             connected();
             var image = firstFrame;
             firstFrame = null;

@@ -409,6 +409,10 @@ class Batch:
                         outcome=causes[0]['reason']
                     where=', '.join(f"{item['file']}:{item['line']}" for item in frames[-3:])
                     self.emit_log(f'本次停止：{outcome}' + (f'（位置 {where}）' if where else ''))
+                    kind=type(error).__name__
+                    if outcome=='adapter_failed' and re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}',kind):
+                        phase=self.timings.phase[0] if self.timings.phase else '未记录'
+                        self.emit_log(f'黎明界批次异常（阶段 {phase}，异常类型 {kind}）。')
                 finish_timings=getattr(self.port,'finish_timings',None)
                 if callable(finish_timings):finish_timings()
                 result=dict(outcome=outcome,completed=dict(self.completed),batch_complete=outcome=='complete')

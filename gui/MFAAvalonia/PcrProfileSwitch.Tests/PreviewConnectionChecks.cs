@@ -109,11 +109,11 @@ internal static class PreviewConnectionChecks
                 profile + "_connection_error_exposes_feedback");
             export.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
             Require(dialog != null, profile + "_connection_export_window_opens");
-            Require(dialog!.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("连接或任务") == true),
+            Require(dialog!.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(t => t.Text?.Contains("来源：设备连接") == true),
                 profile + "_dialog_describes_connection_scope");
             dialog.GetLogicalDescendants().OfType<Button>().Single(b => (string?)b.Content == "保存日志包")
                 .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Until(() => dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("日志包已准备") == true),
+            Until(() => dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("日志包已保存，包含 0 张截图") == true),
                 profile + "_connection_zip_saved");
             using (var zip = ZipFile.OpenRead(target))
             {
@@ -121,6 +121,12 @@ internal static class PreviewConnectionChecks
                 var text = reader.ReadToEnd();
                 Require(text.Contains(serial) && text.Contains(Path.GetFileName(path)) && text.Contains("尚未开始任务")
                     && text.Contains("底层连接未成功"), profile + "_zip_contains_target_and_failure");
+                using var manifestReader = new StreamReader(zip.GetEntry("manifest.json")!.Open());
+                var manifest = JObject.Parse(manifestReader.ReadToEnd());
+                Require((string?)manifest["source"] == "connection"
+                    && (string?)manifest["outcome"] == "failed"
+                    && ((string?)manifest["summary"])?.Contains("连接 ADB 设备") == true,
+                    profile + "_connection_zip_binds_stage_to_failed_connection");
                 Require(zip.Entries.All(e => !e.FullName.EndsWith(".png")) && new FileInfo(target).Length <= 16 * 1024 * 1024,
                     profile + "_connection_zip_has_no_game_images_and_respects_quota");
             }

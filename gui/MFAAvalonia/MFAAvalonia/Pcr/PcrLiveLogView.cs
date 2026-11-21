@@ -43,7 +43,6 @@ public sealed class PcrLiveLogView : UserControl
         export.Bind(IsEnabledProperty, new Binding(nameof(TaskQueueViewModel.CanExportPlayerLog)));
         tools.Children.Add(export);
         var feedback = Tool("反馈问题", () => ShowExport(true));
-        feedback.Bind(IsVisibleProperty, new Binding(nameof(TaskQueueViewModel.PcrHasStartError)));
         feedback.Bind(IsEnabledProperty, new Binding(nameof(TaskQueueViewModel.CanExportPlayerLog)));
         tools.Children.Add(feedback);
         root.Children.Add(tools);
@@ -79,13 +78,10 @@ public sealed class PcrLiveLogView : UserControl
         PcrPlayerRunLog? log;
         try { log = vm.PlayerLog; } catch { log = null; }
         if (log == null) { vm.AddPcrLiveLog("没有本功能可导出的记录，请先连接设备或运行任务。"); return; }
-        var reason = vm.PcrStartError.Length > 0 ? vm.PcrStartError : vm.PcrRunSummary;
         var status = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var panel = new StackPanel { Spacing = 10, Margin = new Thickness(18) };
-        panel.Children.Add(new TextBlock { Text = $"{log.Title} · 记录 {log.RunId}\n仅导出本功能最近一次连接或任务的记录，ZIP 上限 16 MiB。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
-        var channels = new WrapPanel();
-        panel.Children.Add(channels);
-        panel.Children.Add(new TextBlock { Text = "先保存日志包，再把 ZIP 拖到 GitHub 反馈页或添加到邮件。截图可能含昵称或玩家 ID，请检查勾选的图片。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+        panel.Children.Add(new SelectableTextBlock { Text = log.RunDetails(), TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = "导出本次记录，ZIP 上限 16 MiB。请预览截图，取消勾选含有昵称或玩家 ID 等隐私的图片。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
         var choices = log.Screenshots().Select(path => (Path: path, Box: new CheckBox { Content = Path.GetFileName(path), IsChecked = true })).ToArray();
         foreach (var choice in choices)
         {
@@ -94,9 +90,25 @@ public sealed class PcrLiveLogView : UserControl
             line.Children.Add(Tool("预览截图", () => { try { PcrFeedbackActions.Open(choice.Path); } catch { status.Text = "截图暂时无法打开，可以取消勾选后继续导出。"; } }));
             panel.Children.Add(line);
         }
-        if (choices.Length == 0) panel.Children.Add(new TextBlock { Text = "本次没有可分享的截图，原因见日志。" });
+        if (choices.Length == 0)
+            panel.Children.Add(new TextBlock { Text = log.Source == "connection"
+                ? "这份设备连接记录没有业务截图。" : "本次没有可分享的截图。" });
+        panel.Children.Add(new TextBlock { Text = "复现说明（选填）" });
+        var prompt = log.Source == "connection" ? "模拟器及 Android 版本？在哪一步卡住，界面显示了什么？"
+            : log.Function == "labyrinth" ? "刚才做了什么？看到什么画面？能否复现？若卡在选角，角色加入动画是否开启？"
+            : "刚才做了什么？看到什么画面或提示？原本预期什么？每次都能复现吗？";
+        var notes = new TextBox { Name = "PlayerFeedbackNotes", AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            MinHeight = 74, MaxHeight = 120, MaxLength = PcrPlayerRunLog.FeedbackNoteLimit,
+            Watermark = prompt };
+        Avalonia.Automation.AutomationProperties.SetName(notes, "复现说明（选填）");
+        panel.Children.Add(notes);
+        panel.Children.Add(new TextBlock { Text = "说明会随 ZIP 导出，请删去账号、密码等隐私信息。",
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap });
         string? savedPath = null;
+        string? savedMessage = null;
         string[]? preparedPictures = null;
+        string? preparedNotes = null;
+        long preparedRevision = -1;
         var busy = false;
         async Task<bool> Prepare()
         {
@@ -105,18 +117,29 @@ public sealed class PcrLiveLogView : UserControl
             try
             {
                 var selected = choices.Where(c => c.Box.IsChecked == true).Select(c => c.Path).ToArray();
-                if (savedPath != null && File.Exists(savedPath) && preparedPictures != null && selected.SequenceEqual(preparedPictures)) return true;
+                var explanation = notes.Text;
+                if (savedPath != null && File.Exists(savedPath) && preparedPictures != null
+                    && selected.SequenceEqual(preparedPictures) && explanation == preparedNotes
+                    && log.Revision == preparedRevision)
+                {
+                    status.Text = savedMessage;
+                    return true;
+                }
                 var provider = TopLevel.GetTopLevel(this)?.StorageProvider ?? Instances.StorageProvider;
                 if (provider == null) throw new IOException("文件保存窗口不可用。");
                 var target = await PcrFeedbackActions.PickFile(provider, new FilePickerSaveOptions { Title = "保存本次功能日志",
                     SuggestedFileName = $"Maa-PCR-{log.Function}-{log.RunId[..8]}.zip", DefaultExtension = "zip" });
                 if (target == null) return false;
-                var bytes = await Task.Run(() => log.Export(selected));
+                var (bytes, pictureCount, revision) = await Task.Run(() => log.Export(selected, explanation));
                 await using var output = await target.OpenWriteAsync();
                 output.SetLength(0); await output.WriteAsync(bytes); await output.FlushAsync();
                 savedPath = target.TryGetLocalPath();
                 preparedPictures = selected;
-                status.Text = "日志包已准备，尚未发送。请在 Issue 或邮件中附上 ZIP。";
+                preparedNotes = explanation;
+                preparedRevision = revision;
+                var missing = pictureCount < selected.Length ? "部分所选截图已不可用或超过包大小限制。" : "";
+                savedMessage = $"日志包已保存，包含 {pictureCount} 张截图，尚未发送。{missing}请在 Issue 或邮件中附上 ZIP。";
+                status.Text = savedMessage;
                 return true;
             }
             catch (Exception ex) { status.Text = "日志包准备失败：" + ex.Message; return false; }
@@ -124,8 +147,10 @@ public sealed class PcrLiveLogView : UserControl
         }
         var actions = new WrapPanel { Orientation = Orientation.Horizontal };
         var save = Tool("保存日志包", () => { _ = Prepare(); }); actions.Children.Add(save);
-        channels.Children.Add(Tool("打开 GitHub 反馈页", () => { _ = OpenFeedback(log.GitHubLink(reason)); }));
-        channels.Children.Add(Tool("写反馈邮件", () => { _ = OpenFeedback(log.MailLink(reason)); }));
+        actions.Children.Add(Tool("复制反馈说明", () => { _ = Copy(log.FeedbackText(notes.Text)); }));
+        var channels = new WrapPanel();
+        channels.Children.Add(Tool("打开 GitHub 反馈页", () => { _ = OpenFeedback(log.GitHubLink()); }));
+        channels.Children.Add(Tool("写反馈邮件", () => { _ = OpenFeedback(log.MailLink()); }));
         channels.Children.Add(new SelectableTextBlock { Text = "反馈邮箱：" + PcrPlayerRunLog.FeedbackEmail,
             VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4,0,8,0) });
         channels.Children.Add(Tool("复制反馈邮箱", () => { _ = Copy(PcrPlayerRunLog.FeedbackEmail); }));
@@ -135,7 +160,6 @@ public sealed class PcrLiveLogView : UserControl
             try { PcrFeedbackActions.Open(uri); }
             catch { status.Text = "未能打开浏览器或邮件客户端。请使用下面的复制按钮，并手动附上日志包。"; }
         }
-        actions.Children.Add(Tool("复制反馈说明", () => { _ = Copy(log.FeedbackText(reason)); }));
         actions.Children.Add(Tool("打开日志包位置", () =>
         {
             if (savedPath == null) { status.Text = "请先保存日志包。"; return; }
@@ -152,8 +176,8 @@ public sealed class PcrLiveLogView : UserControl
             }
             catch { status.Text = "复制未完成，请手动复制邮箱：" + PcrPlayerRunLog.FeedbackEmail; }
         }
-        panel.Children.Add(actions); panel.Children.Add(status);
-        var window = new SukiWindow { Title = feedback ? "准备报错反馈" : "导出本次功能日志", Width = 680, Height = 490,
+        panel.Children.Add(actions); panel.Children.Add(channels); panel.Children.Add(status);
+        var window = new SukiWindow { Title = feedback ? "准备报错反馈" : "导出本次功能日志", Width = 680, Height = 580,
             MinWidth = 520, MinHeight = 360, WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = new ScrollViewer { Content = panel } };
         if ((TopLevel.GetTopLevel(this) ?? Instances.TopLevel) is Window owner) window.Show(owner); else window.Show();
