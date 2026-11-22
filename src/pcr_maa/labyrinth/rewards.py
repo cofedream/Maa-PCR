@@ -12,8 +12,9 @@ from .batch import BatchStopped
 from .roles import Context,load_optimizer,configured_optimizer,strategy_value
 from .timing import Timings
 
-# Names directly verified on the private B-server role reward sample.
-ALIASES={'步美(怪盗)':'1215','佩可莉姆(圣诞节)':'1279','优衣(礼服)':'1156','古蕾雅':'1094'}
+# Localized names and exact OCR variants verified on role reward frames.
+ALIASES={'步美(怪盗)':'1215','佩可莉姆(圣诞节)':'1279','优衣(礼服)':'1156','古蕾雅':'1094',
+    '比莉斯塔(超负荷)':'1212'}
 
 def normalized_name(value):
     value=unicodedata.normalize('NFKC',value)
@@ -217,8 +218,10 @@ class MaaRoleReward:
         with guard:clicked=batch.transaction('role_reward_select',fields,send)
         batch.checkpoint()
         if defer_joined:
+            from .opening import INVITATION_TRANSITION_TIMEOUT_SECONDS
             from .scene import MaaSceneRuntime
             runtime=MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings)
+            final_choice=observation.get('remaining')==1
             before=tuple(c.get('character_id') for c in observation['cards'])
             def advanced(value):
                 if value.kind!='role_reward':return True
@@ -230,7 +233,12 @@ class MaaRoleReward:
                 return (tuple(c.get('slot') for c in actual['cards'])==(0,1,2)
                     and current!=before and len(set(before))==len(set(current))==3
                     and all(reward_identity_safe(c) for c in (*observation['cards'],*actual['cards'])))
-            after=runtime.wait_for(batch,{'role_reward','joined','event_animation'},source='role_reward',accept=advanced,timeout=12,reason='role_reward_readback_unknown',acquisition_fields=dict(source='maa',enter_id=enter_id,reward_id=reward_id) if self.characters is not None and observation.get('remaining')==1 else None)
+            # The map can show briefly between reward rounds or before JOINED.
+            after=runtime.wait_for(batch,{'role_reward','joined','event_animation'},
+                source={'role_reward','map'},accept=advanced,
+                timeout=INVITATION_TRANSITION_TIMEOUT_SECONDS if final_choice else 12,
+                reason='role_reward_readback_unknown',
+                acquisition_fields=dict(source='maa',enter_id=enter_id,reward_id=reward_id) if final_choice else None)
             return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,roles_pending=[selected.character_id],selection_pending=True,inventory_added=False,following_scene=after,native=after.native,input_native=clicked['input_native']),**fields)
         with joined_guard(self.tasker,selected):
             observation,joined=self.characters.read(batch,'joined',stable=False,expected_role=selected.character_id)

@@ -2,6 +2,8 @@
 from pathlib import Path
 import json
 import pytest
+from pcr_maa import native
+from pcr_maa.labyrinth import autoplay
 from pcr_maa.labyrinth.shop_execution import confirmation_terms
 from test_labyrinth_shop_execution import setup,finish,frame,offline
 
@@ -62,7 +64,7 @@ def test_actual114_refresh_fresh_guard_checks_price_before_one_saved_image_click
 
 
 @pytest.mark.parametrize('balance',[2860,2861])
-def test_actual_quote_then_refresh_ack_needs_independent_balance_readback(tmp_path,balance):
+def test_actual_quote_then_refresh_ack_needs_independent_balance_readback(tmp_path,balance,monkeypatch):
     if not SCREEN.is_file():pytest.skip('private actual114 refresh evidence excluded from public source')
     path,controller,tasker,token,shop,batch,stamp=setup(tmp_path,'actual114-following',[frame(SCREEN)])
     try:
@@ -70,17 +72,21 @@ def test_actual_quote_then_refresh_ack_needs_independent_balance_readback(tmp_pa
         # Actual quote, simulated ACK and successor; no claim of real refresh spending.
         calls=[]
         shop._probe_state=lambda *a:(dialog,{})
-        shop._wait_state=lambda *a:(dict(state='shop',balance=balance,items=[]),{})
+        shop._capture=lambda:(dict(state='shop',balance=balance,items=[]),{})
         def ack(state,*a,**kw):
             assert batch.journal.events()[-1]['state']=='in_flight'
             calls.append(state);return dict(native_ok=True)
         shop._input=ack
         before=dict(balance=3160,refresh_allowed=True,words={'Refresh':[dict(text='用300更新',box=[1,1,10,10])]})
-        if balance==2860:
-            assert shop._refresh(batch,114,30601,before,0)['refresh_verified']
-        else:
-            with pytest.raises(BatchStopped,match='shop_refresh_result_unknown'):
-                shop._refresh(batch,114,30601,before,0)
+        with monkeypatch.context() as clock_patch:
+            clock=[native.active_now()]
+            clock_patch.setattr(native,'active_now',lambda:clock[0])
+            clock_patch.setattr(autoplay,'_poll_pause',lambda *a:clock.__setitem__(0,native.RUN_DEADLINE.get()))
+            if balance==2860:
+                assert shop._refresh(batch,114,30601,before,0)['refresh_verified']
+            else:
+                with pytest.raises(BatchStopped,match='shop_refresh_result_unknown'):
+                    shop._refresh(batch,114,30601,before,0)
         settled=[e for e in batch.journal.events() if e['state']=='settled']
         assert [e['operation'] for e in settled]==['shop_refresh_proposal','shop_refresh_purchase']
         assert len({e['operation_id'] for e in settled})==2

@@ -197,6 +197,75 @@ def test_unknown_page_after_refresh_click_still_blocks_without_replay():
     assert [e['operation'] for e in batch.journal.events() if e['state'] == 'settled'] == ['shop_refresh_proposal']
 
 
+@pytest.mark.parametrize('obstruction', ['connection', 'DialogTitle', 'Confirm'])
+def test_shop_behind_connection_or_partial_confirmation_cannot_authorize_input(obstruction):
+    words = {
+        'Currency': dict(text='持有阿尔法金币', box=[580, 630, 165, 24], score=.99),
+        'Balance': dict(text='7860', box=[840, 630, 45, 24], score=.99),
+    }
+    overlays = {
+        'connection': dict(text='正在进行数据连接', box=[1000, 25, 240, 50], score=.99),
+        'DialogTitle': dict(text='更新确认', box=[540, 110, 160, 28], score=.99),
+        'Confirm': dict(text='确认', box=[800, 500, 60, 28], score=.99),
+    }
+
+    def recognize(name, *args):
+        key = 'connection' if name == 'HomeDataConnection' else name.removeprefix('LabyShopRead_')
+        value = words.get(key)
+        return NS(hit=value is not None, reco_id=1, raw_detail={'filtered': [value]})
+
+    context = NS(run_recognition=recognize)
+    argv = NS(image=np.zeros((720, 1280, 3), dtype=np.uint8), custom_recognition_param='{"state":"shop"}')
+    recognizer = shops.ShopRecognition()
+    assert recognizer.analyze(context, argv).box is not None
+    words[obstruction] = overlays[obstruction]
+    blocked = recognizer.analyze(context, argv)
+    assert blocked.box is None
+    assert blocked.detail['reason'] == ('shop_connecting' if obstruction == 'connection' else 'shop_dialog_incomplete')
+
+
+@pytest.mark.parametrize('outcome', ['deducted', 'wrong_balance', 'stopped'])
+def test_refresh_waits_for_post_confirm_balance_without_resending(monkeypatch, outcome):
+    from pcr_maa.labyrinth import autoplay
+
+    batch, stamp = harness()
+    shop = shops.MaaShop.__new__(shops.MaaShop)
+    shop.stamp, shop.tasker = stamp, NS()
+    before = shelf(balance=7860)
+    dialog = dict(state='refresh_confirmation',
+        words={'DialogBody': [word('要消耗阿尔法金币×300更新商店')], 'Confirm': [word('确认')]})
+    clock = [100.]
+    monkeypatch.setattr(shops.native, 'active_now', lambda: clock[0])
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *a: clock.__setitem__(0, clock[0] + 1))
+    if outcome == 'stopped':
+        batch.stopped = lambda: clock[0] >= 102.
+    wrong = shelf(balance=7561)
+    frames = iter([None, before, wrong, shelf(balance=7560) if outcome == 'deducted' else wrong])
+    shop._probe_state = lambda *a: (dialog, {})
+
+    def capture():
+        value = next(frames, wrong)
+        if value is None:
+            raise BatchStopped('shop_readback_unknown')
+        return value, {'at': clock[0]}
+
+    shop._capture = capture
+    calls = []
+    shop._input = lambda state, *a, **k: calls.append(state) or {'native_ok': True}
+    if outcome == 'deducted':
+        result = shop._refresh(batch, 1, 30601, before, 0)
+        assert result['refresh_verified'] is True
+        assert result['native'] == {'at': 103.}
+    else:
+        reason = 'stopped' if outcome == 'stopped' else 'shop_refresh_result_unknown'
+        with pytest.raises(BatchStopped, match=f'^{reason}$'):
+            shop._refresh(batch, 1, 30601, before, 0)
+        assert clock[0] == (102. if outcome == 'stopped' else 130.)
+    assert calls == ['refresh', 'refresh_confirmation']
+    settled = [event['operation'] for event in batch.journal.events() if event['state'] == 'settled']
+    assert settled == ['shop_refresh_proposal', 'shop_refresh_purchase']
+
+
 def test_late_confirmation_dialog_after_budget_still_completes():
     batch, stamp = harness()
     shop = shops.MaaShop.__new__(shops.MaaShop)
@@ -207,8 +276,8 @@ def test_late_confirmation_dialog_after_budget_still_completes():
     calls = []
     shop._input = lambda state, *a, **k: calls.append(state) or {'native_ok': True}
     shop._probe_state = lambda *a: (None, None)
-    shop._capture = lambda: (dialog, {})
-    shop._wait_state = lambda *a: (dict(state='shop', balance=4190, items=[]), {})
+    reads = iter([dialog, shelf(balance=4190)])
+    shop._capture = lambda: (next(reads), {})
     result = shop._refresh(batch, 1, 50701, before, 2)
     assert result['refresh_verified'] is True and calls == ['refresh', 'refresh_confirmation']
 

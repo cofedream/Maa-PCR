@@ -21,3 +21,12 @@ def test_long_reward_name_fits_its_own_card(slot, name_x):
     for x in (left - 1, left + width - 230):
         with pytest.raises(BatchStopped, match='role_reward_names_unknown'):
             role_offer_from_words(slot, [dict(word, box=[x, 463, 231, 27])], optimizer)
+
+
+def test_confirmed_reward_ocr_alias_requires_the_variant_suffix():
+    optimizer = load_optimizer()
+    name = dict(box=[944, 449, 129, 27], text='比莉斯塔', score=.991)
+    suffix = dict(box=[958, 478, 102, 25], text='（超负荷）', score=.992)
+    assert role_offer_from_words(2, [name, suffix], optimizer).character_id == '1212'
+    with pytest.raises(BatchStopped, match='role_reward_profile_unknown'):
+        role_offer_from_words(2, [name], optimizer)

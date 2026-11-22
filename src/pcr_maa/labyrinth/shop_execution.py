@@ -284,6 +284,9 @@ class ShopRecognition(CustomRecognition):
     def analyze(self,context,argv):
         if self.stopped is not None and self.stopped():return self.AnalyzeResult(None,dict(status='unknown',reason='stopped'))
         context = same_frame_context(context, argv.image)
+        connection=_primitive(context.run_recognition('HomeDataConnection',argv.image),'DATA_CONNECTION')
+        if connection is not None and connection['score']>=.8:
+            return self.AnalyzeResult(None,dict(status='unknown',reason='shop_connecting'))
         def read(key):
             return _words(context.run_recognition('LabyShopRead_'+key,argv.image),key)
         words={key:read(key) for key in ('DialogTitle','DialogBody','Confirm')}
@@ -291,6 +294,8 @@ class ShopRecognition(CustomRecognition):
         body=_normalized(_text(words['DialogBody']))
         refresh_dialog=title in ('更新确认','刷新确认','确认') and ('更新' in body or '刷新' in body)
         state='refresh_confirmation' if refresh_dialog else 'complete' if title in ('购买完成','购买完毕') else 'confirmation' if title=='购买确认' else 'shop'
+        if state=='shop' and (words['DialogTitle'] or words['Confirm']):
+            return self.AnalyzeResult(None,dict(status='unknown',reason='shop_dialog_incomplete',words=words))
         param=json.loads(argv.custom_recognition_param or '{}')
         guard=param if type(param) is dict else {}
         dialog_evidence={}
@@ -415,15 +420,14 @@ class MaaShop:
         with self.timings.measure('page_wait'):receipt=native.run(self.tasker,NODE)
         return _readback(receipt),receipt
 
-    def _wait_state(self,batch,expected,*,accept=None):
-        import time
+    def _wait_state(self,batch,expected,*,accept=None,reason='shop_readback_unknown'):
         from .autoplay import _poll_pause
         deadline=min(native.RUN_DEADLINE.get(),native.active_now()+30)
         token=native.RUN_DEADLINE.set(deadline)
         try:
             while True:
                 batch.checkpoint()
-                if native.active_now()>=deadline:raise BatchStopped('shop_readback_unknown')
+                if native.active_now()>=deadline:raise BatchStopped(reason)
                 try:current,receipt=self._capture()
                 except BatchStopped as error:
                     if error.args!=('shop_readback_unknown',):raise
@@ -431,12 +435,12 @@ class MaaShop:
                     batch.checkpoint()
                     if (native.active_now()<deadline and current['state']==expected
                             and (accept is None or accept(current))):return current,receipt
-                _poll_pause(self.tasker,batch,'LabyShopPollSpacing','shop_readback_unknown')
+                _poll_pause(self.tasker,batch,'LabyShopPollSpacing',reason)
         except RuntimeError as error:
             if error.args not in (('Native task exceeded 90 seconds or inspection deadline',),
                     ('Inspection deadline exceeded before task input',),
                     ('Context deadline exceeded after synchronous return; outcome unknown',)):raise
-            batch.checkpoint();raise BatchStopped('shop_readback_unknown') from error
+            batch.checkpoint();raise BatchStopped(reason) from error
         finally:native.RUN_DEADLINE.reset(token)
 
     def _probe_state(self,batch,expected,*,budget=REFRESH_CONFIRM_BUDGET):
@@ -583,8 +587,10 @@ class MaaShop:
                 sent=self._input('refresh_confirmation',dialog['words']['Confirm'][0]['box'],price=price)
                 return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
             clicked=batch.transaction('shop_refresh_purchase',fields,confirm)
-            result,receipt=self._wait_state(batch,'shop')
-            if result['balance']!=current['balance']-price:raise BatchStopped('shop_refresh_result_unknown')
+            expected_balance=current['balance']-price
+            # The shelf can become visible before the server updates the balance.
+            _,receipt=self._wait_state(batch,'shop',accept=lambda value:value['balance']==expected_balance,
+                reason='shop_refresh_result_unknown')
             return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,refresh_verified=True,native=receipt,input_native=clicked['input_native']),**fields)
         # The click was sent, but the game never opened the confirmation dialog.
         # This is the per-shop refresh cap / a locked control on live builds: the
@@ -676,8 +682,7 @@ class MaaShop:
                 or value.get('stock_state')!='unknown')
         try:
             for _ in range(100):
-                batch.checkpoint();current,receipt=self._capture()
-                if current['state']!='shop':raise BatchStopped('shop_initial_page_unknown')
+                current,receipt=self._wait_state(batch,'shop')
                 if not buy_relics or (area==4 and not (final_shop or refresh_permitted)):break
                 if not ready(current):current,receipt=self._wait_state(batch,'shop',accept=ready)
                 items=[dict(i,relic=Relic(**i['relic'])) if i['kind']=='relic' else dict(i) for i in current['items']]

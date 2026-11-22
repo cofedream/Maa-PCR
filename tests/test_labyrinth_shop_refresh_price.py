@@ -26,7 +26,7 @@ def test_refresh_uses_escalated_600_quote_for_intent_dialog_and_balance():
  before=dict(balance=5540,refresh_allowed=True,words={'Refresh':[word('用600更新')]})
  dialog=dict(state='refresh_confirmation',words={'DialogBody':[word('要消耗阿尔法金币×600更新商店')],'Confirm':[word('确认')]})
  calls=[];shop._probe_state=lambda *a:(dialog,{})
- shop._wait_state=lambda *a:(dict(state='shop',balance=4940,items=[]),{})
+ shop._capture=lambda:(dict(state='shop',balance=4940,items=[]),{})
  shop._input=lambda state,*a,**k:calls.append((state,k.get('price'))) or {'native_ok':True}
  result=shop._refresh(batch,1,50701,before,1)
  assert result['refresh_verified'] is True and result['price']==600

@@ -363,15 +363,32 @@ def _check_receipt(tasker):
         raise RuntimeError('Receipt owner stopped or blocked; outcome unknown, no retry')
 
 
+def _checked_sdk_nodes(tasker, detail, check):
+    # The SDK path still reads the completed job's IDs under the same Owner.
+    for node_id in detail.node_id_list:
+        if type(node_id) is not int or node_id <= 0:
+            raise RuntimeError('Invalid native node identity; no retry')
+        check()
+        node = tasker.get_node_detail(node_id)
+        check()
+        if node is None or node.node_id != node_id:
+            raise RuntimeError('Missing native node detail; no retry')
+        yield node
+    check()
+
+
 def _receipt(detail, *, native_ok, tasker_inited, task_id, tasker=None, check=None):
-    # Failed tasks keep the full SDK evidence path; only successful receipts
-    # omit Python image decoding. FailureDiagnostics still fetches original frames.
-    if native_ok and type(detail) is TaskDetail and type(tasker) is Tasker:
+    nodes = None
+    checked = native_ok and type(detail) is TaskDetail and type(tasker) is Tasker
+    if checked:
         from .recognition_metadata import read_receipt_nodes
         nodes = read_receipt_nodes(tasker, detail, check=check)
-    else:
+    if nodes is None:
+        # Unverifiable installation metadata disables the optimization before
+        # reading. This uses the same job's SDK details without another dispatch.
+        sdk_nodes = _checked_sdk_nodes(tasker, detail, check) if checked else (detail.nodes if detail else [])
         nodes = []
-        for node in detail.nodes if detail else []:
+        for node in sdk_nodes:
             nodes.append({"name": node.name, "completed": node.completed,
                           "action": {"name": node.action.name, "success": node.action.success,
                                      "raw": node.action.raw_detail} if node.action else None,

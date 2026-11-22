@@ -70,7 +70,7 @@ def test_polling_clock_keeps_stop_and_caller_deadline(monkeypatch, deadline, sto
     ('购买确认', '购买护珠消耗阿尔法金币2700', {'price': 2850}, False),
     ('购买确认', '购买护珠', {}, False),
     ('购买确认', '购买护珠消耗阿尔法金币2850 消耗阿尔法金币2700', {}, False),
-    ('确认', '购买护珠消耗阿尔法金币2850', {}, False),
+    ('确认', '购买护珠消耗阿尔法金币2850', {}, True),
 ])
 def test_shop_reads_shelf_on_incomplete_or_changed_quote(title, body, guard, skip_shelf):
     seen = []
@@ -87,8 +87,12 @@ def test_shop_reads_shelf_on_incomplete_or_changed_quote(title, body, guard, ski
               custom_recognition_param=json.dumps(guard))
     result = shop_execution.ShopRecognition().analyze(NS(run_recognition=recognize), argv)
     if skip_shelf:
-        assert seen == ['DialogTitle', 'DialogBody', 'Confirm'] and result.box is not None
+        assert seen == ['HomeDataConnection', 'DialogTitle', 'DialogBody', 'Confirm']
+        if title == '确认':
+            assert result.box is None and result.detail['reason'] == 'shop_dialog_incomplete'
+        else:
+            assert result.box is not None
     else:
-        assert set(seen) == set(shop_execution._READS)
+        assert set(seen) == {'HomeDataConnection', *shop_execution._READS}
         if guard:
             assert result.box is None

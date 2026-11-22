@@ -3,13 +3,13 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from pcr_maa import native
+from pcr_maa import native, recognition_metadata
 from pcr_maa.labyrinth import app_version
 from pcr_maa.labyrinth.batch import Batch, BatchStopped
 from pcr_maa.labyrinth.game_port import MaaGamePort
 from pcr_maa.labyrinth.snapshots import OpeningSnapshot
 from pcr_maa.preset_execution import Journal
-from test_labyrinth_restart_policy import Port, request
+from test_labyrinth_restart_policy import Port, request as sample_request
 
 PACKAGE = 'com.bilibili.priconne'
 COMPONENT = PACKAGE + '/com.bilibili.permission.PermissionActivity'
@@ -30,7 +30,7 @@ def drive(monkeypatch, tmp_path, *, brief=BRIEF, output=STARTED):
     binding = Port.binding
     port = Port(169)
     port.binding = binding
-    batch = Batch(request().settings, port, journal, binding)
+    batch = Batch(sample_request().settings, port, journal, binding)
     snapshot = OpeningSnapshot(binding.account_id, 169, 1, 1, ())
     nodes, calls = {}, []
     tasker = NS(stopping=False, controller=NS(),
@@ -96,3 +96,60 @@ def test_an_unresolvable_launcher_stops_before_any_input(monkeypatch, tmp_path):
         with pytest.raises(BatchStopped, match='^game_port_launch_component_unknown$'):
             game._restart_client(batch, snapshot)
     assert calls == [] and nodes == {} and journal.events() == []
+
+
+@pytest.fixture(params=[(), ('5.13.0', '5.16.1')], ids=['missing', 'conflicting'])
+def restart_with_sdk(monkeypatch, tmp_path, request):
+    import numpy as np
+    from pcr_maa.replay import SavedImages
+
+    class Controller(SavedImages):
+        def stop_app(self, package):
+            calls.append(('stop', package))
+            return package == PACKAGE
+
+        def shell(self, command, timeout):
+            if command.startswith('cmd package resolve-activity'):
+                return BRIEF
+            calls.append(('start', command))
+            return STARTED if command == 'am start -W -n ' + COMPONENT else None
+
+    monkeypatch.setattr(recognition_metadata, 'distributions',
+        lambda *, name: [NS(version=version) for version in request.param])
+    recognition_metadata._api.cache_clear()
+    calls = []
+    journal = Journal(tmp_path / 'ledger')
+    port = Port(169)
+    batch = Batch(sample_request().settings, port, journal, port.binding)
+    snapshot = OpeningSnapshot(port.binding.account_id, 169, 1, 1, ())
+    controller = Controller([[np.zeros((720, 1280, 3), dtype=np.uint8)]])
+    tasker = native.bind(native.load_resource(cpu_only=True), controller)
+    game = MaaGamePort(tasker, port.stamp)
+    game._active_creation_oid = 'c' * 32
+    game.session = NS(_entry=lambda batch, recovery: ('title', {'native': 1}))
+    try:
+        yield game, batch, journal, snapshot, calls
+    finally:
+        recognition_metadata._api.cache_clear()
+        assert native.stop_tasker(tasker)['idle']
+
+
+def test_restart_reads_real_sdk_receipts_with_unusable_package_metadata(restart_with_sdk):
+    game, batch, journal, snapshot, calls = restart_with_sdk
+    with journal.locked():
+        result = game._restart_client(batch, snapshot)
+    assert calls == [('stop', PACKAGE), ('start', 'am start -W -n ' + COMPONENT)]
+    assert result['client_ready_verified'] is True
+    assert [event['operation'] for event in journal.events() if event['state'] == 'settled'] == [
+        'client_stop_after_protocol', 'client_start_after_protocol']
+
+
+def test_restart_does_not_start_when_sdk_stop_action_receipt_is_missing(restart_with_sdk, monkeypatch):
+    game, batch, journal, snapshot, calls = restart_with_sdk
+    monkeypatch.setattr(type(game.tasker), 'get_action_detail', lambda tasker, action_id: None)
+    with journal.locked():
+        with pytest.raises(BatchStopped, match='^game_port_restart_input_unknown$'):
+            game._restart_client(batch, snapshot)
+    assert calls == [('stop', PACKAGE)]
+    assert journal.events()[-1]['operation'] == 'client_stop_after_protocol'
+    assert journal.events()[-1]['state'] == 'in_flight'

@@ -38,9 +38,34 @@ def test_metadata_error_does_not_read_sdk_nodes_or_return_partial_receipt(monkey
         raise RuntimeError('disconnected')
     monkeypatch.setattr(recognition_metadata, 'read_receipt_nodes', fail)
     monkeypatch.setattr(TaskDetail, 'nodes', property(lambda self: pytest.fail('no fallback')))
+    monkeypatch.setattr(Tasker, 'get_node_detail', lambda *args: pytest.fail('no fallback'))
     with pytest.raises(RuntimeError, match='disconnected'):
         native._receipt(detail, native_ok=True, tasker_inited=True, task_id=17,
                         tasker=owner(), check=lambda: None)
+
+
+@pytest.mark.parametrize('state', ['missing', 'wrong_id', 'stopped'])
+def test_regular_sdk_read_of_successful_job_rejects_incomplete_receipt(monkeypatch, state):
+    detail = TaskDetail(17, 'Read', [101, 102], None)
+    seen = []
+    monkeypatch.setattr(recognition_metadata, '_api', lambda: None)
+
+    def check():
+        if state == 'stopped' and seen:
+            raise RuntimeError('Receipt owner stopped')
+
+    def get_node_detail(tasker, node_id):
+        seen.append(node_id)
+        if state == 'missing' and node_id == 102:
+            return None
+        return SimpleNamespace(node_id=999 if node_id == 102 else node_id,
+                               name='Read', completed=True, recognition=None, action=None)
+
+    monkeypatch.setattr(Tasker, 'get_node_detail', get_node_detail)
+    with pytest.raises(RuntimeError, match='Missing native node detail|Receipt owner stopped'):
+        native._receipt(detail, native_ok=True, tasker_inited=True, task_id=17,
+                        tasker=owner(), check=check)
+    assert seen == ([101] if state == 'stopped' else [101, 102])
 
 
 def test_failed_task_retains_full_sdk_receipt_path(monkeypatch):
