@@ -116,27 +116,35 @@ def test_version_drift_leaves_optimized_reader_unavailable(monkeypatch):
         metadata._api.cache_clear()
 
 
+_PATH_MARKER = object()
+
+
 @pytest.mark.parametrize(('loaded', 'versions', 'message'), [
     ('v5.16.1', (), 'DLL v5.16.1，包版本 无，缺少有效的包版本元数据'),
     ('v5.16.1', (None,), 'DLL v5.16.1，包版本 无，缺少有效的包版本元数据'),
     ('v5.16.1', ('5.13.0', '5.16.1'), 'DLL v5.16.1，包版本 5.13.0、5.16.1，发现多个包版本'),
     ('v5.16.1', ('5.13.0',), 'DLL v5.16.1，包版本 5.13.0，DLL 与包版本不一致'),
-    ('v5.16.1', ('5.16.1', 'C:/Users/player/token=private'),
+    ('v5.16.1', ('5.16.1', _PATH_MARKER),
      'DLL v5.16.1，包版本 5.16.1，包元数据含无效版本字段'),
-    ('C:/Users/player/token=private', ('5.16.1',), 'DLL 未知，包版本 5.16.1，DLL 版本不受支持'),
-    ('v5.16.1', PermissionError('C:/Users/player/token=private'),
+    (_PATH_MARKER, ('5.16.1',), 'DLL 未知，包版本 5.16.1，DLL 版本不受支持'),
+    ('v5.16.1', PermissionError,
      'DLL v5.16.1，包版本 未知，包元数据无法读取'),
     ('v5.16.1', ('5.16.1', None), None),
 ])
 def test_package_metadata_logs_only_sanitized_fallback_reason(monkeypatch, tmp_path, loaded, versions, message):
     rows = []
     player_log.configure(tmp_path, 'b' * 32, 'labyrinth', rows.append)
-    monkeypatch.setattr(Library, 'version', lambda: loaded)
+    unexpected_value = str(tmp_path / 'unexpected-metadata')
+
+    def version(value):
+        return unexpected_value if value is _PATH_MARKER else value
+
+    monkeypatch.setattr(Library, 'version', lambda: version(loaded))
 
     def packages(*, name):
-        if isinstance(versions, OSError):
-            raise versions
-        return [SimpleNamespace(version=version) for version in versions]
+        if versions is PermissionError:
+            raise PermissionError(unexpected_value)
+        return [SimpleNamespace(version=version(value)) for value in versions]
 
     monkeypatch.setattr(metadata, 'distributions', packages)
     metadata._api.cache_clear()
