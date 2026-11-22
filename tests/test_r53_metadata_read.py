@@ -116,6 +116,40 @@ def test_version_drift_leaves_optimized_reader_unavailable(monkeypatch):
         metadata._api.cache_clear()
 
 
+def test_receipt_reader_repairs_stale_metadata_left_by_an_old_updater(monkeypatch, tmp_path):
+    from importlib.metadata import distributions
+
+    from pcr_maa import player_maintenance
+    from test_player_update import encode, manifest
+
+    site = tmp_path / 'runtime/python/Lib/site-packages'
+    current = site / 'maafw-5.16.1.dist-info/METADATA'
+    dll = site / 'maa/bin/MaaFramework.dll'
+    legacy = site / 'maafw-5.13.0.dist-info/METADATA'
+    managed = {current: b'Name: MaaFw\nVersion: 5.16.1\n', dll: b'synthetic DLL'}
+    legacy_contents = b'Name: MaaFw\nVersion: 5.13.0\n'
+    for path, data in {**managed, legacy: legacy_contents}.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    entries = {path.relative_to(tmp_path).as_posix(): data for path, data in managed.items()}
+    (tmp_path / player_maintenance.MANIFEST).write_bytes(encode(manifest(entries, 8)))
+
+    monkeypatch.setattr(metadata.sys, 'executable', str(site.parents[1] / 'python.exe'))
+    monkeypatch.setattr(metadata, 'distributions', lambda *, name: distributions(name=name, path=[str(site)]))
+    monkeypatch.setattr(Library, 'version', lambda: 'v5.16.1')
+    framework = object()
+    monkeypatch.setattr(Library, 'framework', lambda: framework)
+    metadata._api.cache_clear()
+    try:
+        assert metadata._api() is framework
+    finally:
+        metadata._api.cache_clear()
+
+    assert not legacy.exists()
+    backups = (tmp_path / '.runtime/player-maintenance').glob('maafw-5.13.0-METADATA-*.bak')
+    assert [path.read_bytes() for path in backups] == [legacy_contents]
+
+
 _PATH_MARKER = object()
 
 
