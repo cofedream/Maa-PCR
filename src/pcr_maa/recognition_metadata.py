@@ -1,8 +1,10 @@
 """Image-free receipt fields for supported Maa bindings, never image evidence."""
 import ctypes
-import json
 from functools import lru_cache
 from importlib.metadata import distributions
+import json
+from pathlib import Path
+import sys
 
 from maa.buffer import RectBuffer, StringBuffer
 from maa.define import MaaActId, MaaBool, MaaNodeId, MaaRecoId, TaskDetail
@@ -10,13 +12,24 @@ from maa.library import Library
 from maa.tasker import Tasker
 
 
+def _maafw_versions():
+    # An in-place update can leave an old dist-info directory without METADATA.
+    return {value.removeprefix('v') for package in distributions(name='maafw')
+            if (value := package.version)}
+
+
 def supports_metadata_binding():
     loaded = Library.version()
     if loaded not in ('v5.13.0', 'v5.16.1'):
         return False
-    # An in-place update can leave an old dist-info directory without METADATA.
-    versions = {value.removeprefix('v') for package in distributions(name='maafw')
-                if (value := package.version)}
+    versions = _maafw_versions()
+    if loaded == 'v5.16.1' and versions == {'5.13.0', '5.16.1'}:
+        python = Path(sys.executable).resolve().parent
+        if python.name.casefold() == 'python' and python.parent.name.casefold() == 'runtime':
+            # The first upgrade to this release is performed by the older updater.
+            from .player_maintenance import repair_legacy_maafw_metadata
+            repair_legacy_maafw_metadata(python.parent.parent)
+            versions = _maafw_versions()
     return versions == {loaded[1:]}
 
 
