@@ -584,7 +584,8 @@ def unresolved_observation_history(journal, game_day, device):
         op = event.get('operation')
         require(isinstance(op, str) and (op in ('enter', 'onekey', 'dungeon_confirm',
             'dungeon_finish', 'dungeon_result', 'mana_confirm', 'mana_skip_finish', 'mana_result', 'exp_confirm',
-            'exp_skip_finish', 'exp_result', 'like_result', 'item_result', 'close')
+            'exp_skip_finish', 'mana_max_exp_dismiss', 'exp_max_exp_dismiss',
+            'exp_result', 'like_result', 'item_result', 'close')
             or re.fullmatch('(up|down):([0-9]|1[0-9]|2[0-3])', op)),
             'unresolved_action_scope_invalid')
         require(isinstance(event.get('image_sha256'), str)

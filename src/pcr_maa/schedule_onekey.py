@@ -686,7 +686,8 @@ def schedule_onekey(tasker=None, *, execute=False, game_day=None, authorizations
             report['native_input_state'] = 'unknown'
             receipt = run('OneKeyDo_' + base, reset_hits=(
                 ('OneKeyInput_' + base, 'OneKeySkipResultReady')
-                if base in ('mana_skip_finish', 'exp_skip_finish') else ()))
+                if base in ('mana_skip_finish', 'exp_skip_finish') else
+                ('OneKeyInput_' + base,) if base in ('mana_max_exp_dismiss', 'exp_max_exp_dismiss') else ()))
             result_already_ready = (base in ('mana_skip_finish', 'exp_skip_finish')
                 and completed(receipt, 'OneKeySkipResultReady')
                 and (reader.last or {}).get('state') == 'sweep_result'

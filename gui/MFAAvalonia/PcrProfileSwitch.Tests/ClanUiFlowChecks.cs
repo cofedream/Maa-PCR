@@ -29,6 +29,13 @@ internal static class ClanUiFlowChecks
         Check(view.ExecutionMode == PcrClanDailyExecution.Simulation && !formal.IsVisible && !File.Exists(modePath),
             "first_open_defaults_to_simulation_without_writing_mode");
         Check(view.ExecutionConfirmationForStart == null, "empty_selection_cannot_start");
+        var selectionSummary = Field<TextBlock>(view, "selectionSummary");
+        var fields = Field<Dictionary<string, TextBox>>(view, "fields");
+        Check(selectionSummary.Text == "尚未选择作业。", "empty_job_shows_single_prompt");
+        fields["boss"].Text = "4";
+        Check(selectionSummary.Text!.Contains("BOSS 4"), "partial_job_shows_entered_target");
+        fields["boss"].Text = "";
+        Check(selectionSummary.Text == "尚未选择作业。", "clearing_last_field_restores_empty_prompt");
         var calibration = Field<TextBlock>(view, "calibrationSummary").Text ?? "";
         Check(new[] { "模拟战", "不可用", "缺失" }.All(calibration.Contains)
             && !calibration.Contains("正式三刀") && !calibration.Contains("补偿刀"),
@@ -120,9 +127,8 @@ internal static class ClanUiFlowChecks
         Check(image.Source != null && preview.Source != null, "expanding_source_decodes_requested_images");
         source.IsExpanded = false;
         Check(image.Source == null && preview.Source == null, "collapsing_source_releases_images");
-        var fields = Field<Dictionary<string, TextBox>>(view, "fields");
         fields["boss"].Text = "4"; fields["team_label"].Text = "修改后的队伍";
-        var summary = Field<TextBlock>(view, "selectionSummary").Text ?? "";
+        var summary = selectionSummary.Text ?? "";
         Check(summary.Contains("BOSS 4") && summary.Contains("修改后的队伍"), "editing_target_updates_first_screen_summary");
 
         var flow = (StackPanel)((ScrollViewer)view.Content!).Content!;

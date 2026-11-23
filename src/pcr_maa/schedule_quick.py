@@ -24,6 +24,8 @@ INPUTS = {
     'OneKeyQuickDungeonConfirm': ([785, 493], 1),
     'OneKeyQuickManaConfirm': ([785, 493], 1),
     'OneKeyQuickExpConfirm': ([785, 493], 1),
+    'OneKeyQuickManaMaxExpDismiss': ([580, 460, 120, 75], 1),
+    'OneKeyQuickExpMaxExpDismiss': ([580, 460, 120, 75], 1),
     'OneKeyQuickManaSkipFinish': ([502, 608, 275, 60], 1),
     'OneKeyQuickExpSkipFinish': ([502, 608, 275, 60], 1),
     'OneKeyQuickDungeonFinish': ([640, 640], 1),
@@ -121,7 +123,9 @@ def verified(result, *, game_day, device, authorizations, invocation_id=None):
                 if (node['completed'] is not True or action.get('name') != name
                         or action.get('success') is not True):
                     return False
-                if skip_awaiting_result and name != 'OneKeyQuickSweepResult':
+                exploration_popup = name in ('OneKeyQuickManaSkipFinish', 'OneKeyQuickExpSkipFinish',
+                                             'OneKeyQuickManaMaxExpDismiss', 'OneKeyQuickExpMaxExpDismiss')
+                if skip_awaiting_result and name != 'OneKeyQuickSweepResult' and not exploration_popup:
                     return False
                 if name not in INPUTS:
                     if name not in passive or action.get('raw') not in (None, {}):
@@ -129,12 +133,12 @@ def verified(result, *, game_day, device, authorizations, invocation_id=None):
                     continue
                 point, limit = INPUTS[name]
                 counts[name] += 1
-                if name in ('OneKeyQuickManaSkipFinish', 'OneKeyQuickExpSkipFinish'):
-                    stage = 'mana' if name == 'OneKeyQuickManaSkipFinish' else 'exp'
+                if exploration_popup:
+                    stage = 'mana' if name.startswith('OneKeyQuickMana') else 'exp'
                     if exploration_stage != stage:
                         return False
                     skip_awaiting_result = True
-                if name in ('OneKeyQuickManaSkipFinish', 'OneKeyQuickExpSkipFinish', 'OneKeyQuickLevelUpDismiss'):
+                if len(point) == 4:
                     # The same-frame OCR box supplies the button target.
                     actual = action['raw'].get('point')
                     if (type(actual) is not list or len(actual) != 2

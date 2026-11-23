@@ -1004,6 +1004,7 @@
   },
   "ExecResultStart": {
     "next": [
+      "ExecMaxExpDismiss",
       "ExecResultConfirm",
       "ExecSweepSkipFinish"
     ],
@@ -1014,6 +1015,96 @@
     ],
     "pre_delay": 0,
     "post_delay": 0
+  },
+  "ExecMaxExpPanel": {
+    "recognition": "ColorMatch",
+    "roi": [
+      385,
+      348,
+      36,
+      12
+    ],
+    "method": 40,
+    "lower": [
+      0,
+      0,
+      235
+    ],
+    "upper": [
+      179,
+      25,
+      255
+    ],
+    "count": 380,
+    "connected": false,
+    "next": []
+  },
+  "ExecMaxExpTitle": {
+    "recognition": "OCR",
+    "roi": [
+      552,
+      174,
+      176,
+      44
+    ],
+    "expected": "^扫荡结果$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecMaxExpBody": {
+    "recognition": "OCR",
+    "roi": [
+      526,
+      284,
+      228,
+      30
+    ],
+    "expected": "^玩家经验值达到最大$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecMaxExpUnavailable": {
+    "recognition": "OCR",
+    "roi": [
+      552,
+      310,
+      176,
+      32
+    ],
+    "expected": "^无法收取[。.]?$",
+    "threshold": 0.9,
+    "next": []
+  },
+  "ExecMaxExpGuard": {
+    "recognition": "And",
+    "box_index": 1,
+    "all_of": [
+      "ExecMaxExpPanel",
+      "ExecLevelUpButton",
+      "ExecMaxExpTitle",
+      "ExecMaxExpBody",
+      "ExecMaxExpUnavailable"
+    ],
+    "next": []
+  },
+  "ExecMaxExpDismiss": {
+    "recognition": "And",
+    "all_of": [
+      "ExecMaxExpGuard"
+    ],
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 600,
+    "next": [
+      "ExecResultConfirm",
+      "ExecSweepSkipFinish"
+    ],
+    "timeout": 60000,
+    "rate_limit": 300,
+    "on_error": [
+      "UnknownStop"
+    ]
   },
   "ExecSweepSkipButton": {
     "recognition": "OCR",
@@ -1097,6 +1188,7 @@
     "max_hit": 1,
     "post_delay": 0,
     "next": [
+      "ExecMaxExpDismiss",
       "ExecResultConfirm"
     ],
     "timeout": 60000,

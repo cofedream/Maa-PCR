@@ -71,7 +71,7 @@ class OneKeyPage(CustomRecognition):
         self.onekey_guard_used = False
         self.dungeon_finish_guard_used = False
         self.exploration_stage = None
-        self.exploration_skip_used = set()
+        self.exploration_actions_used = set()
         self.readonly_unresolved = False
         self.recovery_result_actions = set()
 
@@ -160,6 +160,7 @@ class OneKeyPage(CustomRecognition):
             'dungeon_finish': 'dungeon_finish',
             'mana_result': 'sweep_result', 'exp_result': 'sweep_result',
             'mana_skip_finish': 'sweep_animation', 'exp_skip_finish': 'sweep_animation',
+            'mana_max_exp_dismiss': 'max_exp', 'exp_max_exp_dismiss': 'max_exp',
             'like_result': 'like_result', 'item_result': 'item_result',
         }.get(kind)
         if kind == 'dungeon_finish':
@@ -187,12 +188,11 @@ class OneKeyPage(CustomRecognition):
         if (not permitted or not matches
                 or required_state is None or detail['state'] != required_state):
             return None
-        if kind in ('mana_skip_finish', 'exp_skip_finish'):
-            stage = kind.split('_')[0]
-            if self.exploration_stage != stage or stage in self.exploration_skip_used:
+        if required_state in ('sweep_animation', 'max_exp'):
+            if self.exploration_stage != kind.split('_')[0] or kind in self.exploration_actions_used:
                 return None
-            self.exploration_skip_used.add(stage)
-            return self.AnalyzeResult(detail['skip_box'], detail)
+            self.exploration_actions_used.add(kind)
+            return self.AnalyzeResult(detail['skip_box' if required_state == 'sweep_animation' else 'confirm_box'], detail)
         if kind in ('mana_confirm', 'exp_confirm'):
             self.exploration_stage = kind.split('_')[0]
         elif kind in ('mana_result', 'exp_result'):
@@ -217,6 +217,10 @@ class OneKeyPage(CustomRecognition):
         if reco('HomeDataConnection').hit:
             raise ValueError('page_connection_in_progress')
         if self.exploration_stage is not None:
+            popup = reco('ExecMaxExpGuard')
+            if popup.hit:
+                detail.update(state='max_exp', reason=None, confirm_box=list(popup.box))
+                return
             animation = reco('ExecSweepSkipGuard')
             if animation.hit:
                 detail.update(state='sweep_animation', reason=None, skip_box=list(animation.box))

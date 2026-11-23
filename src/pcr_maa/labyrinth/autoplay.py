@@ -20,7 +20,7 @@ from .. import native
 from .batch import BatchStopped
 from .routes import Route
 from .roles import Context
-from .scene import Scene, OBSERVATION_TIMEOUT_SECONDS
+from .scene import CHALLENGE_PAGES, Scene, OBSERVATION_TIMEOUT_SECONDS
 
 _TARGET = 'LabyAutoplayTarget'
 _TARGET_MARKS = 'LabyAutoplayTargetWithMarks'
@@ -1070,8 +1070,11 @@ class AutoplayRunner:
 
     def _action_transition_readback(self,batch,source,allowed):
         from .scene import MaaSceneRuntime
+        team_entry = source.kind in CHALLENGE_PAGES and allowed in ({'team'}, {'team', source.kind})
         source_items=source.kind=='battle_victory' and 'BATTLE_RESULT_REWARD_BANNER' in source.payload.get('anchors',{})
         def arrived(following):
+            if team_entry:
+                return True
             if source.kind=='item_reward' and following.kind=='item_reward':
                 reader=getattr(self.actions,'item_scene',None)
                 if not callable(reader):return False
@@ -1099,7 +1102,23 @@ class AutoplayRunner:
         if waiting:sources={source.kind,'map'}
         fields=dict(source='maa',enter_id=self.actions.enter_id) if acquisition and final is None and not waiting else None
         return MaaSceneRuntime.wait_for(self.runtime,batch,allowed,source=sources,
-            accept=arrived,timeout=20 if waiting else 30,reason='autoplay_readback_unknown',acquisition_fields=fields,final_fields=final)
+            accept=arrived,timeout=20 if waiting else 30,
+            reason='team_entry_unconfirmed' if team_entry else 'autoplay_readback_unknown',
+            acquisition_fields=fields,final_fields=final,confirm_team_entry=team_entry)
+
+    def _enter_team(self, batch, route, node, scene):
+        deadline = min(native.RUN_DEADLINE.get(), native.active_now() + 30)
+        token = native.RUN_DEADLINE.set(deadline)
+        try:
+            fields = dict(block_id=node.block_id)
+            following = self._do(batch, route, scene, 'challenge', {'team', scene.kind}, extra=fields)
+            if following.kind == scene.kind:
+                if native.active_now() >= deadline:
+                    raise BatchStopped('team_entry_unconfirmed')
+                return self._do(batch, route, following, 'challenge', {'team'}, extra=fields)
+            return following
+        finally:
+            native.RUN_DEADLINE.reset(token)
 
     def _node_transition_readback(self,batch,current,target,*,confirmed=False):
         from .scene import MaaSceneRuntime
@@ -1319,7 +1338,7 @@ class AutoplayRunner:
                     if self.cursor.index!=previous:
                         self.confirmed_nodes.append(route.nodes[self.cursor.index].block_id)
                     continue
-                if scene.kind in ('normal_challenge','ex_challenge','boss_challenge'):
+                if scene.kind in CHALLENGE_PAGES:
                     event_combat=node.block_type==5 and scene.kind in ('normal_challenge','ex_challenge')
                     if not event_combat and scene.kind not in _ARRIVALS.get(node.block_type,set()):
                         raise BatchStopped('node_type_conflict')
@@ -1328,7 +1347,7 @@ class AutoplayRunner:
                     self.actions.combat_kind=scene.kind;self.cursor.node_finished=False
                     observe=getattr(self.actions,'observe_encounter',None)
                     if callable(observe):observe(scene,node)
-                    scene=self._do(batch,route,scene,'challenge',{'team'},extra=dict(block_id=node.block_id))
+                    scene=self._enter_team(batch,route,node,scene)
                     continue
                 if scene.kind=='team':
                     try:self.actions.prepare_team(route,node,boss=node.block_type==8)

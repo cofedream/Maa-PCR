@@ -111,7 +111,16 @@ internal static class ModuleOrderChecks
             f.Press(1); f.Release(f.Center(1));
             Require(f.Edited == "hard" && f.Saves == 0, "non_checkbox_click_edits_module_without_saving");
             var check = f.Row(1).GetVisualDescendants().OfType<CheckBox>().Single();
+            var handle = f.Row(1).GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == "≡");
+            Require(handle.TranslatePoint(default, f.Row(1))!.Value.X > f.Row(1).Bounds.Width * 0.75,
+                "drag_handle_at_trailing_edge");
+            var box = check.GetVisualDescendants().OfType<SukiUI.Controls.GlassCard>().Single(card => card.Name == "border");
+            Require(!box.IsOpaque, "checked_module_uses_theme_check_mark");
             check.IsChecked = false;
+            f.Layout();
+            Require(box.IsOpaque && box.BorderThickness.Left >= 1 && box.BorderBrush is ISolidColorBrush,
+                "unchecked_module_has_visible_outline");
+            f.Capture(Path.Combine(evidence, "unchecked.png"));
             Require(f.Selection.SelectedCases!.SequenceEqual(new[] { "deep", "normal", "event" }) && f.Saves == 1,
                 "checkbox_keeps_checked_subsequence_semantics");
             f.Press(0); f.Move(f.Center(0) + new Vector(0, 8));

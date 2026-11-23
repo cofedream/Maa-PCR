@@ -441,7 +441,7 @@ class NativePreset:
             # Exactly one result dispatch for this evidenced consumption.
             receipt = native.run(self.tasker, entry, reset_hits=(
                 'ExecResultConfirm', 'ExecLimitedShopCancel', 'ExecClanDismiss', 'ExecLevelUpDismiss') + (
-                ('ExecSweepSkipFinish',) if entry == 'ExecResultStart' else ()))
+                ('ExecSweepSkipFinish', 'ExecMaxExpDismiss') if entry == 'ExecResultStart' else ()))
             submission.update(result_evidence=receipt, result_images=evidence_images,
                               result_verified=action_completed(receipt, 'ExecResultConfirm'),
                               preset_return_verified=completed(receipt, 'ExecReturnedPreset'),

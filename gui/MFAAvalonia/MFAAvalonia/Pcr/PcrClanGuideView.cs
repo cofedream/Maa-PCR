@@ -48,7 +48,7 @@ public sealed partial class PcrClanGuideView : UserControl
     private readonly Expander dailyDetails = new() { Header = "一天三刀目标" };
     private Button stopFetch = null!;
     private readonly StackPanel formalControls = new() { Spacing = 6, IsVisible = false };
-    private readonly TextBlock selectionSummary = Note("尚未选定作业。");
+    private readonly TextBlock selectionSummary = Note("尚未选择作业。");
     private readonly Expander sourceDetails = new() { Header = "作业原图与来源", IsExpanded = false };
     private PcrClanDailyExecutionDocument execution = new();
     private string? executionHash;
@@ -224,9 +224,14 @@ public sealed partial class PcrClanGuideView : UserControl
     { if (displaying) return; CancelPendingLoad(); document.ConfirmedFor = null; execution.ConfirmedFor = null; UpdateSelectionSummary(); status.Text = "内容已修改，请对照原图后一次确认保存。"; }
     private void UpdateSelectionSummary()
     {
+        var roster = members.Select(m => m.Role.Text?.Trim()).Where(name => !string.IsNullOrEmpty(name)).ToArray();
+        if (string.IsNullOrEmpty(document.SelectedJobId) && roster.Length == 0 && fields.Values.All(field => string.IsNullOrWhiteSpace(field.Text)))
+        {
+            selectionSummary.Text = "尚未选择作业。";
+            return;
+        }
         string Value(string key) => fields[key].Text?.Trim() is { Length: > 0 } text ? text : "待填写";
         selectionSummary.Text = $"当前队伍：{Value("team_label")} · BOSS {Value("boss")} · {Value("phase")} 阶段 · {Value("period")}";
-        var roster = members.Select(m => m.Role.Text?.Trim()).Where(name => !string.IsNullOrEmpty(name)).ToArray();
         if (roster.Length > 0) selectionSummary.Text += Environment.NewLine + string.Join(" / ", roster);
     }
     private static bool? State(ComboBox box) => box.SelectedIndex == 1 ? true : box.SelectedIndex == 2 ? false : null;

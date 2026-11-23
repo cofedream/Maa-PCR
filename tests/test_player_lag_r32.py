@@ -87,16 +87,20 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  # R50/R51 add guarded result-only branches; all existing guard fields stay frozen.
  additions={
   'event.json':{'StoryEventNavigationInitial','StoryEventNavigationRetry','StoryEventRetryOpenQuests','EventCheckedEmpty','EventSingleAdventureCar','EventCountGlyph'},
-  'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish','AbyssLevelUpDismiss'},
+  'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish','AbyssLevelUpDismiss','AbyssMaxExpDismiss'},
   'alpha_entry.json':{'PCRAlphaSelectGuideTrial','PCRAlphaSelectClanBattleSimulation','PCRAlphaSelectClanBattleDaily'},
   'preset_execution.json':{'ExecSweepSkipButton','ExecSweepAnimationRound','ExecSweepAnimationExp',
                            'ExecSweepAnimationPanel','ExecSweepSkipGuard','ExecSweepSkipFinish',
-                           'ExecLevelUpTitle','ExecLevelUpBody','ExecLevelUpButton','ExecLevelUpDismiss'},
+                           'ExecLevelUpTitle','ExecLevelUpBody','ExecLevelUpButton','ExecLevelUpDismiss',
+                           'ExecMaxExpPanel','ExecMaxExpTitle','ExecMaxExpBody','ExecMaxExpUnavailable','ExecMaxExpGuard','ExecMaxExpDismiss'},
   'rewards.json':{'RewardsMissionsAfterClose','RewardsMissionsLevelUpDismiss',
                   'RewardsGiftsAfterClose','RewardsGiftsLevelUpDismiss'},
   'schedule_onekey.json':{'OneKeyDo_mana_skip_finish','OneKeyDo_exp_skip_finish',
-                         'OneKeyInput_mana_skip_finish','OneKeyInput_exp_skip_finish','OneKeySkipResultReady'},
-  'schedule_quick.json':{'OneKeyQuickManaSkipFinish','OneKeyQuickExpSkipFinish','OneKeyQuickLevelUpDismiss'},
+                         'OneKeyInput_mana_skip_finish','OneKeyInput_exp_skip_finish','OneKeySkipResultReady',
+                         'OneKeyDo_mana_max_exp_dismiss','OneKeyDo_exp_max_exp_dismiss',
+                         'OneKeyInput_mana_max_exp_dismiss','OneKeyInput_exp_max_exp_dismiss'},
+  'schedule_quick.json':{'OneKeyQuickManaSkipFinish','OneKeyQuickExpSkipFinish','OneKeyQuickLevelUpDismiss',
+                         'OneKeyQuickManaMaxExpDismiss','OneKeyQuickExpMaxExpDismiss'},
  }
  branches={'event.json':{'StoryEventMapGate':'StoryEventRetryOpenQuests'},
            'abyss.json':{name:'AbyssLevelUpDismiss' for name in (
@@ -165,6 +169,10 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
     for target in targets:
      assert guards[name]['next'].count(target)==1
      guards[name]['next'].remove(target)
+  for name,branch in {'preset_execution.json':{'ExecResultStart':'ExecMaxExpDismiss'},
+                      'schedule_quick.json':{'OneKeyQuickManaConfirm':'OneKeyQuickManaMaxExpDismiss',
+                                             'OneKeyQuickExpConfirm':'OneKeyQuickExpMaxExpDismiss'}}.get(filename,{}).items():
+   assert guards[name]['next'].pop(0)==branch
   for name,branch in branches.get(filename,{}).items():
    assert guards[name]['next'].count(branch)==1
    guards[name]['next']=[target for target in guards[name]['next'] if target!=branch]

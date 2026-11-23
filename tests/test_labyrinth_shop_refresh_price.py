@@ -98,7 +98,7 @@ def test_last_shop_keeps_refreshing_when_stock_has_nothing_purchasable(monkeypat
   elif state=='confirmation':phase[0]='complete';current['balance']-=400
   elif state=='complete':phase[0]='shop';current['items']=[]
   return {'native_ok':True}
- shop._capture=capture;shop._wait_state=lambda *a:capture();shop._input=input_once;shop._refresh=refresh
+ shop._capture=capture;shop._input=input_once;shop._refresh=refresh
  shop.purchase_readback=lambda b,q,c:stamp(operation_id=c['operation_id'],enter_id=q['enter_id'],
   item_id=q['item_id'],price=q['price'],inventory_added=True,native=capture()[0],input_native=c['input_native'])
  monkeypatch.setattr(shops,'_readback',lambda value:value)

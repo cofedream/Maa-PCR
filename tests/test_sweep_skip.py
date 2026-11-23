@@ -40,6 +40,7 @@ def branch_resource():
     overrides.update({name: marker_node(2) for name in (
         'ExecResultTitle', 'ExecResultComplete', 'ExecResultButton')})
     overrides.update({
+        'ExecMaxExpGuard': marker_node(4, (600, 480, 75, 30)),
         'ExecResultStart': dict(timeout=500, rate_limit=10, post_delay=0),
         'ExecSweepSkipFinish': dict(timeout=500, rate_limit=10),
         'ExecResultConfirm': dict(post_delay=0),
@@ -71,6 +72,20 @@ def test_optional_skip_and_normal_result_share_one_wait(arrival):
     assert names.count('ExecSweepSkipFinish') == int(arrival != 'absent')
     assert len(controller.clicks) == 1 + int(arrival != 'absent')
     assert not controller.swipes and 'ExecConfirm' not in names
+
+
+@pytest.mark.parametrize('popup_first', [False, True])
+def test_max_exp_dismiss_still_requires_sweep_result(popup_first):
+    resource = branch_resource()
+    markers = [4, 1, 2] if popup_first else [1, 4, 2]
+    controller = SavedImages([[scene(marker)] for marker in markers])
+    result = finish(NativePreset(native.bind(resource, controller)))
+    names = [node['name'] for node in result['result_evidence']['nodes'] if node['completed']]
+    assert names.count('ExecMaxExpDismiss') == names.count('ExecResultConfirm') == 1
+    assert result['result_verified'] and len(result['result_images']) == 1
+    assert len(controller.clicks) == 3 and 'ExecConfirm' not in names
+    x, y = controller.clicks[markers.index(4)]
+    assert 600 <= x < 675 and 480 <= y < 510
 
 
 @pytest.mark.parametrize('fault', ['button_only', 'click_failed', 'unknown_after_skip'])
@@ -164,7 +179,8 @@ def test_level_up_after_result_only_dismisses_verified_popup(popup, returned, cl
 
 
 @pytest.mark.parametrize('level_up', [False, True])
-def test_abyss_uses_its_result_chain_after_one_consumer_only(monkeypatch, level_up):
+@pytest.mark.parametrize('max_exp', [False, True])
+def test_abyss_uses_its_result_chain_after_one_consumer_only(monkeypatch, level_up, max_exp):
     from pcr_maa import abyss_native
     from pcr_maa.abyss_native import NativeAbyss
     from test_abyss import reading, quotation
@@ -189,19 +205,19 @@ def test_abyss_uses_its_result_chain_after_one_consumer_only(monkeypatch, level_
                 'ExecLevelUpTitle', 'ExecLevelUpBody', 'ExecLevelUpButton')},
             'AbyssLevelUpDismiss': dict(post_delay=0),
         })
-    markers = (0, 1, 2, 3, 0) if level_up else (0, 1, 2, 0)
+    markers = [0, 1] + ([4] if max_exp else []) + [2] + ([3] if level_up else []) + [0]
     controller = SavedImages([[scene(marker)] for marker in markers])
     port = NativeAbyss(native.bind(resource, controller), start='abyss')
     quote = quotation()
     port._confirmed = (reading(), quote, time.monotonic())
     result = port.submit(quote)
     assert result['consumption_dispatched'] and result['result_verified'] and result['abyss_return_verified']
-    assert len(result['result_images']) == 1 and len(controller.clicks) == 3 + int(level_up)
+    assert len(result['result_images']) == 1 and len(controller.clicks) == 3 + int(level_up) + int(max_exp)
     names = [node['name'] for node in result['result_evidence']['nodes']]
     assert names.count('AbyssSweepSkipFinish') == 1 and 'AbyssTicketCommit' not in names
     with pytest.raises(native.NativeInputNotSent):
         port.submit(quote)
-    assert len(controller.clicks) == 3 + int(level_up)
+    assert len(controller.clicks) == 3 + int(level_up) + int(max_exp)
 
 
 @pytest.mark.parametrize('kind', ['Missions', 'Gifts'])
@@ -263,6 +279,31 @@ def original_frames():
     return [native.read_image(path) for path in paths]
 
 
+@pytest.mark.parametrize('covered', [False, True])
+def test_original_max_exp_dialog_before_verified_result(original_frames, covered):
+    directory = Path(os.environ.get('PCR_SWEEP_SKIP_FIXTURES', str(native.ROOT / '.runtime/private-fixtures/hermes-pcr/live')))
+    path = directory / 'sweep-max-exp.png'
+    if not path.is_file():
+        pytest.skip('Original max EXP popup is an optional private fixture')
+    import cv2
+    popup = native.read_image(path)
+    if covered:
+        popup[284:340, 530:753] = 255
+    frames = [original_frames[0], popup, original_frames[1]]
+    controller = SavedImages([[cv2.resize(frame, (1280, 720))] for frame in frames])
+    resource = native.load_resource(cpu_only=True)
+    assert resource.override_pipeline({
+        'ExecSweepSkipFinish': dict(timeout=1800),
+        'ExecReturnedPreset': dict(recognition='DirectHit', next=[]),
+    })
+    result = finish(NativePreset(native.bind(resource, controller)))
+    assert result['result_verified'] is (not covered)
+    assert len(controller.clicks) == (1 if covered else 3)
+    if not covered:
+        x, y = controller.clicks[1]
+        assert 580 <= x < 700 and 460 <= y < 535
+
+
 @pytest.mark.parametrize('fault', [None, 'button_only', 'dim_modal'])
 def test_original_animation_anchors_and_negative_pages(original_frames, fault):
     animation, result = original_frames
@@ -286,13 +327,18 @@ def test_original_animation_anchors_and_negative_pages(original_frames, fault):
 
 
 @pytest.mark.parametrize('animation', [False, True])
-def test_cli_explorations_optional_skip_each_then_require_result(animation):
+@pytest.mark.parametrize('max_exp', [False, True])
+def test_cli_explorations_optional_skip_each_then_require_result(animation, max_exp):
     from pcr_maa.onekey_flow import execute_pending
     calls = []
     sequence = ['mana_confirm']
     if animation:
         sequence.append('sweep_animation')
+    if max_exp:
+        sequence.append('max_exp')
     sequence += ['sweep_result', 'exp_confirm']
+    if max_exp:
+        sequence.append('max_exp')
     if animation:
         sequence.append('sweep_animation')
     sequence += ['sweep_result', 'schedule']
@@ -306,9 +352,9 @@ def test_cli_explorations_optional_skip_each_then_require_result(animation):
     result = execute_pending(dict(state='schedule'), {'mana_skip', 'exp_skip'}, send, {})
     assert result['state'] == 'schedule'
     assert [action for action, _ in calls] == (['onekey', 'mana_confirm'] +
-        (['mana_skip_finish'] if animation else []) + ['mana_result', 'exp_confirm'] +
+        (['mana_skip_finish'] if animation else []) + (['mana_max_exp_dismiss'] if max_exp else []) +
+        ['mana_result', 'exp_confirm'] + (['exp_max_exp_dismiss'] if max_exp else []) +
         (['exp_skip_finish'] if animation else []) + ['exp_result'])
-    assert all(targets == ('sweep_result',) for action, targets in calls if action.endswith('_skip_finish'))
 
 
 def test_cli_unknown_after_skip_stops_without_result_click_or_consumer_resend():
@@ -324,35 +370,39 @@ def test_cli_unknown_after_skip_stops_without_result_click_or_consumer_resend():
 
 
 @pytest.mark.parametrize('stage', ['mana', 'exp'])
-def test_cli_animation_guard_is_current_stage_once_and_disabled_in_recovery(monkeypatch, stage):
+@pytest.mark.parametrize('state,action,box', [('sweep_animation', 'skip_finish', 'skip_box'),
+                                       ('max_exp', 'max_exp_dismiss', 'confirm_box')])
+def test_cli_animation_guard_is_current_stage_once_and_disabled_in_recovery(monkeypatch, stage, state, action, box):
     from pcr_maa import schedule_onekey as module
     from pcr_maa.onekey_page import OneKeyPage
-    page = dict(state='sweep_animation', reason=None, skip_box=[582, 623, 109, 30])
+    page = dict(state=state, reason=None)
+    page[box] = [600, 482, 80, 32] if state == 'max_exp' else [582, 623, 109, 30]
     monkeypatch.setattr(OneKeyPage, 'read', lambda self, context, image, detail: detail.update(deepcopy(page)))
     resource = branch_resource()
-    assert resource.override_pipeline({'OneKeyDo_' + stage + '_skip_finish': dict(timeout=150)})
+    assert resource.override_pipeline({'OneKeyDo_' + stage + '_' + action: dict(timeout=150)})
     controller = SavedImages([[scene(1)]])
     reader = OneKeyPage(module.current_game_day())
     reader.exploration_stage = stage
     reader.expected = reader.signature(page)
-    reader.allowed_action = stage + '_skip_finish'
+    reader.allowed_action = stage + '_' + action
     assert resource.register_custom_recognition('OneKeyPage', reader)
     tasker = native.bind(resource, controller)
-    first = native.run(tasker, 'OneKeyDo_' + stage + '_skip_finish')
+    first = native.run(tasker, 'OneKeyDo_' + stage + '_' + action)
     assert first['native_ok'] and len(controller.clicks) == 1
-    reader.allowed_action = stage + '_skip_finish'
+    reader.allowed_action = stage + '_' + action
     reader.readonly_unresolved = True
-    native.run(tasker, 'OneKeyDo_' + stage + '_skip_finish')
+    native.run(tasker, 'OneKeyDo_' + stage + '_' + action)
     assert len(controller.clicks) == 1
     reader.readonly_unresolved = False
-    reader.allowed_action = stage + '_skip_finish'
-    native.run(tasker, 'OneKeyDo_' + stage + '_skip_finish')
+    reader.allowed_action = stage + '_' + action
+    native.run(tasker, 'OneKeyDo_' + stage + '_' + action)
     assert len(controller.clicks) == 1
 
 
 @pytest.mark.parametrize('animation', [False, True])
 @pytest.mark.parametrize('level_up', [False, True])
-def test_gui_two_explorations_skip_once_each_and_receipt_requires_results(tmp_path, animation, level_up):
+@pytest.mark.parametrize('max_exp', [False, True])
+def test_gui_two_explorations_skip_once_each_and_receipt_requires_results(tmp_path, animation, level_up, max_exp):
     from pcr_maa import schedule_quick as module
     from pcr_maa.game_day import current_game_day
     from pcr_maa.preset_execution import Journal
@@ -372,10 +422,13 @@ def test_gui_two_explorations_skip_once_each_and_receipt_requires_results(tmp_pa
         **{name: dict(post_delay=0, timeout=500, rate_limit=10) for name in (
             'OneKeyQuickStart', 'OneKeyQuickManaConfirm', 'OneKeyQuickExpConfirm',
             'OneKeyQuickManaSkipFinish', 'OneKeyQuickExpSkipFinish', 'OneKeyQuickSweepResult',
-            'OneKeyQuickFinished', 'OneKeyQuickClose', 'OneKeyQuickLevelUpDismiss')},
+            'OneKeyQuickFinished', 'OneKeyQuickClose', 'OneKeyQuickLevelUpDismiss',
+            'OneKeyQuickManaMaxExpDismiss', 'OneKeyQuickExpMaxExpDismiss')},
     })
-    markers = ([0, 10] + ([1] if animation else []) + [2] + ([3] if level_up else [])
-        + [20] + ([1] if animation else []) + [2] + ([3] if level_up else []) + [30, 40])
+    popup = [4] if max_exp else []
+    skip = [1] if animation else []
+    settled = [2, 3] if level_up else [2]
+    markers = [0, 10] + skip + popup + settled + [20] + popup + skip + settled + [30, 40]
     controller = SavedImages([[scene(marker)] for marker in markers])
     args = dict(game_day=current_game_day(), device=dict(serial='emulator-5556',
         source='gui_adb_session_v1', app_package='com.bilibili.priconne'),
@@ -384,9 +437,11 @@ def test_gui_two_explorations_skip_once_each_and_receipt_requires_results(tmp_pa
     assert report['outcome'] == 'executed', report
     verify_args = {key: value for key, value in args.items() if key != 'journal'}
     assert module.verified(report, **verify_args)
-    assert len(controller.clicks) == 6 + 2 * int(animation) + 2 * int(level_up)
+    assert len(controller.clicks) == 6 + 2 * int(animation) + 2 * int(level_up) + 2 * int(max_exp)
     nodes = report['receipts'][-1]['native']['nodes']
     names = [node['name'] for node in nodes]
+    for stage in ('Mana', 'Exp'):
+        assert names.count('OneKeyQuick' + stage + 'MaxExpDismiss') == int(max_exp)
     assert names.count('OneKeyQuickSweepResult') == 2
     assert names.count('OneKeyQuickLevelUpDismiss') == 2 * int(level_up)
     if level_up:

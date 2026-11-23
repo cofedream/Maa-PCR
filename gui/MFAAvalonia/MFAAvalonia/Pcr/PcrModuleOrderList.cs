@@ -15,6 +15,7 @@ using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
@@ -22,6 +23,7 @@ using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.ViewModels.Pages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SukiUI.Controls;
 
 namespace MFAAvalonia.Pcr;
 
@@ -66,10 +68,14 @@ public sealed class PcrModuleOrderList : ListBox
         Name = "PcrModuleOrderList";
         Classes.Add("Fluent");
         Styles.Add(new Style(x => x.OfType<ListBoxItem>()) { Setters = {
-            new Setter(PaddingProperty, new Thickness(6, 0)), new Setter(MinHeightProperty, 36d) } });
+            new Setter(PaddingProperty, new Thickness(6, 0)), new Setter(MinHeightProperty, 36d),
+            new Setter(ListBoxItem.HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch) } });
+        Styles.Add(new Style(x => x.OfType<CheckBox>().Class(":unchecked").Template().OfType<GlassCard>().Name("border")) { Setters = {
+            new Setter(GlassCard.IsOpaqueProperty, true), new Setter(GlassCard.BorderThicknessProperty, new Thickness(1.5)),
+            new Setter(GlassCard.BorderBrushProperty, new DynamicResourceExtension("SukiMuteText")) } });
         HorizontalAlignment = HorizontalAlignment.Stretch;
         ItemsSource = OrderedModules;
-        AutomationProperties.SetName(this, "勾选任务模块，拖动左侧拖柄调整执行顺序");
+        AutomationProperties.SetName(this, "勾选任务模块，拖动行尾手柄调整执行顺序");
         foreach (var row in definition.Cases ?? new List<MaaInterface.MaaInterfaceOptionCase>()) row.InitializeDisplayName();
         foreach (var id in option.SelectedCases ?? new List<string>()) selected.Add(id);
         var cases = definition.Cases ?? new List<MaaInterface.MaaInterfaceOptionCase>();
@@ -82,10 +88,10 @@ public sealed class PcrModuleOrderList : ListBox
         ItemTemplate = new FuncDataTemplate<MaaInterface.MaaInterfaceOptionCase>((row, _) =>
         {
             if (row == null) return new Border(); // container recycling clears its content
-            var panel = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,24,*"),
+            var panel = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,24"),
                 Margin = new Thickness(2, 2), MinHeight = 32, Background = Avalonia.Media.Brushes.Transparent };
             var check = new CheckBox { IsChecked = selected.Contains(row.Name!), VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 4, 0) };
+                Margin = new Thickness(0, 0, 8, 0) };
             AutomationProperties.SetName(check, "勾选" + row.DisplayName);
             check.IsCheckedChanged += (_, _) =>
             {
@@ -94,15 +100,16 @@ public sealed class PcrModuleOrderList : ListBox
                 if (check.IsChecked == true) selected.Add(row.Name!); else selected.Remove(row.Name!);
                 PersistSelection();
             };
-            var handle = new TextBlock { Text = "≡", FontSize = 20, MinWidth = 24,
+            var handle = new TextBlock { Text = "≡", FontSize = 16, TextAlignment = TextAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center, Cursor = new Cursor(StandardCursorType.SizeAll) };
+            handle.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiMuteText"));
             ToolTip.SetTip(handle, "按住拖动，松开后调整顺序");
-            Grid.SetColumn(handle, 1);
+            Grid.SetColumn(handle, 2);
             var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
             label.Text = TaskQueueViewModel.PcrModuleName(row.Name ?? "");
-            Grid.SetColumn(label, 2);
+            Grid.SetColumn(label, 1);
             if (row.HasDescription) ToolTip.SetTip(panel, row.DisplayDescription);
-            panel.Children.Add(check); panel.Children.Add(handle); panel.Children.Add(label);
+            panel.Children.Add(check); panel.Children.Add(label); panel.Children.Add(handle);
             return panel;
         });
         OrderedModules.CollectionChanged += (_, _) => PersistSelection();

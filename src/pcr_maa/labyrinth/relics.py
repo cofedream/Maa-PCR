@@ -908,23 +908,9 @@ class MaaRelicReward:
         return relic_offers(self._run('LabyRelicOffersWithIcons'), with_icons=True)
 
     def _obtained_receipt(self, batch):
-        from .scene import MaaSceneRuntime, REWARD_CONNECTION_TIMEOUT_SECONDS
-        try:
-            return self._run('LabyRelicObtainedObserved')
-        except BatchStopped as error:
-            if error.args != ('relic_result_unknown',):
-                raise
-        # The click is already journaled. Only observe the pending network transition.
-        batch.checkpoint()
-        scene = MaaSceneRuntime(self.tasker, timings=self.timings)
-        current = scene.observe(probe_kinds=('item_reward',))
-        batch.checkpoint()
-        if current.kind == 'connecting':
-            scene.wait_for(batch, {'item_reward'}, source='relic_reward',
-                           timeout=REWARD_CONNECTION_TIMEOUT_SECONDS, reason='relic_result_unknown')
-        elif current.kind != 'item_reward':
-            raise BatchStopped(current.kind if current.kind in ('date_changed', 'disconnected') else 'relic_result_unknown')
-        return self._run('LabyRelicObtainedObserved')
+        from .scene import read_item_reward_through_connection
+        return read_item_reward_through_connection(self.tasker, self.timings, batch,
+            lambda: self._run('LabyRelicObtainedObserved'), source='relic_reward', reason='relic_result_unknown')
 
     def choose(self, batch, enter_id, reward_id, area, observed_stacks=None, *, locked_focus=None, priority=(), offers=None, on_offers=None, defer_following=False):
         if (type(enter_id) is not int or enter_id <= 0 or type(reward_id) is not str

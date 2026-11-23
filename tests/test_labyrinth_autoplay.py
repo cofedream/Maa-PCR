@@ -111,6 +111,60 @@ def test_full_single_run_dispatches_all_nodes_and_counts_only_terminal(tmp_path)
     assert {v[0] for v in actions.calls}>={'link_reward','relic_reward','event','shop'}
     assert all(e['state']=='settled' for e in batch.journal.events()[1::2])
 
+@pytest.mark.parametrize('recovered', [False, True])
+def test_challenge_requires_two_matching_page_reads(monkeypatch, recovered):
+    from pcr_maa.labyrinth import autoplay
+
+    challenge = 'normal_challenge'
+    destination = 'team' if recovered else challenge
+    pages = iter(['team', challenge, *(['team', 'team'] if recovered else [challenge])])
+    runtime = SimpleNamespace(tasker=None)
+    runtime.observe = lambda **kwargs: Scene(next(pages), receipt(), {})
+    runner = AutoplayRunner.__new__(AutoplayRunner)
+    runner.runtime = runtime
+    runner.actions = SimpleNamespace()
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *args: None)
+
+    result = runner._action_transition_readback(SimpleNamespace(checkpoint=lambda: None),
+        Scene(challenge, receipt(), {}), {'team', challenge})
+
+    assert result.kind == destination
+    assert next(pages, None) is None
+
+
+@pytest.mark.parametrize('returns_again', [False, True])
+def test_challenge_recovers_once_after_team_falls_back(tmp_path, monkeypatch, returns_again):
+    from pcr_maa.labyrinth import autoplay
+
+    route = route_for([1, 2])
+    challenge = 'normal_challenge'
+    runner, batch, runtime, _, _ = make(tmp_path, route, [(challenge, {})])
+    runner.actions.enter_id = route.enter_id
+    pages = iter(['team', challenge, challenge, 'team', *([challenge, challenge] if returns_again else ['team'])])
+    elapsed = [0]
+    monkeypatch.setattr(autoplay.native, 'active_now', lambda: elapsed[0])
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *args: None)
+
+    def observe(**kwargs):
+        elapsed[0] += 1
+        return Scene(next(pages, challenge), receipt(elapsed[0]), {})
+
+    source = runtime.observe()
+    runtime.observe = observe
+    if returns_again:
+        with pytest.raises(BatchStopped, match='^team_entry_unconfirmed$'):
+            runner._enter_team(batch, route, route.nodes[1], source)
+        assert elapsed[0] == 30
+    else:
+        result = runner._enter_team(batch, route, route.nodes[1], source)
+        assert result.kind == 'team' and result.native['task_id'] == 5
+    assert runtime.inputs == ['challenge', 'challenge']
+    assert [(e['operation'], e['state']) for e in batch.journal.events()] == [
+        ('challenge', 'in_flight'), ('challenge', 'settled'),
+        ('challenge', 'in_flight'), ('challenge', 'settled'),
+    ]
+
+
 def test_area_transition_commits_only_actual_next_area_map(tmp_path):
     route=route_for([1,6,1,8],[1,1,2,2])
     pages=[('map',dict(area=1)),('relic_reward',{}),('area_transition',{}),

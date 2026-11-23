@@ -125,10 +125,16 @@ internal static class PlayerLogChecks
             try
             {
                 window.Show(); Dispatcher.UIThread.RunJobs();
-                view.GetLogicalDescendants().OfType<ToggleButton>().First().IsChecked=true; Dispatcher.UIThread.RunJobs();
+                var toggle = view.GetLogicalDescendants().OfType<ToggleButton>().First();
+                var toBottom = view.GetLogicalDescendants().OfType<Button>().Single(b => Equals(b.Content, "到底部"));
+                Check(!toBottom.IsVisible, "collapsed_log_hides_scroll_action:" + id);
+                toggle.IsChecked = true; Dispatcher.UIThread.RunJobs();
+                Check(toBottom.IsVisible, "expanded_log_shows_scroll_action:" + id);
                 using var image = new RenderTargetBitmap(new PixelSize(900,260)); image.Render(view);
                 image.Save(Path.Combine(root,id+"-live-log.png"));
                 Check(view.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(t=>t.Text!.Contains("合成示例")),"shared_selectable_view:"+id);
+                toggle.IsChecked = false;
+                Check(!toBottom.IsVisible, "recollapsed_log_hides_scroll_action:" + id);
                 CheckFeedback(view,vm,root,id,false);
                 CheckFeedback(view,vm,root,id,true);
                 vm.LabyrinthLogRows.Clear(); Check(Directory.GetFiles((string)Property(Property(vm,"PlayerLog")!,"DirectoryPath")!).Length>0,"clear_only_panel:"+id);

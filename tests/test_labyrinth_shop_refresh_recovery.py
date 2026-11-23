@@ -164,7 +164,8 @@ def test_run_latches_refused_refresh_and_never_reclicks(monkeypatch):
     assert log == ['leave_shop']
 
 
-def test_refresh_without_dialog_but_deducted_coins_is_effective():
+@pytest.mark.parametrize('stale_first', [True, False])
+def test_refresh_without_dialog_but_deducted_coins_is_effective(stale_first):
     batch, stamp = harness()
     shop = shops.MaaShop.__new__(shops.MaaShop)
     shop.stamp = stamp
@@ -176,7 +177,8 @@ def test_refresh_without_dialog_but_deducted_coins_is_effective():
     calls = []
     shop._input = lambda state, *a, **k: calls.append(state) or {'native_ok': True}
     shop._probe_state = lambda *a: (None, None)
-    shop._capture = lambda: (late, {})
+    reads = iter([before, late] if stale_first else [late])
+    shop._capture = lambda: (next(reads), {})
     result = shop._refresh(batch, 1, 50701, before, 2)
     assert result['refresh_verified'] is True and result['refresh_confirmation_missing'] is True
     assert calls == ['refresh']
@@ -266,6 +268,33 @@ def test_refresh_waits_for_post_confirm_balance_without_resending(monkeypatch, o
     assert settled == ['shop_refresh_proposal', 'shop_refresh_purchase']
 
 
+def test_refresh_does_not_confirm_until_the_dialog_quote_is_readable(monkeypatch):
+    from pcr_maa.labyrinth import autoplay
+
+    batch, stamp = harness()
+    shop = shops.MaaShop.__new__(shops.MaaShop)
+    shop.stamp, shop.tasker = stamp, NS()
+    before = shelf()
+    incomplete = dict(state='refresh_confirmation',
+        words={'DialogBody': [word('要更新商店吗')], 'Confirm': [word('确认')]})
+    dialog = dict(state='refresh_confirmation',
+        words={'DialogBody': [word('要消耗阿尔法金币×300更新商店')], 'Confirm': [word('确认')]})
+    frames = iter([incomplete, dialog, shelf(balance=700)])
+    clock = [100.]
+    monkeypatch.setattr(shops.native, 'active_now', lambda: clock[0])
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *a: clock.__setitem__(0, clock[0] + 1))
+    calls, seen = [], []
+    def capture():
+        value = next(frames)
+        seen.append(value)
+        return value, {}
+    shop._capture = capture
+    shop._input = lambda state, *a, **k: calls.append((state, len(seen))) or {}
+
+    assert shop._refresh(batch, 1, 30601, before, 0)['refresh_verified']
+    assert calls == [('refresh', 0), ('refresh_confirmation', 2)]
+
+
 def test_late_confirmation_dialog_after_budget_still_completes():
     batch, stamp = harness()
     shop = shops.MaaShop.__new__(shops.MaaShop)
@@ -324,7 +353,8 @@ def test_probe_state_budget_deadline_and_stop_semantics(monkeypatch):
     assert shop._probe_state(batch, 'refresh_confirmation', budget=2.) == (None, None)
 
 
-def test_refused_refresh_still_buys_imprint_instead_of_aborting(monkeypatch):
+@pytest.mark.parametrize('delayed', [None, 'quote', 'balance'])
+def test_refused_refresh_still_buys_imprint_instead_of_aborting(monkeypatch, delayed):
     batch, stamp = harness(NS(refresh_from_area=5))
     shop = shops.MaaShop.__new__(shops.MaaShop)
     shop.stamp, shop.blocked, shop.pending, shop.spent = stamp, False, None, set()
@@ -335,7 +365,14 @@ def test_refused_refresh_still_buys_imprint_instead_of_aborting(monkeypatch):
         refresh_allowed=True, refresh_enabled=True, refresh_known=True, refresh_price=600,
         words={'Refresh': [word('用600更新')]})
     phase, log = ['shop'], []
+    clock = [100.]
+    monkeypatch.setattr(shops.native, 'active_now', lambda: clock[0])
+    from pcr_maa.labyrinth import autoplay
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *a: clock.__setitem__(0, clock[0] + 1))
+    shop.tasker = NS()
+    transition_frames = []
     def capture():
+        if transition_frames: return transition_frames.pop(), {}
         if phase[0] == 'shop': return dict(current), {}
         title = 'confirmation' if phase[0] == 'confirmation' else 'complete'
         verb = '购买' if title == 'confirmation' else '购买了'
@@ -345,11 +382,18 @@ def test_refused_refresh_still_buys_imprint_instead_of_aborting(monkeypatch):
         log.append('refresh'); return dict(refresh_refused=True)
     def input_once(state, *args, **kwargs):
         log.append(state)
-        if state == 'shop': phase[0] = 'confirmation'
+        if state == 'shop':
+            phase[0] = 'confirmation'
+            if delayed == 'quote':
+                transition_frames.append(dict(state='confirmation',
+                    words={'DialogBody': [word(imprint['name'])], 'Confirm': [word('确认')]}))
         elif state == 'confirmation': phase[0] = 'complete'; current['balance'] -= 780
-        elif state == 'complete': phase[0] = 'shop'; current['items'] = []
+        elif state == 'complete':
+            phase[0] = 'shop'
+            if delayed == 'balance': transition_frames.append(dict(current, balance=4790))
+            current['items'] = []
         return {'native_ok': True}
-    shop._capture = capture; shop._wait_state = lambda *a: capture()
+    shop._capture = capture
     shop._input = input_once; shop._refresh = refused
     shop._imprint_following = lambda *a: []
     shop.purchase_readback = lambda b, q, c: stamp(operation_id=c['operation_id'], enter_id=q['enter_id'],
@@ -367,3 +411,4 @@ def test_refused_refresh_still_buys_imprint_instead_of_aborting(monkeypatch):
     assert actual['refresh_performed'] is False and len(actual['purchases']) == 1
     assert log == ['refresh', 'shop', 'confirmation', 'complete']
     assert current['balance'] == 4010
+    assert clock[0] == (101. if delayed else 100.)

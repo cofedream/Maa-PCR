@@ -866,6 +866,48 @@
     "target": true,
     "next": []
   },
+  "OneKeyDo_mana_max_exp_dismiss": {
+    "action": "DoNothing",
+    "post_delay": 0,
+    "next": [
+      "OneKeyInput_mana_max_exp_dismiss"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_mana_max_exp_dismiss": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "mana_max_exp_dismiss",
+    "max_hit": 1,
+    "post_delay": 600,
+    "action": "Click",
+    "target": true,
+    "next": []
+  },
+  "OneKeyDo_exp_max_exp_dismiss": {
+    "action": "DoNothing",
+    "post_delay": 0,
+    "next": [
+      "OneKeyInput_exp_max_exp_dismiss"
+    ],
+    "on_error": [
+      "OneKeyStop"
+    ],
+    "timeout": 30000
+  },
+  "OneKeyInput_exp_max_exp_dismiss": {
+    "recognition": "Custom",
+    "custom_recognition": "OneKeyPage",
+    "custom_recognition_param": "exp_max_exp_dismiss",
+    "max_hit": 1,
+    "post_delay": 600,
+    "action": "Click",
+    "target": true,
+    "next": []
+  },
   "OneKeySkipResultReady": {
     "recognition": "Custom",
     "custom_recognition": "OneKeyPage",

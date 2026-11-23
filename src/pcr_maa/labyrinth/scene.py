@@ -108,13 +108,15 @@ _RULES={
         ('NODE_HEADER_STANDARD','NODE_RELICS_STANDARD','NODE_RETURN_STANDARD')),
  'home':(('DAWN_TICKET_LABEL_STANDARD','DAWN_ACTIVE_STANDARD'),('DAWN_TICKET_LABEL_STANDARD','DAWN_START_STANDARD')),
 }
+CHALLENGE_PAGES = frozenset(('normal_challenge', 'ex_challenge', 'boss_challenge'))
+
 _ACTIONS={
  'advance_character_animation':(frozenset(('character_animation','event_animation','unknown')),'EVENT_ANIMATION_SKIP'),
  'advance_final_unknown':(frozenset(('unknown',)),'advance'),
  'retry_battle':(frozenset(('battle_defeat',)),'RETRY'),
  'advance_revived_battle':(frozenset(('battle_defeat',)),'REVIVE_NEXT'),
  'advance_final_animation':(frozenset(('clear_congratulations','clear_reward_animation','clear_chest_animation')),'advance'),
- 'challenge':(frozenset(('normal_challenge','ex_challenge','boss_challenge')),'BATTLE_CHALLENGE_BUTTON'),
+ 'challenge':(CHALLENGE_PAGES,'BATTLE_CHALLENGE_BUTTON'),
  'start_battle':(frozenset(('team',)),'START_WORD'),
  'confirm_move':(frozenset(('move_confirmation',)),'CONFIRM'),
  'close_reward':(frozenset(('item_reward','joined','shop_complete','chest')),'close'),
@@ -513,16 +515,38 @@ def runtime_resource(tasker):
         resource=tasker.resource;tasker._labyrinth_scene_resource=resource
     return resource
 
+def read_item_reward_through_connection(tasker, timings, batch, read, *, source, reason):
+    try:
+        return read()
+    except BatchStopped as error:
+        if error.args != (reason,):
+            raise
+    # The selection is already journaled. Observe the pending result without resending it.
+    batch.checkpoint()
+    scene = MaaSceneRuntime(tasker, timings=timings)
+    current = scene.observe(probe_kinds=('item_reward',))
+    batch.checkpoint()
+    if current.kind == 'connecting':
+        scene.wait_for(batch, {'item_reward'}, source=source,
+                       timeout=REWARD_CONNECTION_TIMEOUT_SECONDS, reason=reason)
+    elif current.kind != 'item_reward':
+        raise BatchStopped(current.kind if current.kind in ('date_changed', 'disconnected') else reason)
+    return read()
+
+
 class MaaSceneRuntime:
     def __init__(self,tasker,stamp=None,*,timings=None,stopped=None):
         self.tasker=tasker;self.stamp=stamp;self.timings=timings or Timings();self.stopped=stopped
         self.observer=install_scene(runtime_resource(tasker),stopped=stopped)
     def observe(self,*,timeout=OBSERVATION_TIMEOUT_SECONDS,probe_kinds=None):return observe_scene(self.tasker,stopped=self.stopped,timings=self.timings,timeout=timeout,probe_kinds=probe_kinds if probe_kinds is not None else getattr(self,'_scene_probe_kinds',None))
     def perform(self,scene,action,*,target=None):return perform_scene_action(self.tasker,scene,action,stopped=self.stopped,timings=self.timings,target=target)
-    def wait_for(self,batch,allowed,*,source=None,accept=None,timeout=30,reason='scene_readback_unknown',acquisition_fields=None,final_fields=None):
+    def wait_for(self,batch,allowed,*,source=None,accept=None,timeout=30,reason='scene_readback_unknown',
+                 acquisition_fields=None,final_fields=None,confirm_team_entry=False):
         """Business wait with independent owned acquisition and final-settlement drivers."""
         from .autoplay import _poll_pause, _native_ok, _owned_boss_summary_scene
         sources={source} if isinstance(source,str) else set(source or ())
+        previous_kind = None
+        saw_team = False
         started=native.active_now()
         parent_deadline=native.RUN_DEADLINE.get()
         deadline=min(parent_deadline,started+timeout)
@@ -570,6 +594,17 @@ class MaaSceneRuntime:
                 if native.active_now()>=accept_deadline:raise BatchStopped(reason)
                 _native_ok(after.native)
                 if after.kind in ('date_changed','disconnected'):raise BatchStopped(after.kind)
+                if confirm_team_entry:
+                    repeated = after.kind == previous_kind
+                    previous_kind = after.kind
+                    # A transient team reading can be followed by the original challenge page.
+                    if after.kind == 'team':
+                        saw_team = True
+                        if not repeated:
+                            continue
+                    elif after.kind in sources and after.kind in allowed and not (saw_team and repeated):
+                        _poll_pause(self.tasker,batch,'LabySceneTransitionPollSpacing',reason)
+                        continue
                 if after.kind=='connecting':
                     # A confirmed reward can spend its whole short transition window loading.
                     # Extend once from the original start; neither repeated frames nor pauses reset it.

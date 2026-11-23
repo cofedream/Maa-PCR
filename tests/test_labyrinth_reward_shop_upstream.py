@@ -235,11 +235,17 @@ def test_refresh_quote_and_result_are_separate_new_intents_unknown_never_repeats
  assert calls==['refresh']
  assert [e['operation'] for e in batch.journal.events() if e['state']=='settled']==['shop_refresh_proposal']
 
-def test_unknown_currency_or_wrong_refresh_price_never_confirms():
+def test_unknown_currency_or_wrong_refresh_price_never_confirms(monkeypatch):
+ from pcr_maa.labyrinth import autoplay
+ clock=[100.]
+ monkeypatch.setattr(shops.native,'active_now',lambda:clock[0])
+ monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:clock.__setitem__(0,shops.native.RUN_DEADLINE.get()))
  batch,stamp=harness();shop=shops.MaaShop.__new__(shops.MaaShop);shop.stamp=stamp;calls=[]
+ shop.tasker=NS()
  shop._input=lambda state,*a,**k:calls.append(state) or {}
  for body in ('消耗宝石×300更新商店','要消耗阿尔法金币×301更新商店'):
   shop._probe_state=lambda *a:(dict(state='refresh_confirmation',words={'DialogBody':[word(body)],'Confirm':[word('确认')]}),{})
+  shop._capture=shop._probe_state
   with pytest.raises(BatchStopped):shop._refresh(batch,1,30601,dict(balance=900,refresh_allowed=True,words={'Refresh':[word('用300更新')]}),0)
  assert calls==['refresh','refresh']
 
@@ -290,13 +296,16 @@ def test_shared_shop_loop_refreshes_exhausted_cycle_then_buys_fresh_relic(monkey
     if purchases==3:
      current.update(stock_state='unknown',refresh_known=True,words={'Name0':[word('职能印记')]})
   return {}
- def wait_state(*args,accept=None):
-  if accept is not None:
-   assert not accept(current)
+ def wait_state(batch,expected,*,accept=None,reason=None):
+  value,receipt=capture()
+  assert value['state']==expected
+  if accept is not None and not accept(value):
+   assert expected=='shop' and reason is None
    log.append('recheck')
    current.update(stock_state='exhausted')
-   assert accept(current)
-  return capture()
+   value,receipt=capture()
+   assert accept(value)
+  return value,receipt
  shop._capture=capture;shop._wait_state=wait_state;shop._input=input_once;shop._refresh=refresh
  # Preserve the business state receipt rather than manufacturing Maa structure in this test.
  shop.purchase_readback=lambda b,q,c:stamp(operation_id=c['operation_id'],enter_id=q['enter_id'],item_id=q['item_id'],price=q['price'],inventory_added=True,native=capture()[0],input_native=c['input_native'])

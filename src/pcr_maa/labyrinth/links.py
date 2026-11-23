@@ -319,6 +319,7 @@ class MaaLinkReward:
 
     def choose(self, batch, enter_id, reward_id, *, ordered_elements=ELEMENT_PRIORITY):
         from .. import native
+        from .scene import read_item_reward_through_connection
         if (type(enter_id) is not int or enter_id <= 0 or type(reward_id) is not str
                 or not reward_id or len(reward_id) > 128 or any(ord(c) < 32 for c in reward_id)):
             raise BatchStopped('link_reward_identity_required')
@@ -366,7 +367,9 @@ class MaaLinkReward:
                 offers=fresh;selected=offers[selected.slot]
         batch.checkpoint()
         with obtained_guard(self.tasker, selected):
-            obtained = link_obtained(self._run('LabyLinkObtainedObserved'), selected)
+            received = read_item_reward_through_connection(self.tasker, self.timings, batch,
+                lambda: self._run('LabyLinkObtainedObserved'), source='link_reward', reason='link_result_unknown')
+            obtained = link_obtained(received, selected)
         confirmed=batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,
             imprints_obtained=True,input_native=clicked['input_native'],input_action_verified=True,
             native=dict(selection=clicked['native'],obtained=obtained)),**fields,imprints_obtained=True)

@@ -211,7 +211,7 @@
           "sha256": "74badfd997f8b59c371f4447988f9bb51cab39397d11becc8b2b76be8ae66dd5"
         }
       ],
-      "local_sha256": "16a4868b0f21e3ed87d4c98f191c0158369b20a7b5f7481b496f1548ae3f90d1",
+      "local_sha256": "50071b75bda427a2637313a3bcc8e50de3a31a49d529ba23087e0a05ddadaa84",
       "production_runtime": true
     },
     {
@@ -237,7 +237,7 @@
           "sha256": "03f9a2f1d572fd8164e33ddf7b93f4b10b0d12dae91bfd1ee2b86470dac1cf57"
         }
       ],
-      "local_sha256": "330d714103b06dae31897ee227cbd476d0979bc9ed66ef272c6964bed3ad4678",
+      "local_sha256": "a2c9c171e30cdacf020ffcbbd3bd6c768c590aae5464bf3a86198b71c0b48467",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true,
       "upstream_updates": [
@@ -276,7 +276,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "7f4c7ddbe32a65e2c871f9207a939d87cbeb055d2da1dccfce904d7365edd4bf",
+      "local_sha256": "07e4e3a3f7cc243b83852f3ed48bd712a2cef755c2049d936bab7e9fff340ac5",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true,
       "upstream_updates": [
@@ -372,7 +372,7 @@
           "sha256": "9f65df1a08613f39e93f8d6c707b4a0533db39df596623b686999a2933dff6cc"
         }
       ],
-      "local_sha256": "19463219d4c34ccf9de28040e75ce87b73766feec0aac0d62c89fb9a5b52e1bc",
+      "local_sha256": "b9cd542e6a1eec74f8a7f9b18841f74f710ee5d0d6c53b82e6c24382b8fef950",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true,
       "upstream_updates": [
@@ -608,7 +608,7 @@
           "sha256": "16d25ebafa401dfaf0f3a879684dcc32c032e89b03ab837615a5f12c240ac11c"
         }
       ],
-      "local_sha256": "ab39b6b6b7d78628686f9804c15838685d59ce7a2b228825fc38bb824098b87e",
+      "local_sha256": "3f063e971a7d56be810eb9fe8f7a00c232355859df5b48dfc63887090a7fc47e",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -8602,7 +8602,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/autoplay.py",
-      "local_sha256": "19463219d4c34ccf9de28040e75ce87b73766feec0aac0d62c89fb9a5b52e1bc",
+      "local_sha256": "b9cd542e6a1eec74f8a7f9b18841f74f710ee5d0d6c53b82e6c24382b8fef950",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8698,7 +8698,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/links.py",
-      "local_sha256": "16a4868b0f21e3ed87d4c98f191c0158369b20a7b5f7481b496f1548ae3f90d1",
+      "local_sha256": "50071b75bda427a2637313a3bcc8e50de3a31a49d529ba23087e0a05ddadaa84",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8782,7 +8782,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/relics.py",
-      "local_sha256": "c7da91a64d8ac226bd257aee2711052d726c7cde187e0cb7157b9f2d84b2eaff",
+      "local_sha256": "3f063e971a7d56be810eb9fe8f7a00c232355859df5b48dfc63887090a7fc47e",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8812,7 +8812,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/scene.py",
-      "local_sha256": "330d714103b06dae31897ee227cbd476d0979bc9ed66ef272c6964bed3ad4678",
+      "local_sha256": "a2c9c171e30cdacf020ffcbbd3bd6c768c590aae5464bf3a86198b71c0b48467",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8824,7 +8824,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/shop_execution.py",
-      "local_sha256": "7f4c7ddbe32a65e2c871f9207a939d87cbeb055d2da1dccfce904d7365edd4bf",
+      "local_sha256": "07e4e3a3f7cc243b83852f3ed48bd712a2cef755c2049d936bab7e9fff340ac5",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -9646,7 +9646,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
-      "local_sha256": "af2d27bfa8dfc3d30b7a8869549e0c743c17dda90404dc82ffd48cbc8d73e5dd",
+      "local_sha256": "bfb6e81619db116c1ebb9104a07538cf05aa8046dab5d98192fb42af30b06681",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -9688,7 +9688,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml",
-      "local_sha256": "98d60f4f2b0b5e25ed5039a8818bd006b7923b582008a609af7da7d455d0b509",
+      "local_sha256": "8a1651095daac1cedd680a47e03c9f036f91fd3f2a616adfdab0c237d2e0d46e",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

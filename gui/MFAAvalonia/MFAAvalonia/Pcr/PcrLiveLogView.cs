@@ -38,7 +38,9 @@ public sealed class PcrLiveLogView : UserControl
         tools.Children.Add(toggle);
         var clear = Tool("清空", () => { if (DataContext is TaskQueueViewModel vm) vm.LabyrinthLogRows.Clear(); });
         tools.Children.Add(clear);
-        tools.Children.Add(Tool("到底部", () => ScrollViewerExtensions.ScrollToEndAndResumeAutoScroll(scroll!)));
+        var toBottom = Tool("到底部", () => ScrollViewerExtensions.ScrollToEndAndResumeAutoScroll(scroll!));
+        toBottom.IsVisible = false;
+        tools.Children.Add(toBottom);
         var export = Tool("导出本次日志", () => ShowExport(false));
         export.Bind(IsEnabledProperty, new Binding(nameof(TaskQueueViewModel.CanExportPlayerLog)));
         tools.Children.Add(export);
@@ -62,6 +64,7 @@ public sealed class PcrLiveLogView : UserControl
         toggle.IsCheckedChanged += (_, _) =>
         {
             body.IsVisible = toggle.IsChecked == true;
+            toBottom.IsVisible = body.IsVisible;
             if (body.IsVisible) Avalonia.Threading.Dispatcher.UIThread.Post(() => ScrollViewerExtensions.ScrollToEndAndResumeAutoScroll(scroll));
         };
         root.Children.Add(body); Content = root;

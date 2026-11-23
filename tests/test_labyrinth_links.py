@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import replace
 from itertools import permutations
 from pathlib import Path
+from types import SimpleNamespace
 import json,re
 import pytest
 from maa.custom_action import CustomAction
@@ -515,6 +516,40 @@ def test_link_transaction_result_proof_precedes_close_and_settlement(monkeypatch
     assert [r for _,r in calls]==[(),('LabyLinkSelectOnce',),(),('LabyLinkResultCloseOnce',),()]
     assert [e['state'] for e in journal.events()]==['in_flight','settled']*2
     assert journal.events()[0]['operation']=='link_reward_select'
+
+
+@pytest.mark.parametrize('wrong_item', [False, True])
+def test_link_result_waits_through_connection_without_reselecting(monkeypatch,tmp_path,wrong_item):
+    from pcr_maa.labyrinth import scene
+
+    batch,reward,journal,calls,_,_=mock_link_runtime(monkeypatch,tmp_path,bad_result=wrong_item)
+    original=native.run
+    reads,waits=[],[]
+    def run(tasker,node,*,reset_hits=()):
+        if node=='LabyLinkObtainedObserved':
+            reads.append(node)
+            if len(reads)==1:
+                calls.append((node,reset_hits))
+                return dict(native_ok=False,nodes=[])
+        return original(tasker,node,reset_hits=reset_hits)
+    def wait(active,allowed,*,source,timeout,reason):
+        assert active is batch and allowed=={'item_reward'}
+        assert source=='link_reward' and timeout==60 and reason=='link_result_unknown'
+        assert len(reads)==1 and journal.events()[-1]['state']=='settled'
+        waits.append(source)
+    monkeypatch.setattr(native,'run',run)
+    monkeypatch.setattr(scene,'MaaSceneRuntime',lambda *a,**kw:SimpleNamespace(
+        observe=lambda **kw:SimpleNamespace(kind='connecting'),wait_for=wait))
+
+    with journal.locked():
+        if wrong_item:
+            with pytest.raises(BatchStopped,match='mismatch'):
+                reward.choose(batch,1,'reward-a')
+        else:
+            assert reward.choose(batch,1,'reward-a')['imprints_obtained'] is True
+    assert len(reads)==2 and waits==['link_reward']
+    inputs=[node for node,hits in calls if hits]
+    assert inputs==['LabyLinkSelectOnce']+([] if wrong_item else ['LabyLinkResultCloseOnce'])
 
 
 @pytest.mark.parametrize('failure', ['once','persistent','unknown','started','prevalidation','changed','stopped'])

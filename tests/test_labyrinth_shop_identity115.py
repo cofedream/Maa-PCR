@@ -31,15 +31,23 @@ def test_ocr_label_is_not_a_catalog_identity_and_imprint_meaning_stays_exact():
     ('native_observed_icon',2851,'购买了深渊蚀杖诅咒',False),
     ('native_observed_icon',2850,'是否购买深渊蚀杖诅咒',False),
 ])
-def test_completion_keeps_confirmed_identity_but_requires_actual_completion_amount(identity,price,text,passes):
+def test_completion_keeps_confirmed_identity_but_requires_actual_completion_amount(identity,price,text,passes,monkeypatch):
     shop=shops.MaaShop.__new__(shops.MaaShop);shop.stamp=lambda **v:v
     quote=dict(enter_id=115,item_id='current',kind='relic',name='深渊蚀杖退咒',price=2850,mark='弱体',bonus=3,identity_method=identity)
-    value=dict(state='complete',words={'DialogBody':[word('消耗阿尔法金币×'+str(price)),word(text)]})
-    shop._wait_state=lambda *a:(value,{'native_ok':True})
+    value=dict(state='complete',words={'DialogBody':[word('消耗阿尔法金币×'+str(price)),word(text)],'Confirm':[word('确认')]})
+    from pcr_maa.labyrinth import autoplay
+    monkeypatch.setattr(autoplay,'_poll_pause',lambda *a:clock.__setitem__(0,clock[0]+1))
+    clock=[100.]
+    monkeypatch.setattr(native,'active_now',lambda:clock[0])
+    incomplete=dict(state='complete',words={'DialogBody':[word(text)],'Confirm':[word('确认')]})
+    frames=iter([incomplete,value] if passes else [value])
+    shop.tasker=NS()
+    shop._capture=lambda:(next(frames,value),{'native_ok':True})
     batch=NS(checkpoint=lambda:None);clicked=dict(operation_id='current-ack',input_native={'native_ok':True})
     if passes:assert shop.purchase_readback(batch,quote,clicked)['inventory_added']
     else:
-        with pytest.raises(BatchStopped):shop.purchase_readback(batch,quote,clicked)
+        with pytest.raises(BatchStopped,match='^purchase_result_unknown$'):
+            shop.purchase_readback(batch,quote,clicked)
 
 @pytest.mark.parametrize('correct',[True,False])
 def test_actual115_confirmation_uses_native_icon_not_different_ocr_name(tmp_path,correct):
@@ -154,10 +162,10 @@ def test_shop_loop_carries_verified_icon_through_quote_spend_completion_and_clos
                 assert kw['name'] is None and kw['price']==2850
                 phase[0]='shop';shelf.update(items=[],balance=1940)
             return dict(native_ok=True)
-        shop._capture=capture;shop._wait_state=lambda *a:capture();shop._input=ack
+        shop._capture=capture;shop._input=ack
         monkeypatch.setattr(shops,'_readback',lambda value:value)
         monkeypatch.setattr(shops,'shop_relic',lambda stacks,items,**kw:next(iter(items),None))
-        shop.scene=NS(observer=NS(),observe=lambda:Scene('shop',{},{}),perform=lambda *a:{},wait_for=lambda *a,**kw:Scene('map',{},{}))
+        shop.scene=NS(observer=NS(),observe=lambda **kw:Scene('shop',{},{}),perform=lambda *a:{},wait_for=lambda *a,**kw:Scene('map',{},{}))
         result=shop.run(batch,115,30601,stacks=dict.fromkeys(MARKS,0),area=3)
         assert result['stacks']['弱体']==3 and len(result['purchases'])==1 and result['purchases'][0]['inventory_added']
         assert [x[0] for x in inputs]==['shop','confirmation','complete'] and not c.clicks

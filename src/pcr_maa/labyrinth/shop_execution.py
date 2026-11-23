@@ -172,6 +172,15 @@ def confirmation_terms(observation, *, mark=None, bonus=None):
         if (actual_mark,actual_bonus)!=(ALIASES.get(mark,mark),bonus):raise BatchStopped('shop_quote_changed')
     return body,_integer(amounts[0])
 
+def _quote_readable(value):
+    if len(value['words'].get('Confirm',()))!=1:return False
+    try:confirmation_terms(value)
+    except BatchStopped as error:
+        if error.args not in (('shop_quote_unknown',),('shop_amount_unknown',)):raise
+        return False
+    return True
+
+
 def imprint_identity(text):
     # Fixed upstream exact shop title classification; coarse labels never authorize spending.
     value=_normalized(text).translate(str.maketrans({'職':'职','隨':'随','選':'选','擇':'择','記':'记','紀':'记','纪':'记'}))
@@ -532,11 +541,17 @@ class MaaShop:
         except BaseException:self.blocked=True;raise
 
     def purchase_readback(self,batch,quote,clicked):
-        batch.checkpoint();result,receipt=self._wait_state(batch,'complete');body,price=confirmation_terms(result)
-        if '购买了' not in body or price!=quote['price']:raise BatchStopped('purchase_result_unknown')
-        if quote.get('identity_method') not in ('native_observed_icon','native_observed_catalog'):
-            try:_item_identity(result,quote['name'],quote['kind'],expected_catalog_id=quote.get('catalog_id'))
-            except BatchStopped:raise BatchStopped('purchase_result_unknown') from None
+        def completed(value):
+            try:
+                body,price=confirmation_terms(value)
+                if '购买了' not in body or price!=quote['price']:return False
+                if quote.get('identity_method') not in ('native_observed_icon','native_observed_catalog'):
+                    _item_identity(value,quote['name'],quote['kind'],expected_catalog_id=quote.get('catalog_id'))
+            except BatchStopped as error:
+                if error.args not in (('shop_quote_unknown',),('shop_amount_unknown',),('shop_quote_changed',)):raise
+                return False
+            return len(value['words'].get('Confirm',()))==1
+        _,receipt=self._wait_state(batch,'complete',accept=completed,reason='purchase_result_unknown')
         return self.stamp(operation_id=clicked['operation_id'],enter_id=quote['enter_id'],item_id=quote['item_id'],price=quote['price'],
             inventory_added=True,name=quote['name'],mark=quote.get('mark'),bonus=quote.get('bonus'),currency='run_coins',
             native=receipt,input_native=clicked['input_native'],input_action_verified=True,source='maa')
@@ -550,6 +565,7 @@ class MaaShop:
                 or current.get('refresh_enabled') is False
                 or type(current.get('balance')) is not int or current['balance']<price):
             raise BatchStopped('shop_refresh_quote_unknown')
+        expected_balance=current['balance']-price
         fields=dict(enter_id=enter_id,block_id=block_id,cycle=cycle,price=price,currency='run_coins')
         def proposal(oid):
             sent=self._input('refresh',words[0]['box'])
@@ -561,25 +577,19 @@ class MaaShop:
             # A very slow machine can still surface the dialog after the probe
             # budget; read fresh, bounded frames before classifying the click.
             late,late_receipt=self._capture_once(batch)
+            if late is not None and late.get('state')=='shop' and _same_shop(current,late,price):
+                # Require two unchanged reads before treating the refresh as refused.
+                late,late_receipt=self._capture_once(batch)
+                refused=(late is not None and late.get('state')=='shop' and _same_shop(current,late,price))
             if late is not None and late.get('state')=='refresh_confirmation':
                 dialog,receipt=late,late_receipt
-            elif late is not None and late.get('state')=='shop':
-                if _same_shop(current,late,price):
-                    # Require a second clean, unchanged read so one OCR flicker
-                    # cannot turn an optional refresh into a batch stop.
-                    again,again_receipt=self._capture_once(batch)
-                    if again is not None and again.get('state')=='refresh_confirmation':
-                        dialog,receipt=again,again_receipt
-                    elif again is not None and again.get('state')=='shop' and _same_shop(late,again,price):
-                        refused=True;late,late_receipt=again,again_receipt
-                    else:raise BatchStopped('shop_refresh_result_unknown')
-                elif late.get('balance')==current.get('balance')-price:
-                    # No dialog, but the coins were deducted exactly once: the
-                    # refresh took effect without the dialog. Never re-click.
-                    effective=late
-                else:raise BatchStopped('shop_refresh_result_unknown')
-            else:raise BatchStopped('shop_refresh_result_unknown')
+            elif late is not None and late.get('state')=='shop' and late.get('balance')==expected_balance:
+                effective=late
+            elif not refused:raise BatchStopped('shop_refresh_result_unknown')
         if dialog is not None:
+            if not _quote_readable(dialog):
+                dialog,receipt=self._wait_state(batch,'refresh_confirmation',accept=_quote_readable,
+                    reason='shop_refresh_quote_unknown')
             body,actual=confirmation_terms(dialog)
             if actual!=price or not ('更新' in body or '刷新' in body):raise BatchStopped('shop_refresh_quote_unknown')
             batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,native=receipt,input_native=clicked['input_native']),**fields)
@@ -587,7 +597,6 @@ class MaaShop:
                 sent=self._input('refresh_confirmation',dialog['words']['Confirm'][0]['box'],price=price)
                 return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
             clicked=batch.transaction('shop_refresh_purchase',fields,confirm)
-            expected_balance=current['balance']-price
             # The shelf can become visible before the server updates the balance.
             _,receipt=self._wait_state(batch,'shop',accept=lambda value:value['balance']==expected_balance,
                 reason='shop_refresh_result_unknown')
@@ -681,8 +690,11 @@ class MaaShop:
             return (any(i['kind']=='relic' and i['purchasable'] for i in value['items'])
                 or value.get('stock_state')!='unknown')
         try:
+            current=None
             for _ in range(100):
-                current,receipt=self._wait_state(batch,'shop')
+                batch.checkpoint()
+                if current is None:
+                    current,receipt=self._wait_state(batch,'shop')
                 if not buy_relics or (area==4 and not (final_shop or refresh_permitted)):break
                 if not ready(current):current,receipt=self._wait_state(batch,'shop',accept=ready)
                 items=[dict(i,relic=Relic(**i['relic'])) if i['kind']=='relic' else dict(i) for i in current['items']]
@@ -697,6 +709,7 @@ class MaaShop:
                 # refreshing even when the leftover stock has nothing purchasable.
                 if (exhausted(current) or (final_shop and not purchasable)) and refresh_ok:
                     result=self._refresh(batch,enter_id,block_id,current,cycle) or {}
+                    current=None
                     if result.get('refresh_refused') is True:
                         # The control is already locked (per-shop refresh cap);
                         # never re-click it in this visit. Continue with the
@@ -717,8 +730,9 @@ class MaaShop:
                     sent=self._input('shop',selected['box'],name=selected['name'],price=selected['price'])
                     return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True,source='maa')
                 clicked=batch.transaction('shop_proposal',fields,proposal)
-                batch.checkpoint();dialog,dialog_receipt=self._wait_state(batch,'confirmation')
-                body,amount=confirmation_terms(dialog)
+                dialog,dialog_receipt=self._wait_state(batch,'confirmation',accept=_quote_readable,
+                    reason='shop_quote_unknown')
+                _,amount=confirmation_terms(dialog)
                 try:identity_method=_item_identity(dialog,selected['name'],selected['kind'],expected_catalog_id=selected.get('catalog_id'))
                 except BatchStopped as error:
                     # A trusted icon that names another relic is a changed
@@ -753,9 +767,10 @@ class MaaShop:
                 if selected['kind']=='role_imprint':
                     joined=self._imprint_following(batch,enter_id,identifier,roles,characters,selected)
                     roles.extend(role for role in joined if role not in roles)
-                    _,after=self._wait_state(batch,'shop')
-                else:_,after=self._wait_state(batch,'shop')
-                batch.observation(self.stamp(operation_id=clicked['operation_id'],**close_fields,page='shop',native=after,input_native=clicked['input_native'],source='maa'),**close_fields)
+                expected_balance=quote['balance']-quote['price']
+                current,receipt=self._wait_state(batch,'shop',accept=lambda value:value['balance']==expected_balance,
+                    reason='purchase_result_unknown')
+                batch.observation(self.stamp(operation_id=clicked['operation_id'],**close_fields,page='shop',native=receipt,input_native=clicked['input_native'],source='maa'),**close_fields)
             else:raise BatchStopped('shop_action_limit')
             fields=dict(enter_id=enter_id,block_id=block_id,phase='shop_leave')
             def exit_scene():

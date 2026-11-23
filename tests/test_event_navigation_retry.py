@@ -3,6 +3,8 @@ from pathlib import Path
 from types import SimpleNamespace
 import json
 
+import cv2
+import numpy as np
 import pytest
 
 from pcr_maa import native
@@ -19,6 +21,33 @@ def frame(path):
     if not path.is_file():
         pytest.skip('Private original frame missing; no live fallback')
     return native.read_image(path)
+
+
+def test_split_story_event_map_title_is_read_as_one_line():
+    title = cv2.imread(str(ROOT / 'tests/data/event-map-title-split.png'))
+    image = np.zeros((720, 1280, 3), dtype=np.uint8)
+    image[10:73, 75:350] = title
+    missing_suffix = image.copy()
+    missing_suffix[10:73, 224:350] = 0
+
+    resource = native.load_resource(cpu_only=True)
+    assert resource.override_pipeline({
+        'CheckStoryEventMapTitle': dict(next=['StoryEventMapTitle', 'UnrecognizedMapTitle'],
+                                        pre_delay=0, post_delay=0),
+        'UnrecognizedMapTitle': dict(next=[], pre_delay=0, post_delay=0),
+    })
+    controller = SavedImages([[image]])
+    tasker = native.bind(resource, controller)
+    try:
+        receipt = native.run(tasker, 'CheckStoryEventMapTitle')
+        assert receipt['nodes'][-1]['name'] == 'StoryEventMapTitle'
+        controller.stages = [[missing_suffix]]
+        receipt = native.run(tasker, 'CheckStoryEventMapTitle')
+        assert receipt['nodes'][-1]['name'] == 'UnrecognizedMapTitle'
+        assert not controller.clicks and not controller.swipes
+    finally:
+        stopped = native.stop_tasker(tasker)
+        assert stopped['idle'] and stopped['stop_completed']
 
 
 @pytest.mark.private_replay
