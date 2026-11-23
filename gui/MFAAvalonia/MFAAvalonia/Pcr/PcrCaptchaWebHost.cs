@@ -153,6 +153,12 @@ internal sealed class PcrCaptchaWebHost : IDisposable
         }
     }
 
+    /// <summary>
+    /// Cancels the pending human wait from a caller that has no embedded window
+    /// (the browser-fallback card). Uses the page's own loopback endpoint only.
+    /// </summary>
+    internal static Task<bool> CancelPageAsync(string url) => PostCancelAsync(url);
+
     private static async Task<bool> PostCancelAsync(string? url)
     {
         if (string.IsNullOrEmpty(url) || !Uri.TryCreate(url, UriKind.Absolute, out var page)) return false;

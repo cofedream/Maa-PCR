@@ -9,17 +9,22 @@ drives the same option through the game UI instead: 黎明界迷宫地图右上�
 The client has no public API for those pages, so every page/anchor below is an
 OCR or template recognition calibrated from a real 1280x720 frame.  No
 coordinate is guessed: while `CALIBRATION` is incomplete `available()` is False
-and the caller keeps the scene runtime's 30s character-acquisition budget.
+and the caller keeps the scene runtime's bounded readback budget.
 
 Safety contract
 - a page is identified by one complete action-free anchor set on one frame; a
   click node is an And of that page guard and its control, so a frame change can
   only turn the tap into a proven-unsent input, never a blind tap;
+- the 「菜单」 opener additionally excludes an already-open settings/menu page on
+  the input frame: the map stays visible behind both panels, so MAP alone cannot
+  tell a closed map from an opened panel;
 - after the toggle the option state is re-read on a fresh frame and only
   "不播放" leaves the settings page;
 - the flow starts and ends on a fresh `LabyMapObserved` frame; anything else
   readable is waited on, and an unreadable page stops the batch.
 """
+from maa.custom_recognition import CustomRecognition
+
 from .. import native
 from .batch import BatchStopped
 from .timing import Timings
@@ -30,6 +35,42 @@ DEFAULT_TIMEOUT_SECONDS=60
 # the owner stopping, and "adb_missing" cannot automate Maa either.
 FALLBACK_STATUSES=frozenset({'no_root','unknown','write_failed','error',
     'stop_unverified','stop_failed'})
+
+# Custom recognition registered once per Owner Resource. It hit-tests the same
+# frame the click is dispatched on (not a later screen):
+#   settings open / menu panel open  → miss, so the opener never toggles a panel;
+#   map readable with both closed    → hit at the calibration's menu target.
+MENU_OPEN_GUARD='LabyJoinAnimationMenuOpenGuard'
+
+
+class _MenuClosedGuard(CustomRecognition):
+    """Hit only on an input frame that shows the map without an opened panel."""
+
+    def analyze(self,context,argv):
+        try:
+            from .scene import same_frame_context
+            frame=same_frame_context(context,argv.image)
+            for node in ('LabyJoinAnimationSettingsObserved',
+                    'LabyJoinAnimationMenuObserved'):
+                panel=frame.run_recognition(node,argv.image)
+                # An opened page must be classified before MAP.
+                if panel is not None and getattr(panel,'hit',False):return None
+            page=frame.run_recognition('LabyMapObserved',argv.image)
+            if page is None or not getattr(page,'hit',False):return None
+        except Exception:
+            # An unreadable frame is never a license to tap.
+            return None
+        param=argv.custom_recognition_param
+        if type(param) is str:
+            import json
+            try:param=json.loads(param)
+            except ValueError:return None
+        target=param.get('target') if type(param) is dict else None
+        if type(target) is not list or len(target)!=4:return None
+        try:box=[int(value) for value in target]
+        except (TypeError,ValueError):return None
+        return self.AnalyzeResult(box,dict(menu_closed=True))
+
 
 # Calibrated from real client frames before this fallback is allowed to run.
 # Schema (all coordinates for the 1280x720 Maa frame):
@@ -88,8 +129,14 @@ def needs_ui_fallback(status):
 def available(calibration=None):
     value=CALIBRATION if calibration is None else calibration
     if type(value) is not dict:return False
-    return all(value.get(key) is not None for key in (
-        'menu_entry','option','state_on','state_off','settings_close','menu_close'))
+    if not all(value.get(key) is not None for key in (
+            'menu_entry','option','state_on','state_off','settings_close','menu_close')):
+        return False
+    # The menu opener is now a same-frame custom guard and needs its click point.
+    targets=value.get('targets')
+    if type(targets) is not dict:return False
+    menu=targets.get('menu')
+    return type(menu) is list and len(menu)==4
 
 
 def _defaults(node):
@@ -168,8 +215,13 @@ def _control_nodes(calibration):
         'LabyJoinAnimationSettingsObserved','LabyJoinAnimationMenuObserved',
         'LabyMapObserved','LabyJoinAnimationDate','LabyJoinAnimationDisconnect'],
         action='DoNothing',next=[],timeout=3000,pre_delay=0,post_delay=0)
-    nodes['LabyJoinAnimationMenuOpenOnce']=_click(['LabyMapObserved','LabyMapMenu'],
-        targets.get('menu'))
+    # The map stays visible behind the opened panels, so the opener uses a
+    # same-frame custom guard that misses when settings/menu is already open.
+    nodes['LabyJoinAnimationMenuOpenOnce']=dict(recognition='Custom',
+        custom_recognition=MENU_OPEN_GUARD,
+        custom_recognition_param=dict(target=list(targets['menu'])),
+        roi=[0,0,1280,720],action='Click',target=True,max_hit=1,rate_limit=250,
+        timeout=3000,pre_delay=0,post_delay=0,next=[])
     nodes['LabyJoinAnimationSettingsOpenOnce']=_click(menu_guard,
         targets.get('menu_entry'))
     nodes['LabyJoinAnimationToggleOnce']=_click(settings_guard+['LabyJoinAnimationStateOn'],
@@ -235,6 +287,18 @@ class MaaJoinAnimationSetting:
     def available(self):
         return available(self.calibration)
 
+    def _install_guard(self):
+        """Register the same-frame menu-opener guard once per Owner Resource."""
+        resource=self.tasker.resource
+        if getattr(resource,'_labyrinth_join_animation_guard',None) is not None:
+            return
+        guard=_MenuClosedGuard()
+        try:registered=resource.register_custom_recognition(MENU_OPEN_GUARD,guard)
+        except Exception:registered=False
+        if not registered:raise BatchStopped('join_animation_pipeline_unavailable')
+        try:resource._labyrinth_join_animation_guard=guard
+        except Exception:pass
+
     def ensure_off(self,batch,*,enter_id):
         """Return 'toggled' or 'already_off'; never guess a coordinate."""
         if not available(self.calibration):return 'skipped_uncalibrated'
@@ -244,6 +308,7 @@ class MaaJoinAnimationSetting:
         started=native.active_now()
         token=native.RUN_DEADLINE.set(min(native.RUN_DEADLINE.get(),started+timeout))
         try:
+            self._install_guard()
             nodes=_control_nodes(self.calibration)
             if not self.tasker.resource.override_pipeline(nodes):
                 raise BatchStopped('join_animation_pipeline_unavailable')

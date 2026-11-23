@@ -27,11 +27,12 @@ EXPECT = {
         toggle=False, settings_close=False, menu_close=False)),
     'map_final.png': dict(MAP, clicks=dict(menu_open=True, settings_open=False,
         toggle=False, settings_close=False, menu_close=False)),
-    'menu_panel.png': dict(MENU, clicks=dict(menu_open=True, settings_open=True,
+    # The panel keeps the map visible; the opener guard must miss on these frames.
+    'menu_panel.png': dict(MENU, clicks=dict(menu_open=False, settings_open=True,
         toggle=False, settings_close=False, menu_close=True)),
-    'panel3.png': dict(MENU, clicks=dict(menu_open=True, settings_open=True,
+    'panel3.png': dict(MENU, clicks=dict(menu_open=False, settings_open=True,
         toggle=False, settings_close=False, menu_close=True)),
-    'panel_again.png': dict(MENU, clicks=dict(menu_open=True, settings_open=True,
+    'panel_again.png': dict(MENU, clicks=dict(menu_open=False, settings_open=True,
         toggle=False, settings_close=False, menu_close=True)),
     'dialog_play.png': dict(PLAY, clicks=dict(menu_open=False, settings_open=False,
         toggle=True, settings_close=True, menu_close=False)),
@@ -79,6 +80,8 @@ def test_calibrated_nodes_reproduce_the_sampled_client_frames(frame):
         if spec.get('action') == 'Click':
             nodes[key] = dict(spec, action='DoNothing')
     assert resource.override_pipeline(nodes)
+    assert resource.register_custom_recognition(
+        animation_ui.MENU_OPEN_GUARD, animation_ui._MenuClosedGuard())
     tasker = native.bind(resource, SavedImages([[image]]))
     try:
         page_names = _node_names((native.run(tasker, 'LabyJoinAnimationPageObserved').get('nodes') or [{}])[0])

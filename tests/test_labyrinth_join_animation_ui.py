@@ -36,6 +36,8 @@ def calibration():
         'state_off': {'expected': '^不播放$', 'roi': [800, 300, 100, 40]},
         'settings_close': {'expected': '^关闭$', 'roi': [600, 600, 100, 40]},
         'menu_close': {'target': [1225, 82, 1, 1]},
+        'targets': {'menu': [1225, 82, 1, 1], 'menu_entry': [950, 320, 1, 1],
+                    'toggle': [900, 320, 1, 1], 'settings_close': [650, 620, 1, 1]},
         'timeout_seconds': 20,
     }
 
@@ -127,7 +129,8 @@ _CLICK_STEPS = {
 
 def install(monkeypatch, device):
     batch, stamp = harness()
-    tasker = NS(resource=NS(override_pipeline=lambda nodes: True), stopping=False)
+    tasker = NS(resource=NS(override_pipeline=lambda nodes: True,
+        register_custom_recognition=lambda name, callback: True), stopping=False)
     monkeypatch.setattr(native, 'run', device.run)
     monkeypatch.setattr(native, 'active_now', lambda: device.clock[0])
     monkeypatch.setattr(autoplay, '_poll_pause',
@@ -252,8 +255,11 @@ def test_unknown_transition_frames_are_waited_through_without_input(monkeypatch)
 
 def test_pipeline_builds_full_guards_and_calibrated_targets():
     nodes = animation_ui._control_nodes(calibration())
-    assert nodes['LabyJoinAnimationMenuOpenOnce']['all_of'] == [
-        'LabyMapObserved', 'LabyMapMenu']
+    menu_open = nodes['LabyJoinAnimationMenuOpenOnce']
+    assert menu_open['recognition'] == 'Custom'
+    assert menu_open['custom_recognition'] == animation_ui.MENU_OPEN_GUARD
+    assert menu_open['action'] == 'Click' and menu_open['target'] is True
+    assert menu_open['custom_recognition_param'] == {'target': [1225, 82, 1, 1]}
     assert nodes['LabyJoinAnimationSettingsOpenOnce']['all_of'] == [
         'LabyJoinAnimationMenuEntry']
     assert nodes['LabyJoinAnimationToggleOnce']['all_of'] == [
@@ -268,6 +274,54 @@ def test_pipeline_builds_full_guards_and_calibrated_targets():
                  'LabyJoinAnimationStateOn', 'LabyJoinAnimationStateOff',
                  'LabyJoinAnimationSettingsClose'):
         assert nodes[name]['action'] == 'DoNothing' and nodes[name]['next'] == []
+
+
+class GuardFrame:
+    """Synthetic provider for one input frame: names that matched."""
+
+    def __init__(self, matched):
+        self.matched = set(matched)
+
+    def run_recognition(self, node, image):
+        return NS(hit=node in self.matched)
+
+
+def guard_analyze(matched, target=(1225, 82, 1, 1)):
+    param = {'target': list(target)} if target is not None else {}
+    return animation_ui._MenuClosedGuard().analyze(GuardFrame(matched),
+        NS(image=None, custom_recognition_param=param))
+
+
+def test_menu_open_guard_misses_when_a_panel_is_already_open():
+    # The opened panel keeps the map visible; tapping 菜单 again would close it.
+    for panel in ('LabyJoinAnimationMenuObserved', 'LabyJoinAnimationSettingsObserved'):
+        assert guard_analyze({'LabyMapObserved', panel}) is None
+
+
+def test_menu_open_guard_misses_on_an_unreadable_frame():
+    assert guard_analyze(set()) is None
+
+
+def test_menu_open_guard_needs_a_calibrated_target():
+    assert guard_analyze({'LabyMapObserved'}, target=None) is None
+
+
+def test_menu_open_guard_hits_only_a_closed_map():
+    result = guard_analyze({'LabyMapObserved'})
+    assert result is not None and result.box == [1225, 82, 1, 1]
+
+
+def test_menu_open_guard_is_registered_once_per_resource(monkeypatch):
+    device = Device()
+    batch, stamp, tasker = install(monkeypatch, device)
+    registered = []
+    tasker.resource.register_custom_recognition = lambda name, callback: (
+        registered.append(name) or True)
+    adapter = animation_ui.MaaJoinAnimationSetting(tasker, stamp,
+        calibration=calibration())
+    adapter._install_guard()
+    adapter._install_guard()
+    assert registered == [animation_ui.MENU_OPEN_GUARD]
 
 
 def test_wrong_start_page_sends_no_input(monkeypatch):

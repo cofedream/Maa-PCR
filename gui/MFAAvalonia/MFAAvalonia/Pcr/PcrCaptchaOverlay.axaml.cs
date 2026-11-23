@@ -21,10 +21,14 @@ public partial class PcrCaptchaOverlay : UserControl
     private Border? card;
     private Border? webHost;
     private TextBlock? statusText;
+    private Button? copyButton;
 
     private PcrCaptchaWebHost? host;
     private Window? window;
     private string? currentUrl;
+    // The embedded WebView2 child failed; the card stays visible so the player
+    // can still open or copy the same page themselves.
+    private bool browserFallback;
 
     public PcrCaptchaOverlay()
     {
@@ -33,6 +37,7 @@ public partial class PcrCaptchaOverlay : UserControl
         card = this.FindControl<Border>("Card");
         webHost = this.FindControl<Border>("WebHost");
         statusText = this.FindControl<TextBlock>("StatusText");
+        copyButton = this.FindControl<Button>("CopyButton");
         LayoutUpdated += (_, _) =>
         {
             if (!IsVisible) return;
@@ -112,14 +117,21 @@ public partial class PcrCaptchaOverlay : UserControl
             var layer = host;
             if (layer is null || currentUrl != url || !IsVisible) return true;
             layer.Navigate(url);
+            if (copyButton != null) copyButton.IsVisible = false;
             SetStatus("请完成官方极验验证；完成后会自动继续本次任务。");
             return true;
         }
         catch (Exception ex)
         {
-            var wasVisible = IsVisible;
-            HideCore();
-            if (!wasVisible) return true; // the task stopped while the layer was initializing
+            // The task may have stopped while WebView2 was initializing; keep the
+            // previous "already closed" behavior then.
+            if (!IsVisible) { HideCore(); return true; }
+            ReleaseHost();
+            browserFallback = true;
+            if (webHost != null) { webHost.IsVisible = false; webHost.MinHeight = 0; }
+            if (copyButton != null) copyButton.IsVisible = true;
+            SetStatus("软件内验证窗口不可用，已在浏览器中打开验证页面。如果浏览器没有出现，"
+                + "可点「在浏览器中打开」或「复制验证链接」后粘贴完成。");
             // Never put the one-use page URL or exception text into logs.
             var stage = ex.Data["captcha_stage"] as string ?? "show";
             LoggerHelper.Warn($"软件内人工验证窗口不可用（阶段 {stage}，{ex.GetType().Name}），本次改用浏览器打开验证页面。");
@@ -144,6 +156,14 @@ public partial class PcrCaptchaOverlay : UserControl
     {
         IsVisible = false;
         currentUrl = null;
+        browserFallback = false;
+        ReleaseHost();
+        if (webHost != null) { webHost.IsVisible = true; webHost.MinHeight = 260; }
+        if (card != null) card.Height = double.NaN;
+    }
+
+    private void ReleaseHost()
+    {
         try { host?.Dispose(); } catch { /* never keep a page URL in logs */ }
         host = null;
     }
@@ -154,8 +174,14 @@ public partial class PcrCaptchaOverlay : UserControl
         var bounds = overlayRoot.Bounds;
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
         var width = Math.Clamp(bounds.Width - 72, 420, 640);
-        var height = Math.Clamp(bounds.Height - 56, 430, 700);
         if (Math.Abs(card.Width - width) > 0.5) card.Width = width;
+        if (browserFallback)
+        {
+            // The page area is collapsed; let header, status and buttons size it.
+            if (!double.IsNaN(card.Height)) card.Height = double.NaN;
+            return;
+        }
+        var height = Math.Clamp(bounds.Height - 56, 430, 700);
         if (Math.Abs(card.Height - height) > 0.5) card.Height = height;
     }
 
@@ -167,11 +193,15 @@ public partial class PcrCaptchaOverlay : UserControl
     private async void CancelVerification(object? sender, RoutedEventArgs e)
     {
         var url = currentUrl;
-        if (url is null || host is null) return;
+        if (url is null) return;
         SetStatus("正在取消本次验证…");
         try
         {
-            var accepted = await host.CancelAsync(url);
+            // The browser fallback has no WebView2 to click the page's own cancel
+            // button, but the loopback endpoint is the same.
+            var accepted = host != null
+                ? await host.CancelAsync(url)
+                : await PcrCaptchaHost.CancelPageAsync(url);
             SetStatus(accepted
                 ? "已请求取消，正在等待登录进程确认…"
                 : "取消失败；请再试一次，或关闭本次任务。");
@@ -179,6 +209,27 @@ public partial class PcrCaptchaOverlay : UserControl
         catch
         {
             SetStatus("取消失败；请再试一次，或关闭本次任务。");
+        }
+    }
+
+    private async void CopyLink(object? sender, RoutedEventArgs e)
+    {
+        var url = currentUrl;
+        if (url is null) return;
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard ?? Instances.TopLevel?.Clipboard;
+            if (clipboard is null)
+            {
+                SetStatus("剪贴板不可用，请用「在浏览器中打开」。");
+                return;
+            }
+            await clipboard.SetTextAsync(url);
+            SetStatus("验证链接已复制；请粘贴到浏览器打开，完成后会自动继续。");
+        }
+        catch
+        {
+            SetStatus("复制失败，请用「在浏览器中打开」或取消本次验证。");
         }
     }
 
