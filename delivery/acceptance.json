@@ -1,22 +1,22 @@
 {
   "schema_version": 1,
   "status": "passed",
-  "revision": 90,
-  "expected_version": "v0.2.2",
-  "verified_at_utc": "2026-11-20T05:52:53.361681+00:00",
-  "base_release_manifest_sha256": "7c7537a99091380b9a35d68d999111b96cf0b64711f283f4aad7cb81baae7f15",
-  "accepted_owned_payload_sha256": "698669ab0aed3c01bf0ad68b6cf4fedd539089e141b2bc8282bef3ae20096020",
-  "accepted_staging_manifest_sha256": "76cc13e93165d7feacc87e71ccd525a08dffb46bb072b18b5416ca1e2dde00f5",
+  "revision": 91,
+  "expected_version": "v0.2.3",
+  "verified_at_utc": "2026-11-23T06:34:31.379420+00:00",
+  "base_release_manifest_sha256": "225e0717bf1b619e3978f82d720a2e6fbc47be9e6cf36a45b618ae53055047bd",
+  "accepted_owned_payload_sha256": "c3c32b30202a7444de73e46ce3b253d7d8a80427f74f73360bd3865c4f8a224a",
+  "accepted_staging_manifest_sha256": "bb2bf113d7f8d08a5d60d740cf8ffed51d1728ecc30af3dd4a3057cbd5f9f4cb",
   "accepted_ci_artifact": {
     "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 44677045711,
+    "run_id": 45117782039,
     "run_attempt": 1,
-    "artifact_id": 14604330798,
-    "source_commit": "ef8ca3f514156f9c8cf59ebae879d8fe512c94e7",
+    "artifact_id": 14794615493,
+    "source_commit": "8c5f74c4b49bca43ba558a114b2857a87b58b4ff",
     "runtime_archive": {
-      "name": "Maa-PCR-v0.2.2-win-x64.zip",
-      "size": 377406475,
-      "sha256": "7e87d6f061ddd0c94bf3c9c81a0f58132d3c8604ff6435786077338abb6df080"
+      "name": "Maa-PCR-v0.2.3-win-x64.zip",
+      "size": 377414411,
+      "sha256": "6c83241e29120d57ad39a3063d553d5dddf31b2145c370993c916c061d273d44"
     }
   },
   "offline_tests_passed": true,
@@ -24,7 +24,7 @@
   "gui_verified": true,
   "clean_build_verified": true,
   "public_tests": {
-    "passed": 7822,
+    "passed": 7893,
     "skipped": 401,
     "failed": 0,
     "errors": 0
@@ -35,17 +35,17 @@
     "failed": 0,
     "errors": 0
   },
-  "v021_delta_and_full_updates_verified": true,
+  "v022_delta_and_full_updates_verified": true,
   "isolated_rollback_verified": true,
   "evidence_sha256": {
-    "v022-release/ci/CI_BINDING.json": "b28f3be0a5fe427763e7422e9ccc867d9f601f4bf6e50a8e7654a383668fd43a",
-    "v022-release/ci/artifact.json": "82cb9fd5db6d71eb7fb4b27ddc609ae2373472bb9529b292086b0c056422f809",
-    "v022-release/ci/public-tests.xml": "60e85ef123fe51fae24d5938aa2ef9b8e60d3eaf77acee7412f800c13f9f53d3",
-    "v022-release/ci/bundled-runtime.xml": "16d9f6ae08065da74594d8b96285c4eefcc2cc9c26da737943fc6c7e32046714",
-    "v022-release/ci/jobs.json": "5de86964ac6e71921c731f1d100d5d3e785953c0a77a9cbdd22bddf810854f74",
-    "v022-release/ci/build/SOURCE_ALIGNMENT.json": "e9114faa32211d51468a06dc845a3c72e5e09606dde2175466978ddf5a7f8a08",
-    "v022-release/upgrade/verification.json": "b14187da23ec4d801b8ab943314bd143acda3d278a9dda6b486232d884310d06",
-    "v022-release/candidate-gui.json": "5165cc34785648b33ae90b72331060dca2f3c9b6e97b91fd1c3e88aa2f6e41df"
+    "release-v023/ci/CI_BINDING.json": "9b45e93ef1bb54a80afe584ce27cfddf762d2600c2a9285524d19159915f62d7",
+    "release-v023/ci/artifact.json": "33c302556b5d05546b5f6712bce14c0532ea1bb4cbfb113cdf1559a313b420c9",
+    "release-v023/ci/public-tests.xml": "86066319dfdf003443fa453d4e06ab7722b8f6b010485e490366c6d9a6924849",
+    "release-v023/ci/bundled-runtime.xml": "ed50f1c7898ec7e7b38bbed279163f9065ce8adf115e93a12eab07631b7595aa",
+    "release-v023/ci/jobs.json": "0c46514bb73cf4be553bc40e9f8847032009d65dc7e3165362987b37f7ad89bb",
+    "release-v023/ci/build/SOURCE_ALIGNMENT.json": "ee0de8dd4606a05c750a37e8c4c3309a29901d3984981e7a5669254f80768cd4",
+    "release-v023/upgrade/verification.json": "4dd525c19cfa1039c38d5283bce14486df48fe3a29a995be3f52fbcb6677f0ba",
+    "release-v023/candidate-gui.json": "3ff68f0b6d91501bc6e08b3d726de898876d31aa3cea9bf4925b26b2a6daf075"
   },
   "limits": [
     "Offline tests and isolated player upgrades used synthetic settings and ledgers. This release did not run new live game, emulator or account tests."
