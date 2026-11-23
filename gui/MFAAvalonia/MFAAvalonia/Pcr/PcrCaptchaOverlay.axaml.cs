@@ -101,6 +101,7 @@ public partial class PcrCaptchaOverlay : UserControl
         try
         {
             currentUrl = url;
+            SetBrowserFallback(false);
             IsVisible = true;
             UpdateCardSize();
             SetStatus("正在打开验证窗口…");
@@ -117,7 +118,6 @@ public partial class PcrCaptchaOverlay : UserControl
             var layer = host;
             if (layer is null || currentUrl != url || !IsVisible) return true;
             layer.Navigate(url);
-            if (copyButton != null) copyButton.IsVisible = false;
             SetStatus("请完成官方极验验证；完成后会自动继续本次任务。");
             return true;
         }
@@ -127,9 +127,7 @@ public partial class PcrCaptchaOverlay : UserControl
             // previous "already closed" behavior then.
             if (!IsVisible) { HideCore(); return true; }
             ReleaseHost();
-            browserFallback = true;
-            if (webHost != null) { webHost.IsVisible = false; webHost.MinHeight = 0; }
-            if (copyButton != null) copyButton.IsVisible = true;
+            SetBrowserFallback(true);
             SetStatus("软件内验证窗口不可用，已在浏览器中打开验证页面。如果浏览器没有出现，"
                 + "可点「在浏览器中打开」或「复制验证链接」后粘贴完成。");
             // Never put the one-use page URL or exception text into logs.
@@ -156,10 +154,19 @@ public partial class PcrCaptchaOverlay : UserControl
     {
         IsVisible = false;
         currentUrl = null;
-        browserFallback = false;
         ReleaseHost();
-        if (webHost != null) { webHost.IsVisible = true; webHost.MinHeight = 260; }
-        if (card != null) card.Height = double.NaN;
+        SetBrowserFallback(false);
+    }
+
+    private void SetBrowserFallback(bool fallback)
+    {
+        browserFallback = fallback;
+        if (webHost != null)
+        {
+            webHost.IsVisible = !fallback;
+            webHost.MinHeight = fallback ? 0 : 260;
+        }
+        if (copyButton != null) copyButton.IsVisible = fallback;
     }
 
     private void ReleaseHost()
@@ -182,7 +189,7 @@ public partial class PcrCaptchaOverlay : UserControl
             return;
         }
         var height = Math.Clamp(bounds.Height - 56, 430, 700);
-        if (Math.Abs(card.Height - height) > 0.5) card.Height = height;
+        if (double.IsNaN(card.Height) || Math.Abs(card.Height - height) > 0.5) card.Height = height;
     }
 
     private void SetStatus(string text)
