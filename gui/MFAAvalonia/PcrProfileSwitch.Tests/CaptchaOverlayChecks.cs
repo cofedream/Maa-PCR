@@ -28,6 +28,29 @@ internal static class CaptchaOverlayChecks
         var task = (Task<bool>)open.Invoke(null, new object[] { url })!;
         Check(task.Wait(TimeSpan.FromSeconds(5)) && !task.Result, "captcha_without_overlay_requests_browser_fallback");
         host.GetMethod("Hide", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, null);
+
+        // The guide reader can ask for an SDK challenge and then a game challenge
+        // without hiding the card between them. An unattached overlay makes the
+        // first WebView2 attempt fall back without starting a browser or server.
+        var show = typeof(PcrCaptchaOverlay).GetMethod("ShowAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var webHost = overlay.FindControl<Border>("WebHost")!;
+        var copy = overlay.FindControl<Button>("CopyButton")!;
+        var status = overlay.FindControl<TextBlock>("StatusText")!;
+        var first = (Task<bool>)show.Invoke(overlay, new object[] { url })!;
+        Check(first.IsCompletedSuccessfully && !first.Result && !webHost.IsVisible && copy.IsVisible,
+            "captcha_first_attempt_shows_browser_fallback");
+
+        var resetBeforeSecondAttempt = false;
+        status.PropertyChanged += (_, args) =>
+        {
+            if (args.Property == TextBlock.TextProperty && status.Text == "正在打开验证窗口…")
+                resetBeforeSecondAttempt = webHost.IsVisible && webHost.MinHeight == 260 && !copy.IsVisible;
+        };
+        var secondUrl = "http://127.0.0.1:1/" + new string('b', 43) + "/";
+        var second = (Task<bool>)show.Invoke(overlay, new object[] { secondUrl })!;
+        Check(second.IsCompletedSuccessfully && !second.Result, "captcha_second_attempt_can_fall_back_again");
+        Check(resetBeforeSecondAttempt, "captcha_second_attempt_restores_embedded_layout");
+        typeof(PcrCaptchaOverlay).GetMethod("Hide", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(overlay, null);
         Console.WriteLine("captcha overlay checks passed");
     }
 

@@ -60,7 +60,7 @@ class GameRunSession:
     accepted_frame: int
 
 class Batch:
-    def __init__(self, settings, port, journal, binding, *, stopped=lambda:False, clock=monotonic, progress=lambda v:None,log=lambda text:None,resume=False,keep_old_run=False,require_fresh_start=False):
+    def __init__(self, settings, port, journal, binding, *, stopped=lambda:False, clock=monotonic, progress=lambda v:None,log=lambda text:None,resume=False,keep_old_run=False,require_fresh_start=False,animation_setting_off=False):
         self.settings,self.port,self.journal,self.binding=settings,port,journal,binding
         self.stopped,self.clock,self.progress=stopped,clock,progress
         # Owner-supplied live trace. Never business evidence: a failure to
@@ -76,6 +76,9 @@ class Batch:
         self._first_acquire_done=False;self.resume=resume;self.failed={g.guild_id:0 for g in settings.goals}
         self.keep_old_run=keep_old_run
         self.require_fresh_start=require_fresh_start
+        # Settled fact: the client was confirmed to have the join
+        # animation switched off (local pref/root or in-run UI).
+        self.animation_setting_off=animation_setting_off
         self._startup_acquire=True
 
     def invalidate_game_session(self):

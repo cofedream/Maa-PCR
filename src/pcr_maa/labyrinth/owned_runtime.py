@@ -291,6 +291,9 @@ class OwnedRuntime:
         self.client = self.port = self.tasker = self.controller = self.native_timings = None
         self.ocr_diagnostics = None
         self.ocr_success = False
+        # animation_setting.ensure_animation_off() result: when the local pref /
+        # root path cannot confirm "不播放" the in-run UI fallback is armed later.
+        self.animation_setting_status = None
         self.run_id = uuid4().hex
         self.timings = Timings()
         self.diagnostics = self.database = None
@@ -364,7 +367,8 @@ class OwnedRuntime:
                      stopped=self.stop,progress=self._progress,log=self._log,resume=True,
                       clock=self.stop.now if hasattr(self.stop,'now') else time.monotonic,
                      keep_old_run=self.request.keep_old_run,
-                     require_fresh_start=not self.request.keep_old_run).run()
+                     require_fresh_start=not self.request.keep_old_run,
+                     animation_setting_off=self.animation_setting_status in ('already_off','fixed')).run()
 
     def _prepare_restart(self, journal):
         from .restart import prepare_restart
@@ -418,7 +422,7 @@ class OwnedRuntime:
         """
         from .animation_setting import ensure_animation_off
         try:
-            ensure_animation_off(
+            self.animation_setting_status = ensure_animation_off(
                 self.request.connection['adb_path'],
                 self.request.connection['serial'],
                 server.package,
@@ -426,6 +430,7 @@ class OwnedRuntime:
                 stopped=self.stop,
             )
         except Exception:
+            self.animation_setting_status = 'error'
             self._log('检查黎明界角色加入动画时出错；建议在游戏内手动关闭，任务继续。')
 
     def run(self):
@@ -566,7 +571,8 @@ class OwnedRuntime:
                 self.port=ProtocolAcquisitionPort(self.client,None,binding,stopped=self.stop)
                 self.port.timings=timings
                 self.port.finish_timings=self._finish_timings
-                self.port.game=MaaGamePort(self.tasker,self.port.stamp,server=server,stopped=self.stop)
+                self.port.game=MaaGamePort(self.tasker,self.port.stamp,server=server,stopped=self.stop,
+                    animation_setting=self.animation_setting_status)
                 self.client.before_game_login=self.port.game.prepare_protocol_login
                 self._authenticate(binding)
                 self._checkpoint()

@@ -39,11 +39,14 @@ def game_port_pipeline(*,single_joined='LabyPortraitJoined1Observed'):
 
 
 class MaaGamePort:
-    def __init__(self,tasker,stamp,*,server='cn-bilibili',stopped=lambda:False):
+    def __init__(self,tasker,stamp,*,server='cn-bilibili',stopped=lambda:False,animation_setting=None):
         if not callable(stamp):raise ValueError('owner_stamp_required')
         self.tasker,self.stamp=tasker,stamp
         self.session=None;self.opening=None;self.used=set();self.restarted=set();self.blocked=False
         self.runtime=None;self.runner=None;self.component=None
+        # Result of the local-pref/root attempt (animation_setting status).  The
+        # in-run UI fallback only runs when that could not confirm "不播放".
+        self.animation_setting_status=animation_setting
         self._restore_result=self._restore_snapshot=self._restore_batch=self._restore_facts=None
         self.server=get_server(server);self.stopped=stopped;self._hard_closed=None
 
@@ -368,6 +371,7 @@ class MaaGamePort:
         self.runner=AutoplayRunner(self.tasker,self.stamp,runtime=self.runtime)
         self.runner.enter_id=route.enter_id
         self.runner.creation_operation_id=self._restore_result['creation_operation_id']
+        self.runner.animation_setting_status=self.animation_setting_status
         try:
             return self.runner.play(route,batch,opening=self.opening,roles=self._restore_result['roles_joined'])
         except BaseException:

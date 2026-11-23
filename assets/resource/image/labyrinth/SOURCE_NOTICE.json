@@ -820,6 +820,22 @@
       },
       "rights": "game imagery: original game copyright; upstream snapshot crop, not relicensed as source code",
       "key": "BATTLE_DEFEAT_TITLE"
+    },
+    {
+      "key": "JOIN_ANIMATION_RADIO_SELECTED",
+      "source": "2026-11-21 in-game Labyrinth 设定 dialog, CN Bilibili client, MuMu 12 1280x720",
+      "source_sha256": "374615e495ef57e37e22d8f4281a7d9dafcedaf636d70dbaae97c777a0eb4da3",
+      "local": "assets/resource/image/labyrinth/join_animation/radio_selected.png",
+      "local_sha256": "fa9e272a4b86269c730c992e5949881cbdbce2afe0a6b908ac370a7daca245dd",
+      "transform": {
+        "crop": [
+          436,
+          367,
+          27,
+          27
+        ]
+      },
+      "rights": "game imagery: original game copyright; in-game screenshot crop, not relicensed as source code"
     }
   ]
 }

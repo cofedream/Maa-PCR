@@ -300,7 +300,12 @@ internal static class PcrLabyrinthOwner
                     // embedded window is unavailable fall back to the default browser.
                     var inApp=await PcrCaptchaHost.OpenAsync(captcha!.Url);
                     cancel.Token.ThrowIfCancellationRequested();
-                    if (!inApp) captcha.OpenPage(UrlUtilities.OpenUrl);
+                    if (!inApp) {
+                        // The overlay keeps the one-use page available through its
+                        // player-clicked copy/open buttons; only browsers that fail to
+                        // start should not stop the wait.
+                        try { captcha.OpenPage(UrlUtilities.OpenUrl); } catch { }
+                    }
                     // Retain the 300-second human wait plus the bounded remaining login requests.
                     startup.CancelAfter(TimeSpan.FromSeconds(600));
                     vm.LabyrinthSettings.Progress=inApp

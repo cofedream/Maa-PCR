@@ -27,4 +27,7 @@ internal static class PcrCaptchaHost
 
     /// <summary>Hides the layer; called when the captcha wait has resolved or the run ends.</summary>
     internal static void Hide() => overlay?.Hide();
+
+    /// <summary>Cancels the loopback wait without an embedded page (browser fallback).</summary>
+    internal static Task<bool> CancelPageAsync(string url) => PcrCaptchaWebHost.CancelPageAsync(url);
 }

@@ -104,7 +104,10 @@ internal static class PcrGuideSyncOwner
                     cancel.Token.ThrowIfCancellationRequested();
                     var inApp = await PcrCaptchaHost.OpenAsync(captcha!.Url);
                     cancel.Token.ThrowIfCancellationRequested();
-                    if (!inApp) captcha.OpenPage(UrlUtilities.OpenUrl);
+                    if (!inApp) {
+                        // Overlay keeps its player-clicked open/copy buttons visible.
+                        try { captcha.OpenPage(UrlUtilities.OpenUrl); } catch { }
+                    }
                     deadline.CancelAfter(TimeSpan.FromSeconds(810));
                     continue;
                 }

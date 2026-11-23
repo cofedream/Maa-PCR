@@ -21,6 +21,12 @@ NAME='LabyrinthScene'
 # Full-page OCR can exceed 10s; the caller's shorter business deadline still wins.
 OBSERVATION_TIMEOUT_SECONDS=20
 REWARD_CONNECTION_TIMEOUT_SECONDS=60
+# Pinned upstream LabyrinthEntryActionPlanner.characterAcquisitionTimeoutMillis
+# (30_000): the owned acquisition driver may have to skip several entrance
+# animations before the actual joined page exists. The 12s joined-read budget
+# only fits once that page is on screen; charging the whole animation phase to it
+# stopped a slow field run (role_reward, animation setting unavailable) exactly
+# as the last skip was confirmed.
 ASSETS=Path(__file__).resolve().parents[3]/'assets/resource/image/labyrinth'
 _OCR={
  'AREA':(r'^[1-5]$',[430,42,30,32]),
@@ -551,6 +557,7 @@ class MaaSceneRuntime:
         parent_deadline=native.RUN_DEADLINE.get()
         deadline=min(parent_deadline,started+timeout)
         role_connection=('role_reward' in sources or 'free_role_reward' in sources) and acquisition_fields is not None
+        animation_off=bool(getattr(batch,'animation_setting_off',False))
         connection_deadline=min(parent_deadline,started+max(timeout,REWARD_CONNECTION_TIMEOUT_SECONDS)) if role_connection else deadline
         joined_read_deadline=None
         token=native.RUN_DEADLINE.set(deadline);acquisition_clicks=0;last_acquisition=-float('inf')
@@ -578,7 +585,12 @@ class MaaSceneRuntime:
         if acquisition_fields is not None:probe_kinds.add('character_animation')
         self._scene_probe_kinds=_probe_scope(probe_kinds)
         # A late entrance after a link reward requires its own fresh nameplate.
+        # A client already confirmed as '不播放' shows no entrance
+        # animation; unknown frames are page transitions then, so never spend
+        # a blind tap on them. An explicit character_animation frame still
+        # drives the skip in case the setting was changed mid-run.
         animation_kinds=(('character_animation',) if source=='character_animation'
+            else ('character_animation',) if animation_off
             else ('unknown','event_animation','character_animation'))
         try:
             while True:

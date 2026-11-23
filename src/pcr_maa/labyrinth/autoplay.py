@@ -994,6 +994,59 @@ class AutoplayRunner:
         self.runtime,self.navigator,self.actions=runtime,navigator,actions
         if runtime is not None:runtime.tasker=tasker
         self.max_steps=max_steps;self.started=False;self.last_scene=None
+        # Local-pref/root result and the in-run UI fallback outcome, if any.
+        self.animation_setting_status=None;self.join_animation_setting_state=None
+
+    def _prepare_join_animation_setting(self,batch,route,scene):
+        """Map-menu fallback for the character-join animation (best effort).
+
+        The local pref/root attempt already ran before the client started.  When
+        it could not confirm "不播放", the map menu exposes the same option.  The
+        flow is calibrated recognition and never guesses; without calibration it
+        logs once and the scene runtime's 30s character-acquisition budget stays
+        the safety net.  A recognised menu/settings page is closed again before
+        the route continues, and only a fresh MAP may continue.
+        """
+        status=getattr(self,'animation_setting_status',None)
+        from .animation_ui import MaaJoinAnimationSetting,needs_ui_fallback
+        if not needs_ui_fallback(status) or scene.kind!='map':return scene
+        adapter=MaaJoinAnimationSetting(self.tasker,self.stamp,timings=batch.timings)
+        if not adapter.available():
+            batch.emit_log('角色加入动画未能在本机确认“不播放”，界面关闭流程尚未校准；本次继续运行。')
+            self.join_animation_setting_state='uncalibrated'
+            return scene
+        try:
+            result=adapter.ensure_off(batch,enter_id=route.enter_id)
+        except BatchStopped as error:
+            reason=error.args[0] if error.args else ''
+            # Only a recognised menu/settings page may be closed again; an
+            # unknown input or unknown frame still stops the batch.
+            if reason in ('join_animation_start_page_unknown','join_animation_pipeline_unavailable'):
+                batch.emit_log('角色加入动画设置页暂时无法识别，跳过本次界面关闭。')
+                self.join_animation_setting_state='unrecognised'
+                return scene
+            if reason in ('join_animation_settings_page_unknown',
+                    'join_animation_setting_state_unknown',
+                    'join_animation_setting_readback_unknown',
+                    'join_animation_return_unknown'):
+                if adapter.recover_to_map(batch,enter_id=route.enter_id):
+                    fresh=self._observe(batch,route)
+                    if fresh.kind=='map':
+                        batch.emit_log('未能确认角色加入动画设置，已退出设置页继续本次任务。')
+                        self.join_animation_setting_state='unconfirmed'
+                        return fresh
+            raise
+        batch.emit_log('已在游戏内把角色加入动画设为“不播放”。' if result=='toggled'
+            else '游戏内角色加入动画已是“不播放”。')
+        self.join_animation_setting_state=result
+        batch.animation_setting_off=True
+        fresh=self._observe(batch,route)
+        if fresh.kind!='map':raise BatchStopped('join_animation_return_unknown')
+        # One invocation usually plays many runs: keep the confirmed client
+        # setting for the later openings instead of opening the menu again.
+        game=getattr(batch.port,'game',None)
+        if game is not None:game.animation_setting_status='already_off'
+        return fresh
 
     def _final_fields(self):
         cursor=getattr(self,'cursor',None)
@@ -1271,6 +1324,7 @@ class AutoplayRunner:
         self.actions.owned=list(dict.fromkeys(roles));self.actions.enter_id=route.enter_id
         try:
             scene=self._observe(batch,route)
+            scene=self._prepare_join_animation_setting(batch,route,scene)
             for _ in range(self.max_steps):
                 batch.checkpoint()
                 node=route.nodes[self.cursor.index]
