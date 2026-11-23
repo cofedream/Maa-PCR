@@ -2,8 +2,10 @@
 import ctypes
 import json
 import re
+import sys
 from functools import lru_cache
 from importlib.metadata import distributions
+from pathlib import Path
 
 from maa.buffer import RectBuffer, StringBuffer
 from maa.define import MaaActId, MaaBool, MaaNodeId, MaaRecoId, TaskDetail
@@ -26,6 +28,13 @@ def _binding_status():
     loaded = Library.version()
     try:
         versions = _maafw_versions()
+        if loaded == 'v5.16.1' and versions == {'5.13.0', '5.16.1'}:
+            python = Path(sys.executable).resolve().parent
+            if python.name.casefold() == 'python' and python.parent.name.casefold() == 'runtime':
+                # The first upgrade to this release is performed by the older updater.
+                from .player_maintenance import repair_legacy_maafw_metadata
+                repair_legacy_maafw_metadata(python.parent.parent)
+                versions = _maafw_versions()
     except (OSError, UnicodeError):
         return loaded, None, '包元数据无法读取'
     visible = sorted(version for version in versions if _VERSION.fullmatch(version))

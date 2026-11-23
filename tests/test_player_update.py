@@ -107,6 +107,39 @@ def assert_private(case):
         assert (case[0] / name).read_bytes() == data
 
 
+@pytest.mark.parametrize('legacy_kind', ['unowned', 'declared', 'malformed'])
+def test_update_quarantines_only_unowned_legacy_maafw_metadata(update_case, legacy_kind):
+    player, packet, old, new, _, _ = update_case
+    site = 'runtime/python/Lib/site-packages/'
+    legacy = site + 'maafw-5.13.0.dist-info/METADATA'
+    old_metadata = b'Name: MaaFw\nVersion: v5.13.0\n'
+    if legacy_kind == 'malformed':
+        old_metadata = b'Name: \xff\nVersion: v5.13.0\n'
+    runtime = {
+        site + 'maafw-5.16.1.dist-info/METADATA': b'Name: MaaFw\nVersion: v5.16.1\n',
+        site + 'maa/bin/MaaFramework.dll': b'current synthetic DLL',
+    }
+    if legacy_kind == 'declared':
+        runtime[legacy] = old_metadata
+    for name, data in {**runtime, legacy: old_metadata}.items():
+        path = player / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    (player / maintenance.MANIFEST).write_bytes(encode(manifest({**old, **runtime}, 7)))
+    archive(packet, {**new, **runtime}, manifest({**new, **runtime}, 8))
+
+    result = maintenance.apply_update(player, packet, process_probe=lambda _: [])
+
+    assert result['status'] == 'updated'
+    quarantined = legacy_kind == 'unowned'
+    assert (player / legacy).exists() is not quarantined
+    backups = list((player / '.runtime/player-maintenance').glob('maafw-5.13.0-METADATA-*.bak'))
+    assert [path.read_bytes() for path in backups] == ([old_metadata] if quarantined else [])
+    for name, data in runtime.items():
+        assert (player / name).read_bytes() == data
+    assert_private(update_case)
+
+
 def candidate_packet(case, *, old_revision=7, new_revision=7,
     old_status='release_staging', new_status='release_staging',
     old_distribution=False, new_distribution=False,

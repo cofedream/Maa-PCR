@@ -1,5 +1,6 @@
 """Local manifest updates and small, explicit diagnostics; never execute game work."""
 import argparse
+from email.parser import BytesHeaderParser
 import hashlib
 import json
 import os
@@ -133,6 +134,49 @@ def _version(manifest, *, legacy=False):
         and re.fullmatch('[A-Za-z0-9][A-Za-z0-9._+-]{0,95}', update['version']) is not None,
         'unsupported_update_version')
     return update
+
+
+def _maafw_metadata_version(path):
+    headers = BytesHeaderParser().parsebytes(path.read_bytes())
+    names = headers.get_all('Name', [])
+    versions = headers.get_all('Version', [])
+    if [str(name).casefold() for name in names] == ['maafw'] and len(versions) == 1:
+        return str(versions[0]).removeprefix('v')
+    return None
+
+
+def repair_legacy_maafw_metadata(player):
+    """Quarantine the unowned 5.13.0 record beside the verified 5.16.1 runtime."""
+    site = 'runtime/python/Lib/site-packages/'
+    legacy_name = site + 'maafw-5.13.0.dist-info/METADATA'
+    current_name = site + 'maafw-5.16.1.dist-info/METADATA'
+    dll_name = site + 'maa/bin/MaaFramework.dll'
+    try:
+        player = _root(player)
+        legacy = _path(player, legacy_name, optional=True)
+        if not legacy.exists() or _plain(legacy).st_size > 64 * 1024:
+            return False
+        marker = _path(player, '.runtime/player-maintenance/update-in-progress.json', optional=True)
+        if marker.exists():
+            return False
+        manifest = _read_json(_path(player, MANIFEST))
+        _version(manifest)
+        rows = _rows(manifest)
+        if (manifest['layout'] != 'portable-offline-validation'
+                or any(name.casefold() == legacy_name.casefold() for name in rows)
+                or not {current_name, dll_name}.issubset(rows)):
+            return False
+        _verify(player, {name: rows[name] for name in (current_name, dll_name)})
+        if (_maafw_metadata_version(_path(player, current_name)) != '5.16.1'
+                or _maafw_metadata_version(legacy) != '5.13.0'):
+            return False
+        backup = f'.runtime/player-maintenance/maafw-5.13.0-METADATA-{uuid4().hex}.bak'
+        destination = _path(player, backup, optional=True)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(_path(player, legacy_name), _path(player, backup, optional=True))
+        return True
+    except (OSError, ValueError):
+        return False
 
 
 def _accepted_promotion(old_version, new):
@@ -467,6 +511,7 @@ def apply_update(player, archive, *, process_probe=None, candidate_replacement=N
             'rollback_conflicts': conflicts, 'private_state_written': False})
         raise RuntimeError('update_rollback_incomplete' if conflicts else 'update_failed_rolled_back') from error
     marker.unlink()
+    repair_legacy_maafw_metadata(player)
     # Cleanup cannot undo a verified update; preserve changed or busy staging.
     directories = {staged}
     for name, row in {**stage_rows, MANIFEST: {
