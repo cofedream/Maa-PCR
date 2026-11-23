@@ -121,7 +121,8 @@ public partial class PcrCaptchaOverlay : UserControl
             HideCore();
             if (!wasVisible) return true; // the task stopped while the layer was initializing
             // Never put the one-use page URL or exception text into logs.
-            LoggerHelper.Warn("软件内人工验证窗口不可用，本次改用浏览器打开验证页面。");
+            var stage = ex.Data["captcha_stage"] as string ?? "show";
+            LoggerHelper.Warn($"软件内人工验证窗口不可用（阶段 {stage}，{ex.GetType().Name}），本次改用浏览器打开验证页面。");
             LoggerHelper.Debug("captcha window failure: " + ex.GetType().FullName);
             return false;
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -39,12 +40,13 @@ internal sealed class PcrCaptchaWebHost : IDisposable
         if (controller != null) return;
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("embedded captcha window requires Windows");
-        var window = TopLevel.GetTopLevel(owner) as Window
-            ?? throw new InvalidOperationException("captcha overlay has no top level window");
-        var handle = window.TryGetPlatformHandle()?.Handle
-            ?? throw new InvalidOperationException("captcha overlay has no native window handle");
-        var environment = await GetEnvironmentAsync();
-        var created = await environment.CreateCoreWebView2ControllerAsync(handle);
+        var handle = Stage("window", () =>
+            (TopLevel.GetTopLevel(owner) as Window
+                ?? throw new InvalidOperationException("captcha overlay has no top level window"))
+            .TryGetPlatformHandle()?.Handle
+                ?? throw new InvalidOperationException("captcha overlay has no native window handle"));
+        var environment = await StageAsync("environment", GetEnvironmentAsync());
+        var created = await StageAsync("controller", environment.CreateCoreWebView2ControllerAsync(handle));
         // The layer may have been closed (user stopped the task) during creation.
         if (disposed)
         {
@@ -189,16 +191,45 @@ internal sealed class PcrCaptchaWebHost : IDisposable
         }
         if (string.IsNullOrEmpty(installed))
             throw new InvalidOperationException("WebView2 runtime is unavailable");
-        var folder = Path.Combine(Path.GetTempPath(), "MaaPCR-WebView2",
-            Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
-        CleanupStaleProfiles(Path.GetDirectoryName(folder)!);
-        Directory.CreateDirectory(folder);
-        var created = await CoreWebView2Environment.CreateAsync(null, folder);
-        lock (environmentLock)
+        // A launcher (scheduled task, redirected TEMP) can hand us a TEMP the
+        // logged-on user cannot create the profile folder in; the embedded window
+        // then failed with UnauthorizedAccessException before any browser opened.
+        // Try the writable per-user folders in order of preference.
+        Exception? lastError = null;
+        foreach (var root in ProfileRoots())
         {
-            environment ??= created;
-            return environment;
+            try
+            {
+                var folder = Path.Combine(root,
+                    Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+                CleanupStaleProfiles(root);
+                Directory.CreateDirectory(folder);
+                var created = await CoreWebView2Environment.CreateAsync(null, folder);
+                lock (environmentLock)
+                {
+                    environment ??= created;
+                    return environment;
+                }
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException
+                                           or InvalidOperationException or System.Runtime.InteropServices.COMException)
+            {
+                ex.Data["captcha_profile_root"] = root;
+                lastError = ex;
+            }
         }
+        throw lastError ?? new InvalidOperationException("WebView2 user data folder is unavailable");
+    }
+
+    private static IEnumerable<string> ProfileRoots()
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (!string.IsNullOrEmpty(local))
+            yield return Path.Combine(local, "MaaPCR-WebView2");
+        var temp = Path.GetTempPath();
+        if (!string.IsNullOrEmpty(temp))
+            yield return Path.Combine(temp, "MaaPCR-WebView2");
+        yield return Path.Combine(AppContext.BaseDirectory, "temp", "WebView2");
     }
 
     /// <summary>
@@ -224,6 +255,19 @@ internal sealed class PcrCaptchaWebHost : IDisposable
         {
             // Best effort only; a locked profile is reclaimed by the next run.
         }
+    }
+
+    /// <summary>Stamps the failing stage on the exception for the caller's log (stage only, never text).</summary>
+    private static T Stage<T>(string stage, Func<T> action)
+    {
+        try { return action(); }
+        catch (Exception ex) { ex.Data["captcha_stage"] = stage; throw; }
+    }
+
+    private static async Task<T> StageAsync<T>(string stage, Task<T> task)
+    {
+        try { return await task; }
+        catch (Exception ex) { ex.Data["captcha_stage"] = stage; throw; }
     }
 
     public void Dispose()

@@ -112,7 +112,9 @@ def test_multi_choice_selection_is_pending_until_actual_joined(monkeypatch,remai
  class Runtime:
   def __init__(self,*a,**k):pass
   def wait_for(self,b,allowed,**kw):
+   from pcr_maa.labyrinth import scene as scene_module
    scene=Scene('role_reward',dict(native_ok=True),{})
+   assert kw['timeout']==scene_module.CHARACTER_ACQUISITION_TIMEOUT_SECONDS
    assert bool(kw['acquisition_fields']) is (remaining==1)
    assert kw['accept'](scene);return scene
  monkeypatch.setattr('pcr_maa.labyrinth.scene.MaaSceneRuntime',Runtime)
@@ -472,8 +474,9 @@ def test_free_role_invite_arms_shared_acquisition_only_after_ack(monkeypatch,cou
  class Runtime:
   def __init__(self,*a,**kw):pass
   def wait_for(self,b,allowed,**kw):
+   from pcr_maa.labyrinth import scene as scene_module
    assert b.journal.events()[-1]['state']=='settled' and b.journal.events()[-1]['operation']=='event_free_role_invite'
-   assert kw['acquisition_fields']==dict(source='maa',enter_id=1,reward_id='free-batch') and kw['timeout']==12
+   assert kw['acquisition_fields']==dict(source='maa',enter_id=1,reward_id='free-batch') and kw['timeout']==scene_module.CHARACTER_ACQUISITION_TIMEOUT_SECONDS
    calls.append(kw);return joined
  monkeypatch.setattr('pcr_maa.labyrinth.scene.MaaSceneRuntime',Runtime)
  result=rewards.MaaRoleReward(NS(),stamp,characters=characters,optimizer=NS(profiles=profiles)).choose_free(batch,1,'free-batch',('0',),defer_joined=True)

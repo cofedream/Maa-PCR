@@ -133,6 +133,15 @@ internal static class PcrLabyrinthOwner
         _=>SettingsStatusFor(outcome)+$"（原因代码：{outcome}）" };
 
     // 实时日志面板一行；VM 会再带前缀写一份进共享日志，以便落盘与导出。
+    private static async Task<bool> CopyCaptchaUrlAsync(string url) {
+        try {
+            var clipboard=Instances.Clipboard;
+            if (clipboard is null) return false;
+            await clipboard.SetTextAsync(url);
+            return true;
+        } catch { return false; }
+    }
+
     private static void Trace(TaskQueueViewModel vm,string text) => vm.AddLabyrinthLog(text);
     private static string InferenceMode(JObject request) => request.Value<bool>("cpu_only") ? "强制 CPU"
         : request.Value<bool>("webgpu") ? "请求 WebGPU" : "自动推理";
@@ -300,12 +309,21 @@ internal static class PcrLabyrinthOwner
                     // embedded window is unavailable fall back to the default browser.
                     var inApp=await PcrCaptchaHost.OpenAsync(captcha!.Url);
                     cancel.Token.ThrowIfCancellationRequested();
-                    if (!inApp) captcha.OpenPage(UrlUtilities.OpenUrl);
+                    var copied=false;
+                    if (!inApp) {
+                        captcha.OpenPage(UrlUtilities.OpenUrl);
+                        // The shell can open the page behind the game window or not
+                        // at all; the clipboard keeps a manual path without logging
+                        // the one-use URL.
+                        copied=await CopyCaptchaUrlAsync(captcha.Url);
+                    }
                     // Retain the 300-second human wait plus the bounded remaining login requests.
                     startup.CancelAfter(TimeSpan.FromSeconds(600));
                     vm.LabyrinthSettings.Progress=inApp
                         ? "请在软件内的人工验证窗口完成验证码；正在等待验证结果…"
-                        : "请在浏览器中手动完成验证码；正在等待验证结果…";
+                        : copied
+                            ? "请在浏览器中手动完成验证码（验证链接已复制到剪贴板，浏览器没出现时可粘贴打开）；正在等待验证结果…"
+                            : "请在浏览器中手动完成验证码；正在等待验证结果…";
                     lastLogged=vm.LabyrinthSettings.Progress;
                     Trace(vm,lastLogged);
                     continue;
@@ -396,7 +414,7 @@ internal static class PcrLabyrinthOwner
             PcrCaptchaHost.Hide();
             vm.IsLabyrinthDeviceConnected=false;
             vm.PcrCleanupPending=true;
-            Trace(vm,"任务已结束，正在释放执行资源…");
+            Trace(vm,"任务已结束，正在释放执行资源…"); (Labyrinth: close the join animation in-run, gate blind taps, keep dev captcha usable)
             request.Remove("credentials");
             try {
                 if (run.Child!=null) await Task.Run(run.Child.Dispose);
