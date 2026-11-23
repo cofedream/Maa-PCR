@@ -61,7 +61,7 @@ def test_refresh_quote_confirmation_journal_and_balance_use_the_same_price(price
         'DialogBody': [word(f'要消耗阿尔法金币×{price}更新商店')], 'Confirm': [word('确认')]}), {}),
         (dict(state='shop', balance=3000-price), {})])
     shop._probe_state = lambda *args: next(states)
-    shop._wait_state = lambda *args: next(states)
+    shop._capture = lambda: next(states)
     calls = []
     shop._input = lambda state, *args, **kwargs: calls.append((state, kwargs)) or dict(native_ok=True)
     result = shop._refresh(batch, 1, 50601, current, 7)
@@ -73,18 +73,23 @@ def test_refresh_quote_confirmation_journal_and_balance_use_the_same_price(price
 
 
 @pytest.mark.parametrize('change', ['dialog_price', 'currency', 'balance_after', 'insufficient'])
-def test_dynamic_refresh_keeps_quote_and_result_checks(change):
+def test_dynamic_refresh_keeps_quote_and_result_checks(change, monkeypatch):
+    from pcr_maa.labyrinth import autoplay
+
     batch, stamp = harness()
     shop = shops.MaaShop.__new__(shops.MaaShop)
-    shop.stamp = stamp
+    shop.stamp, shop.tasker = stamp, NS()
     current = dict(balance=599 if change == 'insufficient' else 1590, refresh_allowed=True,
                    words={'Refresh': [word('用600更新')]})
     currency = '宝石' if change == 'currency' else '阿尔法金币'
     states = iter([(dict(state='refresh_confirmation', words={
         'DialogBody': [word(f'要消耗{currency}×{900 if change == "dialog_price" else 600}更新商店')],
-        'Confirm': [word('确认')]}), {}), (dict(state='shop', balance=991), {})])
+        'Confirm': [word('确认')]}), {})])
     shop._probe_state = lambda *args: next(states)
-    shop._wait_state = lambda *args: next(states)
+    shop._capture = lambda: (dict(state='shop', balance=991), {})
+    clock = [100.]
+    monkeypatch.setattr(shops.native, 'active_now', lambda: clock[0])
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *args: clock.__setitem__(0, 130.))
     calls = []
     shop._input = lambda state, *args, **kwargs: calls.append(state) or dict(native_ok=True)
     with pytest.raises(BatchStopped):

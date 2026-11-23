@@ -25,12 +25,14 @@ def make_shop(monkeypatch, states, *, area=5, start=5, refresh=True, stop=False)
     log, reads, clock = [], [], [0.]
     monkeypatch.setattr(time, 'monotonic', lambda: clock[0])
     monkeypatch.setattr(autoplay, '_poll_pause', lambda *args: clock.__setitem__(0, clock[0] + .5))
-    current = [dict(value) for value in states]
+    current = [dict(value) if value is not None else None for value in states]
     def capture():
         value = current.pop(0) if len(current) > 1 else current[0]
         reads.append(value)
         if stop and len(reads) >= 2:
             batch.stopped = lambda: True
+        if value is None:
+            raise BatchStopped('shop_readback_unknown')
         return value, {}
     shop._capture = capture
     def refreshed(*args):
@@ -73,6 +75,20 @@ def test_unknown_refresh_or_stock_waits_then_refreshes_without_early_exit(monkey
 def test_disabled_stock_without_titles_recovers_refresh(monkeypatch):
     run, log, _, _, _ = make_shop(monkeypatch, [shelf()])
     assert run()['refresh_performed'] and log[0] == 'refresh'
+
+
+@pytest.mark.parametrize('obstruction', [None, dict(state='complete')])
+@pytest.mark.parametrize('settles', [True, False])
+def test_shop_entry_waits_for_the_previous_dialog_to_clear(monkeypatch, obstruction, settles):
+    states = [obstruction, shelf()] if settles else [obstruction]
+    run, log, reads, clock, shop = make_shop(monkeypatch, states, refresh=False)
+    if settles:
+        assert run()['page'] == 'map'
+        assert reads == states and log == ['leave_shop']
+    else:
+        with pytest.raises(BatchStopped, match='^shop_readback_unknown$'):
+            run()
+        assert clock[0] == 30 and not log and shop.blocked
 
 
 def test_permanently_unknown_stock_stops_in_original_budget_with_zero_inputs(monkeypatch):

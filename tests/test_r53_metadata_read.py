@@ -7,7 +7,7 @@ from maa.define import TaskDetail
 from maa.library import Library
 from maa.tasker import Tasker
 
-from pcr_maa import recognition_metadata as metadata
+from pcr_maa import player_log, recognition_metadata as metadata
 
 
 @pytest.fixture
@@ -107,12 +107,58 @@ def test_invalid_native_identity_refuses_before_query(reader,node_id):
     assert calls==[]
 
 
-def test_version_drift_refuses_without_fallback(monkeypatch):
+def test_version_drift_leaves_optimized_reader_unavailable(monkeypatch):
     metadata._api.cache_clear()
     monkeypatch.setattr(Library,'version',lambda:'v5.14.0')
-    with pytest.raises(RuntimeError,match='Unsupported Maa'):
-        metadata._api()
+    try:
+        assert metadata._api() is None
+    finally:
+        metadata._api.cache_clear()
+
+
+_PATH_MARKER = object()
+
+
+@pytest.mark.parametrize(('loaded', 'versions', 'message'), [
+    ('v5.16.1', (), 'DLL v5.16.1，包版本 无，缺少有效的包版本元数据'),
+    ('v5.16.1', (None,), 'DLL v5.16.1，包版本 无，缺少有效的包版本元数据'),
+    ('v5.16.1', ('5.13.0', '5.16.1'), 'DLL v5.16.1，包版本 5.13.0、5.16.1，发现多个包版本'),
+    ('v5.16.1', ('5.13.0',), 'DLL v5.16.1，包版本 5.13.0，DLL 与包版本不一致'),
+    ('v5.16.1', ('5.16.1', _PATH_MARKER),
+     'DLL v5.16.1，包版本 5.16.1，包元数据含无效版本字段'),
+    (_PATH_MARKER, ('5.16.1',), 'DLL 未知，包版本 5.16.1，DLL 版本不受支持'),
+    ('v5.16.1', PermissionError,
+     'DLL v5.16.1，包版本 未知，包元数据无法读取'),
+    ('v5.16.1', ('5.16.1', None), None),
+])
+def test_package_metadata_logs_only_sanitized_fallback_reason(monkeypatch, tmp_path, loaded, versions, message):
+    rows = []
+    player_log.configure(tmp_path, 'b' * 32, 'labyrinth', rows.append)
+    unexpected_value = str(tmp_path / 'unexpected-metadata')
+
+    def version(value):
+        return unexpected_value if value is _PATH_MARKER else value
+
+    monkeypatch.setattr(Library, 'version', lambda: version(loaded))
+
+    def packages(*, name):
+        if versions is PermissionError:
+            raise PermissionError(unexpected_value)
+        return [SimpleNamespace(version=version(value)) for value in versions]
+
+    monkeypatch.setattr(metadata, 'distributions', packages)
     metadata._api.cache_clear()
+    try:
+        assert (metadata._api() is None) == (message is not None)
+        metadata._api()
+    finally:
+        player_log.close()
+        metadata._api.cache_clear()
+    if message is None:
+        assert rows == []
+    else:
+        assert rows == [dict(kind='player_log', run_id='b' * 32, function='labyrinth', event='text',
+                            text=f'MaaFramework 回执使用常规 SDK（{message}）。')]
 
 
 def test_unrelated_facade_refuses(reader):
