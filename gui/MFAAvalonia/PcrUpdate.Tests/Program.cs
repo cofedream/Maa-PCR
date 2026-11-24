@@ -205,7 +205,7 @@ try
 {
     var versionRoot = (MFAAvalonia.ViewModels.Windows.RootViewModel)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(
         typeof(MFAAvalonia.ViewModels.Windows.RootViewModel));
-    var versionSamples = new List<(int Revision, string Version)> { (53, "v0.1.9"), (57, "v0.1.12"), (88, "v0.2.0"), (89, "v0.2.1"), (90, "v0.2.2"), (91, "v0.2.3") };
+    var versionSamples = new List<(int Revision, string Version)> { (53, "v0.1.9"), (57, "v0.1.12"), (88, "v0.2.0"), (89, "v0.2.1"), (90, "v0.2.2"), (91, "v0.2.3"), (92, "v0.2.4") };
     if (savedDisplayManifest is not null)
     {
         var installed = JObject.Parse(Encoding.UTF8.GetString(savedDisplayManifest))["update"]!;
