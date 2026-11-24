@@ -7,8 +7,8 @@ import tomllib
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_REVISION = 92
-RELEASE_VERSION = 'v0.2.4'
+RELEASE_REVISION = 93
+RELEASE_VERSION = 'v0.2.5'
 
 PATCH_BASES = {
     39: (38, '59fa329ba5ac76de8e51ee10765573a7be737b81228137aa2aaf0cac55726668'),
@@ -56,6 +56,7 @@ PATCH_BASES = {
     90: (89, '7c7537a99091380b9a35d68d999111b96cf0b64711f283f4aad7cb81baae7f15'),
     91: (90, '225e0717bf1b619e3978f82d720a2e6fbc47be9e6cf36a45b618ae53055047bd'),
     92: (91, '5e51f9d236ed994df9d1863873119a588c7343d097b30350981c49724ab8b2e1'),
+    93: (92, '3d07877a79702d338820e4f10a3ca0e69ed396a799cf817ed83e0d193b66f55c'),
 }
 BASELINE_HASHES = {base: checksum for base, checksum in PATCH_BASES.values()}
 
