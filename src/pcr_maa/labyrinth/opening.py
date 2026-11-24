@@ -218,22 +218,28 @@ class MaaOpening:
         timeout=15000 if grant_pending or item_pending else 3000
         hit,_=self._choice(batch,entry,names,timeout=timeout)
         if hit=='LabyOpeningItemRewardObserved':
-            fields=dict(phase='opening_item_reward_close')
-            if type(enter_id) is int and enter_id>0:fields['enter_id']=enter_id
-            def close(oid):
-                sent=self._run('LabyOpeningItemRewardCloseOnce',input=True)
-                return self.stamp(source='maa',operation_id=oid,**fields,native=sent,
-                    input_native=sent,input_action_verified=True)
-            batch.transaction('opening_item_reward_close',fields,close)
             if item_pending and not grant_pending:names.append('LabyMapObserved')
-            # The close animation may leave the same reward visible on fresh frames.
-            for _ in range(3):
-                hit,_=self._choice(batch,entry,names,timeout=15000 if grant_pending else 3000)
-                if hit!='LabyOpeningItemRewardObserved':break
-            else:
-                raise BatchStopped('opening_readback_unknown')
+            hit=self._close_item_reward(batch,entry,names,enter_id=enter_id,
+                timeout=15000 if grant_pending else 3000)
         receipt=self._run(hit);batch.checkpoint()
         return ('map' if hit=='LabyMapObserved' else 'joined'),receipt
+
+    def _close_item_reward(self,batch,entry,names,*,enter_id,timeout=3000):
+        fields=dict(phase='opening_item_reward_close')
+        if type(enter_id) is int and enter_id>0:fields['enter_id']=enter_id
+
+        def close(oid):
+            sent=self._run('LabyOpeningItemRewardCloseOnce',input=True)
+            return self.stamp(source='maa',operation_id=oid,**fields,native=sent,
+                input_native=sent,input_action_verified=True)
+
+        batch.transaction('opening_item_reward_close',fields,close)
+        # The same reward can remain visible during its close animation.
+        for _ in range(3):
+            hit,_=self._choice(batch,entry,names,timeout=timeout)
+            if hit!='LabyOpeningItemRewardObserved':return hit
+        raise BatchStopped('opening_readback_unknown')
+
     def consume_granted(self,batch,enter_id,*,guild_id,next_node='LabyOpeningEmptyObserved',page='opening_empty',creation_operation_id=None):
         """Close only a freshly observed sole 1068 grant; grant never follows config alone."""
         if type(guild_id) is not int or guild_id!=5:raise BatchStopped('opening_grant_scope_unknown')
@@ -241,6 +247,8 @@ class MaaOpening:
             raise BatchStopped('opening_grant_postcondition_unknown')
         key=self._creation_key(enter_id,creation_operation_id)
         if key in self.granted_used:raise BatchStopped('opening_grant_already_attempted')
+        if page=='map' and not self.tasker.resource.override_pipeline(opening_catalog_pipeline()):
+            raise BatchStopped('opening_pipeline_unavailable')
         self.granted_used.add(key);batch.checkpoint()
         joined=self.observe_joined(batch,enter_id)
         if joined['layout']!='joined1' or joined['roles_joined']!=['1068']:raise BatchStopped('opening_grant_identity_unknown')
@@ -251,12 +259,19 @@ class MaaOpening:
             return self.stamp(source='maa',operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('opening_granted_close',fields,close)
         batch.checkpoint();entry='LabyOpeningGrantPostObserved'
+        names=['LabyDateChangedObserved','LabyDisconnect6002Observed']
         if page=='opening_empty':
             from .scene import MaaSceneRuntime,OBSERVATION_TIMEOUT_SECONDS
             MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(
                 batch,{'free_role_reward'},source={'map','joined'},timeout=OBSERVATION_TIMEOUT_SECONDS,
                 reason='opening_readback_unknown')
-        hit,_=self._choice(batch,entry,['LabyDateChangedObserved','LabyDisconnect6002Observed',next_node])
+        else:
+            # The gifted character can be followed by a separate item result.
+            names.append('LabyOpeningItemRewardObserved')
+        names.append(next_node)
+        hit,_=self._choice(batch,entry,names)
+        if hit=='LabyOpeningItemRewardObserved':
+            hit=self._close_item_reward(batch,entry,names,enter_id=enter_id)
         receipt=self._run(hit);batch.checkpoint()
         closed=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,page=page,native=receipt,input_native=clicked['input_native']),**fields)
         actual=dict(joined,granted=dict(source='maa',enter_id=enter_id,joined=joined,closed=closed))
