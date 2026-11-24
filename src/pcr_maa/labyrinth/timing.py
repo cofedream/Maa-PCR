@@ -198,8 +198,12 @@ class NativeTimings:
         # Read only the Owner's new private trace tail, extracting scalar native
         # capture durations. Never add another screenshot merely for profiling.
         if not self.trace_path:return
-        pattern=re.compile(r'ControlUnitMgr::screencap\]\s*\|\s*leave,\s*(\d+)ms(?:\s|$)')
-        recognition=re.compile(r'VisionNS::(?:OCRer|TemplateMatcher|ColorMatcher|FeatureMatcher|NeuralNetworkClassifier|NeuralNetworkDetector)::analyze\].*\[cost=(\d+)ms\]')
+        # Match on the log's file field, not the function field: GCC spells it
+        # `void MaaNS::VisionNS::OCRer::analyze()`, MSVC `OCRer::analyze`.
+        # Only the custom controller logs `screencap ... | leave, Nms`; the ADB
+        # controller writes no such line, so no capture duration is invented.
+        pattern=re.compile(r'\[(\w*ControlUnitMgr)\.cpp\][^\n]*screencap[^\n]*\|\s*leave,\s*(\d+)ms')
+        recognition=re.compile(r'\[(OCRer|TemplateMatcher|ColorMatcher|FeatureMatcher|NeuralNetworkClassifier|NeuralNetworkDetector)\.cpp\][^\n]*\[cost=(\d+)ms\]')
         with self.lock:
             present=set()
             for path in self._native_trace_files():
@@ -223,9 +227,9 @@ class NativeTimings:
                             if not line or not line.endswith(b'\n'):break
                             decoded=line.decode('utf-8',errors='replace')
                             match=pattern.search(decoded)
-                            if match:self.timings.record('screenshot',int(match.group(1)))
+                            if match:self.timings.record('screenshot',int(match.group(2)))
                             match=recognition.search(decoded)
-                            if match:self.timings.record('recognition',int(match.group(1)))
+                            if match:self.timings.record('recognition',int(match.group(2)))
                             self.trace_positions[identity]=(handle.tell(),min(len(line),64),hashlib.sha256(line[-64:]).digest())
                         self.trace_positions.setdefault(identity,(offset,length,fingerprint))
                         self.trace_read.add(identity)

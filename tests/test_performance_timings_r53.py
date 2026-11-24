@@ -19,12 +19,24 @@ def collector(path):
     return timing.NativeTimings(Source(), Source(), timing.Timings(), trace_path=path)
 
 
-def capture(value):
-    return f'[DBG][MaaNS::CtrlUnitNS::ControlUnitMgr::screencap] | leave, {value}ms\n'
+def trace_line(source,function,message):
+    return f'[2026-11-24 11:34:51.377][DBG][Px3571668][Tx54976][{source}][L90][{function}] {message} \n'
 
 
-def recognition(value, kind='OCRer'):
-    return f'[DBG][MaaNS::VisionNS::{kind}::analyze] synthetic [cost={value}ms]\n'
+def capture(value, function='virtual bool MaaNS::CtrlUnitNs::CustomControlUnitMgr::screencap(cv::Mat &)'):
+    return (f'[2026-11-24 11:34:51.124][TRC][Px3571668][Tx63168][CustomControlUnitMgr.cpp][L100]'
+        f'[{function}] | leave, {value}ms \n')
+
+
+def capture_enter(function='virtual bool MaaNS::CtrlUnitNs::CustomControlUnitMgr::screencap(cv::Mat &)',
+        controller='CustomControlUnitMgr'):
+    return (f'[2026-11-24 11:34:51.121][DBG][Px3571668][Tx63168][{controller}.cpp][L100]'
+        f'[{function}] | enter \n')
+
+
+def recognition(value, kind='OCRer', *, msvc=False):
+    function = f'{kind}::analyze' if msvc else f'void MaaNS::VisionNS::{kind}::analyze()'
+    return trace_line(f'{kind}.cpp', function, f'[cache_=null] [cost={value}ms] [param_.expected=["^日期变更$"]]')
 
 
 def append(path, text):
@@ -85,7 +97,7 @@ def test_partial_line_waits_for_completion_and_repeated_summary_never_recounts(t
 
 
 @pytest.mark.parametrize('content',('', '[DBG] screencap -p process started\n',
-    '[DBG][MaaNS::ControlUnitMgr::screencap] | enter\n'+recognition(80,'CustomRecognizer')))
+    capture_enter()+recognition(80,'CustomRecognition')))
 def test_no_native_scalar_remains_unobserved_instead_of_zero(tmp_path,content):
     path=tmp_path/'maafw.log'
     native=collector(path)
@@ -102,11 +114,52 @@ def test_real_zero_is_a_sample_and_only_six_leaf_vision_classes_are_counted(tmp_
     kinds=('OCRer','TemplateMatcher','ColorMatcher','FeatureMatcher','NeuralNetworkClassifier','NeuralNetworkDetector')
     path.write_text(capture(0)+''.join(recognition(0,kind) for kind in kinds)
         +recognition(900,'CustomRecognizer')+recognition(900,'AndRecognizer')
-        +'[DBG][MaaNS::TaskNS::Recognizer::analyze] [cost=900ms]\n',encoding='utf-8')
+        +trace_line('Recognizer.cpp','void MaaNS::TaskNS::Recognizer::analyze()','[cost=900ms]'),encoding='utf-8')
     native.finish_native_trace()
     result=native.timings.payload()
     assert result['screenshot']['count']==1 and result['screenshot']['total_ms']==0
     assert result['recognition']['count']==6 and result['recognition']['total_ms']==0
+    native.close()
+
+
+@pytest.mark.parametrize('line',(recognition(19),recognition(19,msvc=True)))
+def test_recognition_counts_gcc_and_msvc_function_spellings(tmp_path,line):
+    path=tmp_path/'maafw.log'
+    native=collector(path)
+    path.write_text(line,encoding='utf-8')
+    native.finish_native_trace()
+    result=native.timings.payload()
+    assert result['recognition']['count']==1 and result['recognition']['total_ms']==19
+    assert result['screenshot'] is None
+    native.close()
+
+
+@pytest.mark.parametrize('function',(
+    'virtual bool MaaNS::CtrlUnitNs::CustomControlUnitMgr::screencap(cv::Mat &)',
+    'CustomControlUnitMgr::screencap'))
+def test_screenshot_counts_gcc_and_msvc_function_spellings(tmp_path,function):
+    path=tmp_path/'maafw.log'
+    native=collector(path)
+    path.write_text(capture(2,function),encoding='utf-8')
+    native.finish_native_trace()
+    result=native.timings.payload()
+    assert result['screenshot']['count']==1 and result['screenshot']['total_ms']==2
+    native.close()
+
+
+def test_adb_screencap_without_leave_line_keeps_screenshot_none(tmp_path):
+    # AdbControlUnitMgr::screencap writes no LogFunc leave line; a missing
+    # duration is unknown, never a fabricated zero-cost capture.
+    path=tmp_path/'maafw.log'
+    native=collector(path)
+    path.write_text(capture_enter(
+            function='virtual bool MaaNS::CtrlUnitNs::AdbControlUnitMgr::screencap(cv::Mat &)',
+            controller='AdbControlUnitMgr')
+        +'[DBG] screencap -p process started\n'+recognition(19),encoding='utf-8')
+    native.finish_native_trace()
+    result=native.timings.payload()
+    assert result['screenshot'] is None
+    assert result['recognition']['count']==1 and result['recognition']['total_ms']==19
     native.close()
 
 
