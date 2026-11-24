@@ -236,3 +236,94 @@ def test_synthetic_deep_legacy_missing_attachments_respect_game_day(tmp_path, mo
     assert not result['consumption_sent'] and journal.path.read_bytes() == before
     if day == '2026-11-02':
         assert result['historical_evidence_unavailable'][0]['game_day'] == '2026-10-02'
+
+
+@pytest.fixture
+def animation_case(tmp_path):
+    from datetime import datetime, timezone
+    from test_preset_execution import PRESET, quote_for, reading
+
+    before = reading()
+    quote = quote_for(before)
+    at = datetime(2026, 10, 2, 8, tzinfo=timezone.utc)
+    fit = dict(original=3, target=3, readback=3)
+    original = dict(state='in_flight', slot=2, context='gui-current-state', game_day='2026-10-02',
+                    at=at.timestamp(), count_fit=fit, quote={k:v for k,v in quote.items() if k != 'verified'})
+    def receipt(name, task_id, recognition):
+        return dict(native_ok=True, tasker_inited=True, task_id=task_id, nodes=[
+            dict(name=name, completed=True, action=dict(name=name, success=True, raw={}), recognition=recognition)])
+
+    def guards(names):
+        return [dict(name=n, algorithm='OCR', box=[1, 1, 4, 4]) for n in names]
+
+    commit = receipt('ExecConfirm', 1, guards(['ExecConfirmButton', 'ExecConfirmHeader', 'ExecCommitGuard']))
+    skip = receipt('ExecSweepSkipFinish', 2, guards(['ExecSweepSkipGuard', 'ExecSweepSkipButton',
+                   'ExecSweepAnimationPanel', 'ExecSweepAnimationRound', 'ExecSweepAnimationExp']))
+    skip['nodes'].insert(0, dict(name='ExecResultStart', completed=True))
+    adjustment = dict(steps=[], verified=True, initial_evidence=receipt('FitCount', 3,
+                      dict(filtered=[dict(text='3', score=.99)])))
+    result = dict(preset=PRESET, game_day=original['game_day'], count_context=original['context'],
+        outcome='unknown_settlement', consumption_sent=True, settlement_verified=False, home_verified=False,
+        reading=before, quote=quote, confirmation=dict(verified=True), count_fit=dict(fit, adjustment=adjustment),
+        submission=dict(native_receipt=commit, result_evidence=skip, consumption_dispatched=True,
+                        result_verified=False, preset_return_verified=False))
+    step = dict(name='very_hard', status='stopped', started_at=original['at'] - 5,
+                finished_at=original['at'] + 65, result=result)
+    log = []
+    for name, task_id in [('ExecConfirm', 1), ('ExecSweepSkipFinish', 2)]:
+        for state in ['Starting', 'Succeeded']:
+            payload = dict(name=name, task_id=task_id, action_id=task_id,
+                           action_details=dict(action='Click', success=True, detail={}))
+            log.append(f'[{at:%Y-%m-%d %H:%M:%S.%f}][PxAA][EventDispatcher.hpp]'
+                       f'[msg=Node.Action.{state}] [details={json.dumps(payload)}]')
+    files = {}
+    for key, data in [('step', json.dumps(step)), ('native_log', '\n'.join(log))]:
+        path = tmp_path / key
+        path.write_bytes(data.encode())
+        files[key] = dict(path=str(path), sha256=sha256(path.read_bytes()).hexdigest())
+    journal = Journal(tmp_path / 'ledger')
+    with journal.locked():
+        journal.append(original)
+    return dict(journal=journal, step=step, prefix=journal.path.read_bytes(),
+                proof=dict(files=files, native_log_utc_offset_seconds=0))
+
+
+@pytest.mark.parametrize('day,expected', [('2026-10-02', 'blocked_post_counts_unverified'),
+                                          ('2026-10-03', 'executed')])
+def test_verified_animation_preserves_original_and_requires_fresh_counts(animation_case, monkeypatch, day, expected):
+    from pcr_maa.preset_result_reconcile import ANIMATION_DISPOSITION
+    case = animation_case
+    kwargs = dict(disposition=ANIMATION_DISPOSITION, expected_sha256=sha256(case['prefix']).hexdigest())
+    reconcile_closed_result(case['journal'], case['proof'], **kwargs)
+    assert case['journal'].path.read_bytes() == case['prefix']
+    reconcile_closed_result(case['journal'], case['proof'], apply=True, **kwargs)
+    record = case['journal'].events()[-1]
+    assert record['consumption_verified'] and not any(record[k] for k in ('settlement_verified',
+        'result_close_verified', 'preset_return_verified', 'post_counts_verified', 'original_replay_permitted'))
+    assert 'remaining' not in record
+    result, port = run(case, monkeypatch, day=day)
+    assert result['outcome'] == expected
+    assert port.calls.count('submit') == int(expected == 'executed')
+
+
+@pytest.mark.parametrize('fault', ['animation', 'log', 'time', 'count_edit', 'intent'])
+def test_unbound_animation_keeps_original_in_flight(animation_case, fault):
+    from pcr_maa.preset_result_reconcile import ANIMATION_DISPOSITION
+    case = animation_case
+    step = case['step']
+    if fault == 'animation':
+        step['result']['submission']['result_evidence']['nodes'][-1]['recognition'].pop()
+    elif fault == 'time':
+        step['started_at'] = step['finished_at']
+    elif fault == 'count_edit':
+        step['result']['count_fit']['adjustment']['steps'] = [1]
+    elif fault == 'intent':
+        step['result']['quote']['stamina_before'] += 1
+    row = case['proof']['files']['native_log' if fault == 'log' else 'step']
+    data = b'unrelated' if fault == 'log' else json.dumps(step).encode()
+    Path(row['path']).write_bytes(data)
+    row['sha256'] = sha256(data).hexdigest()
+    with pytest.raises(ValueError):
+        reconcile_closed_result(case['journal'], case['proof'], disposition=ANIMATION_DISPOSITION,
+                                expected_sha256=sha256(case['prefix']).hexdigest(), apply=True)
+    assert case['journal'].path.read_bytes() == case['prefix']
