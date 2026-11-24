@@ -7,6 +7,7 @@ bot transaction lock while appending. Credentials are never accepted here.
 from pathlib import Path
 import json,os
 from datetime import datetime,timezone
+from time import sleep
 
 
 def is_retired_invitation(event, intent):
@@ -62,7 +63,16 @@ class RunRecord:
         path=self.path.parents[2]/'batch-checkpoint.json';tmp=path.with_suffix('.tmp')
         with tmp.open('w',encoding='utf-8',newline='\n') as handle:
             json.dump(value,handle,ensure_ascii=False);handle.flush();os.fsync(handle.fileno())
-        tmp.replace(path)
+        # On Windows a reader can briefly keep the old checkpoint from being replaced.
+        # Retry only the atomic replacement of the already synced temp file.
+        for attempt in range(6):
+            try:
+                tmp.replace(path)
+                return
+            except PermissionError as error:
+                if getattr(error, 'winerror', None) not in (5, 32) or attempt == 5:
+                    raise
+                sleep(.1)
 
     @staticmethod
     def recover(directory,binding,settings):

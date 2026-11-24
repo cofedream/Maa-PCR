@@ -21,6 +21,7 @@ NAME='LabyrinthScene'
 # Full-page OCR can exceed 10s; the caller's shorter business deadline still wins.
 OBSERVATION_TIMEOUT_SECONDS=20
 REWARD_CONNECTION_TIMEOUT_SECONDS=60
+ITEM_REWARD_TRANSITION_TIMEOUT_SECONDS=12
 # Pinned upstream LabyrinthEntryActionPlanner.characterAcquisitionTimeoutMillis
 # (30_000): the owned acquisition driver may have to skip several entrance
 # animations before the actual joined page exists. The 12s joined-read budget
@@ -532,9 +533,12 @@ def read_item_reward_through_connection(tasker, timings, batch, read, *, source,
     scene = MaaSceneRuntime(tasker, timings=timings)
     current = scene.observe(probe_kinds=('item_reward',))
     batch.checkpoint()
-    if current.kind == 'connecting':
-        scene.wait_for(batch, {'item_reward'}, source=source,
-                       timeout=REWARD_CONNECTION_TIMEOUT_SECONDS, reason=reason)
+    if current.kind in ('connecting', 'unknown', 'map'):
+        # The map can be visible before the result modal has finished opening.
+        timeout = (REWARD_CONNECTION_TIMEOUT_SECONDS if current.kind == 'connecting'
+                   else ITEM_REWARD_TRANSITION_TIMEOUT_SECONDS)
+        scene.wait_for(batch, {'item_reward'}, source={source, 'map'},
+                       timeout=timeout, reason=reason)
     elif current.kind != 'item_reward':
         raise BatchStopped(current.kind if current.kind in ('date_changed', 'disconnected') else reason)
     return read()

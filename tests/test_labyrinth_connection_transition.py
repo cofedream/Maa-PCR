@@ -84,7 +84,7 @@ def test_acquisition_waits_for_late_joined_without_resending(monkeypatch, kinds,
         autoplay.native.RUN_DEADLINE.reset(token)
 
 
-@pytest.mark.parametrize('kind', ['ready', 'connecting', 'item_reward', 'unknown', 'disconnected', 'date_changed'])
+@pytest.mark.parametrize('kind', ['ready', 'connecting', 'item_reward', 'map', 'unknown', 'home', 'disconnected', 'date_changed'])
 def test_relic_selection_only_rechecks_the_obtained_receipt(monkeypatch, kind):
     from pcr_maa.labyrinth import relics
     reward = object.__new__(relics.MaaRelicReward)
@@ -100,18 +100,30 @@ def test_relic_selection_only_rechecks_the_obtained_receipt(monkeypatch, kind):
     waits = []
     def wait(batch, allowed, **kwargs):
         assert allowed == {'item_reward'} and kwargs == dict(
-            source='relic_reward', timeout=60, reason='relic_result_unknown')
+            source={'relic_reward', 'map'}, timeout=60 if kind == 'connecting' else 12,
+            reason='relic_result_unknown')
         waits.append(1)
     runtime = NS(observe=lambda **kwargs: NS(kind=kind), wait_for=wait)
     monkeypatch.setattr(scene, 'MaaSceneRuntime', lambda *a, **kw: runtime)
-    if kind in ('ready', 'item_reward', 'connecting'):
+    if kind in ('ready', 'item_reward', 'connecting', 'map', 'unknown'):
         assert reward._obtained_receipt(Batch()) == 'exact receipt'
     else:
-        reason = 'relic_result_unknown' if kind == 'unknown' else kind
+        reason = 'relic_result_unknown' if kind == 'home' else kind
         with pytest.raises(autoplay.BatchStopped, match='^'+reason+'$'):
             reward._obtained_receipt(Batch())
-    assert len(calls) == (2 if kind in ('item_reward', 'connecting') else 1)
-    assert len(waits) == int(kind == 'connecting')
+    assert len(calls) == (2 if kind in ('item_reward', 'connecting', 'map', 'unknown') else 1)
+    assert len(waits) == int(kind in ('connecting', 'map', 'unknown'))
+
+
+def test_pending_item_reward_waits_through_recognized_map_without_input(monkeypatch):
+    runtime = Runtime([scene.Scene(kind, receipt(), {'area': 1})
+        for kind in ('map', 'unknown', 'item_reward')])
+    runtime.tasker = owner()
+    runtime.perform = lambda *args, **kwargs: pytest.fail('item reward transition sent input')
+    monkeypatch.setattr(autoplay, '_poll_pause', lambda *args: None)
+    result = scene.MaaSceneRuntime.wait_for(runtime, Batch(), {'item_reward'},
+        source={'relic_reward', 'map'}, timeout=12, reason='relic_result_unknown')
+    assert result.kind == 'item_reward' and runtime.reads == 3
 
 
 def test_persistent_connection_obeys_battle_deadline(monkeypatch):
