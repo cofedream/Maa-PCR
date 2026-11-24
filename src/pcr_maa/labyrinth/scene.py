@@ -533,12 +533,13 @@ def read_item_reward_through_connection(tasker, timings, batch, read, *, source,
     scene = MaaSceneRuntime(tasker, timings=timings)
     current = scene.observe(probe_kinds=('item_reward',))
     batch.checkpoint()
-    if current.kind in ('connecting', 'unknown', 'map'):
+    if current.kind == 'connecting':
+        scene.wait_for(batch, {'item_reward'}, source=source,
+                       timeout=REWARD_CONNECTION_TIMEOUT_SECONDS, reason=reason)
+    elif source == 'relic_reward' and current.kind in ('unknown', 'map'):
         # The map can be visible before the result modal has finished opening.
-        timeout = (REWARD_CONNECTION_TIMEOUT_SECONDS if current.kind == 'connecting'
-                   else ITEM_REWARD_TRANSITION_TIMEOUT_SECONDS)
         scene.wait_for(batch, {'item_reward'}, source={source, 'map'},
-                       timeout=timeout, reason=reason)
+                       timeout=ITEM_REWARD_TRANSITION_TIMEOUT_SECONDS, reason=reason)
     elif current.kind != 'item_reward':
         raise BatchStopped(current.kind if current.kind in ('date_changed', 'disconnected') else reason)
     return read()

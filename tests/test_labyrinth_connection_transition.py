@@ -100,8 +100,8 @@ def test_relic_selection_only_rechecks_the_obtained_receipt(monkeypatch, kind):
     waits = []
     def wait(batch, allowed, **kwargs):
         assert allowed == {'item_reward'} and kwargs == dict(
-            source={'relic_reward', 'map'}, timeout=60 if kind == 'connecting' else 12,
-            reason='relic_result_unknown')
+            source='relic_reward' if kind == 'connecting' else {'relic_reward', 'map'},
+            timeout=60 if kind == 'connecting' else 12, reason='relic_result_unknown')
         waits.append(1)
     runtime = NS(observe=lambda **kwargs: NS(kind=kind), wait_for=wait)
     monkeypatch.setattr(scene, 'MaaSceneRuntime', lambda *a, **kw: runtime)
