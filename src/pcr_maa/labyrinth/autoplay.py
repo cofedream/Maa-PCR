@@ -601,6 +601,28 @@ class RouteTargetRecognition(CustomRecognition):
     def __init__(self,pixels,stopped=lambda:False,timings=None):
         super().__init__();self.pixels=pixels;self.stopped=stopped;self.timings=timings
         self.route=self.current=None
+        # `NodePixels.collect` is the dominant per-call cost (measured 1.17-1.28 s
+        # on the public frames) and locate/preview run it on two consecutive
+        # frames. Reuse a result only for pixel-identical frames within the same
+        # route-target lifecycle; any different or missing hash recomputes. The
+        # memo holds boxes only, never a frame, and is dropped on page changes so
+        # it cannot outlive the page or the run.
+        self._frame_columns=None
+    @staticmethod
+    def _frame_sha(image):
+        try:return sha256(image.tobytes()).hexdigest()
+        except (AttributeError,TypeError,BufferError):return None
+    def _columns(self,image,calculate):
+        """Frame-keyed `collect` memo; returns (columns, frame sha256 or None)."""
+        digest=self._frame_sha(image)
+        lifecycle=(id(self.route),getattr(self.route,'enter_id',None),
+                   id(self.current),getattr(self.current,'block_id',None),id(self.pixels))
+        cached=self._frame_columns
+        if digest is not None and cached is not None and cached[0]==lifecycle and cached[1]==digest:
+            return cached[2],digest
+        columns=calculate()
+        self._frame_columns=(lifecycle,digest,columns) if digest is not None else None
+        return columns,digest
     def analyze(self,context,argv):
         try:
             if self.stopped() or context.tasker.stopping or self.route is None: return None
@@ -613,6 +635,8 @@ class RouteTargetRecognition(CustomRecognition):
             mode=params.get('mode','read')
             if type(raw) is not dict:return None
             if raw.get('kind')!='map' or raw.get('payload',{}).get('area')!=self.current.area:
+                # A different page must never inherit the previous frame's boxes.
+                self._frame_columns=None
                 if mode=='read':
                     # Unexpected pages keep the original full scene/control receipt.
                     scene=context.run_recognition(NODE,argv.image,{NODE:dict(custom_recognition_param={})})
@@ -623,15 +647,19 @@ class RouteTargetRecognition(CustomRecognition):
             index=self.route.nodes.index(self.current)
             target=self.route.nodes[index+1] if index+1<len(self.route.nodes) else None
             final_boss=getattr(self.pixels,'final_boss',None)
-            columns=(final_boss(argv.image) if target is not None and target.block_type==8
-                and callable(final_boss) else self.pixels.collect(argv.image))
+            def calculate():
+                return (final_boss(argv.image) if target is not None and target.block_type==8
+                    and callable(final_boss) else self.pixels.collect(argv.image))
+            columns,frame_sha=self._columns(argv.image,calculate)
             if self.timings is None:view=route_viewport(self.route,self.current,columns)
             else:
                 with self.timings.measure('strategy'):
                     view=route_viewport(self.route,self.current,columns)
             bound=view['target']
             detail=dict(status='target_observed' if bound else 'target_not_visible',area=self.current.area,
-                frame_pixel_sha256=sha256(argv.image.tobytes()).hexdigest(),columns=columns,target=bound,viewport=view)
+                frame_pixel_sha256=frame_sha if frame_sha is not None
+                    else sha256(argv.image.tobytes()).hexdigest(),
+                columns=columns,target=bound,viewport=view)
             if mode=='read' and params.get('read_marks') is True:
                 from .relics import read_map_marks_frame
                 detail['map_marks']=read_map_marks_frame(context,argv.image)
@@ -688,8 +716,13 @@ class MaaNodeNavigator:
         # Fixed map-only Swipe, not a coordinate node click. Actual page is
         # re-recognized in this input frame; each viewport change is read back.
         from .scene import NAME
+        # The pre-input guard only needs the current page kind, so scope the
+        # classification to MAP (plus the forced interruption anchors) instead
+        # of the full scene. A non-map frame keeps failing the existing
+        # `kind='map'` guard: hit=None, the And node sends no Swipe.
         nodes={'LabyAutoplayMapGuard':dict(recognition='Custom',custom_recognition=NAME,
-                    custom_recognition_param=dict(kind='map'),action='DoNothing',next=[]),
+                    custom_recognition_param=dict(kind='map',probe_kinds=('map',)),
+                    action='DoNothing',next=[]),
             'LabyAutoplayMapScrollOnce':dict(recognition='And',all_of=['LabyAutoplayMapGuard'],
                 # Pinned labyrinthMapSwipe: .8 of the 360px column pitch;
                 # hold before release prevents inertia from skipping columns.
