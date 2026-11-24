@@ -2,6 +2,7 @@
 import json
 from dataclasses import replace
 from pathlib import Path
+import pytest
 from pcr_maa.labyrinth.batch import Batch
 from pcr_maa.labyrinth.config import Settings,Goal
 from pcr_maa.labyrinth.records import RunRecord
@@ -59,6 +60,38 @@ def test_mid_run_checkpoint_never_supplies_roles_relics_or_counts(tmp_path):
     assert RunRecord.recover(tmp_path,port.binding,settings.payload()) is None
     result=Batch(settings,port,Journal(tmp_path),port.binding,resume=True).run()
     assert result['run_id']!='b'*32 and result['completed']=={1:2} and port.enters==2
+
+@pytest.mark.parametrize(('winerror', 'blocked', 'expected_attempts'), [(5, 1, 2), (32, 8, 6), (3, 8, 1)])
+def test_checkpoint_replace_retries_only_temporary_windows_errors(tmp_path, monkeypatch,
+        winerror, blocked, expected_attempts):
+    from pcr_maa.labyrinth import records
+
+    record = RunRecord(tmp_path, 'a'*32, Port().binding)
+    record.checkpoint({}, 'playing', {1:0}, {1:0})
+    target = tmp_path/'batch-checkpoint.json'
+    original = Path.replace
+    attempts = []
+
+    def replace_checkpoint(source, destination):
+        assert destination == target
+        attempts.append(source)
+        if len(attempts) <= blocked:
+            assert json.loads(target.read_bytes())['stage'] == 'playing'
+            error = PermissionError('checkpoint replace blocked')
+            error.winerror = winerror
+            raise error
+        return original(source, destination)
+
+    monkeypatch.setattr(Path, 'replace', replace_checkpoint)
+    monkeypatch.setattr(records, 'sleep', lambda seconds: None, raising=False)
+    if blocked == 1:
+        record.checkpoint({}, 'ready', {1:0}, {1:1})
+        assert json.loads(target.read_bytes())['stage'] == 'ready'
+    else:
+        with pytest.raises(PermissionError, match='checkpoint replace blocked'):
+            record.checkpoint({}, 'ready', {1:0}, {1:1})
+        assert json.loads(target.read_bytes())['stage'] == 'playing'
+    assert len(attempts) == expected_attempts
 
 def test_checkpoint_cannot_invent_terminal_counts(tmp_path):
     import pytest
