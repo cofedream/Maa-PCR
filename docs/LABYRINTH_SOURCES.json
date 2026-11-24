@@ -428,7 +428,7 @@
           "sha256": "689293e2a9d7ca87d8fc19ba26b4f7939d4a628b4f19828ac6f50c2ceea41b9c"
         }
       ],
-      "local_sha256": "0cca33533ac12c4a524d10c0daf81d942295e89c55b986ad997b856bc26166e0",
+      "local_sha256": "38e3d213388e3a1c759083e1cf193e9b2fb89aa36220357a1d748e4517223072",
       "upstream_updates": [
         {
           "repository": "https://github.com/SatenRuiko10032/limingjie-assistant",
@@ -8728,7 +8728,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/opening.py",
-      "local_sha256": "0cca33533ac12c4a524d10c0daf81d942295e89c55b986ad997b856bc26166e0",
+      "local_sha256": "38e3d213388e3a1c759083e1cf193e9b2fb89aa36220357a1d748e4517223072",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
