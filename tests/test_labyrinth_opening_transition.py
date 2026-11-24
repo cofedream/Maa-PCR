@@ -150,6 +150,37 @@ def test_granted_character_close_waits_for_real_selection(transition, monkeypatc
         assert waits[0][1]['timeout'] == scene.OBSERVATION_TIMEOUT_SECONDS
 
 
+@pytest.mark.parametrize('map_arrives', [True, False])
+def test_guild_five_grant_can_be_followed_by_an_item_reward(transition, map_arrives):
+    from pcr_maa.labyrinth.opening import MaaOpening
+
+    value = transition
+    port = MaaOpening(value.port.tasker, lambda **fields: fields, characters=NS(namespace='offline'))
+    port.observe_joined = lambda *args: dict(layout='joined1', roles_joined=['1068'])
+    port._run = lambda *args, **kwargs: {}
+    item = 'LabyOpeningItemRewardObserved'
+    pages = iter([item, item, 'LabyMapObserved'] if map_arrives else [item] * 4)
+
+    def choose(batch, entry, names, *, timeout=3000):
+        assert entry == 'LabyOpeningGrantPostObserved'
+        page = next(pages)
+        if page not in names:
+            raise BatchStopped('opening_readback_unknown')
+        return page, {}
+
+    port._choice = choose
+    options = dict(guild_id=5, next_node='LabyMapObserved', page='map')
+    if map_arrives:
+        result = port.consume_granted(value.batch, 1, **options)
+        assert result['granted']['closed']['page'] == 'map'
+        assert value.observations == ['map']
+    else:
+        with pytest.raises(BatchStopped, match='^opening_readback_unknown$'):
+            port.consume_granted(value.batch, 1, **options)
+        assert value.observations == []
+    assert value.inputs == ['opening_granted_close', 'opening_item_reward_close']
+
+
 def test_grant_with_unreadable_name_requires_same_character_at_close(tmp_path, monkeypatch):
     import cv2
     import numpy as np
