@@ -1,6 +1,6 @@
 # 性能优化总纲（准备实施）
 
-状态：准备实施。本分支 `perf-optimization-plan`（基于 `6a079b8` / v0.2.3）只包含 `docs/OPTIMIZATION_PLAN.md` 与 `docs/LABYRINTH_PERFORMANCE_PLAN.md` 两份文档，业务代码未改。
+状态：实施中。本分支 `perf-optimization-plan`（基于 `6a079b8` / v0.2.3）已完成离线可做的一批（计时解析、scope A/B 工具、滚动 guard、collect 缓存、抓帧预实现），结果见[本轮离线优化结果](OPTIMIZATION_RESULTS.md)；设备相关项仍未验证。
 
 本文件是 2026-11-24 调研的结论与执行顺序；局内细项、逐项收益、反例清单见[黎明界局内耗时记录与 L1/L2/L3 优化计划](LABYRINTH_PERFORMANCE_PLAN.md)。两份文档的分工：本文回答"先做什么、为什么、怎么验收"，后者回答"局内每一处怎么改"。
 
@@ -52,6 +52,8 @@ BAAS 不使用 MaaFramework。它的官方速度表：`nemu`（MuMu IPC）**5–
 
 `EmulatorExtras`（MuMu 12 / LDPlayer 9 / Androws）在 Maa 里走模拟器 SDK 取帧，需要 `extras.mumu` 的 `path / lib / index / app_cloned_index` 绑定。这正好是 `Options()` 构造、`RequireProductionQualification()` 阻断的路径（[PcrMuMuDisplay.cs:225](../gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuDisplay.cs#L225)）；标准 ADB 路径没有 extras 配置。就算把掩码加上，`Describe` 会改回 `StandardCapture`，证据解析也只认 `(6,1)`。因此它是**三处代码 + 重新建立 package/display/input 身份证明**的独立项目，不是 L0 配置项。
 
+抓帧方案的预实现清单与设备侧 runbook 见[截图方案预实现](CAPTURE_BACKENDS.md)。
+
 已有的实验入口：[PcrMuMuReadOnlyDiagnostic.cs:73](../gui/MFAAvalonia/MFAAvalonia/Pcr/PcrMuMuReadOnlyDiagnostic.cs#L73) 可以单次、只读、无输入地取一帧 EmulatorExtras 画面。抓帧评估线可以在此基础上做"同一画面 adb vs extras 像素一致性 + 50 次耗时 P50"的 A/B，通过后再谈正式资格。**该评估线在 P0 给出抓帧占比之后才启动；占比 <10% 直接关闭。**
 
 ---
@@ -64,13 +66,14 @@ BAAS 不使用 MaaFramework。它的官方速度表：`nemu`（MuMu IPC）**5–
 - 真实日志：MaaUtils 在 MSVC 下用 `__FUNCTION__`（类限定、无参数，形如 `[OCRer::analyze]`；以真实 Windows 日志为准），GCC/Clang 下用 `__PRETTY_FUNCTION__`（`[void MaaNS::VisionNS::OCRer::analyze()]`）；`[cost=Nms]` 由 `VAR(cost)` 产生，DEBUG 级。
 - 修法：按**文件**匹配，不再依赖限定名：
   `\[(OCRer|TemplateMatcher|ColorMatcher|FeatureMatcher|NeuralNetworkClassifier|NeuralNetworkDetector)\.cpp\][^\n]*\[cost=(\d+)ms\]`
-- 本机（Linux）真实日志验证：当前识别正则 **0 命中**，按文件匹配 **93 条**；Windows 行形可能略有差异，但按文件匹配对两种构建都成立。
+- 本机（Linux，开发环境 maafw 5.13.0；运行时锁为 5.16.1，两者日志都带文件字段）真实日志验证：当前识别正则 **0 命中**，按文件匹配 **93 条**；Windows 行形可能略有差异，但按文件匹配对两种构建都成立。
 - 测试：`tests/test_performance_timings_r53.py` 同时加入 MSVC 与 GCC 两种行形；真实一局断言 `recognition.count > 0`。
 
 ### P0-2 抓帧耗时（不要修那个正则）
 
 - 事实：`AdbControlUnitMgr::screencap` 不写 `LogFunc`（该函数内的 `LogWarn` 只带函数名，不带 leave 耗时）；`ControllerAgent::screencap()` 走 `post` 而不是 `post_notified`，pipeline 抓帧也没有 `Controller.Action` 事件。
 - 所以 `timings.screenshot` 对 ADB 是**结构性不可得**；把正则改宽也不会出现数据。保持 `None`，不要填 0。
+- 预实现：`scripts/capture_benchmark.py` 已按“一次只测一个后端、输入固定 None、必须 --yes-device”写好，设备恢复后按[截图方案预实现](CAPTURE_BACKENDS.md) §3 执行。
 - 三个替代口径，交叉验证：
   1. **连接测速**：`speed_test` 的 `The fastest method is ... [cost=Nms]`（`capture_performance` 已解析），单样本、连接窗口；
   2. **外部采样**：开发用脚本对真实设备连续 `controller.post_screencap()` 50 次，记 P50/P90；走同一条 ADB 截图命令，代表性最好；
@@ -174,6 +177,8 @@ BAAS 是独立 Python + C++ 栈，不使用 MaaFramework；相似只在范式。
 
 每项保留回退开关（常量或配置），默认行为不变；单项 A/B 或反例失败直接回退，不牵连其他项。
 
+已完成：P0-1、离线 A/B、L2-6、L1-2、抓帧预实现。未完成：P0-2/P0-3 的设备采样、L2-1（preview 必须带 canary）、L1-1/L1-3/L1-4、L3。
+
 ---
 
 ## 10. 验收
@@ -204,3 +209,5 @@ BAAS 是独立 Python + C++ 栈，不使用 MaaFramework；相似只在范式。
 | 日期 | 内容 |
 |---|---|
 | 2026-11-24 | 初稿：汇总 BAAS/scrcpy 评估；明确 P0 度量修复（含 ADB 抓帧无原生耗时行的更正）、L1/L2/L3 批次与验收；并入 `LABYRINTH_PERFORMANCE_PLAN.md` 作为局内细项 |
+| 2026-11-24 | 补充[截图方案预实现](CAPTURE_BACKENDS.md)：benchmark、帧源控制器骨架、设备侧 runbook 与判定规则 |
+| 2026-11-24 | 离线批次实施结果见[本轮离线优化结果](OPTIMIZATION_RESULTS.md)：P0-1、scope A/B、L2-6、L1-2、抓帧预实现 |
