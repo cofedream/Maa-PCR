@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -26,6 +27,7 @@ REPOSITORY = 'shiwandehongbai/Maa-PCR'
 INDEX_NAME = 'update-index.json'
 INDEX_URL = 'https://github.com/' + REPOSITORY + '/releases/latest/download/' + INDEX_NAME
 MAX_METADATA = 1024 * 1024
+TRANSIENT_CONNECTION_ERRORS = (ssl.SSLEOFError, ConnectionResetError, ConnectionAbortedError, TimeoutError)
 BOOTSTRAP = ('scripts/player-update.py', 'scripts/player-maintenance.py',
     'scripts/recover-player-update.ps1',
     'src/pcr_maa/__init__.py', 'src/pcr_maa/player_update.py',
@@ -149,9 +151,20 @@ class _SystemUpdateProxy(BaseHandler):
 
 
 def _open(url, opener=None):
-    request = Request(url, headers={'Accept': 'application/octet-stream',
-        'User-Agent': 'Maa-PCR-player-updater/1'})
-    response = (opener or urlopen)(request, timeout=30)
+    for attempt in range(3):
+        # Proxy resolution mutates the request. Start from the original URL on every attempt.
+        request = Request(url, headers={'Accept': 'application/octet-stream',
+            'User-Agent': 'Maa-PCR-player-updater/1'})
+        try:
+            response = (opener or urlopen)(request, timeout=30)
+            break
+        except HTTPError:
+            raise
+        except OSError as error:
+            reason = error.reason if isinstance(error, URLError) else error
+            if attempt == 2 or not isinstance(reason, TRANSIENT_CONNECTION_ERRORS):
+                raise
+            time.sleep(attempt + 1)
     final = urlsplit(response.geturl())
     allowed = {'github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'}
     if (final.scheme != 'https' or final.hostname not in allowed or final.username or final.password
@@ -625,7 +638,7 @@ def main(argv=None):
             message = 'GitHub 返回 HTTP ' + str(error.code) + '，请稍后重试或导入离线更新包'
         print(json.dumps({'status': 'failed', 'error': message}, ensure_ascii=False))
         return 1
-    except (URLError, TimeoutError):
+    except (URLError, *TRANSIENT_CONNECTION_ERRORS):
         print(json.dumps({'status': 'failed', 'error': '无法连接 GitHub，请检查网络或导入离线更新包'}, ensure_ascii=False))
         return 1
     except Exception as error:

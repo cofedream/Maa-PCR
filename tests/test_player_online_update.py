@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import ssl
 import subprocess
 import sys
 from types import SimpleNamespace
@@ -231,6 +232,48 @@ def test_check_uses_only_own_release_metadata_and_never_downloads_package(online
     result = updater.check_update(online_case['player'], opener=opener)
     assert result['status'] == 'update_available' and result['revision'] == 40
     assert calls == [updater.INDEX_URL]
+    assert_original(online_case)
+
+
+@pytest.mark.parametrize('stage', ['index', 'package'])
+def test_transient_update_connection_reopens_original_url(online_case, monkeypatch, stage):
+    case = online_case
+    regular, _ = fake_opener(case)
+    target = updater.INDEX_URL if stage == 'index' else download_url(case['index']['patches'][0]['name'])
+    requests, delays = [], []
+    monkeypatch.setattr(updater.time, 'sleep', delays.append)
+
+    def opener(request, timeout):
+        if request.full_url == target:
+            requests.append(request)
+            if len(requests) == 1:
+                raise URLError(ssl.SSLEOFError('TLS stream closed'))
+            if len(requests) == 2:
+                raise ConnectionResetError('peer reset')
+        return regular(request, timeout)
+
+    assert updater.download_update(case['player'], opener=opener)['status'] == 'downloaded'
+    assert len(set(requests)) == 3 and len(delays) == 2
+    assert_original(case)
+
+
+@pytest.mark.parametrize('error,attempts', [
+    (URLError(TimeoutError()), 3),
+    (URLError(ssl.SSLCertVerificationError()), 1),
+    (HTTPError(updater.INDEX_URL, 429, 'rate limit', {}, None), 1),
+])
+def test_update_connection_stops_after_expected_attempts(online_case, monkeypatch, error, attempts):
+    requests = []
+    monkeypatch.setattr(updater.time, 'sleep', lambda delay: None)
+
+    def opener(request, timeout):
+        requests.append(request.full_url)
+        raise error
+
+    with pytest.raises(URLError) as raised:
+        updater.check_update(online_case['player'], opener=opener)
+    assert raised.value is error
+    assert requests == [updater.INDEX_URL] * attempts
     assert_original(online_case)
 
 
