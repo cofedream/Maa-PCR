@@ -289,7 +289,8 @@ class MaaJoinAnimationSetting:
 
     def _install_guard(self):
         """Register the same-frame menu-opener guard once per Owner Resource."""
-        resource=self.tasker.resource
+        from .scene import runtime_resource
+        resource=runtime_resource(self.tasker)
         if getattr(resource,'_labyrinth_join_animation_guard',None) is not None:
             return
         guard=_MenuClosedGuard()
