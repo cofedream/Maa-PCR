@@ -82,6 +82,7 @@
     </ItemsControl.ItemTemplate></ItemsControl>
     <CheckBox Name="KeepOldRunToggle" Content="保留旧局" IsChecked="{Binding LabyrinthSettings.KeepOldRun, Mode=TwoWay}" />
     <TextBlock Text="默认关闭：再次开始会先放弃旧局，确认结束后新开。开启后保留旧局；已推进且无法续跑时，可手动完成旧局，或关闭此开关重新开始。" TextWrapping="Wrap" FontSize="12" />
+    <CheckBox Name="SkipJoinAnimationSetupToggle" Content="跳过自动关闭角色加入动画" IsChecked="{Binding LabyrinthSettings.SkipJoinAnimationSetup, Mode=TwoWay}" ToolTip.Tip="已在迷宫的「菜单 → 设定」选了「不播放」时，可勾选此项。下次开始生效。" />
     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
      <Button Content="{Binding LabyrinthSettings.SaveButtonText}" Command="{Binding LabyrinthSettings.SaveCommand}" />
      <TextBlock Grid.Column="1" Text="{Binding LabyrinthSettings.Status}" TextWrapping="Wrap" VerticalAlignment="Center" />

@@ -85,6 +85,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string difficulty = "1";
     [ObservableProperty] private bool reroll = true;
     [ObservableProperty] private bool keepOldRun;
+    [ObservableProperty] private bool skipJoinAnimationSetup;
     [ObservableProperty] private string maxAttempts = "100";
     [ObservableProperty] private string maxMinutes = "30";
     [ObservableProperty] private bool buyRelics = true;
@@ -274,6 +275,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     private void LoadSettings(JObject d) {
         Difficulty=d["difficulty"]?.ToString() ?? "1"; Reroll=(bool?)d["reroll"] ?? true;
         KeepOldRun=(bool?)d["keep_old_run"] ?? false;
+        SkipJoinAnimationSetup=(bool?)d["skip_join_animation_setup"] ?? false;
         MaxAttempts=d["max_attempts"]?.ToString() ?? "100";
         MaxMinutes=(((int?)d["max_seconds"] ?? 1800)/60).ToString(CultureInfo.InvariantCulture);
         loadedMaxSeconds=(int?)d["max_seconds"];loadedMaxMinutes=MaxMinutes;
@@ -637,6 +639,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         try {
             var data=Snapshot();
             data["keep_old_run"]=KeepOldRun;
+            data["skip_join_animation_setup"]=SkipJoinAnimationSetup;
             if (selectedAccount?.Settings["use_webgpu"] is { } legacyGpu) data["use_webgpu"]=legacyGpu.DeepClone();
             data["draft_goals"]=new JArray(Goals.Select(g=>new JObject { ["guild_id"]=g.GuildId,["enabled"]=g.Enabled,["clears"]=g.Clears,["mode"]=g.TargetMode==g.TargetModes[0] ? "clears":"attempts" }));
             var value=data.ToString(Formatting.None);
