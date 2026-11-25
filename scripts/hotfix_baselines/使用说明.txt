@@ -1,0 +1,16 @@
+Maa-PCR 旧版测试文件修复工具（Windows x64）
+
+如果 v0.2.2 或 v0.2.5 曾装过测试修复，软件更新时可能提示“当前程序文件与安装清单不符”。这个工具会识别两版中已知的测试文件，备份后恢复相应的正式版文件。设置、账号和任务记录保留在原安装目录。
+
+1. 退出 Maa-PCR，等当前任务和 Agent 结束。
+2. 把整个修复 ZIP 解压到原安装目录以外的单独文件夹。双击其中的 repair-update.bat。
+3. 在窗口中选择原安装目录，即包含 MFAAvalonia.exe 和 package-manifest.json 的文件夹。
+4. 等工具报告修复完成，或确认程序文件已符合清单，再打开原 Maa-PCR，点击“检查更新”并安装稳定版。
+
+遇到未收录的差异时，工具会显示文件名。请保留原安装目录和这段提示，反馈给维护者。如果提示仍有进程在运行，请正常退出后重试。
+
+也可以在命令提示符中指定目录。以下示例只检查文件，去掉 --check 即执行修复。
+
+    repair-update.bat "D:\Maa-PCR" --check
+
+工具自带 CPython，许可见 python/LICENSE.txt。OpenSSL 3 适用 Apache License 2.0，见 licenses/Apache-2.0.txt。应用目录内附有 Microsoft Visual C++ 运行库，适用 Microsoft Visual Studio 再分发条款。

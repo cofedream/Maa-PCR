@@ -645,7 +645,8 @@ def main(argv=None):
         code = str(error) if re.fullmatch('[a-z][a-z0-9_]{2,127}', str(error)) else type(error).__name__
         stage = getattr(error, 'update_stage', args.command)
         failure = {'status': 'failed', 'error': code}
-        if isinstance(error, FileNotFoundError) or code in ('payload_missing', 'installer_startup_failed'):
+        if isinstance(error, FileNotFoundError) or code in (
+                'payload_missing', 'payload_hash_mismatch', 'installer_startup_failed'):
             failure['stage'] = stage
             if log_path := _save_update_error(args.player, stage):
                 failure['log_path'] = log_path

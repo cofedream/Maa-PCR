@@ -265,12 +265,12 @@ def _verify(root, rows):
     for name, row in rows.items():
         try:
             path = _path(root, name)
+            _require(path.stat().st_size == row['size'] and _sha(path) == row['sha256'],
+                     'payload_hash_mismatch')
         except ValueError as error:
-            if str(error) == 'payload_missing':
-                error.add_note(str(root / name))
+            if str(error) in ('payload_missing', 'payload_hash_mismatch'):
+                error.add_note(name)
             raise
-        _require(path.stat().st_size == row['size'] and _sha(path) == row['sha256'],
-                 'payload_hash_mismatch')
 
 
 def _save(path, value, *, durable=False):

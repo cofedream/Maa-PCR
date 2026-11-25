@@ -6,6 +6,7 @@ import sys
 
 sys.dont_write_bytecode = True
 from assemble_release import seal, require_acceptance, owned_payload_sha256
+from build_hotfix_repair import build as build_hotfix_repair
 from build_release import ROOT, package_outputs, save, digest
 from release_baselines import check_release_baseline, require_patch_base
 from source_delivery import prepare, pack, refresh_player_snapshot
@@ -45,6 +46,7 @@ def main():
     save(args.output / 'SOURCE_ALIGNMENT.json', source_alignment)
     package_outputs(args.player, args.output, args.base, args.base_manifest)
     version = manifest['update']['version']
+    build_hotfix_repair(args.player, args.output / ('Maa-PCR-' + version + '-update-repair.zip'))
     pack(prepared, args.output / ('Maa-PCR-' + version + '-source.zip'), inventory_sha)
     save(args.output / 'RELEASE_RECEIPT.json', dict(result, source_inventory_sha256=inventory_sha))
     checksums = '\n'.join(digest(path) + '  ' + path.name for path in sorted(args.output.iterdir()) if path.is_file()) + '\n'

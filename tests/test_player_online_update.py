@@ -18,6 +18,19 @@ from pcr_maa import player_maintenance as maintenance
 from pcr_maa import player_update as updater
 
 
+def test_inspect_logs_the_modified_program_file(online_case, tmp_path, capsys):
+    player = online_case['player']
+    name = 'src/pcr_maa/player_update.py'
+    source = player / name
+    modified = b'x' * source.stat().st_size
+    source.write_bytes(modified)
+    assert updater.main(['inspect', '--player', str(player), '--archive', str(tmp_path / 'unused.zip')]) == 1
+    result = json.loads(capsys.readouterr().out)
+    assert result['stage'] == 'inspect' and result['error'] == 'payload_hash_mismatch'
+    assert name in Path(result['log_path']).read_text(encoding='utf-8').splitlines()
+    assert source.read_bytes() == modified
+
+
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 
