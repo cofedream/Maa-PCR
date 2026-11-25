@@ -210,7 +210,7 @@ class ChannelPrompts:
         self.previous=None;self.last_poll=float('-inf');self.last_tap=float('-inf')
         self.taps=0;self.visible_until=0;self.rotation_started=None
 
-    def _read(self,batch):
+    def _foreground(self,batch):
         from .app_version import controller_shell
         batch.checkpoint()
         controller=self.tasker.controller
@@ -221,27 +221,37 @@ class ChannelPrompts:
         matches=re.findall(pattern,focus)
         if len(matches)!=1:raise BatchStopped('game_client_foreground_unknown')
         if matches[0]!=self.server.package:raise BatchStopped('game_client_foreground_unknown')
+        return matches[0]
+
+    def _read(self,batch,*,visual_fallback=False):
+        from .app_version import controller_shell
+        package=self._foreground(batch)
         try:
-            xml=controller_shell(controller,'uiautomator dump /dev/tty',stopped=batch.stopped)
-        except TimeoutError:
-            raise BatchStopped('channel_window_dump_timeout') from None
-        except ValueError:
-            raise BatchStopped('channel_window_dump_failed') from None
+            xml=controller_shell(self.tasker.controller,'uiautomator dump /dev/tty',stopped=batch.stopped)
+        except (TimeoutError,ValueError) as error:
+            # A recent SDK window still takes precedence over game pixels.
+            if (visual_fallback and self.server.server_id=='cn-aligames'
+                    and native.active_now()>=self.visible_until):
+                self._foreground(batch)
+                return None,False
+            reason='channel_window_dump_timeout' if isinstance(error,TimeoutError) else 'channel_window_dump_failed'
+            raise BatchStopped(reason) from None
         batch.checkpoint()
-        try:return channel_window(xml,matches[0],self.server.server_id)
+        try:return channel_window(xml,package,self.server.server_id)
         except (ValueError,ET.ParseError):raise BatchStopped('channel_window_unavailable') from None
 
-    def poll(self,batch,fields,*,wait_for_focus_until=None):
+    def poll(self,batch,fields,*,wait_for_focus_until=None,visual_fallback=False):
         if not self.server.channel:return False
         # Other channels have no SDK click rule or observed temporary rotation.
         if self.server.server_id not in ('cn-aligames','cn-vivo','cn-4399'):return False
         batch.checkpoint();now=native.active_now()
         if now-self.last_poll<.5:return now<self.visible_until
         self.last_poll=now
-        try:match,blocked=self._read(batch)
+        try:match,blocked=self._read(batch,visual_fallback=visual_fallback)
         except BatchStopped as error:
             transient = (str(error)=='game_client_foreground_unknown' or
-                self.server.server_id=='cn-4399' and str(error) in ('channel_window_dump_timeout','channel_window_dump_failed'))
+                self.server.server_id in ('cn-4399','cn-aligames')
+                and str(error) in ('channel_window_dump_timeout','channel_window_dump_failed'))
             if (not transient or wait_for_focus_until is None
                     or native.active_now()>=wait_for_focus_until):raise
             self.previous=None;self.visible_until=now+.5

@@ -218,7 +218,6 @@ class MaaRoleReward:
         with guard:clicked=batch.transaction('role_reward_select',fields,send)
         batch.checkpoint()
         if defer_joined:
-            from .opening import INVITATION_TRANSITION_TIMEOUT_SECONDS
             from .scene import MaaSceneRuntime
             runtime=MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings)
             final_choice=observation.get('remaining')==1
@@ -235,8 +234,7 @@ class MaaRoleReward:
                     and all(reward_identity_safe(c) for c in (*observation['cards'],*actual['cards'])))
             # The map can show briefly between reward rounds or before JOINED.
             after=runtime.wait_for(batch,{'role_reward','joined','event_animation'},
-                source={'role_reward','map'},accept=advanced,
-                timeout=INVITATION_TRANSITION_TIMEOUT_SECONDS if final_choice else 12,
+                source={'role_reward','map'},accept=advanced,timeout=12,
                 reason='role_reward_readback_unknown',
                 acquisition_fields=dict(source='maa',enter_id=enter_id,reward_id=reward_id) if final_choice else None)
             return batch.observation(self.stamp(operation_id=clicked['operation_id'],**fields,roles_pending=[selected.character_id],selection_pending=True,inventory_added=False,following_scene=after,native=after.native,input_native=clicked['input_native']),**fields)

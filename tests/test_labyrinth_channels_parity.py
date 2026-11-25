@@ -206,7 +206,7 @@ def prompts(monkeypatch):
     value=ChannelPrompts(tasker,lambda **fields:fields,'cn-aligames')
     pkg=value.server.package
     match=channel_window(window(),pkg,'cn-aligames')[0]
-    monkeypatch.setattr(value,'_read',lambda batch:(match,False))
+    monkeypatch.setattr(value,'_read',lambda batch,**_:(match,False))
     inputs=[]
     monkeypatch.setattr(native,'run',lambda tasker,node,**_:inputs.append(node) or native_receipt(node))
     return value,FakeBatch(),clock,inputs,match
@@ -261,33 +261,54 @@ def test_missing_focus_stops_after_grace_and_before_input(monkeypatch,deadline):
         prompts.poll(FakeBatch(),{},wait_for_focus_until=deadline)
 
 
+@pytest.mark.parametrize('server', ['cn-4399', 'cn-aligames'])
+@pytest.mark.parametrize(('shell_error', 'reason'), [
+    (ValueError('controller_shell_failed'), 'channel_window_dump_failed'),
+    (TimeoutError('controller_shell_timeout'), 'channel_window_dump_timeout'),
+])
 @pytest.mark.parametrize('recovers', [False, True])
-def test_4399_dump_failure_rechecks_focus_within_existing_grace(monkeypatch, recovers):
-    prompts=ChannelPrompts(NS(controller=object()),lambda **v:v,'cn-4399')
+def test_cold_start_dump_failure_rechecks_focus_within_existing_grace(monkeypatch, server, shell_error, reason, recovers):
+    prompts=ChannelPrompts(NS(controller=object()),lambda **v:v,server)
     batch=FakeBatch(); clock=[0.]; reads=[]
     def shell(controller,command,*,stopped):
         reads.append(command)
         if command=='dumpsys window windows':
             return f'mCurrentFocus=Window{{abc u0 {prompts.server.package}/.SplashActivity}}'
         assert command=='uiautomator dump /dev/tty'
-        if recovers and clock[0]:return window(package=prompts.server.package)
-        raise ValueError('controller_shell_failed')
+        if recovers and clock[0]:return window(package=prompts.server.package,title='通知')
+        raise shell_error
     monkeypatch.setattr(native,'active_now',lambda:clock[0])
     monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',shell)
     assert prompts.poll(batch,{},wait_for_focus_until=10)
     clock[0]=1 if recovers else 10
     if recovers:assert not prompts.poll(batch,{},wait_for_focus_until=10)
     else:
-        with pytest.raises(BatchStopped,match='^channel_window_dump_failed$'):
+        with pytest.raises(BatchStopped,match=f'^{reason}$'):
             prompts.poll(batch,{},wait_for_focus_until=10)
     assert reads==['dumpsys window windows','uiautomator dump /dev/tty']*2 and not batch.operations
+
+
+def test_aligames_dump_failure_stops_without_cold_start_grace(monkeypatch):
+    prompts=ChannelPrompts(NS(controller=object()),lambda **v:v,'cn-aligames')
+    batch=FakeBatch()
+
+    def shell(controller,command,*,stopped):
+        if command=='dumpsys window windows':
+            return f'mCurrentFocus=Window{{abc u0 {prompts.server.package}/.SplashActivity}}'
+        assert command=='uiautomator dump /dev/tty'
+        raise ValueError('controller_shell_failed')
+
+    monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',shell)
+    with pytest.raises(BatchStopped,match='^channel_window_dump_failed$'):
+        prompts.poll(batch,{})
+    assert not batch.operations
 
 
 def test_prompt_changed_between_observation_and_dispatch_sends_no_click(monkeypatch):
     value,batch,clock,inputs,match=prompts(monkeypatch)
     value.poll(batch,dict(enter_id=1));clock[0]+=.6
     reads=iter([(match,False),(None,False)])
-    monkeypatch.setattr(value,'_read',lambda batch:next(reads))
+    monkeypatch.setattr(value,'_read',lambda batch,**_:next(reads))
     assert value.poll(batch,dict(enter_id=1))
     assert not inputs and not batch.operations
 
@@ -295,19 +316,125 @@ def test_prompt_changed_between_observation_and_dispatch_sends_no_click(monkeypa
 def test_stop_during_sdk_read_never_dispatches_input(monkeypatch):
     value,batch,clock,inputs,match=prompts(monkeypatch)
     value.poll(batch,dict(enter_id=1));clock[0]+=.6
-    def read(_):batch.stopped=lambda:True;return match,False
+    def read(_,**kwargs):batch.stopped=lambda:True;return match,False
     monkeypatch.setattr(value,'_read',read)
     with pytest.raises(BatchStopped,match='^stopped$'):value.poll(batch,dict(enter_id=1))
     assert not inputs and not batch.operations
 
 
 def session_page(node,page):
-    names=['LabyDateChangedObserved','LabyDisconnect6002Observed','LabyClientTitleObserved',
-        'LabyClientGameHomeObserved','LabyClientAdventureObserved']
+    names=['LabyDateChangedObserved','LabyClientTitleObserved','LabyClientGameHomeObserved']
+    if node=='LabyGameSessionColdStartObserved':
+        names.insert(1,'LabyDisconnect6002Observed')
+        names.append('LabyClientAdventureObserved')
     upto=names.index(page)+1
     return dict(tasker_inited=True,task_id=1,native_ok=True,nodes=[dict(name=node,completed=True,
         recognition=[dict(name=name,algorithm='And',box=[0,0,1,1] if i==upto-1 else None)
             for i,name in enumerate(names[:upto])])])
+
+
+def test_aligames_recovery_reads_title_when_window_dump_keeps_failing(monkeypatch):
+    resource=NS(get_node_data=lambda _:dict(timeout=75000),override_pipeline=lambda _:True)
+    session=MaaGameSession(NS(stopping=False,resource=resource,controller=object()),
+        lambda **v:v,server='cn-aligames')
+    batch=FakeBatch();commands=[]
+
+    def shell(controller,command,*,stopped):
+        commands.append(command)
+        package=session.server.package
+        if command=='dumpsys window windows':
+            return f'mCurrentFocus=Window{{abc u0 {package}/.SplashActivity}}'
+        assert command=='uiautomator dump /dev/tty'
+        raise ValueError('controller_shell_failed')
+
+    def observe(tasker,node):
+        assert node=='LabyGameSessionRecoveryObserved'
+        return session_page(node,'LabyClientTitleObserved')
+
+    monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',shell)
+    monkeypatch.setattr(native,'run',observe)
+    page,_=session._entry(batch,recovery=True)
+    assert page=='title'
+    assert commands==['dumpsys window windows','uiautomator dump /dev/tty','dumpsys window windows']
+    assert not batch.operations
+
+
+def test_aligames_after_title_confirms_two_home_frames_without_window_dump(monkeypatch):
+    resource=NS(get_node_data=lambda _:dict(timeout=75000),override_pipeline=lambda _:True)
+    session=MaaGameSession(NS(stopping=False,resource=resource,controller=object()),
+        lambda **v:v,server='cn-aligames')
+    batch=FakeBatch();clock=[0.];dumps=[];pages=[]
+    names=['LabyDateChangedObserved','LabyDisconnect6002Observed','LabyClientNoticeObserved',
+        'LabyClientAnnouncementObserved','LabyClientAfterTitleHomeObserved']
+
+    def shell(controller,command,*,stopped):
+        if command=='dumpsys window windows':
+            return f'mCurrentFocus=Window{{abc u0 {session.server.package}/.MainActivity}}'
+        assert command=='uiautomator dump /dev/tty'
+        dumps.append(clock[0])
+        raise ValueError('controller_shell_failed')
+
+    def observe(tasker,node):
+        if node=='LabyGameSessionTitleStabilityWait':
+            clock[0]+=.5
+            return native_receipt(node)
+        assert node=='LabyGameSessionAfterTitleObserved'
+        pages.append(node)
+        receipt=native_receipt(node)
+        receipt['nodes'][0]['recognition']=[dict(name=name,algorithm='And',
+            box=[0,0,1,1] if name==names[-1] else None) for name in names]
+        return receipt
+
+    monkeypatch.setattr(native,'active_now',lambda:clock[0])
+    monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',shell)
+    monkeypatch.setattr(native,'run',observe)
+    page,result=session._after_title(batch)
+    assert page=='client_home' and result['title_stability']['consecutive_frames']==2
+    assert len(pages)==2 and len(dumps)==2 and not batch.operations
+
+
+@pytest.mark.parametrize('server,node,window_result,reason',[
+    ('cn-aligames','LabyClientTitleStartOnce','failure',None),
+    ('cn-aligames','LabyClientHomeToAdventure','failure',None),
+    ('cn-aligames','LabyClientTitleStartOnce','timeout',None),
+    ('cn-aligames','LabyClientTitleStartOnce','wrong_foreground','game_client_foreground_unknown'),
+    ('cn-aligames','LabyClientTitleStartOnce','prompt','channel_login_prompt_changed'),
+    ('cn-aligames','LabyClientTitleStartOnce','recent_prompt','channel_window_dump_failed'),
+    ('cn-aligames','LabyClientTitleStartOnce','malformed','channel_window_unavailable'),
+    ('cn-aligames','LabyClientOpenProfileOnce','failure','channel_window_dump_failed'),
+    ('cn-vivo','LabyClientTitleStartOnce','failure','channel_window_dump_failed'),
+])
+def test_game_input_visual_fallback_requires_aligames_foreground_and_guarded_node(
+        monkeypatch,server,node,window_result,reason):
+    session=MaaGameSession(NS(stopping=False,controller=object()),lambda **v:v,server=server)
+    package=session.server.package
+    reads=[];inputs=[]
+    if window_result=='recent_prompt':session.channel_prompts.visible_until=float('inf')
+
+    def shell(controller,command,*,stopped):
+        reads.append(command)
+        if command=='dumpsys window windows':
+            focused='another.app' if window_result=='wrong_foreground' and len(reads)>1 else package
+            return f'mCurrentFocus=Window{{abc u0 {focused}/.Main}}'
+        assert command=='uiautomator dump /dev/tty'
+        if window_result=='prompt':return window(package=package)
+        if window_result=='malformed':return '<hierarchy'
+        if window_result=='timeout':raise TimeoutError('controller_shell_timeout')
+        raise ValueError('controller_shell_failed')
+
+    def run(tasker,name,*,reset_hits):
+        inputs.append((name,reset_hits))
+        return native_receipt(name)
+
+    monkeypatch.setattr('pcr_maa.labyrinth.app_version.controller_shell',shell)
+    monkeypatch.setattr(native,'run',run)
+    if reason:
+        with pytest.raises(BatchStopped,match=f'^{reason}$'):session._input(FakeBatch(),node)
+        assert not inputs
+    else:
+        assert session._input(FakeBatch(),node)['native_ok'] is True
+        assert reads==['dumpsys window windows','uiautomator dump /dev/tty','dumpsys window windows']
+        assert inputs==[(node,(node,))]
 
 
 @pytest.mark.parametrize('pages,expected',[
