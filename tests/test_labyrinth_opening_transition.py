@@ -150,8 +150,8 @@ def test_granted_character_close_waits_for_real_selection(transition, monkeypatc
         assert waits[0][1]['timeout'] == scene.OBSERVATION_TIMEOUT_SECONDS
 
 
-@pytest.mark.parametrize('map_arrives', [True, False])
-def test_guild_five_grant_can_be_followed_by_an_item_reward(transition, map_arrives):
+@pytest.mark.parametrize('map_glimpses,map_arrives', [(0, True), (0, False), (2, True), (2, False)])
+def test_guild_five_grant_can_be_followed_by_an_item_reward(transition, map_glimpses, map_arrives):
     from pcr_maa.labyrinth.opening import MaaOpening
 
     value = transition
@@ -159,7 +159,8 @@ def test_guild_five_grant_can_be_followed_by_an_item_reward(transition, map_arri
     port.observe_joined = lambda *args: dict(layout='joined1', roles_joined=['1068'])
     port._run = lambda *args, **kwargs: {}
     item = 'LabyOpeningItemRewardObserved'
-    pages = iter([item, item, 'LabyMapObserved'] if map_arrives else [item] * 4)
+    pages = iter(['LabyMapObserved'] * map_glimpses +
+                 ([item, item, 'LabyMapObserved'] if map_arrives else [item] * 4))
 
     def choose(batch, entry, names, *, timeout=3000):
         assert entry == 'LabyOpeningGrantPostObserved'
@@ -179,6 +180,36 @@ def test_guild_five_grant_can_be_followed_by_an_item_reward(transition, map_arri
             port.consume_granted(value.batch, 1, **options)
         assert value.observations == []
     assert value.inputs == ['opening_granted_close', 'opening_item_reward_close']
+
+
+def test_relic_appearing_during_final_map_read_is_closed_once(transition):
+    from pcr_maa.labyrinth.opening import MaaOpening, POST_GRANT_MAP_STABILITY_SECONDS
+
+    port = MaaOpening(transition.port.tasker, lambda **fields: fields)
+    map_node = 'LabyMapObserved'
+    item = 'LabyOpeningItemRewardObserved'
+    pages = iter([map_node, map_node, item, map_node])
+    map_reads = []
+
+    def choose(batch, entry, names, *, timeout=3000):
+        transition.now += POST_GRANT_MAP_STABILITY_SECONDS
+        page = next(pages)
+        assert page in names
+        return page, {}
+
+    def run(node, *, input=False):
+        if node == map_node:
+            map_reads.append(node)
+            if len(map_reads) == 1:
+                raise BatchStopped('opening_readback_unknown')
+        else:
+            assert input and node == 'LabyOpeningItemRewardCloseOnce'
+        return {'node': node}
+
+    port._choice, port._run = choose, run
+    receipt = port._map_after_grant(transition.batch, 1, 'LabyOpeningGrantPostObserved', [])
+    assert receipt == {'node': map_node}
+    assert transition.inputs == ['opening_item_reward_close']
 
 
 def test_grant_with_unreadable_name_requires_same_character_at_close(tmp_path, monkeypatch):

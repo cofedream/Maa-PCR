@@ -12,6 +12,7 @@ from .timing import Timings
 
 JOINED_CONFIRMATION_TIMEOUT_SECONDS=12
 INVITATION_TRANSITION_TIMEOUT_SECONDS=45
+POST_GRANT_MAP_STABILITY_SECONDS=12
 
 # Opening defaults are shared with the legacy helpers below; see
 # strategies.UPSTREAM_OPENING_SLOTS (documented in LABYRINTH_GUILD_ROSTERS.md
@@ -240,6 +241,38 @@ class MaaOpening:
             if hit!='LabyOpeningItemRewardObserved':return hit
         raise BatchStopped('opening_readback_unknown')
 
+    def _map_after_grant(self, batch, enter_id, entry, interruptions):
+        from .autoplay import _poll_pause
+
+        item = 'LabyOpeningItemRewardObserved'
+        map_node = 'LabyMapObserved'
+        reward_pages = [*interruptions, item]
+        pages = [*reward_pages, map_node]
+        # The map can be visible between the two popups. Keep looking for the
+        # relic result until the map has remained visible for the reward window.
+        hit, _ = self._choice(batch, entry, pages)
+        stable_after = native.active_now() + POST_GRANT_MAP_STABILITY_SECONDS
+        while hit == map_node:
+            if native.active_now() >= native.RUN_DEADLINE.get():
+                raise BatchStopped('opening_readback_unknown')
+            if native.active_now() >= stable_after:
+                try:
+                    return self._run(map_node)
+                except BatchStopped as error:
+                    if error.args != ('opening_readback_unknown',):
+                        raise
+                # A popup may have replaced the map on the independent receipt
+                # frame. Require a fresh item observation before sending input.
+                self._choice(batch, entry, reward_pages)
+                break
+            _poll_pause(self.tasker, batch, entry, 'opening_readback_unknown')
+            if native.active_now() >= native.RUN_DEADLINE.get():
+                raise BatchStopped('opening_readback_unknown')
+            hit, _ = self._choice(batch, entry, pages)
+
+        self._close_item_reward(batch, entry, pages, enter_id=enter_id)
+        return self._run(map_node)
+
     def consume_granted(self,batch,enter_id,*,guild_id,next_node='LabyOpeningEmptyObserved',page='opening_empty',creation_operation_id=None):
         """Close only a freshly observed sole 1068 grant; grant never follows config alone."""
         if type(guild_id) is not int or guild_id!=5:raise BatchStopped('opening_grant_scope_unknown')
@@ -265,14 +298,11 @@ class MaaOpening:
             MaaSceneRuntime(self.tasker,self.stamp,timings=self.timings,stopped=batch.stopped).wait_for(
                 batch,{'free_role_reward'},source={'map','joined'},timeout=OBSERVATION_TIMEOUT_SECONDS,
                 reason='opening_readback_unknown')
+            hit,_=self._choice(batch,entry,[*names,next_node])
+            receipt=self._run(hit)
         else:
-            # The gifted character can be followed by a separate item result.
-            names.append('LabyOpeningItemRewardObserved')
-        names.append(next_node)
-        hit,_=self._choice(batch,entry,names)
-        if hit=='LabyOpeningItemRewardObserved':
-            hit=self._close_item_reward(batch,entry,names,enter_id=enter_id)
-        receipt=self._run(hit);batch.checkpoint()
+            receipt=self._map_after_grant(batch,enter_id,entry,names)
+        batch.checkpoint()
         closed=batch.observation(self.stamp(source='maa',operation_id=clicked['operation_id'],**fields,page=page,native=receipt,input_native=clicked['input_native']),**fields)
         actual=dict(joined,granted=dict(source='maa',enter_id=enter_id,joined=joined,closed=closed))
         self.grants[key]=actual
