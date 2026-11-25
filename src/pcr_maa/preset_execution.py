@@ -382,18 +382,19 @@ def execute_one(port, preset, context, journal, *, execute=False, preview=False,
             if events and events[-1]['state'] == 'in_flight':
                 report['outcome'] = 'blocked_in_flight'
                 return report
-            from .preset_result_reconcile import DISPOSITION, verify_disposition
+            from .preset_result_reconcile import ANIMATION_DISPOSITION, DISPOSITIONS, verify_disposition
             from .abyss_reconcile import EvidenceUnavailable
             from hashlib import sha256
             for index, event in enumerate(events):
-                if event.get('disposition') == DISPOSITION:
+                if event.get('disposition') in DISPOSITIONS:
                     prefix = b''.join(journal.path.read_bytes().splitlines(keepends=True)[:index])
                     if sha256(prefix).hexdigest() != event.get('previous_root_sha256'):
                         raise ValueError('preset_reconciled_history_changed')
                     try:
                         verify_disposition(events[index - 1], event, journal_directory=journal.directory)
                     except EvidenceUnavailable as exc:
-                        if date.fromisoformat(event['game_day']) >= date.fromisoformat(game_day):
+                        if (event['disposition'] == ANIMATION_DISPOSITION or
+                                date.fromisoformat(event['game_day']) >= date.fromisoformat(game_day)):
                             raise
                         report.setdefault('historical_evidence_unavailable', []).append(
                             dict(game_day=event['game_day'], error=str(exc)))
@@ -453,7 +454,7 @@ def execute_one(port, preset, context, journal, *, execute=False, preview=False,
             # Same-day increases or changed contents require parent reconciliation.
             previous = next((e for e in reversed(events) if e['state'] == 'settled' and e.get('input_execution') != 'not_sent'
                              and e['game_day'] == game_day and e['slot'] == preset['slot']), None)
-            if previous and previous.get('disposition') in (DISPOSITION, checkpoints.DISPOSITION):
+            if previous and previous.get('disposition') in (*DISPOSITIONS, checkpoints.DISPOSITION):
                 if (status != 'skipped_goal_met' or [list(key(r)) for r in reading['rows']] !=
                         [list(identity_key(i)) for i in previous['identities']]):
                     report.update(outcome='blocked_post_counts_unverified', retry_permitted=False)
