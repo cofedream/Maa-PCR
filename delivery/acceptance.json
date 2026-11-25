@@ -1,30 +1,31 @@
 {
   "schema_version": 1,
   "status": "passed",
-  "revision": 94,
-  "expected_version": "v0.2.6",
-  "verified_at_utc": "2026-11-25T07:33:25.963358+00:00",
-  "base_release_manifest_sha256": "9a7a1a19058edde0f1a29bafd156ec51bdcce03eb49e0ae2c421196976872d57",
-  "accepted_owned_payload_sha256": "7ce0eb6a52394b89ffcd13e5cfcf0d5b87c5934ddeff0cf17beb7b59a7906520",
-  "accepted_staging_manifest_sha256": "444d859a5c3312c240e6494615c7ba520761bf43a960af0a1e64154d14188d58",
+  "revision": 95,
+  "expected_version": "v0.2.7",
+  "verified_at_utc": "2026-11-25T20:18:40.058841+00:00",
+  "base_release_manifest_sha256": "51537f6a646e9611625cb180436ce804dae026ba055d49215f1dfbe7031c2c71",
+  "accepted_owned_payload_sha256": "77cf389dd21883f44615e2abe8a94b5a0050c3d7164619dc97b2b822d027ea18",
+  "accepted_staging_manifest_sha256": "cb0ceba6d1f8e679d935a737f0bfa09858eaa45b18f8b569dab9435e0f8fdf1e",
   "accepted_ci_artifact": {
     "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 45560287394,
+    "run_id": 45685792850,
     "run_attempt": 1,
-    "artifact_id": 15000006708,
-    "source_commit": "c4b7538145493fa2d2c53ec85cada5d6d1b3086d",
+    "artifact_id": 15058698025,
+    "source_commit": "117737f28f6cd134ba790353f90e4dad1993058b",
     "runtime_archive": {
-      "name": "Maa-PCR-v0.2.6-win-x64.zip",
-      "size": 377432939,
-      "sha256": "abc80e43e2d4fd369b5ac951742239a521b95d4bdbea608441bdecdeeed36c37"
+      "name": "Maa-PCR-v0.2.7-win-x64.zip",
+      "size": 377434660,
+      "sha256": "1b8b1bb65c0504280db3bfe2e1bde4cc0a9f14dfad65e9b30c756c5c72808e02"
     }
   },
   "offline_tests_passed": true,
   "isolated_update_passed": true,
   "gui_verified": true,
+  "gui_mode": "packaged settings-only diagnostic, responsive Win32 window and normal exit",
   "clean_build_verified": true,
   "public_tests": {
-    "passed": 7964,
+    "passed": 8003,
     "skipped": 401,
     "failed": 0,
     "errors": 0
@@ -35,22 +36,77 @@
     "failed": 0,
     "errors": 0
   },
-  "v025_delta_and_full_updates_verified": true,
-  "isolated_rollback_verified": true,
+  "upgrade_routes": {
+    "v0.2.6": "delta",
+    "v0.1.0": "full",
+    "v0.2.5": "full",
+    "v0.1.25": "full",
+    "v0.2.2": "full",
+    "v0.2.0": "full",
+    "v0.2.1": "full",
+    "v0.2.3": "full",
+    "v0.2.4": "full"
+  },
+  "channel_build_upgrades": [
+    "v0.2.2-aligames-test.1",
+    "v0.2.5-aligames-test.1",
+    "v0.2.5-aligames-test.2"
+  ],
+  "rollback_verified": true,
+  "historical_index_cases": 47,
+  "restored_known_hotfixes": [
+    "v0.1.35",
+    "v0.1.36",
+    "v0.2.2",
+    "v0.2.5"
+  ],
+  "repair_archive_sha256": "a412f1d285fb675f05e10b9e1af712ed33cfab79b9a67ee6d1028bc02a88a2c9",
+  "legacy_maafw_runtime_verified": "v5.16.1",
+  "earlier_maafw_update": {
+    "source_version": "v0.1.39",
+    "target_runtime": "v5.16.1"
+  },
+  "labyrinth_opening_replay": {
+    "map_successes": 2,
+    "stopped_on_stuck_reward": 1
+  },
+  "aligames_title_replay": {
+    "correct_id_offline_clicks": 1,
+    "wrong_id_no_click": true
+  },
+  "combat_reward_regression": {
+    "transition_timeout_cases": 4,
+    "feedback_check": "labyrinth_role_reward_error_shows_animation_setting_and_reason_code",
+    "profile_check_core_sha256": "aac0e49b9f627d5d91bcd79e228b9046cee87c8bae633129f2aa45762f0b40ff"
+  },
   "evidence_sha256": {
-    "release-v026/ci/CI_BINDING.json": "976896f67cb6469a158805b6ec48d246f367b38fe590c9fa5468bd2853afa7d0",
-    "release-v026/ci/artifact.json": "abc2d7d3934cfdfbbf1aa351237facc0f79fa460a1da23e50ac7012cf38fbda2",
-    "release-v026/ci/public-tests.xml": "a19a1cca0b61be5f830e9e8505248439cb29bbb4a33eb9d08dc384d4b2b4e65e",
-    "release-v026/ci/bundled-runtime.xml": "ff58728401358cb586d16add21ac4570e364f14d3cb263736af39056d346e5d0",
-    "release-v026/ci/jobs.json": "3daa48d0c7b3c57c1c94af1808c927655dbe7333c9417f45e6b5009862f81b90",
-    "release-v026/ci/build/SOURCE_ALIGNMENT.json": "a923a47524f102c8faeab79cbb9d97bf3a3e3b6870f712272d3f51920a8c9e91",
-    "release-v026/upgrade-verified/verification.json": "3fea186bed12c90f9bc8b0be2ad02863bed92190a706c83cb6344fcbfd1e06fd",
-    "release-v026/pr61-verification.json": "e0aa3e60bc4fb4dcdf881b41cbcf424fcafefb5862238bb3a8129bb65f44462a",
-    "guard-owner-green/result.json": "e9fe2550e28a690717f68f8502b5719bed14a3f0e98227ff2863251ce3b31821",
-    "guard-owner-green/child.log": "118e5c4095b905132cafa8352b5daf409755b4a79a18cd9cea906aa7d2801d97",
-    "release-v026/candidate-gui.json": "b014a579adc7623f21aa37d3c8add2274e99cb652124d88988b5ff160669bb8e"
+    "release-final/ci/CI_BINDING.json": "55f41fa597dc23ede6bbdb323dc39ca3263f6ccf94ebbb27c9dc0e74c947deb6",
+    "release-final/ci/artifact.json": "c5da31e0c511bdec055dc3981e946e9d0ba28ddfe9e5b3c8469766c3d79ffba6",
+    "release-final/ci/jobs.json": "9a704b43a3aa85c01ef80c7c24c57c04a3f495649cf725ced58d371412d83ac3",
+    "release-final/ci/public-tests.xml": "86b430261384f6b8c7c16d1fcc20e283cf10899aca7735b4ad47e5670083039a",
+    "release-final/ci/bundled-runtime.xml": "4fea1b63b97842ed04a85307b4fd6348ecf69b28e3b3d664819a57b49a9d8735",
+    "release-final/ci/build/SOURCE_ALIGNMENT.json": "7d0cf562c897e170bbb1d3d39972669a098117db45475bc51ae51c9322c2b4a7",
+    "release-final/ci/build/update-index.json": "e73c50a87adde0112fb68fed8a9bd9033645968f6d05040f0f35f00f268895e7",
+    "release-final/ci/profile-checks/default.log": "034805a25a0190c4bc49e22c77310fa74015c22ee1ef0ee42ca8321639ddfee1",
+    "release-final/ci/profile-checks/default.core.sha256": "9af27fdf48755bcd9d53921c160d31ff9257bc74586e42cddcd66e90caa3e186",
+    "release-final/candidate-gui.json": "25a5ab80d11a2f6c11b24b867b05b11f734949e34551a4a5a35e6e4e2ebb6ba1",
+    "release-final/settings-fixture.json": "c69fd774cf4a7eed1519f4e3844f4cbd30a6867ad07c07308492f689d0110a4a",
+    "release-final/gui-probe/player/.runtime/player-win32-20260929/count-restore-fix/formal-settings/app/diagnostic/formal.jsonl": "2885033ffffaaf200ce4d63671e3920b7c414487b92e23fc31930a9b12891ef9",
+    "official-routes-final/verification.json": "9e8eeb42b05b30d10036f0127612a86a1305d99ebe3b6b82b9d82e167765e98f",
+    "official-routes-final/historical-index.json": "b2becda35a9b4dad1d12b51456814062f9c8da6106b7af37c60ffce6415a5a10",
+    "official-routes-final/r94/rollback.json": "1c819bc03f8a7ff8ae737927fa28fd60c2f083075b36a76767b2314eec9156b8",
+    "hotfix-qa/final-candidate/v0.1.35/verified.json": "893dde580cefc7a1b98ac49fe3af3ca4d4ac690daaa702b213f9043b3d56868e",
+    "hotfix-qa/final-candidate/v0.1.36/verified.json": "ce50f4728b4eb30f1d50da92e0d2cbbc1ece610b09388a3f56fc89e6275e6df3",
+    "hotfix-qa/final-candidate/v0.2.2/verified.json": "793ad75d413bb55953373bdb73a0f3fbbd58dc376f11461da3ffab1c590ad103",
+    "hotfix-qa/final-candidate/v0.2.5/verified.json": "dc581b9c948a27baf1942c27f82e67b6ee0620d0f9b8124eb13e13eb28585d2d",
+    "maafw-qa/final-candidate/verified.json": "a66cd52fb2c83b9bec0ed6fe7b101d23e8955def20c82ec1b54d5f82488b7782",
+    "maafw-qa/r86-final-candidate/verified.json": "91b3f040168a3b8469fb52c38c217928c00e134b4b42b480c3ccb4288be1cba5",
+    "channel-qa/final-candidate/verified.json": "acc7a4a4c63bb0d47132120cc97a9445354f53cbf6a22dad8eedbee3bfc6a825",
+    "channel-qa/final-candidate/title/replay.json": "8995e9c4912ff934df20194cb0a338c8b6bfab19b4b0e4d19a48ae7ccbb4e01e",
+    "channel-qa/final-candidate/title/native/result.json": "2d09ed350a89010ed6a5e72df67de624f7e7072a6c3e8d4e0b54c81a8704e5a9",
+    "opening-qa/final-candidate.json": "caca732a2925176db334d73eea4e8a11162735b07173ad05a59eda2da9994644"
   },
   "limits": [
-    "Offline tests and isolated player upgrades used synthetic settings and ledgers. This release did not run new live game, emulator or account tests."
+    "Upgrade checks used isolated installations and synthetic player data. Historical stable versions outside the tested install routes were checked for index selection and manifest parsing. No live account or game tests were run for this update fix."
   ]
 }
