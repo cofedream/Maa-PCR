@@ -63,6 +63,7 @@ class OwnedRequest:
     server: str = 'cn-bilibili'
     cpu_only: bool = False
     webgpu: bool = False
+    skip_join_animation_setup: bool = False
 
     def clear(self):
         self.username = self.password = ''
@@ -71,7 +72,7 @@ class OwnedRequest:
 def parse_request(value):
     credentials = value.pop('credentials', None) if type(value) is dict else None
     try:
-        if (type(value) is not dict or set(value) - {'version', 'settings', 'account_id', 'connection', 'keep_old_run', 'server', 'cpu_only', 'webgpu'}
+        if (type(value) is not dict or set(value) - {'version', 'settings', 'account_id', 'connection', 'keep_old_run', 'server', 'cpu_only', 'webgpu', 'skip_join_animation_setup'}
                 or not {'version', 'settings', 'account_id', 'connection'} <= set(value)
                 or type(value['version']) is not int or value['version'] != 1
                 or type(value['account_id']) is not int or not 0 < value['account_id'] <= 2**63-1):
@@ -79,7 +80,9 @@ def parse_request(value):
         keep_old_run = value.get('keep_old_run', False)
         cpu_only = value.get('cpu_only', False)
         webgpu = value.get('webgpu', False)
-        if type(keep_old_run) is not bool or type(cpu_only) is not bool or type(webgpu) is not bool or (cpu_only and webgpu):
+        skip_join_animation_setup = value.get('skip_join_animation_setup', False)
+        if (type(keep_old_run) is not bool or type(cpu_only) is not bool or type(webgpu) is not bool
+                or type(skip_join_animation_setup) is not bool or (cpu_only and webgpu)):
             raise ConfigurationError('invalid_configuration')
         settings = Settings.parse(value['settings'])
         from .servers import get_server
@@ -93,7 +96,8 @@ def parse_request(value):
                 or '\x00' in credentials['password']):
             raise ConfigurationError('invalid_configuration')
         return OwnedRequest(settings, value['account_id'], connection,
-                            credentials['username'], credentials['password'], keep_old_run, server, cpu_only, webgpu)
+                            credentials['username'], credentials['password'], keep_old_run, server, cpu_only, webgpu,
+                            skip_join_animation_setup=skip_join_animation_setup)
     except (KeyError, TypeError, ValueError):
         raise ConfigurationError('invalid_configuration') from None
     finally:
@@ -420,6 +424,10 @@ class OwnedRuntime:
         Unity from overwriting the file from memory.  The client is started
         later by MaaGamePort, so no launch happens here.
         """
+        if self.request.skip_join_animation_setup:
+            self.animation_setting_status = 'skipped'
+            self._log('已按当前账号设置跳过自动关闭角色加入动画。')
+            return
         from .animation_setting import ensure_animation_off
         try:
             self.animation_setting_status = ensure_animation_off(

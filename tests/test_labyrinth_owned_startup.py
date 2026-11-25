@@ -290,6 +290,21 @@ def test_animation_setting_no_root_does_not_stop_the_run(tmp_path, monkeypatch):
     assert 'animation' not in calls
 
 
+def test_skip_join_animation_setup_bypasses_local_and_in_game_checks(tmp_path, monkeypatch):
+    from pcr_maa.labyrinth import animation_setting
+    from pcr_maa.labyrinth.animation_ui import needs_ui_fallback
+
+    owned, _, calls = runtime(tmp_path, monkeypatch)
+    owned.request.skip_join_animation_setup = True
+    monkeypatch.setattr(animation_setting, 'ensure_animation_off',
+        lambda *args, **kwargs: pytest.fail('automatic animation setup ran'))
+
+    assert owned.run() == dict(outcome='stopped', batch_complete=False)
+    assert owned.animation_setting_status == 'skipped'
+    assert not needs_ui_fallback(owned.animation_setting_status)
+    assert 'controller' in calls and 'batch' in calls
+
+
 @pytest.mark.parametrize('device', ['cpu', 'webgpu'])
 def test_rejected_inference_selection_stops_before_loading_models_or_connecting(tmp_path, monkeypatch, device):
     from pcr_maa import native

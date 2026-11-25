@@ -866,7 +866,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "d9964599cc044bf9e9a2fbbb59909afcb35295d202ff262abdbee26c5f6633fa",
+      "local_sha256": "1c1caceab33b4ce84522a44675bb7d4e34fadbffdbf191f545f8011b69c72d7a",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -8734,7 +8734,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/owned_runtime.py",
-      "local_sha256": "d9964599cc044bf9e9a2fbbb59909afcb35295d202ff262abdbee26c5f6633fa",
+      "local_sha256": "1c1caceab33b4ce84522a44675bb7d4e34fadbffdbf191f545f8011b69c72d7a",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -9646,7 +9646,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthOwner.cs",
-      "local_sha256": "bfb6e81619db116c1ebb9104a07538cf05aa8046dab5d98192fb42af30b06681",
+      "local_sha256": "a4265fc725cc883269c5476a894157138e99711afadf829154cf931221a7b336",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -9670,7 +9670,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthSettings.cs",
-      "local_sha256": "982cc6b62a48a5a71de0878e4e7929056863056d2ab30da7d9b704f99671d188",
+      "local_sha256": "cea1785bb3860d0c07ca566637cdea753445b0190671a88e2c57fa89157aca4e",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -9688,7 +9688,7 @@
     },
     {
       "local": "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrLabyrinthView.axaml",
-      "local_sha256": "8a1651095daac1cedd680a47e03c9f036f91fd3f2a616adfdab0c237d2e0d46e",
+      "local_sha256": "3484d3f370f0d05b810e657aee44842c6b853e786d6036b20993a6a6bf10b377",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

@@ -45,6 +45,24 @@ def test_owner_rejects_invalid_webgpu_request(options):
         parse_request(request() | options)
 
 
+@pytest.mark.parametrize(('options', 'skip'), [({}, False), ({'skip_join_animation_setup': True}, True)])
+def test_owner_reads_optional_join_animation_setup_policy(tmp_path, options, skip):
+    adb = tmp_path / 'adb.exe'
+    adb.write_bytes(b'offline fixture, never executed')
+    value = request('cn-aligames') | options
+    value['connection']['adb_path'] = str(adb.resolve())
+    parsed = parse_request(value)
+    try:
+        assert parsed.skip_join_animation_setup is skip
+    finally:
+        parsed.clear()
+
+
+def test_owner_rejects_non_boolean_join_animation_setup_policy():
+    with pytest.raises(ConfigurationError):
+        parse_request(request() | {'skip_join_animation_setup': 'true'})
+
+
 @pytest.mark.parametrize('server',['unknown','../../cn-bilibili',None,123,True])
 def test_owner_never_defaults_an_invalid_server_to_bilibili(server):
     value=request(server)

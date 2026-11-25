@@ -181,6 +181,18 @@ try
     Require(keepToggle.IsChecked == false, "real_switch_model_update_restores_off: " + keepToggle.IsChecked);
     Require(!Reload().KeepOldRun, "real_switch_restart_restores_off: " + liveOwner.LabyrinthSettings.Status);
     Require(liveOwner.LabyrinthSettings.Status == "已自动保存黎明界设置。", "real_switch_persistence_verified_at_actual_profile_path");
+    var skipAnimationToggle = liveView.GetLogicalDescendants().OfType<CheckBox>()
+        .Single(control => control.Name == "SkipJoinAnimationSetupToggle");
+    Require(skipAnimationToggle.IsChecked == false, "skip_join_animation_setup_defaults_off");
+    skipAnimationToggle.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+    Dispatcher.UIThread.RunJobs();
+    Require(liveOwner.LabyrinthSettings.SkipJoinAnimationSetup && Reload().SkipJoinAnimationSetup,
+        "skip_join_animation_setup_ui_persists");
+    Require(!liveOwner.LabyrinthSettings.Snapshot().ContainsKey("skip_join_animation_setup"),
+        "skip_join_animation_setup_keeps_old_batch_snapshot_compatible");
+    skipAnimationToggle.SetCurrentValue(CheckBox.IsCheckedProperty, false);
+    Dispatcher.UIThread.RunJobs();
+    Require(!Reload().SkipJoinAnimationSetup, "skip_join_animation_setup_can_be_saved_off");
     var liveInputs = liveView.GetLogicalDescendants().OfType<TextBox>()
         .Where(input => new[] { player, username, password }.Contains(input.Text)).ToArray();
     Require(liveInputs.Length == 3 && liveInputs.All(input => input.PasswordChar == '*'),
