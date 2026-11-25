@@ -324,6 +324,39 @@ def test_menu_open_guard_is_registered_once_per_resource(monkeypatch):
     assert registered == [animation_ui.MENU_OPEN_GUARD]
 
 
+def test_menu_open_guard_belongs_to_bound_native_resource():
+    import gc
+    from weakref import ref
+
+    registered = []
+
+    class Resource:
+        def register_custom_recognition(self, name, callback):
+            registered.append((name, ref(callback)))
+            return True
+
+    class Tasker:
+        def __init__(self):
+            self._resource_holder = Resource()
+
+        @property
+        def resource(self):
+            return Resource()
+
+    tasker = Tasker()
+    animation_ui.MaaJoinAnimationSetting(tasker, stamp=None)._install_guard()
+    gc.collect()
+
+    assert len(registered) == 1
+    name, callback_ref = registered[0]
+    assert name == animation_ui.MENU_OPEN_GUARD
+    assert callback_ref() is not None
+    assert callback_ref() is tasker._resource_holder._labyrinth_join_animation_guard
+
+    animation_ui.MaaJoinAnimationSetting(tasker, stamp=None)._install_guard()
+    assert len(registered) == 1
+
+
 def test_wrong_start_page_sends_no_input(monkeypatch):
     device = Device(start='menu')
     batch, stamp, tasker = install(monkeypatch, device)
