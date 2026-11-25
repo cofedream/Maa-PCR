@@ -169,10 +169,11 @@ def test_reward_wait_uses_complete_identities_or_decreased_count(monkeypatch,bef
 
 @pytest.mark.parametrize('remaining,transitions,expected',[
     (2,[('map',1),('role_reward',2)],'role_reward'),
-    (1,[('character_animation',1),('map',11),('joined',15)],'joined'),
+    (1,[('character_animation',1),('map',11),('joined',11.5)],'joined'),
+    (1,[('character_animation',1),('map',11),('joined',15)],None),
     (2,[('map',1),('map',12)],None),
 ])
-def test_role_reward_waits_through_map_and_slow_final_animation(monkeypatch,remaining,transitions,expected):
+def test_role_reward_waits_through_map_within_transition_timeout(monkeypatch,remaining,transitions,expected):
  from pcr_maa import native
  from pcr_maa.labyrinth import autoplay,scene
  def observation(roles,count):

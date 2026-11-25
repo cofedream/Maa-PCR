@@ -13,8 +13,15 @@ else:
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'scripts/hotfix_baselines'
+# Public issue #16 distributed these same four replacements for both releases.
+LABYRINTH_RETEST = (
+    'assets/resource/pipeline/labyrinth.json', 'src/pcr_maa/labyrinth/game_session.py',
+    'src/pcr_maa/labyrinth/scene.py', 'src/pcr_maa/labyrinth/session.py',
+)
 # Each hotfix was subsequently shipped in the second revision in the pair.
 KNOWN_FILES = {
+    (82, 84): LABYRINTH_RETEST,
+    (83, 84): LABYRINTH_RETEST,
     (90, 92): (
         'assets/resource/pipeline/abyss.json', 'assets/resource/pipeline/preset_execution.json',
         'assets/resource/pipeline/schedule_onekey.json', 'assets/resource/pipeline/schedule_quick.json',
@@ -59,7 +66,7 @@ def repair_payload():
                 sha, hotfix = old_rows[name], fixed_rows[name]
                 if sha == hotfix:
                     raise ValueError(f'unchanged_hotfix_file: {name}')
-                payload['payload/' + sha] = checked_bytes(originals.read(f'r{revision}/{name}'), sha, name)
+                payload['payload/' + sha] = checked_bytes(originals.read(sha), sha, name)
                 files[name] = {'sha256': sha, 'hotfix_sha256': [hotfix]}
             baselines[BASELINE_HASHES[revision]] = {'version': version, 'files': files}
     data = {'schema_version': 1, 'baselines': baselines}

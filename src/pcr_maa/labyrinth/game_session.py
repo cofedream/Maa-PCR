@@ -45,6 +45,12 @@ _STARTUP_POPUP_CLOSE={
     'notice':('client_notice_close','LabyClientNoticeCloseOnce'),
     'announcement':('client_announcement_close','LabyClientAnnouncementCloseOnce'),
 }
+# Each fallback input still requires its existing full native page recognition.
+_ALIGAMES_VISUAL_INPUTS=(
+    'LabyClientTitleStartOnce','LabyClientNoticeCloseOnce','LabyClientAnnouncementCloseOnce',
+    'LabyClientDownloadRetryOnce','LabyClientDataDownloadConfirmOnce',
+    'LabyClientHomeToAdventure','LabyClientOpenLabyrinthOnce',
+)
 _PAGES={
     'disconnect':'LabyDisconnect6002Observed',
     'title':'LabyClientTitleObserved',
@@ -281,7 +287,9 @@ class MaaGameSession:
         instead; that is this window expiring, not a native failure.
         """
         deadline=min(native.RUN_DEADLINE.get(),native.active_now()+seconds)
-        focus_deadline=min(deadline,native.active_now()+10) if entry=='LabyGameSessionColdStartObserved' else None
+        startup_grace = entry == 'LabyGameSessionColdStartObserved' or (
+            self.server.server_id == 'cn-aligames' and entry == 'LabyGameSessionRecoveryObserved')
+        focus_deadline=min(deadline,native.active_now()+10) if startup_grace else None
         original=self.tasker.resource.get_node_data(entry)
         token=native.RUN_DEADLINE.set(deadline)
         try:
@@ -292,7 +300,8 @@ class MaaGameSession:
                 if native.active_now()>=deadline:raise _WaitWindowElapsed()
                 snapshot=self.opening_snapshot
                 fields=self._fields(snapshot) if snapshot is not None else dict(enter_id=0,protocol_enter_id=0)
-                if self.channel_prompts.poll(batch,fields,wait_for_focus_until=focus_deadline):
+                if self.channel_prompts.poll(batch,fields,wait_for_focus_until=focus_deadline,
+                        visual_fallback=self.server.server_id=='cn-aligames'):
                     time.sleep(.05);continue
                 try:
                     with self.timings.measure('page_wait'):receipt=native.run(self.tasker,entry)
@@ -552,8 +561,9 @@ class MaaGameSession:
     def _input(self,batch,node):
         self._checkpoint(batch)
         if self.server.server_id in ('cn-aligames','cn-vivo','cn-4399'):
-            match,blocked=self.channel_prompts._read(batch)
+            match,blocked=self.channel_prompts._read(batch,visual_fallback=node in _ALIGAMES_VISUAL_INPUTS)
             if match is not None or blocked:raise BatchStopped('channel_login_prompt_changed')
+            self._checkpoint(batch)
         # Called only inside a newly journaled transaction after duplicate/unknown
         # gates. Maa's max_hit is global to Context, so scope its reset to this
         # one navigation node for this new intent, never to a business budget.

@@ -104,6 +104,7 @@ internal static class PcrLabyrinthOwner
         "captcha_response_invalid" or "captcha_proof_invalid" or "captcha_request_invalid"=>"人工验证码数据或验证结果不完整，本次已停止。请重新开始验证；仍失败时导出本次日志。",
         "captcha_type_unsupported"=>"登录服务要求的验证码类型暂不支持，本次已停止。请导出本次日志反馈。",
         "game_session_readback_unknown"=>"游戏客户端页面未通过校验，本次已停止。请检查游戏是否仍在加载或有弹窗，并导出黎明界诊断记录。",
+        "role_reward_readback_unknown"=>"选人后未能确认角色奖励。若卡在动画，请在黎明界右上角「菜单 → 设定」将「角色加入动画」设为「不播放」，再试一次。",
         "sdk_login_timeout" or "protocol_login_timeout"=>"协议账号登录网络超时，本次已停止；不会自动重试。请检查网络后重新点击开始。",
         "complete"=>"已完成本次目标。",
         _=>"本次未确认完成，请查看独立黎明界运行记录。" };

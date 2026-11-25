@@ -573,7 +573,7 @@
           "sha256": "e7da2292dc287a47f8884ed646060e2d01ad7ae61a17ceadb338d73c4ac8db10"
         }
       ],
-      "local_sha256": "0ead40695632c4dfa78f86b3222b13dc1eb87b9f2ced38f8606dc39dd276f5a5",
+      "local_sha256": "2aa0427c301dbe6353e6f1a0e598926369562a5dba64412aaae36361fa9174eb",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true
     },
@@ -813,7 +813,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "b33b0acb64dd02eddd29e8f1a6161dc50853892b3b751ada6d1a0000b45f74cf",
+      "local_sha256": "ad71919c933a47f5175839e4e7cd890dcb9529ddf339357d1eb5a6adf142fb90",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -829,7 +829,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "ddedf0639c2b8daf4627691e7d7c126d54a967f798a188b533205788cd6f66e0",
+      "local_sha256": "021edcc84970864ac1c7b674b2792d378d175d54b9cd9f6b243e3b26aea9cdff",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -8680,7 +8680,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/game_session.py",
-      "local_sha256": "ddedf0639c2b8daf4627691e7d7c126d54a967f798a188b533205788cd6f66e0",
+      "local_sha256": "021edcc84970864ac1c7b674b2792d378d175d54b9cd9f6b243e3b26aea9cdff",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8788,7 +8788,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/rewards.py",
-      "local_sha256": "0ead40695632c4dfa78f86b3222b13dc1eb87b9f2ced38f8606dc39dd276f5a5",
+      "local_sha256": "2aa0427c301dbe6353e6f1a0e598926369562a5dba64412aaae36361fa9174eb",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
@@ -8818,7 +8818,7 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/session.py",
-      "local_sha256": "b33b0acb64dd02eddd29e8f1a6161dc50853892b3b751ada6d1a0000b45f74cf",
+      "local_sha256": "ad71919c933a47f5175839e4e7cd890dcb9529ddf339357d1eb5a6adf142fb90",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },

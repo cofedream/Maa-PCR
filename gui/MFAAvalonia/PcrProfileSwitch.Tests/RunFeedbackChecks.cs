@@ -93,6 +93,12 @@ internal static class RunFeedbackChecks
         settings.Progress = "本次任务已停止。";
         var statusFor = type.Assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner")!
             .GetMethod("StatusFor", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var roleRewardReason = (string)statusFor.Invoke(null, ["role_reward_readback_unknown"])!;
+        showError.Invoke(labyrinth, [labyrinthRun, roleRewardReason]);
+        Check(labyrinth.PcrRunStatus == roleRewardReason &&
+            roleRewardReason.Contains("「菜单 → 设定」将「角色加入动画」设为「不播放」") &&
+            roleRewardReason.Contains("原因代码：role_reward_readback_unknown"),
+            "labyrinth_role_reward_error_shows_animation_setting_and_reason_code");
         foreach (var outcome in new[] { "login_failed", "sdk_login_failed", "captcha_response_invalid",
                      "captcha_type_unsupported", "captcha_proof_invalid", "captcha_request_invalid",
                      "captcha_network_or_protocol_failed", "runtime_components_missing", "controller_connection_failed",

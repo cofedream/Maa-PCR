@@ -27,7 +27,7 @@ def test_repair_package_contains_independent_runtime_and_exact_registered_files(
         assert set(builder.MODULES).issubset(package.namelist())
         data = json.loads(package.read('repair-data.json'))['baselines']
         assert {record['version']: len(record['files']) for record in data.values()} == {
-            'v0.2.2': 11, 'v0.2.5': 2}
+            'v0.1.35': 4, 'v0.1.36': 4, 'v0.2.2': 11, 'v0.2.5': 2}
         for (revision, target), names in builder.KNOWN_FILES.items():
             files = data[builder.BASELINE_HASHES[revision]]['files']
             _, previous = builder.release_rows(revision)
