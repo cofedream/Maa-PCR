@@ -1,0 +1,3534 @@
+{
+  "version": 2,
+  "frame_size": [
+    1280,
+    720
+  ],
+  "evidence_kind": "device_saved_frame",
+  "calibration_id": "cn-bilibili-202611131613-clan-simulation",
+  "server": "cn-bilibili",
+  "support_modes": [
+    "none"
+  ],
+  "battle_hud": "guide-trial-1280x720",
+  "phase_labels": {
+    "第3阶段": "C",
+    "第4阶段": "D"
+  },
+  "pages": {
+    "adventure": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            70,
+            10,
+            101,
+            55
+          ],
+          "expected": "^冒险$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            691,
+            262,
+            121,
+            37
+          ],
+          "expected": "^主线关卡$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            1127,
+            419,
+            91,
+            32
+          ],
+          "expected": "^团队战$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            1137,
+            390,
+            70,
+            24
+          ],
+          "expected": "^举办中$"
+        }
+      ],
+      "fields": {},
+      "inherit": []
+    },
+    "lobby": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            80,
+            15,
+            125,
+            55
+          ],
+          "expected": "^团队战$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            399,
+            577,
+            95,
+            27
+          ],
+          "expected": "^现在的CP$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            398,
+            525,
+            135,
+            35
+          ],
+          "expected": "^剩余挑战次数$"
+        }
+      ],
+      "fields": {
+        "period": [
+          35,
+          72,
+          255,
+          32
+        ]
+      },
+      "inherit": [],
+      "boss_slots": {
+        "1": {
+          "round": [
+            107,
+            317,
+            112,
+            75
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              60,
+              120,
+              210,
+              300
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        },
+        "2": {
+          "round": [
+            330,
+            430,
+            125,
+            45
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              325,
+              340,
+              120,
+              65
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        },
+        "3": {
+          "round": [
+            585,
+            257,
+            128,
+            58
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              530,
+              95,
+              230,
+              315
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        },
+        "4": {
+          "round": [
+            780,
+            439,
+            135,
+            45
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              735,
+              250,
+              220,
+              255
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        },
+        "5": {
+          "round": [
+            1030,
+            300,
+            210,
+            125
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              1020,
+              110,
+              235,
+              315
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        }
+      },
+      "navigation_reward": {
+        "labels": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              570,
+              40,
+              160,
+              37
+            ],
+            "expected": "^报酬确认$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              470,
+              88,
+              345,
+              34
+            ],
+            "expected": "^打倒以下魔物并收取了报酬[。.]?$"
+          }
+        ],
+        "confirm": {
+          "recognition": "OCR",
+          "roi": [
+            580,
+            621,
+            120,
+            40
+          ],
+          "expected": "^确认$"
+        },
+        "content_roi": [
+          350,
+          132,
+          550,
+          25
+        ]
+      }
+    },
+    "boss_detail": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            70,
+            52,
+            130,
+            43
+          ],
+          "expected": "^魔物详情$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            128,
+            112,
+            135,
+            33
+          ],
+          "expected": "^行会模式$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            406,
+            353,
+            268,
+            30
+          ],
+          "expected": "^(?:厄勒克特拉夫人|野性狮鹫|城堡树精|独眼巨人|人马射手)$"
+        }
+      ],
+      "fields": {
+        "phase": [
+          63,
+          159,
+          110,
+          31
+        ],
+        "boss": [
+          406,
+          353,
+          268,
+          30
+        ]
+      },
+      "inherit": [
+        "period"
+      ],
+      "navigation": {
+        "previous": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            0,
+            325,
+            70,
+            90
+          ],
+          "template": "clan-battle/cn-bilibili-202611131613/nav-arrow-previous.png",
+          "sha256": "633af54a320b49f86ef53ed54f0499c4bc8d99666f2dcdbefe50f9ed8670ecc9"
+        },
+        "next": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            1220,
+            325,
+            60,
+            90
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/nav-arrow-next.png",
+          "sha256": "f849fa4f88beaa46ba8243535db9a587cf23f2213b518b1b70222a8d34e08ba0"
+        }
+      },
+      "nameplate_levels": {
+        "C": [
+          230,
+          235,
+          240,
+          245,
+          250
+        ],
+        "D": [
+          417,
+          427,
+          437,
+          482,
+          502
+        ]
+      }
+    },
+    "target": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            70,
+            52,
+            130,
+            43
+          ],
+          "expected": "^魔物详情$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            128,
+            112,
+            135,
+            33
+          ],
+          "expected": "^行会模式$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            406,
+            353,
+            268,
+            30
+          ],
+          "expected": "^(?:厄勒克特拉夫人|野性狮鹫|城堡树精|独眼巨人|人马射手)$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            794,
+            538,
+            145,
+            30
+          ],
+          "expected": "^设定为模拟战[。.]?$"
+        }
+      ],
+      "fields": {
+        "phase": [
+          63,
+          159,
+          110,
+          31
+        ],
+        "boss": [
+          406,
+          353,
+          268,
+          30
+        ],
+        "simulation": [
+          794,
+          538,
+          145,
+          30
+        ]
+      },
+      "inherit": [
+        "period"
+      ],
+      "live_state": {
+        "on": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            944,
+            224,
+            40,
+            41
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/live_state_on.png",
+          "sha256": "a6e97e7cc8ef45e01e5ed3c865325b8a4ab88a025a9283b82ecaa98a92dac292"
+        },
+        "off": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            944,
+            224,
+            40,
+            41
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/live_state_off.png",
+          "sha256": "b6e926117f7ba8129e8f2346f41040bdda1137e1cfeae266530fb879c80d4f65"
+        },
+        "absent": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            932,
+            185,
+            286,
+            88
+          ],
+          "template": [
+            "clan-battle/cn-bilibili-202610141448/live_state_absent.png",
+            "clan-battle/cn-bilibili-202610141448/live_state_absent_new.png",
+            "clan-battle/cn-bilibili-202611131613/live-state-absent-09-c3-simulation.png",
+            "clan-battle/cn-bilibili-202611131613/live-state-absent-11-c5-simulation.png"
+          ],
+          "sha256": [
+            "0c6bc97bf42e94ac4172036c4d3b2f24c99f4678024db4eac07351ba5f8ed3ef",
+            "cfe4a2434f65f9802f6e84c772734e793c4914c2af90d88717bc1ee77a930a6a",
+            "d8c5847e37e214b99726215d92e1f4440098212749d7f0d2c3316dc0ce44ffd5",
+            "1017cd043b5d9eb603c92d516f470c8851e20a655cde76025072042f9ab437f3"
+          ]
+        }
+      }
+    },
+    "difficulty": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            578,
+            176,
+            128,
+            39
+          ],
+          "expected": "^难度变更$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            362,
+            230,
+            63,
+            30
+          ],
+          "expected": "^难度$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            717,
+            288,
+            106,
+            36
+          ],
+          "expected": "^第2阶段$"
+        }
+      ],
+      "fields": {},
+      "inherit": [
+        "period",
+        "boss"
+      ]
+    },
+    "battle": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            253,
+            18,
+            90,
+            29
+          ],
+          "expected": "^模拟战中$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            1176,
+            21,
+            53,
+            28
+          ],
+          "expected": "^菜单$"
+        }
+      ],
+      "fields": {
+        "remaining_seconds": [
+          1080,
+          21,
+          43,
+          26
+        ]
+      },
+      "inherit": [],
+      "speed_one": {
+        "recognition": "TemplateMatch",
+        "roi": [
+          1201,
+          634,
+          39,
+          42
+        ],
+        "template": "clan-battle/cn-bilibili-202610141448/speed_one.png",
+        "sha256": "902acbc349e06cf73f0d11a72e01db47cd1a0f6c3d2e0482354d5e998ad7269f"
+      },
+      "speed_four": {
+        "recognition": "TemplateMatch",
+        "roi": [
+          1201,
+          634,
+          39,
+          42
+        ],
+        "template": "clan-battle/cn-bilibili-202610141448/speed_four.png",
+        "sha256": "5a11cb72a5a20e005df021b2f114ce98418ed150550225c93d43a115902fd6af"
+      },
+      "speed_two": {
+        "recognition": "TemplateMatch",
+        "roi": [
+          1201,
+          634,
+          39,
+          42
+        ],
+        "template": "clan-battle/cn-bilibili-202610141448/speed_two.png",
+        "sha256": "a92119ff3261b571632f7b03c938df9a65e61215ce17bb399e56d20200a18ee1"
+      }
+    },
+    "result": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            482,
+            593,
+            351,
+            31
+          ],
+          "expected": "^模拟战的战斗结果不会显示在团队战成绩中[。.]?$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            1109,
+            34,
+            95,
+            34
+          ],
+          "expected": "^伤害报告$"
+        }
+      ],
+      "fields": {
+        "damage": [
+          80,
+          45,
+          332,
+          42
+        ],
+        "simulation": [
+          482,
+          593,
+          351,
+          31
+        ]
+      },
+      "inherit": [
+        "period",
+        "phase",
+        "boss"
+      ],
+      "damage_line": {
+        "verify_roi": [
+          88,
+          47,
+          324,
+          38
+        ],
+        "sample_sha256": "f14dae035fdbeee19d922a2d4dee60c51211741fc3936f56781ab9ee9e6b088b"
+      }
+    },
+    "formation": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            576,
+            38,
+            135,
+            40
+          ],
+          "expected": "^队伍编组$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            82,
+            503,
+            125,
+            30
+          ],
+          "expected": "^当前的成员$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            810,
+            650,
+            135,
+            25
+          ],
+          "expected": "^设定为模拟战[。.]?$"
+        },
+        {
+          "recognition": "TemplateMatch",
+          "roi": [
+            730,
+            100,
+            97,
+            37
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/support_unselected.png",
+          "sha256": "688b3151467ba3b4947b43a999cdcf5ad2cd8f8d72345bbde833643fd7e4bf1b"
+        }
+      ],
+      "fields": {
+        "simulation": [
+          810,
+          650,
+          135,
+          25
+        ]
+      },
+      "inherit": [
+        "period",
+        "phase",
+        "boss"
+      ],
+      "formal": {
+        "recognition": "OCR",
+        "roi": [
+          1060,
+          581,
+          149,
+          44
+        ],
+        "expected": "^(?:实战|正式战|正式挑战|消耗挑战次数)$"
+      }
+    },
+    "support": {
+      "labels": [
+        {
+          "recognition": "OCR",
+          "roi": [
+            576,
+            38,
+            135,
+            40
+          ],
+          "expected": "^队伍编组$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            82,
+            503,
+            125,
+            30
+          ],
+          "expected": "^当前的成员$"
+        },
+        {
+          "recognition": "OCR",
+          "roi": [
+            810,
+            650,
+            135,
+            25
+          ],
+          "expected": "^设定为模拟战[。.]?$"
+        },
+        {
+          "recognition": "TemplateMatch",
+          "roi": [
+            730,
+            100,
+            97,
+            37
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/support_selected.png",
+          "sha256": "7517d1514cc1deefe655c7265842c8501f87bc40f1595739ace5d96f694dca18"
+        }
+      ],
+      "fields": {
+        "simulation": [
+          810,
+          650,
+          135,
+          25
+        ]
+      },
+      "inherit": [
+        "period",
+        "phase",
+        "boss"
+      ],
+      "formal": {
+        "recognition": "OCR",
+        "roi": [
+          1060,
+          581,
+          149,
+          44
+        ],
+        "expected": "^(?:实战|正式战|正式挑战|消耗挑战次数)$"
+      }
+    }
+  },
+  "actions": {
+    "open_clan": {
+      "page": "adventure",
+      "label": {
+        "recognition": "OCR",
+        "roi": [
+          1127,
+          419,
+          91,
+          32
+        ],
+        "expected": "^团队战$"
+      }
+    },
+    "open_boss": {
+      "page": "lobby"
+    },
+    "open_simulation": {
+      "page": "boss_detail",
+      "label": {
+        "recognition": "OCR",
+        "roi": [
+          950,
+          127,
+          90,
+          34
+        ],
+        "expected": "^模拟战$"
+      }
+    },
+    "open_formation": {
+      "page": "target",
+      "label": {
+        "recognition": "OCR",
+        "roi": [
+          1073,
+          590,
+          87,
+          43
+        ],
+        "expected": "^挑战$"
+      }
+    },
+    "back_to_lobby": {
+      "page": "boss_detail",
+      "target": [
+        804,
+        588,
+        143,
+        46
+      ]
+    },
+    "back_to_adventure": {
+      "page": "lobby",
+      "target": [
+        8,
+        20,
+        66,
+        46
+      ]
+    },
+    "start": {
+      "page": "formation",
+      "label": {
+        "recognition": "OCR",
+        "roi": [
+          1060,
+          581,
+          149,
+          44
+        ],
+        "expected": "^模拟战开始$"
+      }
+    },
+    "open_difficulty": {
+      "page": "boss_detail",
+      "label": {
+        "recognition": "OCR",
+        "roi": [
+          215,
+          160,
+          101,
+          31
+        ],
+        "expected": "^难度变更$"
+      }
+    },
+    "select_difficulty": {
+      "page": "difficulty",
+      "choices": {
+        "C": {
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              425,
+              382,
+              125,
+              40
+            ],
+            "expected": "^第3阶段$"
+          },
+          "selected": {
+            "recognition": "TemplateMatch",
+            "roi": [
+              343,
+              371,
+              60,
+              62
+            ],
+            "template": "clan-battle/cn-bilibili-202610141448/difficulty_c_selected.png",
+            "sha256": "784852accf429eba1e853648363ac6f1c22c42d9c78c3773a210864124c044cc"
+          }
+        },
+        "D": {
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              717,
+              382,
+              125,
+              40
+            ],
+            "expected": "^第4阶段$"
+          },
+          "selected": {
+            "recognition": "TemplateMatch",
+            "roi": [
+              635,
+              371,
+              60,
+              62
+            ],
+            "template": "clan-battle/cn-bilibili-202610141448/difficulty_c_selected.png",
+            "sha256": "784852accf429eba1e853648363ac6f1c22c42d9c78c3773a210864124c044cc"
+          }
+        }
+      }
+    },
+    "confirm_difficulty": {
+      "page": "difficulty",
+      "label": {
+        "recognition": "OCR",
+        "roi": [
+          753,
+          474,
+          61,
+          39
+        ],
+        "expected": "^确认$"
+      }
+    },
+    "disable_live_state": {
+      "page": "target",
+      "target": [
+        944,
+        224,
+        40,
+        41
+      ]
+    },
+    "return_to_target": {
+      "page": "result",
+      "label": {
+        "recognition": "OCR",
+        "roi": [
+          1030,
+          638,
+          95,
+          40
+        ],
+        "expected": "^下一步$"
+      }
+    },
+    "characters_top": {
+      "page": "formation",
+      "begin": [
+        1100,
+        190,
+        1,
+        1
+      ],
+      "end": [
+        1100,
+        465,
+        1,
+        1
+      ]
+    },
+    "characters_next": {
+      "page": "formation",
+      "begin": [
+        1100,
+        465,
+        1,
+        1
+      ],
+      "end": [
+        1100,
+        335,
+        1,
+        1
+      ],
+      "duration": 700,
+      "end_hold": 250,
+      "post_delay": 350
+    }
+  },
+  "boss_targets": {
+    "1": {
+      "target": [
+        100,
+        260,
+        120,
+        90
+      ],
+      "name": "厄勒克特拉夫人"
+    },
+    "2": {
+      "target": [
+        325,
+        320,
+        115,
+        95
+      ],
+      "name": "野性狮鹫"
+    },
+    "3": {
+      "target": [
+        565,
+        215,
+        120,
+        95
+      ],
+      "name": "城堡树精"
+    },
+    "4": {
+      "target": [
+        780,
+        335,
+        120,
+        95
+      ],
+      "name": "独眼巨人"
+    },
+    "5": {
+      "target": [
+        1080,
+        230,
+        120,
+        95
+      ],
+      "name": "人马射手"
+    }
+  },
+  "formation": {
+    "star_source": "account_snapshot",
+    "slots": [
+      [
+        60,
+        538,
+        136,
+        136
+      ],
+      [
+        206,
+        538,
+        136,
+        136
+      ],
+      [
+        352,
+        538,
+        136,
+        136
+      ],
+      [
+        498,
+        538,
+        136,
+        136
+      ],
+      [
+        644,
+        538,
+        136,
+        136
+      ]
+    ],
+    "stars": [
+      [
+        80,
+        640,
+        18,
+        21
+      ],
+      [
+        226,
+        640,
+        18,
+        21
+      ],
+      [
+        373,
+        641,
+        12,
+        18
+      ],
+      [
+        519,
+        640,
+        18,
+        21
+      ],
+      [
+        666,
+        640,
+        18,
+        21
+      ]
+    ],
+    "empty": [
+      {
+        "recognition": "TemplateMatch",
+        "roi": [
+          60,
+          538,
+          136,
+          136
+        ],
+        "template": [
+          "clan-battle/cn-bilibili-202610141448/empty_slot.png",
+          "clan-battle/cn-bilibili-202610141448/empty_slot_formal.png"
+        ],
+        "sha256": [
+          "9b596d7d7ab146a311728911a58214a4c3f950828cae634944f0354a4c4ee5a5",
+          "b6f1440c2412d974ef0f8b22c59dfb80ee107639bf52d7e2f911daf0df43b3eb"
+        ]
+      },
+      {
+        "recognition": "TemplateMatch",
+        "roi": [
+          206,
+          538,
+          136,
+          136
+        ],
+        "template": [
+          "clan-battle/cn-bilibili-202610141448/empty_slot.png",
+          "clan-battle/cn-bilibili-202610141448/empty_slot_formal.png"
+        ],
+        "sha256": [
+          "9b596d7d7ab146a311728911a58214a4c3f950828cae634944f0354a4c4ee5a5",
+          "b6f1440c2412d974ef0f8b22c59dfb80ee107639bf52d7e2f911daf0df43b3eb"
+        ]
+      },
+      {
+        "recognition": "TemplateMatch",
+        "roi": [
+          352,
+          538,
+          136,
+          136
+        ],
+        "template": [
+          "clan-battle/cn-bilibili-202610141448/empty_slot.png",
+          "clan-battle/cn-bilibili-202610141448/empty_slot_formal.png"
+        ],
+        "sha256": [
+          "9b596d7d7ab146a311728911a58214a4c3f950828cae634944f0354a4c4ee5a5",
+          "b6f1440c2412d974ef0f8b22c59dfb80ee107639bf52d7e2f911daf0df43b3eb"
+        ]
+      },
+      {
+        "recognition": "TemplateMatch",
+        "roi": [
+          498,
+          538,
+          136,
+          136
+        ],
+        "template": [
+          "clan-battle/cn-bilibili-202610141448/empty_slot.png",
+          "clan-battle/cn-bilibili-202610141448/empty_slot_formal.png"
+        ],
+        "sha256": [
+          "9b596d7d7ab146a311728911a58214a4c3f950828cae634944f0354a4c4ee5a5",
+          "b6f1440c2412d974ef0f8b22c59dfb80ee107639bf52d7e2f911daf0df43b3eb"
+        ]
+      },
+      {
+        "recognition": "TemplateMatch",
+        "roi": [
+          644,
+          538,
+          136,
+          136
+        ],
+        "template": [
+          "clan-battle/cn-bilibili-202610141448/empty_slot.png",
+          "clan-battle/cn-bilibili-202610141448/empty_slot_formal.png",
+          "clan-battle/cn-bilibili-202610141448/empty_slot_gray_fifth.png"
+        ],
+        "sha256": [
+          "9b596d7d7ab146a311728911a58214a4c3f950828cae634944f0354a4c4ee5a5",
+          "b6f1440c2412d974ef0f8b22c59dfb80ee107639bf52d7e2f911daf0df43b3eb",
+          "ab6aacab3de86bc1f986accaf2bae0914d8dd289ca89cdef4e63b0ab6f9bcaca"
+        ]
+      }
+    ],
+    "borrowed": [
+      {
+        "roi": [
+          103,
+          644,
+          54,
+          27
+        ],
+        "expected": "^支援$"
+      },
+      {
+        "roi": [
+          249,
+          644,
+          54,
+          27
+        ],
+        "expected": "^支援$"
+      },
+      {
+        "roi": [
+          395,
+          644,
+          54,
+          27
+        ],
+        "expected": "^支援$"
+      },
+      {
+        "roi": [
+          541,
+          644,
+          54,
+          27
+        ],
+        "expected": "^支援$"
+      },
+      {
+        "roi": [
+          687,
+          644,
+          54,
+          27
+        ],
+        "expected": "^支援$"
+      }
+    ],
+    "top": {
+      "recognition": "TemplateMatch",
+      "roi": [
+        1219,
+        167,
+        10,
+        12
+      ],
+      "template": [
+        "clan-battle/cn-bilibili-202610141448/formation_top.png",
+        "clan-battle/cn-bilibili-202610141448/formation_absolute_top.png"
+      ],
+      "sha256": [
+        "70a0d28a635983f865c0b96fcc92e0e0f579c94a8d03681f28bba2883d21c524",
+        "b198ddea883add5bd1ab9d08ded6fd7a31ac364b853dfe552194cab02ad19131"
+      ]
+    },
+    "bottom": {
+      "recognition": "TemplateMatch",
+      "roi": [
+        1219,
+        470,
+        10,
+        12
+      ],
+      "template": "clan-battle/cn-bilibili-202610141448/formation_bottom.png",
+      "sha256": "4d589345fb4182d76b45f38d3a559dbf1c13d1b30c75d663623504f41da8c9b0"
+    },
+    "candidates": [
+      [
+        80,
+        153,
+        1120,
+        342
+      ]
+    ]
+  },
+  "samples": [
+    {
+      "page": "adventure",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/adventure-01.png",
+      "sha256": "cd068cbe4568f3b9026e57640e59a6ef8f40fcbd9b04e694022ef782ae184a02"
+    },
+    {
+      "page": "lobby",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/lobby-01.png",
+      "sha256": "c7afb7444bfe93ae7c0a58114b794de64fd51a32ffec30ecf9f5882737b57583"
+    },
+    {
+      "page": "boss_detail",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/boss_detail-01.png",
+      "sha256": "03e44f9c4a6bf999455a21ab3450932763bdc34cf4cbc0fa0aeae03349ee3709"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/target-01.png",
+      "sha256": "cec9664aa021b2e8e95e28bce4d3aa968c9f21636e2c7c5296ab29cf41549244"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/target-02.png",
+      "sha256": "e7afa0c3e1fd9555827c871857f75978e972e900dd300c6605ca5973228d6b2a"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/target-03.png",
+      "sha256": "89e92ee7b07f043cf14d939bfcd854dfac21e4821e3c48d4210708d9d0529117"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/target-04.png",
+      "sha256": "bc0756af59ba75c280cd78e4bfaa2922eacfbbbbdc3ef6659fe16eeb4dd29dc3"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/target-05.png",
+      "sha256": "295f5d8aea35cbb9a131661dc2719aa3e6a191b7bd8bd4163454a311578079b8"
+    },
+    {
+      "page": "difficulty",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/difficulty-01.png",
+      "sha256": "87f15ac5f530a6b88bf6645cf08d9612282d5954f22cfaf2ff131149026a0679"
+    },
+    {
+      "page": "formation",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/formation-01.png",
+      "sha256": "b67cd775a33dcec60de172001f7ac09e11a31a6b49270b0140ef923952ccc272"
+    },
+    {
+      "page": "support",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/support-01.png",
+      "sha256": "5f17c0e6fece8d4d9b51d795c76a0b921b7f3740b7836c49bc33a7f86d97d2ac"
+    },
+    {
+      "page": "formation",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/formation-02.png",
+      "sha256": "b67cd775a33dcec60de172001f7ac09e11a31a6b49270b0140ef923952ccc272"
+    },
+    {
+      "page": "formation",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/formation-03.png",
+      "sha256": "b67cd775a33dcec60de172001f7ac09e11a31a6b49270b0140ef923952ccc272"
+    },
+    {
+      "page": "battle",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/battle-01.png",
+      "sha256": "ce250b50dc17df1a364ca5d809ba790fb3c35f5c0da99f203ee5eec1f79db213"
+    },
+    {
+      "page": "battle",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/battle-02.png",
+      "sha256": "53b2c225bc9162a68e9e8630b94d44272f39fdb584790ee44a144b33cc5eb387"
+    },
+    {
+      "page": "result",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/result-01.png",
+      "sha256": "f14dae035fdbeee19d922a2d4dee60c51211741fc3936f56781ab9ee9e6b088b"
+    },
+    {
+      "page": "lobby",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d-lobby.png",
+      "sha256": "68d88350ac6e3cfb50cde724cdf998a2689fd21232322178a7bde2e610f1146c"
+    },
+    {
+      "page": "difficulty",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d-difficulty.png",
+      "sha256": "e716321b84e48232f97c4e24879407d617b7e5449c6207536f644df11ad35e3e"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d1-simulation.png",
+      "sha256": "4dbc8914ede9c182f13af3e27c5fdd74f612259d252c70a6fb5d54da86c5c5a7"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d2-simulation.png",
+      "sha256": "1a71ef07a50bd868e88e26a17693f983dc338c977f8c4a8aab7ba6f4b2a97228"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d3-simulation.png",
+      "sha256": "fdbc606349d42e45903e55e2f3f16c3863f69ea10995946c66e5c8842c0bad9d"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d4-simulation.png",
+      "sha256": "e286330bde039a7aadbe39c4001fa3f76f4a0e81b53b6cfe5623d24457aca10e"
+    },
+    {
+      "page": "target",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d5-simulation.png",
+      "sha256": "e014ec4edcbb5a2cb43054c2381966e92e6acb4479726097af12e722c8c533a4"
+    },
+    {
+      "page": "boss_detail",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d1-simulation.png",
+      "sha256": "4dbc8914ede9c182f13af3e27c5fdd74f612259d252c70a6fb5d54da86c5c5a7"
+    },
+    {
+      "page": "boss_detail",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d2-simulation.png",
+      "sha256": "1a71ef07a50bd868e88e26a17693f983dc338c977f8c4a8aab7ba6f4b2a97228"
+    },
+    {
+      "page": "boss_detail",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d3-simulation.png",
+      "sha256": "fdbc606349d42e45903e55e2f3f16c3863f69ea10995946c66e5c8842c0bad9d"
+    },
+    {
+      "page": "boss_detail",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d4-simulation.png",
+      "sha256": "e286330bde039a7aadbe39c4001fa3f76f4a0e81b53b6cfe5623d24457aca10e"
+    },
+    {
+      "page": "boss_detail",
+      "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d5-simulation.png",
+      "sha256": "e014ec4edcbb5a2cb43054c2381966e92e6acb4479726097af12e722c8c533a4"
+    }
+  ],
+  "auto_battle": {
+    "speeds": [
+      1,
+      2
+    ],
+    "opening_guards": [
+      {
+        "recognition": "TemplateMatch",
+        "roi": [
+          1176,
+          21,
+          53,
+          28
+        ],
+        "template": "clan-battle/cn-bilibili-202610141448/opening-menu.png",
+        "sha256": "557154af7021a4c28c9b2d21c703763d0977c45b42ecd55c65b468dff6e35339"
+      },
+      {
+        "recognition": "TemplateMatch",
+        "roi": [
+          253,
+          18,
+          90,
+          29
+        ],
+        "template": "clan-battle/cn-bilibili-202610141448/opening-simulation.png",
+        "sha256": "280108a9cbaa5f8f22e9fb6061e0a9a647655228b562c5e5d73b632b218a7523"
+      },
+      {
+        "recognition": "OCR",
+        "roi": [
+          1080,
+          21,
+          43,
+          26
+        ],
+        "expected": "^(?:1[:：](?:[0-2][0-9]|30)|0[:：][0-5][0-9])$"
+      }
+    ],
+    "paused_guards": [
+      {
+        "recognition": "OCR",
+        "roi": [
+          580,
+          96,
+          140,
+          41
+        ],
+        "expected": "^主菜单$"
+      },
+      {
+        "recognition": "TemplateMatch",
+        "roi": [
+          253,
+          18,
+          90,
+          29
+        ],
+        "template": "clan-battle/cn-bilibili-202610141448/paused-simulation.png",
+        "sha256": "f5be087d3a59f7f5898618ce970368607784da5bfa87489cc4cbbb3b945dbe42"
+      },
+      {
+        "recognition": "OCR",
+        "roi": [
+          1081,
+          18,
+          45,
+          28
+        ],
+        "expected": "^(?:1[:：](?:[0-2][0-9]|30)|0[:：][0-5][0-9])$"
+      }
+    ],
+    "auto_on": {
+      "recognition": "TemplateMatch",
+      "roi": [
+        570,
+        459,
+        135,
+        35
+      ],
+      "template": "clan-battle/cn-bilibili-202610141448/paused-auto-on.png",
+      "sha256": "0d6f75551a9bcaafd6477c81a4bc6c990420ddc987504a830bb3aea81b0601ce"
+    },
+    "auto_off": {
+      "recognition": "TemplateMatch",
+      "roi": [
+        570,
+        459,
+        135,
+        35
+      ],
+      "template": "clan-battle/cn-bilibili-202610141448/paused-auto-off.png",
+      "sha256": "d84e0739754c252a5c47a951fa68c39fd3e52dd71294ed67afd14359adcb9a52"
+    },
+    "speed": {
+      "1": {
+        "recognition": "OCR",
+        "roi": [
+          795,
+          459,
+          90,
+          35
+        ],
+        "expected": "^1倍速$"
+      },
+      "2": {
+        "recognition": "OCR",
+        "roi": [
+          795,
+          459,
+          90,
+          35
+        ],
+        "expected": "^2倍速$"
+      },
+      "4": {
+        "recognition": "OCR",
+        "roi": [
+          795,
+          459,
+          90,
+          35
+        ],
+        "expected": "^4倍速$"
+      }
+    },
+    "set_badge": {
+      "recognition": "TemplateMatch",
+      "roi": [
+        433,
+        245,
+        50,
+        50
+      ],
+      "template": "clan-battle/cn-bilibili-202610141448/paused-set-badge.png",
+      "sha256": "e050aa85d3613955d9d7e74ac364935fb4534ec4e3e091dad2671c78c28203e0"
+    },
+    "samples": [
+      {
+        "page": "paused",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/paused-01.png",
+        "sha256": "cfe3119f6bac08fde5880bf2936b59bca6e0939efe4ff5791616f9c2efcf9ab9"
+      },
+      {
+        "page": "paused",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/paused-02.png",
+        "sha256": "1c9fb3709372d793c9d3cbe9071326d1fbe5e8576494b859f973c537efa501fb"
+      },
+      {
+        "page": "paused",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/paused-03.png",
+        "sha256": "57e7ec71eb4a7d34daf95136b6c644fd075122d6e11d262cd0fc450e68d04d15"
+      }
+    ],
+    "paused_boss_roi": [
+      760,
+      157,
+      178,
+      40
+    ],
+    "paused_clock_alternate_roi": [
+      1077,
+      18,
+      44,
+      32
+    ]
+  },
+  "simulation_targets": [
+    {
+      "period": "2026-11",
+      "phase": "C",
+      "boss": 1,
+      "speeds": [
+        1
+      ]
+    },
+    {
+      "period": "2026-11",
+      "phase": "D",
+      "boss": 1,
+      "speeds": [
+        2
+      ]
+    },
+    {
+      "period": "2026-11",
+      "phase": "D",
+      "boss": 3,
+      "speeds": [
+        2
+      ]
+    },
+    {
+      "period": "2026-11",
+      "phase": "D",
+      "boss": 5,
+      "speeds": [
+        2
+      ]
+    }
+  ],
+  "daily": {
+    "version": 2,
+    "cp_semantics": "daily_earned",
+    "pages": {
+      "lobby": {
+        "labels": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              50,
+              18,
+              140,
+              50
+            ],
+            "expected": "^团队战$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              395,
+              520,
+              145,
+              36
+            ],
+            "expected": "^剩余挑战次数$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              580,
+              520,
+              145,
+              36
+            ],
+            "expected": "^剩余延长次数$"
+          }
+        ],
+        "rejects": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              576,
+              38,
+              135,
+              40
+            ],
+            "expected": "^队伍编组$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              555,
+              34,
+              180,
+              50
+            ],
+            "expected": "^确认延长$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              530,
+              95,
+              230,
+              45
+            ],
+            "expected": "^前往主线关卡$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              510,
+              32,
+              260,
+              46
+            ],
+            "expected": "^确认使用延长时间$"
+          }
+        ],
+        "fields": {
+          "remaining_count": [
+            547,
+            526,
+            19,
+            21
+          ],
+          "carry_count": [
+            743,
+            521,
+            42,
+            42
+          ],
+          "cp": [
+            678,
+            579,
+            151,
+            33
+          ],
+          "period": [
+            30,
+            74,
+            270,
+            31
+          ],
+          "phase": [
+            415,
+            64,
+            100,
+            34
+          ]
+        }
+      },
+      "target": {
+        "labels": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              48,
+              35,
+              205,
+              62
+            ],
+            "expected": "^魔物详情$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              920,
+              200,
+              265,
+              34
+            ],
+            "expected": "^在1分30秒内有$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              920,
+              222,
+              270,
+              34
+            ],
+            "expected": "^[0-9]+位成员进入实战[。.]?$"
+          }
+        ],
+        "rejects": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              795,
+              535,
+              260,
+              42
+            ],
+            "expected": "^设定为模拟战[。.]?$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              530,
+              95,
+              230,
+              45
+            ],
+            "expected": "^前往主线关卡$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              555,
+              34,
+              180,
+              50
+            ],
+            "expected": "^确认延长$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              576,
+              38,
+              135,
+              40
+            ],
+            "expected": "^队伍编组$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              510,
+              32,
+              260,
+              46
+            ],
+            "expected": "^确认使用延长时间$"
+          }
+        ],
+        "fields": {
+          "remaining_count": [
+            1140,
+            489,
+            35,
+            30
+          ],
+          "cp": [
+            1035,
+            533,
+            155,
+            45
+          ],
+          "health": [
+            657,
+            407,
+            263,
+            25
+          ],
+          "boss": [
+            406,
+            354,
+            259,
+            26
+          ],
+          "phase": [
+            63,
+            159,
+            110,
+            31
+          ]
+        }
+      },
+      "carry_empty": {
+        "labels": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              555,
+              34,
+              180,
+              50
+            ],
+            "expected": "^确认延长$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              455,
+              345,
+              380,
+              47
+            ],
+            "expected": "^[！!]?没有已触发的延长战斗[。.]?$"
+          }
+        ],
+        "rejects": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              530,
+              95,
+              230,
+              45
+            ],
+            "expected": "^前往主线关卡$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              576,
+              38,
+              135,
+              40
+            ],
+            "expected": "^队伍编组$"
+          }
+        ],
+        "fields": {}
+      }
+    },
+    "samples": [
+      {
+        "page": "lobby",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d-lobby.png",
+        "sha256": "68d88350ac6e3cfb50cde724cdf998a2689fd21232322178a7bde2e610f1146c"
+      },
+      {
+        "page": "carry_empty",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d-carry-empty.png",
+        "sha256": "5d966e92bb844ca4cc8f688762ad21706329804e2ac824764e747adb6724bf0b"
+      },
+      {
+        "page": "target",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d1-formal.png",
+        "sha256": "361fadbd7d975e442b74fae9b5654c1195debe8163f9f440020075457016d709"
+      },
+      {
+        "page": "target",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d2-formal.png",
+        "sha256": "21704071b4b2fe57c9d1ea38224f289fea935772f7666b25ab2150a2096b154c"
+      },
+      {
+        "page": "target",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d3-formal.png",
+        "sha256": "e3dc4a9eaff48886450c1f9a8ef23b8092ede26c9babc0045707122d624ff0fc"
+      },
+      {
+        "page": "target",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d4-formal.png",
+        "sha256": "ffd5e21c722ee0cc906f9671ef917ecd891cbc863e41c4c9526a2ff684c79def"
+      },
+      {
+        "page": "target",
+        "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d5-formal.png",
+        "sha256": "9880115d468ea09c74f3a522fd10bcbbf8d07d29387d03939331baa7f339b323"
+      }
+    ],
+    "execution": {
+      "pages": {
+        "adventure": {
+          "labels": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                70,
+                10,
+                101,
+                55
+              ],
+              "expected": "^冒险$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                691,
+                262,
+                121,
+                37
+              ],
+              "expected": "^主线关卡$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                1127,
+                419,
+                91,
+                32
+              ],
+              "expected": "^团队战$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                1137,
+                390,
+                70,
+                24
+              ],
+              "expected": "^举办中$"
+            }
+          ],
+          "rejects": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                576,
+                38,
+                135,
+                40
+              ],
+              "expected": "^队伍编组$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                555,
+                34,
+                180,
+                50
+              ],
+              "expected": "^确认延长$"
+            }
+          ],
+          "fields": {}
+        },
+        "boss_detail": {
+          "labels": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                48,
+                35,
+                205,
+                62
+              ],
+              "expected": "^魔物详情$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                920,
+                200,
+                265,
+                34
+              ],
+              "expected": "^在1分30秒内有$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                920,
+                222,
+                270,
+                34
+              ],
+              "expected": "^[0-9]+位成员进入实战[。.]?$"
+            }
+          ],
+          "rejects": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                795,
+                535,
+                260,
+                42
+              ],
+              "expected": "^设定为模拟战[。.]?$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                530,
+                95,
+                230,
+                45
+              ],
+              "expected": "^前往主线关卡$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                555,
+                34,
+                180,
+                50
+              ],
+              "expected": "^确认延长$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                576,
+                38,
+                135,
+                40
+              ],
+              "expected": "^队伍编组$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                510,
+                32,
+                260,
+                46
+              ],
+              "expected": "^确认使用延长时间$"
+            }
+          ],
+          "fields": {
+            "boss": [
+              406,
+              354,
+              259,
+              26
+            ],
+            "phase": [
+              63,
+              159,
+              110,
+              31
+            ]
+          }
+        },
+        "formation": {
+          "labels": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                576,
+                38,
+                135,
+                40
+              ],
+              "expected": "^队伍编组$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                82,
+                503,
+                125,
+                30
+              ],
+              "expected": "^当前的成员$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                1060,
+                581,
+                149,
+                44
+              ],
+              "expected": "^战斗开始$"
+            }
+          ],
+          "rejects": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                810,
+                650,
+                175,
+                30
+              ],
+              "expected": "^设定为模拟战[。.]?$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                1050,
+                581,
+                175,
+                44
+              ],
+              "expected": "^模拟战开始$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                555,
+                34,
+                180,
+                50
+              ],
+              "expected": "^确认延长$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                530,
+                95,
+                230,
+                45
+              ],
+              "expected": "^前往主线关卡$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                510,
+                32,
+                260,
+                46
+              ],
+              "expected": "^确认使用延长时间$"
+            }
+          ],
+          "fields": {}
+        },
+        "battle": {
+          "labels": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                35,
+                17,
+                140,
+                34
+              ],
+              "expected": "^伤害合计$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                1176,
+                21,
+                53,
+                28
+              ],
+              "expected": "^菜单$"
+            }
+          ],
+          "rejects": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                253,
+                18,
+                90,
+                29
+              ],
+              "expected": "^模拟战中$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                580,
+                96,
+                140,
+                41
+              ],
+              "expected": "^主菜单$"
+            }
+          ],
+          "fields": {
+            "remaining_seconds": [
+              1080,
+              21,
+              43,
+              26
+            ]
+          }
+        },
+        "result": {
+          "labels": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                1109,
+                34,
+                95,
+                34
+              ],
+              "expected": "^伤害报告$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                1030,
+                638,
+                95,
+                40
+              ],
+              "expected": "^下一步$"
+            }
+          ],
+          "rejects": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                482,
+                593,
+                351,
+                31
+              ],
+              "expected": "^模拟战的战斗结果不会显示在团队战成绩中[。.]?$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                445,
+                165,
+                450,
+                105
+              ],
+              "expected": "^获得挑战报酬[!！]?$"
+            }
+          ],
+          "fields": {
+            "damage": [
+              80,
+              45,
+              332,
+              42
+            ]
+          },
+          "damage_line": {
+            "verify_roi": [
+              88,
+              47,
+              324,
+              38
+            ],
+            "sample_sha256": "88df0e233c5234072d7246157fe20d3a25b129bef62219dd0534396c39c5e5c7"
+          }
+        },
+        "carry": {
+          "labels": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                570,
+                32,
+                145,
+                46
+              ],
+              "expected": "^确认延长$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                460,
+                90,
+                355,
+                34
+              ],
+              "expected": "^可以确认可用的延长战斗的信息[。.]?$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                578,
+                151,
+                110,
+                29
+              ],
+              "expected": "^已参加角色$"
+            }
+          ],
+          "rejects": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                510,
+                32,
+                260,
+                46
+              ],
+              "expected": "^确认使用延长时间$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                529,
+                350,
+                236,
+                29
+              ],
+              "expected": "^没有已触发的延长战斗[。.]?$"
+            }
+          ],
+          "fields": {}
+        },
+        "carry_selection": {
+          "labels": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                510,
+                32,
+                260,
+                46
+              ],
+              "expected": "^确认使用延长时间$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                459,
+                90,
+                371,
+                34
+              ],
+              "expected": "^请选择要在战斗中使用的延长时间[。.]?$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                460,
+                187,
+                101,
+                28
+              ],
+              "expected": "^已参加角色$"
+            }
+          ],
+          "rejects": [
+            {
+              "recognition": "OCR",
+              "roi": [
+                570,
+                32,
+                145,
+                46
+              ],
+              "expected": "^确认延长$"
+            },
+            {
+              "recognition": "OCR",
+              "roi": [
+                529,
+                350,
+                236,
+                29
+              ],
+              "expected": "^没有已触发的延长战斗[。.]?$"
+            }
+          ],
+          "fields": {}
+        }
+      },
+      "actions": {
+        "open_clan": {
+          "page": "adventure",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              1127,
+              419,
+              91,
+              32
+            ],
+            "expected": "^团队战$"
+          },
+          "target": [
+            1135,
+            426,
+            70,
+            22
+          ]
+        },
+        "open_formal": {
+          "page": "boss_detail",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              1115,
+              130,
+              83,
+              34
+            ],
+            "expected": "^实战$"
+          },
+          "target": [
+            1100,
+            127,
+            112,
+            38
+          ]
+        },
+        "open_formation": {
+          "page": "target",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              1073,
+              590,
+              87,
+              43
+            ],
+            "expected": "^挑战$"
+          },
+          "target": [
+            1077,
+            593,
+            79,
+            31
+          ]
+        },
+        "cancel_formation": {
+          "page": "formation",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              902,
+              584,
+              90,
+              40
+            ],
+            "expected": "^取消$"
+          },
+          "target": [
+            880,
+            582,
+            130,
+            47
+          ]
+        },
+        "back_to_lobby": {
+          "page": "boss_detail",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              827,
+              588,
+              100,
+              42
+            ],
+            "expected": "^取消$"
+          },
+          "target": [
+            804,
+            588,
+            143,
+            46
+          ]
+        },
+        "back_to_adventure": {
+          "page": "lobby",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              50,
+              18,
+              140,
+              50
+            ],
+            "expected": "^团队战$"
+          },
+          "target": [
+            8,
+            20,
+            66,
+            46
+          ]
+        },
+        "open_carry": {
+          "page": "lobby",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              799,
+              520,
+              85,
+              43
+            ],
+            "expected": "^确认$"
+          },
+          "target": [
+            800,
+            521,
+            83,
+            40
+          ]
+        },
+        "close_empty_carry": {
+          "page": "carry_empty",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              590,
+              620,
+              102,
+              43
+            ],
+            "expected": "^关闭$"
+          },
+          "target": [
+            530,
+            620,
+            225,
+            39
+          ]
+        },
+        "start": {
+          "page": "formation",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              1060,
+              581,
+              149,
+              44
+            ],
+            "expected": "^战斗开始$"
+          },
+          "target": [
+            1063,
+            585,
+            137,
+            35
+          ]
+        },
+        "characters_top": {
+          "page": "formation",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              576,
+              38,
+              135,
+              40
+            ],
+            "expected": "^队伍编组$"
+          },
+          "target": [
+            1100,
+            190,
+            1,
+            1
+          ],
+          "begin": [
+            1100,
+            190,
+            1,
+            1
+          ],
+          "end": [
+            1100,
+            465,
+            1,
+            1
+          ]
+        },
+        "characters_next": {
+          "page": "formation",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              576,
+              38,
+              135,
+              40
+            ],
+            "expected": "^队伍编组$"
+          },
+          "target": [
+            1100,
+            465,
+            1,
+            1
+          ],
+          "begin": [
+            1100,
+            465,
+            1,
+            1
+          ],
+          "end": [
+            1100,
+            335,
+            1,
+            1
+          ]
+        },
+        "open_boss": {
+          "page": "lobby",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              50,
+              18,
+              140,
+              50
+            ],
+            "expected": "^团队战$"
+          },
+          "target": [
+            100,
+            260,
+            120,
+            90
+          ]
+        },
+        "return_to_lobby": {
+          "page": "result",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              1030,
+              638,
+              95,
+              40
+            ],
+            "expected": "^下一步$"
+          },
+          "target": [
+            980,
+            635,
+            200,
+            44
+          ]
+        },
+        "close_carry": {
+          "page": "carry",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              590,
+              620,
+              102,
+              43
+            ],
+            "expected": "^关闭$"
+          },
+          "target": [
+            530,
+            620,
+            225,
+            39
+          ]
+        },
+        "close_carry_selection": {
+          "page": "carry_selection",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              590,
+              620,
+              102,
+              43
+            ],
+            "expected": "^关闭$"
+          },
+          "target": [
+            530,
+            620,
+            225,
+            39
+          ]
+        },
+        "open_carry_for_target": {
+          "page": "target",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              1073,
+              590,
+              87,
+              43
+            ],
+            "expected": "^挑战$"
+          },
+          "target": [
+            1077,
+            593,
+            79,
+            31
+          ]
+        },
+        "select_carry": {
+          "page": "carry_selection",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              821,
+              219,
+              71,
+              36
+            ],
+            "expected": "^挑战$"
+          },
+          "target": [
+            803,
+            215,
+            106,
+            42
+          ]
+        },
+        "enable_carry_team": {
+          "page": "carry_selection",
+          "label": {
+            "recognition": "OCR",
+            "roi": [
+              513,
+              523,
+              206,
+              28
+            ],
+            "expected": "^会编入已参加角色[。.]?$"
+          },
+          "target": [
+            460,
+            501,
+            50,
+            49
+          ]
+        }
+      },
+      "boss_slots": {
+        "1": {
+          "round": [
+            107,
+            317,
+            112,
+            75
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              60,
+              120,
+              210,
+              300
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        },
+        "2": {
+          "round": [
+            330,
+            430,
+            125,
+            45
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              325,
+              340,
+              120,
+              65
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        },
+        "3": {
+          "round": [
+            582,
+            261,
+            127,
+            49
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              530,
+              95,
+              230,
+              315
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        },
+        "4": {
+          "round": [
+            775,
+            420,
+            140,
+            65
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              735,
+              250,
+              220,
+              255
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        },
+        "5": {
+          "round": [
+            1030,
+            300,
+            210,
+            125
+          ],
+          "defeated": {
+            "recognition": "OCR",
+            "roi": [
+              1020,
+              110,
+              235,
+              315
+            ],
+            "expected": "^已击败[!！]?$"
+          }
+        }
+      },
+      "samples": [
+        {
+          "page": "adventure",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/adventure.png",
+          "sha256": "25965ce2eccdf2ccd5193f17b7f8aac0f401aa60f6485ac470b1fc08ba6d94f7"
+        },
+        {
+          "page": "formation",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/formal-20261028-formation.png",
+          "sha256": "7975fd92da687df732a703d6feb3f7dc86ff0c125a5a87c12688af55f15924c6"
+        },
+        {
+          "page": "battle",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/formal-20261028-battle.png",
+          "sha256": "df109baf3122791f47a75f605f6ad2d9648197ec5f13e2b354777ca77f19cf49"
+        },
+        {
+          "page": "result",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/formal-20261028-result.png",
+          "sha256": "88df0e233c5234072d7246157fe20d3a25b129bef62219dd0534396c39c5e5c7"
+        },
+        {
+          "page": "carry",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/carry-20261028-carry.png",
+          "sha256": "d0b6abde15742b7c1c2caca78a80a8871630433a2a22cc12ee87673cfc2ac0ca"
+        },
+        {
+          "page": "carry_selection",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/carry-20261028-carry-selection-off.png",
+          "sha256": "2280510c3636b176317d1a289c9736515febe148f4821408f5f0d171284ee091"
+        },
+        {
+          "page": "carry_selection",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/carry-20261028-carry-selection-on.png",
+          "sha256": "5fe5bf2b6f1b4cc699233e2299f806c822d9635a3bc299542e09740aa31317ed"
+        },
+        {
+          "page": "formation",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/carry-20261028-formation.png",
+          "sha256": "f572603a3f5bc8d1592ed4445ccc79922027c84ae3fc43d354b2cbd320c5cd74"
+        },
+        {
+          "page": "boss_detail",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d1-formal.png",
+          "sha256": "361fadbd7d975e442b74fae9b5654c1195debe8163f9f440020075457016d709"
+        },
+        {
+          "page": "boss_detail",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d2-formal.png",
+          "sha256": "21704071b4b2fe57c9d1ea38224f289fea935772f7666b25ab2150a2096b154c"
+        },
+        {
+          "page": "boss_detail",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d3-formal.png",
+          "sha256": "e3dc4a9eaff48886450c1f9a8ef23b8092ede26c9babc0045707122d624ff0fc"
+        },
+        {
+          "page": "boss_detail",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d4-formal.png",
+          "sha256": "ffd5e21c722ee0cc906f9671ef917ecd891cbc863e41c4c9526a2ff684c79def"
+        },
+        {
+          "page": "boss_detail",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d5-formal.png",
+          "sha256": "9880115d468ea09c74f3a522fd10bcbbf8d07d29387d03939331baa7f339b323"
+        },
+        {
+          "page": "formation",
+          "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/samples/d-formal-formation.png",
+          "sha256": "dbd2a37d070deb315b29d45055a1fc8b5f378dfd7c8ae637208766d7b69fbdad"
+        }
+      ],
+      "formation_owner": null,
+      "carry_slots": [
+        {
+          "stock_index": [
+            439,
+            157,
+            21,
+            29
+          ],
+          "time": [
+            520,
+            217,
+            45,
+            29
+          ],
+          "members": {
+            "slots": [
+              [
+                581,
+                178,
+                65,
+                65
+              ],
+              [
+                646,
+                178,
+                65,
+                65
+              ],
+              [
+                711,
+                178,
+                65,
+                65
+              ],
+              [
+                776,
+                178,
+                65,
+                65
+              ],
+              [
+                841,
+                178,
+                65,
+                65
+              ]
+            ]
+          },
+          "target": [
+            580,
+            178,
+            325,
+            65
+          ]
+        }
+      ],
+      "formation_mode": {
+        "regular": {
+          "recognition": "OCR",
+          "roi": [
+            1060,
+            581,
+            149,
+            44
+          ],
+          "expected": "^战斗开始$"
+        },
+        "carryover": null,
+        "stock_index": null,
+        "time": null
+      },
+      "speed_one": {
+        "recognition": "TemplateMatch",
+        "roi": [
+          1201,
+          634,
+          39,
+          42
+        ],
+        "template": "clan-battle/cn-bilibili-202610141448/speed_one.png",
+        "sha256": "902acbc349e06cf73f0d11a72e01db47cd1a0f6c3d2e0482354d5e998ad7269f"
+      },
+      "opening": {
+        "battle_speed": 2,
+        "opening_guards": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              35,
+              17,
+              140,
+              34
+            ],
+            "expected": "^伤害合计$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              1176,
+              21,
+              53,
+              28
+            ],
+            "expected": "^菜单$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              1080,
+              21,
+              43,
+              26
+            ],
+            "expected": "^(?:1[:：](?:[0-2][0-9]|30)|0[:：][0-5][0-9])$"
+          }
+        ],
+        "paused_guards": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              580,
+              96,
+              140,
+              41
+            ],
+            "expected": "^主菜单$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              350,
+              160,
+              160,
+              35
+            ],
+            "expected": "^进行中战斗$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              350,
+              210,
+              110,
+              35
+            ],
+            "expected": "^队伍情况$"
+          }
+        ],
+        "clock": [
+          1080,
+          21,
+          43,
+          26
+        ],
+        "auto_on": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            570,
+            459,
+            135,
+            35
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/paused-auto-on.png",
+          "sha256": "0d6f75551a9bcaafd6477c81a4bc6c990420ddc987504a830bb3aea81b0601ce"
+        },
+        "auto_off": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            570,
+            459,
+            135,
+            35
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/paused-auto-off.png",
+          "sha256": "d84e0739754c252a5c47a951fa68c39fd3e52dd71294ed67afd14359adcb9a52"
+        },
+        "speed": {
+          "1": {
+            "recognition": "OCR",
+            "roi": [
+              795,
+              459,
+              90,
+              35
+            ],
+            "expected": "^1倍速$"
+          },
+          "2": {
+            "recognition": "OCR",
+            "roi": [
+              795,
+              459,
+              90,
+              35
+            ],
+            "expected": "^2倍速$"
+          }
+        },
+        "speed_two": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            1201,
+            634,
+            39,
+            42
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/speed_two.png",
+          "sha256": "a92119ff3261b571632f7b03c938df9a65e61215ce17bb399e56d20200a18ee1"
+        },
+        "set_badge": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            433,
+            245,
+            50,
+            50
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/paused-set-badge.png",
+          "sha256": "e050aa85d3613955d9d7e74ac364935fb4534ec4e3e091dad2671c78c28203e0"
+        },
+        "targets": {
+          "pause": [
+            1200,
+            30,
+            6,
+            6
+          ],
+          "auto": [
+            634,
+            473,
+            6,
+            6
+          ],
+          "speed": [
+            830,
+            473,
+            6,
+            6
+          ],
+          "resume": [
+            442,
+            574,
+            6,
+            6
+          ],
+          "sets": [
+            [
+              403,
+              311,
+              6,
+              6
+            ],
+            [
+              519,
+              311,
+              6,
+              6
+            ],
+            [
+              635,
+              311,
+              6,
+              6
+            ],
+            [
+              751,
+              311,
+              6,
+              6
+            ],
+            [
+              867,
+              311,
+              6,
+              6
+            ]
+          ]
+        },
+        "inheritance": {
+          "battle_selected": {
+            "recognition": "TemplateMatch",
+            "roi": [
+              350,
+              95,
+              300,
+              45
+            ],
+            "template": "clan-battle/cn-bilibili-202610141448/inheritance-battle_selected.png",
+            "sha256": "635367339f335e111647715735f22f552852795e61558695ccc121a6ac030be6"
+          },
+          "radio_on": {
+            "recognition": "TemplateMatch",
+            "roi": [
+              0,
+              0,
+              35,
+              35
+            ],
+            "template": "clan-battle/cn-bilibili-202610141448/inheritance-radio_on.png",
+            "sha256": "a3646b5fc5eefbc4174393c942067975ea2e1778362a8a81f6d8aa3e79c444fa"
+          },
+          "radio_off": {
+            "recognition": "TemplateMatch",
+            "roi": [
+              0,
+              0,
+              35,
+              35
+            ],
+            "template": "clan-battle/cn-bilibili-202610141448/inheritance-radio_off.png",
+            "sha256": "b0995bf5f8568276775c82e754cf180f67cb3c8af39102092dc1234c1bdaa326"
+          },
+          "samples": [
+            {
+              "page": "inherit-menu",
+              "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/inherit-menu.png",
+              "sha256": "29d4ba209aa6d2eef30c2292a72296acaae766bd68a896e9c908b34cb0da44a0"
+            },
+            {
+              "page": "inherit-settings-system",
+              "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/inherit-settings-system.png",
+              "sha256": "02ecccdd6f339d5a5a55c2e0a3c67447bd785038618cb17e42d737d0288e2d1a"
+            },
+            {
+              "page": "inherit-settings-battle-index",
+              "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/inherit-settings-battle-index.png",
+              "sha256": "a888b1ac50c5c31fad5c10abcd13fbbfe1bfa3f3b05ee35742e18bfbad3201a0"
+            },
+            {
+              "page": "inherit-settings-all-top",
+              "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/inherit-settings-all-top.png",
+              "sha256": "907451d12600eb25a4a4b8efce742bcf0b57a65d4a0151973ebf672a8625b4b8"
+            },
+            {
+              "page": "inherit-on",
+              "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/inherit-on.png",
+              "sha256": "c96f96666ff5b06ad9856927ee953b03aa50d4d0309340b0090cc6918d6f677a"
+            },
+            {
+              "page": "inherit-off",
+              "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/inherit-off.png",
+              "sha256": "30515d8f9b0fe7a5d3d6ebd852509f8b92a1e8ad0b5007af3143e63fef21e8e7"
+            }
+          ],
+          "ub_auto_clear": {
+            "description": {
+              "recognition": "OCR",
+              "roi": [
+                40,
+                440,
+                1100,
+                45
+              ],
+              "expected": "^发动连结爆发时解除连结爆发立即发动模式$"
+            },
+            "on_label": {
+              "recognition": "OCR",
+              "roi": [
+                660,
+                530,
+                100,
+                55
+              ],
+              "expected": "^开启$"
+            },
+            "off_label": {
+              "recognition": "OCR",
+              "roi": [
+                960,
+                530,
+                100,
+                55
+              ],
+              "expected": "^关闭$"
+            }
+          }
+        },
+        "samples": [
+          {
+            "page": "battle",
+            "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/formal-20261028-battle.png",
+            "sha256": "df109baf3122791f47a75f605f6ad2d9648197ec5f13e2b354777ca77f19cf49"
+          },
+          {
+            "page": "paused",
+            "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/formal-20261028-paused.png",
+            "sha256": "01e58b470bf1b7037b4db9c77501a629eb6c09a8b4b6796322821e0eab8df384"
+          },
+          {
+            "page": "battle_two",
+            "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/formal-20261028-battle.png",
+            "sha256": "df109baf3122791f47a75f605f6ad2d9648197ec5f13e2b354777ca77f19cf49"
+          }
+        ]
+      },
+      "start_confirmation": {
+        "labels": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              535,
+              175,
+              235,
+              45
+            ],
+            "expected": "^团队战开始确认$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              445,
+              225,
+              400,
+              50
+            ],
+            "expected": "^要消耗挑战次数开始团队战吗[？?]?$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              735,
+              467,
+              105,
+              55
+            ],
+            "expected": "^战斗$"
+          }
+        ],
+        "target": [
+          759,
+          481,
+          50,
+          30
+        ],
+        "samples": [
+          {
+            "page": "start_confirmation",
+            "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/formal-20261028-start-confirmation.png",
+            "sha256": "9517c7a69a21e931cf93784636142b2c3b8aff6647795055bf05a73c25ceb913"
+          }
+        ]
+      },
+      "result_reward": {
+        "labels": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              445,
+              165,
+              450,
+              105
+            ],
+            "expected": "^获得挑战报酬[!！]?$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              1109,
+              34,
+              95,
+              34
+            ],
+            "expected": "^伤害报告$"
+          }
+        ],
+        "target": [
+          639,
+          226,
+          2,
+          2
+        ],
+        "samples": [
+          {
+            "page": "result_reward",
+            "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/formal-20261028-reward.png",
+            "sha256": "43612806e3636b97d0b1cd78907087ea047e6e2a069bca2dc7d856b0c535891f"
+          }
+        ]
+      },
+      "carry_selection": {
+        "slots": [
+          {
+            "stock_index": [
+              378,
+              197,
+              22,
+              28
+            ],
+            "time": [
+              410,
+              247,
+              48,
+              28
+            ],
+            "members": {
+              "slots": [
+                [
+                  461,
+                  212,
+                  65,
+                  65
+                ],
+                [
+                  526,
+                  212,
+                  65,
+                  65
+                ],
+                [
+                  591,
+                  212,
+                  65,
+                  65
+                ],
+                [
+                  656,
+                  212,
+                  65,
+                  65
+                ],
+                [
+                  721,
+                  212,
+                  65,
+                  65
+                ]
+              ]
+            },
+            "target": [
+              803,
+              215,
+              106,
+              42
+            ]
+          }
+        ],
+        "reuse_on": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            456,
+            496,
+            58,
+            62
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/carry-reuse-on.png",
+          "sha256": "13304820f30980eb47a0e91db29a5fd93ee8df49dcde9481458cc8fc98ce424c"
+        },
+        "reuse_off": {
+          "recognition": "TemplateMatch",
+          "roi": [
+            456,
+            496,
+            58,
+            62
+          ],
+          "template": "clan-battle/cn-bilibili-202610141448/carry-reuse-off.png",
+          "sha256": "337fa59f213c4a53d211343ba94658f3b64eb295eca419bca1d69aa611fa3f81"
+        }
+      },
+      "carry_start_confirmation": {
+        "labels": [
+          {
+            "recognition": "OCR",
+            "roi": [
+              535,
+              35,
+              235,
+              45
+            ],
+            "expected": "^团队战开始确认$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              475,
+              95,
+              345,
+              37
+            ],
+            "expected": "^要使用返还时间进行团队战吗[？?]?$"
+          },
+          {
+            "recognition": "OCR",
+            "roi": [
+              735,
+              610,
+              105,
+              55
+            ],
+            "expected": "^战斗$"
+          }
+        ],
+        "target": [
+          758,
+          623,
+          55,
+          31
+        ],
+        "samples": [
+          {
+            "page": "carry_start_confirmation",
+            "path": "assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples/carry-20261028-start-confirmation.png",
+            "sha256": "e2a6b1d1c3ddd7aae4d77ce39705f347080682c7170dcfec981bd65aeca9ff7f"
+          }
+        ]
+      }
+    }
+  },
+  "formal_targets": [
+    {
+      "period": "2026-11",
+      "phase": "D",
+      "boss": 1
+    },
+    {
+      "period": "2026-11",
+      "phase": "D",
+      "boss": 3
+    },
+    {
+      "period": "2026-11",
+      "phase": "D",
+      "boss": 5
+    }
+  ]
+}
