@@ -325,16 +325,18 @@ def prepare_worker(player, archive=None, *, recover=False, parent_pid=None, temp
         _require(source.stat().st_size == row['size'] and maintenance._sha(source) == row['sha256'],
             'payload_hash_mismatch')
     temporary = Path(temp_root).absolute() if temp_root else Path(tempfile.gettempdir())
+    try:
+        temporary = maintenance._root(temporary)
+    except FileNotFoundError:
+        parent = maintenance._root(temporary.parent)
+        _require(not parent.is_relative_to(player), 'updater_requires_external_workspace')
+        temporary = parent / temporary.name
+        temporary.mkdir(exist_ok=True)
+        temporary = maintenance._root(temporary)
     _require(not temporary.is_relative_to(player), 'updater_requires_external_workspace')
-    if not temporary.exists():
-        maintenance._root(temporary.parent)
-        temporary.mkdir()
-    temporary = maintenance._root(temporary)
     base = temporary / 'Maa-PCR-update'
-    if base.exists():
-        maintenance._root(base)
-    else:
-        base.mkdir()
+    base.mkdir(exist_ok=True)
+    maintenance._root(base)
     work = base / ('update-' + uuid4().hex)
     work.mkdir()
     for name in copied:
