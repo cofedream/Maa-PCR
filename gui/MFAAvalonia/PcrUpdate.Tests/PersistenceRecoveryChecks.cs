@@ -146,6 +146,12 @@ internal static class PersistenceRecoveryChecks
 
     private static void CheckConcurrentGlobalReads(string root)
     {
+        var retry = (Func<int, bool, bool>)typeof(JsonHelper)
+            .GetMethod("CanRetryWindowsPublication", BindingFlags.NonPublic | BindingFlags.Static)!
+            .CreateDelegate(typeof(Func<int, bool, bool>));
+        Require(retry(32, true) && retry(33, false) && retry(1175, true) && !retry(1175, false)
+            && !retry(1176, true) && !retry(1177, true) && !retry(5, true),
+            "only_repeat_windows_publication_errors_that_leave_both_files_in_place");
         const string key = "PcrUseWebGpu";
         Require(GlobalConfiguration.GetValue("keep", "default") == "default" && !File.Exists(GlobalConfiguration.ConfigPath)
             && !GlobalConfiguration.HasFileAccessError, "first_global_read_should_only_return_defaults");

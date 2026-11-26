@@ -123,20 +123,20 @@ public static class JsonHelper
         try
         {
             File.WriteAllText(temporary, json);
+            var replacing = File.Exists(destination);
             for (var attempt = 0; ; attempt++)
             {
                 try
                 {
-                    if (File.Exists(destination))
+                    if (replacing)
                         File.Replace(temporary, destination, null);
                     else
                         File.Move(temporary, destination);
                     break;
                 }
-                catch (IOException ex) when (OperatingSystem.IsWindows()
-                    && (ex.HResult & 0xffff) is 32 or 33 && attempt < 4)
+                catch (IOException ex) when (attempt < 4 && OperatingSystem.IsWindows()
+                    && CanRetryWindowsPublication(ex.HResult & 0xffff, replacing))
                 {
-                    // Another process can briefly open the published file without delete sharing.
                     Thread.Sleep(25 * (attempt + 1));
                 }
             }
@@ -149,6 +149,11 @@ public static class JsonHelper
             catch (UnauthorizedAccessException) { }
         }
     }
+
+    // ReplaceFileW keeps both original names on ERROR_UNABLE_TO_REMOVE_REPLACED (1175).
+    // Errors 1176 and 1177 can leave the files renamed and must reach the caller.
+    private static bool CanRetryWindowsPublication(int error, bool replacing) =>
+        error is 32 or 33 || (replacing && error == 1175);
 
     // 加载配置（基于LoadJson）
     public static T LoadConfig<T>(string configName, T defaultValue = default, params JsonConverter[] converters)
