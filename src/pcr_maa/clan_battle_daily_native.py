@@ -21,7 +21,7 @@ PAGE_FIELDS = {
     'target': {'remaining_count', 'cp', 'health', 'boss', 'phase'},
     'carry_empty': set(),
 }
-FULL_CP_PATTERN = r'已达今[天无]的上限'
+FULL_CP_PATTERN = r'[已己]达今[天无]的上限'
 PATTERNS = {
     'remaining_count': r'^[0-3]$',
     'carry_count': r'^[0-3]$',
