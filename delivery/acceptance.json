@@ -1,30 +1,31 @@
 {
   "schema_version": 1,
   "status": "passed",
-  "revision": 96,
-  "expected_version": "v0.2.8",
-  "verified_at_utc": "2026-11-26T07:43:46.905568+00:00",
-  "base_release_manifest_sha256": "2161fc63ed7953e01966663e9b413c8d11d1a2c12c679a7a3c084f5280dc47ab",
-  "accepted_owned_payload_sha256": "963a14c10d9118dc940038f9fccc501cbb37919b80ed8ff989d8bb284694de02",
-  "accepted_staging_manifest_sha256": "c2c290b9e4f5aa6813ab14b4dac6e9011e10da0e3e3532799fc5657ee21f69ab",
+  "revision": 97,
+  "expected_version": "v0.2.9",
+  "verified_at_utc": "2026-11-26T20:53:42.388601+00:00",
+  "base_release_manifest_sha256": "06e4341ac1134021cb8d834c131fd888110f2405bb378aec13ae3ddacb495a8c",
+  "accepted_owned_payload_sha256": "201ae41fb13fe1cb80f530d363e1a7868b8ef19bbd5a984d530d266e2c3673c7",
+  "accepted_staging_manifest_sha256": "03257f38f398d5e36b06f3ee785cc69916bd3404054869001048b543adffaaf1",
   "accepted_ci_artifact": {
     "repository": "shiwandehongbai/Maa-PCR",
-    "run_id": 45768219612,
+    "run_id": 45887744595,
     "run_attempt": 1,
-    "artifact_id": 15094288269,
-    "source_commit": "17d46942538c62905618b06fcb4b197ada2a42d6",
+    "source_commit": "ffb7092b3e37b2c19704d37df5d7af8f1be751fd",
+    "artifact_id": 15151893544,
     "runtime_archive": {
-      "name": "Maa-PCR-v0.2.8-win-x64.zip",
-      "size": 377439377,
-      "sha256": "841af4b02a67a1e1f04ceb0b667c6113af5cd9f495d93a8a8237c5ddef7e423d"
+      "name": "Maa-PCR-v0.2.9-win-x64.zip",
+      "size": 380846559,
+      "sha256": "8f51c3d063cce5c34754ecb23947377fa33e719e4a5bcb84fd3c643a6428151c"
     }
   },
   "offline_tests_passed": true,
   "isolated_update_passed": true,
+  "isolated_rollback_verified": true,
   "gui_verified": true,
   "clean_build_verified": true,
   "public_tests": {
-    "passed": 8009,
+    "passed": 8406,
     "skipped": 402,
     "failed": 0,
     "errors": 0
@@ -35,30 +36,122 @@
     "failed": 0,
     "errors": 0
   },
-  "isolated_rollback_verified": true,
   "release_scope": {
+    "period": "2026-11",
+    "phase": "D",
+    "round": 23,
+    "game_day": "2026-11-26",
     "clan_catalog_version": "202611131613",
-    "shop_quote_identity_issue": 62,
-    "update_short_path_pr": 68
-  },
-  "evidence_sha256": {
-    "release-v028/ci/CI_BINDING.json": "3d30dc17a3725c3a578b11e76377d6e7e045b37225b54aec7f1f5f691c4b4d19",
-    "release-v028/ci/artifact.json": "6976408a68cd722f4c7155a06c8905abe1247cc53e998e459ca4b156c7027ca2",
-    "release-v028/ci/jobs.json": "c2fa1d97186aa860b7c10371df775cc0172101d5ba85f854e4305a6304c959a5",
-    "release-v028/ci/public-tests.xml": "0d8ac2de3176a0249df7b85a2c65ab7bac68c769efc1003e121c2a1e50bf1310",
-    "release-v028/ci/bundled-runtime.xml": "88bd337ac0944912c6dfeb79af04e9ad33d9556dc4b9b37652017a787e9e2650",
-    "release-v028/ci/profile-checks/default.log": "9dab850a301425673983cbc6b923a924c0bb05b2f2e690e59f99058a7a968c89",
-    "release-v028/ci/build/SOURCE_ALIGNMENT.json": "2f68a6750d69ed841e1f1eeb0eaa1fd1af0a650450abcf5eeaa0dd7a84461dbb",
-    "release-v028/upgrade-verified/verification.json": "e2f8aa32e99091f610a2f3908e1b4b3b8d3ece4dcf001eb186ea0ba2af5acdbc",
-    "release-v028/candidate-gui.json": "883270e3236e3b0e000f07c14a50fb0672e100b9166fc1498a6fa1bafde082ec",
-    "release-v028/settings-fixture.json": "5a6e799d4d60189f9708f312883c2cd15e95a67f3e6d9542b99e38aff01c34eb",
-    "release-v028/packaged-shop-replay/result.json": "8d06e2b5c8a348ac4dc16185a76c9038ad610dfbeaa85fdd515926da2aca0813",
-    "release-v028/packaged-shop-replay/child.log": "1401e75bd5c3c5402a3566e907223e518a2ad8a27eb793bc36a0458c7b4499e9",
-    "release-v028/candidate-short-root.log": "aad242550b34f6bf16bf8c299431065490f0adfe15ee78b179cac95e05092b36",
-    "release-v028/legacy-upgrades/verification.json": "305c606bf6ce13a6aaae91f0150509fca9d46165148f1c17e63aace4e2981345",
-    "merged-updater-tests.xml": "7d367b5bbb8175e2ec0f474c49e4819d19ffd71d773cce3f204110c0db50c781"
+    "free_simulations": [
+      {
+        "boss": 1,
+        "damage": 238593414
+      },
+      {
+        "boss": 3,
+        "damage": 266394578
+      },
+      {
+        "boss": 5,
+        "damage": 184585777
+      }
+    ],
+    "unique_owned_characters": 15,
+    "formal_challenges": [
+      {
+        "boss": 1,
+        "damage": 239400349,
+        "regular_before": 3,
+        "regular_after": 2,
+        "settlement": "normal_owner"
+      },
+      {
+        "boss": 3,
+        "damage": 266352017,
+        "regular_before": 2,
+        "regular_after": 1,
+        "settlement": "manual_same_transaction_after_owner_release"
+      },
+      {
+        "boss": 5,
+        "damage": 184407294,
+        "regular_before": 1,
+        "regular_after": 0,
+        "settlement": "manual_same_transaction_after_owner_release"
+      }
+    ],
+    "total_formal_damage": 690159660,
+    "normal_automatic_bosses": [
+      1
+    ],
+    "manual_reconciled_bosses": [
+      3,
+      5
+    ],
+    "d5_resumed_after_gui_restart": true,
+    "single_owner_three_verified": false,
+    "regular_remaining": 0,
+    "carry_remaining": 0,
+    "unresolved_intents": 0,
+    "calibration_profile_sha256": "232106dce01ba7cbcb6b56d83a3b3a6a1e9eaec86134f8bbdc43f655ff59798e",
+    "calibration_index_sha256": "54d6a84a7b617b936900e0473b417c59b05bad20d15d89a115e98dff275e6ca4",
+    "release_calibration_validation": "offline_replay",
+    "r3_d5_replay": {
+      "damage": 184407294,
+      "six_lobby_frames_regular_zero": true,
+      "transitional_frames_waited": 2,
+      "device_inputs": 0,
+      "ledger_writes": 0
+    }
   },
   "limits": [
-    "Synthetic account snapshots and saved shop frames only. No live logins, games or purchases."
-  ]
+    "The three November D-phase formal challenges used local development candidates. D5 resumed the same batch after a GUI restart. One uninterrupted three-challenge run remains unverified.",
+    "D1 settled automatically. D3 and D5 each required manual reconciliation against their original transaction after the live lobby count readback stopped.",
+    "The release R3 calibration was verified on saved frames, including the original D5 settlement and six lobby frames showing zero remaining. These replay runs used no device input and wrote no ledger entries."
+  ],
+  "evidence_sha256": {
+    "r97/local-verification": "ae5989fa8f5db5027f60741230edded4e3e985f257f4796c6c179a07574171da",
+    "r97/artifact-checks": "6a3b60d210f148c8679cfc4301e6b97f606303681c02bd53996d1ded3d53c461",
+    "r97/ci-binding": "3bb1da19565d346f6e5838393f0556b8a3398f7a43e32454f2838a0ec278227b",
+    "r97/ci-run": "adcae03487b3150a0805d0e308d738101246aa9bfd05f69a018c4633fe54c993",
+    "r97/ci-artifact": "4a95d587d67952d0075dac1949a7db42fbf2cf3888c26d5b243fc7e96a34da21",
+    "r97/ci-jobs": "216514094875c32acb2012a321247b66baaee16ff43ff6684a9ee9a421df6acf",
+    "r97/build-receipt": "0a041c48bfbe0bf04a7765417ce9557037cf5f6b37167dfdd024b76315b8762a",
+    "r97/source-alignment": "f6b655db90e9cc41d1a1bba78e5956c6b6bff1f38c0da55e1a27129081f54286",
+    "r97/source-verification": "8b4e9f2214024416dfe4a61e1a4f05201bce6b90a3036511de44a179770540f1",
+    "r97/update-index": "6f9a55a1b3031580bc572bf4e1633f416e16b0fd1a3fc08cea44178bd92a2f7c",
+    "r97/public-tests": "5bd0a2dce721f2997b1b30bb87f43c96f0c0abc1869c59da1b0c2d15fa82c178",
+    "r97/bundled-tests": "d1ab4e5f78ba2ef6697a38742753c4bab98aa38e4d4d12b29f48b258e97b42a5",
+    "r97/clean-gui": "ade2a7eed7afe81fe3cf11956076643ec673d447b60d82f683b0eb325937db59",
+    "r97/upgraded-gui": "78bdb98ab2fa3bbb52294fc4559c05b211b611824216266e2053aaed8d02962d",
+    "r97/upgrade": "d500e9b793f385aefebba9ef307da9de1f125eb38d314e1fc6e2e3d974467d65",
+    "r97/rollback": "b91d1e03b67ca101c97daa0aa496ce03c157052e551d37b9b734df988168958f",
+    "r97/source-inventory": "8a05630710ee0ad288c59b10a15cab407ddd920e4e1141453ff946b674146526",
+    "r97/candidate-manifest": "03257f38f398d5e36b06f3ee785cc69916bd3404054869001048b543adffaaf1",
+    "r97/clan/simulations.json": "3570c51eb9b2feb1659d0c5c9c65a493f457671b8ed53124714d72dcdb4c42ce",
+    "r97/clan/simulation-handoff.json": "4082316a7ac0cc8172495d0b8b840339b4a3cd3fe91cf9c3b67249e1af7121c1",
+    "r97/clan/formal-settlements.json": "9739d5905fd7c3272f841db9d8390f04edce665f7836b81939bdc8668754b529",
+    "r97/clan/d3-reconciliation.json": "5e210fe076cfeca71108ec949d01867f986d98c7d5f859c8e143a91b994131d1",
+    "r97/clan/d5-reconciliation.json": "7d1f1c1b0bf4a79d4023c90fbb976de97d644706c07a7dce3a389fefd0ebb228",
+    "r97/clan/r3-replay-chain.json": "b0b565d827500d45d83e1783b71420e0a59560e7ffb71979130e5a3c658c9db2",
+    "r97/clan/r3-replay-process.json": "03a7857479da8b82ecec3217c11a0bb6e29749bab0f9c54ff596abff9763d2db",
+    "r97/clan/r3-counter-frames.json": "5fcb5059280b3b9d47b8bd251cb338a06201c398c1d3fa993abc3f3ec901969d",
+    "r97/clan/r3-settlement-validation.json": "345453253de6bb2eed5635f06076c8fd046efbd01cf32b4c02b5a17bce91ac80",
+    "r97/clan/d1-simulation.json": "23769a15c48320125bad73c9963e3e41153d03d9d0dcd22b460161e3e9f6b04a",
+    "r97/clan/d3-simulation.json": "dff0976dc71beb1f231e9b46509af985b937064d05fc229db86b5f80405717e0",
+    "r97/clan/d5-simulation.json": "28ce1903d6a507143e14e44d927cfb04fb0098279b6f2318bb2b416abbba885c",
+    "r97/clan/d3-same-transaction.json": "edf9be54e5cec6c7837a8c8fec714fab35750a38d39ed46d793858a23f33a1e2",
+    "r97/clan/d5-same-transaction.json": "3644701519cae1014a35d18e323376b757eef10a5f480fc4cebdb756f1210366",
+    "r97/clan/original-journal.jsonl": "38bbd1f4164f400ba9276516ef5fe1a657624aa91fa6f6a660e2b36170db6ee9",
+    "r97/clan/r3-lobby-frames.json": "490fe8de09f565a5668b9102b305516fccd490ca3d6c06f64aec6d64e4dd2bc6",
+    "r97/clan/r3-result-frames.json": "afb4592d3fd0087ff50f502fdec9c7981850fda529dfac85280ac6fc0b93f432",
+    "r97/ci-profile-default": "4278f008fd42a4b9b59e31ece76b7c51f1a349cf02b4ebbab8f081cb0781b487",
+    "r97/ci-profile-clan-daily-only": "4278f008fd42a4b9b59e31ece76b7c51f1a349cf02b4ebbab8f081cb0781b487",
+    "r97/ci-profile-clan-workflow-only": "4278f008fd42a4b9b59e31ece76b7c51f1a349cf02b4ebbab8f081cb0781b487",
+    "r97/ci-profile-clan-formal-only": "4278f008fd42a4b9b59e31ece76b7c51f1a349cf02b4ebbab8f081cb0781b487",
+    "r97/ci-profile-clan-postsave-only": "4278f008fd42a4b9b59e31ece76b7c51f1a349cf02b4ebbab8f081cb0781b487",
+    "r97/ci-profile-profile-registration-only": "4278f008fd42a4b9b59e31ece76b7c51f1a349cf02b4ebbab8f081cb0781b487",
+    "r97/ci-profile-runbar-only": "4278f008fd42a4b9b59e31ece76b7c51f1a349cf02b4ebbab8f081cb0781b487",
+    "r97/official-r96-manifest": "06e4341ac1134021cb8d834c131fd888110f2405bb378aec13ae3ddacb495a8c"
+  }
 }
