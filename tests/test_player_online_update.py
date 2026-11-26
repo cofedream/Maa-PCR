@@ -3,6 +3,7 @@ from copy import deepcopy
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import ssl
 import subprocess
@@ -510,6 +511,48 @@ def test_prepare_copies_verified_runtime_outside_installation_without_private_fi
     for data in case['private'].values():
         assert data not in copied
     assert_original(case)
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='Windows 8.3 directory aliases')
+def test_prepare_expands_short_paths_and_keeps_workspace_outside_player(online_case, monkeypatch):
+    from _winapi import GetShortPathName
+    case = online_case
+    player = case['player']
+    temp = case['tmp_path'] / 'Temporary update files'
+    temp.mkdir()
+    monkeypatch.chdir(case['tmp_path'])
+    short_temp = temp.parent / GetShortPathName(temp.name)
+    short_player = player.parent / GetShortPathName(player.name)
+    if short_temp == temp or short_player == player:
+        pytest.skip('8.3 names are disabled on the test volume')
+    archive = case['tmp_path'] / 'update.zip'
+    archive.write_bytes(case['blobs'][case['index']['full']['name']])
+    monkeypatch.setenv('TMPDIR', str(short_temp))
+    monkeypatch.setattr(updater.tempfile, 'tempdir', None)
+
+    worker = updater.prepare_worker(short_player, archive)
+    assert Path(worker['workspace']).parent.parent == temp
+    assert updater.validate_external_worker(player)['workspace'] == worker['workspace']
+    assert updater.validate_external_worker(short_player)['workspace'] == worker['workspace']
+    for internal in (short_player, short_player / 'unused'):
+        with pytest.raises(ValueError, match='updater_requires_external_workspace'):
+            updater.prepare_worker(player, archive, temp_root=internal)
+    assert not (player / 'unused').exists()
+    assert not (player / 'Maa-PCR-update').exists()
+    assert_original(case)
+
+
+def test_update_root_rejects_directory_links_in_ancestors(tmp_path):
+    target = tmp_path / 'ordinary directory'
+    (target / 'child').mkdir(parents=True)
+    alias = tmp_path / 'alias'
+    if os.name == 'nt':
+        from _winapi import CreateJunction
+        CreateJunction(str(target), str(alias))
+    else:
+        alias.symlink_to(target, target_is_directory=True)
+    with pytest.raises(ValueError, match='unsafe_file_path'):
+        maintenance._root(alias / 'child')
 
 
 def test_prepare_rejects_modified_owned_interpreter_before_launch(online_case):

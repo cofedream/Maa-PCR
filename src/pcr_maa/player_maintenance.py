@@ -43,10 +43,16 @@ def _plain(path, *, directory=False):
 
 def _root(path):
     path = Path(os.path.abspath(path))
-    _require(not str(path).startswith(('\\\\', '//')) and path.resolve() == path, 'unsafe_root')
-    for node in (path, *path.parents):
+    _require(not str(path).startswith(('\\\\', '//')), 'unsafe_root')
+    for node in (*reversed(path.parents), path):
         _plain(node, directory=True)
-    return path
+    resolved = path.resolve(strict=True)
+    if os.name == 'nt' and resolved != path:
+        # Only accept a spelling change that Windows confirms is an 8.3 alias.
+        from _winapi import GetLongPathName
+        path = Path(GetLongPathName(str(path)))
+    _require(resolved == path, 'unsafe_root')
+    return resolved
 
 
 def _name(name):
