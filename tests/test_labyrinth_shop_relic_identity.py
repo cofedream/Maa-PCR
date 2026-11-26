@@ -191,7 +191,8 @@ def test_dialog_catalog_identity_is_available_without_the_template():
         S._item_identity(value, '深渊蚀杖退咒', 'relic', expected_catalog_id=12003)
 
 
-def test_a_trusted_dialog_catalog_conflict_refuses_with_zero_input(replay):
+@pytest.mark.parametrize('quoted_method', ['native_observed_catalog', 'native_observed_icon'])
+def test_a_trusted_dialog_catalog_conflict_refuses_with_zero_input(replay, quoted_method):
     """The dialog's own icon id outranks the captured template and the OCR text.
 
     Two relics can share price and series, so the icon id is the only field that
@@ -215,7 +216,7 @@ def test_a_trusted_dialog_catalog_conflict_refuses_with_zero_input(replay):
         controller, _, shop = replay([confirm])
         quote = shop.stamp(enter_id=1, item_id='visible-shop-item:dialog', kind='relic',
                            currency='run_coins', price=2850, balance=5585, purchasable=True,
-                           name='深渊蚀杖诅咒', identity_method='native_observed_catalog',
+                           name='深渊蚀杖诅咒', identity_method=quoted_method,
                            catalog_id=catalog_id, mark='弱体', bonus=3, source='maa')
         batch = SimpleNamespace(checkpoint=lambda: None,
             journal=SimpleNamespace(last_event=lambda: dict(
