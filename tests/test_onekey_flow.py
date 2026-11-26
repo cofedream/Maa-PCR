@@ -144,7 +144,7 @@ def test_unresolved_readonly_completion_rechecks_history(tmp_path, monkeypatch, 
     tasker = SimpleNamespace(stopping=False, controller=SimpleNamespace(_handle=1),
         resource=SimpleNamespace(_handle=2, register_custom_recognition=register,
                                  unregister_custom_recognition=unregister))
-    pages = [dict(state='home', resources=dict(ap=100, jewels=500)), schedule_page(),
+    pages = [dict(state='home', resources=dict(ap=100, jewels=500)), schedule_page() | {'date': [now.month, now.day]},
              dict(state='home', resources=dict(ap=100, jewels=500))]
     def run(current, entry):
         assert current is tasker
@@ -168,8 +168,9 @@ def test_unresolved_readonly_completion_rechecks_history(tmp_path, monkeypatch, 
                     nodes=[dict(name=node, completed=True, action=dict(name=node, success=True))])
     monkeypatch.setattr(native, 'run', run)
 
+    run_id = 'run-' + '1' * 32
     result = module.schedule_onekey(tasker, execute=True, game_day='2027-09-24',
-        device=device, authorizations=ITEMS, journal=journal, gui_start_intent=True)
+        device=device, authorizations=ITEMS, journal=journal, gui_start_intent=True, invocation_id=run_id)
     assert sent == result['sent'] == ['enter', 'close']
     assert released == ['OneKeyPage']
     assert all(p.read_bytes() == before for p, before in original.items())
@@ -185,3 +186,19 @@ def test_unresolved_readonly_completion_rechecks_history(tmp_path, monkeypatch, 
         assert result['current_observation_verified'] and result['home_verified']
         assert result['input_evidence'] == 'current_readonly_observation'
         assert set(p.name for p in (journal.directory / 'actions').iterdir()) == {binding['intent_id']}
+        from pcr_maa import supported_daily as daily
+        folder = tmp_path / run_id
+        folder.mkdir()
+        monkeypatch.setattr(daily, 'CONTROL_ROOT', tmp_path)
+        report = dict(control_version=1, run_id=run_id, selected_modules=['schedule_onekey'],
+                      selection_version=1, rewards_final=False, game_day=result['game_day'],
+                      schedule_gui_start_intent=True, started_at=1, finished_at=2,
+                      daily_complete=False, supported_chain_complete=True, outcome='complete',
+                      original_execution_unresolved=True, steps=[dict(name='schedule_onekey',
+                      status='skipped_goal_met', started_at=1, finished_at=2, result=result)])
+        daily._atomic_json(folder / 'report.json', report)
+        before = daily.inspect_run(run_id)
+        daily._atomic_json(folder / 'control-final.json', daily._report_projection(report))
+        assert daily.inspect_run(run_id) == before
+        assert before['unsettled_or_unknown'] and before['steps'][0]['unsettled_or_unknown']
+        assert before['steps'][0]['consumption_attempted'] is False

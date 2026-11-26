@@ -28,7 +28,7 @@ internal static class ClanUiFlowChecks
         var formal = Field<StackPanel>(view, "formalControls");
         Check(view.ExecutionMode == PcrClanDailyExecution.Simulation && !formal.IsVisible && !File.Exists(modePath),
             "first_open_defaults_to_simulation_without_writing_mode");
-        Check(view.ExecutionConfirmationForStart == null, "empty_selection_cannot_start");
+        Check(view.ExecutionConfirmationForStart == null && view.StartHint == "模拟当前队伍一局", "empty_selection_describes_simulation_without_confirmation");
         var selectionSummary = Field<TextBlock>(view, "selectionSummary");
         var fields = Field<Dictionary<string, TextBox>>(view, "fields");
         Check(selectionSummary.Text == "尚未选择作业。", "empty_job_shows_single_prompt");
@@ -46,7 +46,8 @@ internal static class ClanUiFlowChecks
         selector.SelectedIndex = 1;
         Check(view.ExecutionMode == PcrClanDailyExecution.FormalDaily && formal.IsVisible,
             "actual_selector_reveals_formal_review_controls");
-        Check(view.ExecutionSummaryText.Contains("对应资料校验通过") && (Field<TextBlock>(view, "calibrationSummary").Text ?? "").Contains("不可用"),
+        Check(view.StartHint.StartsWith("准备正式三刀") && view.StartHint.Contains("另行确认") && view.ExecutionSummaryText.Contains(view.StartHint)
+            && (Field<TextBlock>(view, "calibrationSummary").Text ?? "").Contains("不可用"),
             "formal_mode_does_not_claim_capability_from_mode_selection");
         Check(PcrClanDailyExecution.Read(modePath, out _).Mode == PcrClanDailyExecution.FormalDaily
             && view.BattleSpeed == 2 && view.ExecutionConfirmationForStart == null, "formal_selection_saves_fixed_two_without_start_confirmation");
@@ -56,14 +57,14 @@ internal static class ClanUiFlowChecks
         Check(reopened.ExecutionMode == PcrClanDailyExecution.FormalDaily && Field<StackPanel>(reopened, "formalControls").IsVisible,
             "reopen_displays_saved_formal_mode");
         selector.SelectedIndex = 0;
-        Check(!formal.IsVisible && PcrClanDailyExecution.Read(modePath, out _).Mode == PcrClanDailyExecution.Simulation,
+        Check(!formal.IsVisible && view.StartHint == "模拟当前队伍一局" && PcrClanDailyExecution.Read(modePath, out _).Mode == PcrClanDailyExecution.Simulation,
             "simulation_hides_formal_controls_and_persists");
 
         // A failed mode save must not leave the newly selected mode presented as saved.
         PcrClanDailyExecution.Save(new() { Mode = PcrClanDailyExecution.FormalDaily }, modePath, PcrClanGuide.Stamp(modePath));
         var externalMode = File.ReadAllBytes(modePath);
         selector.SelectedIndex = 1;
-        Check(view.ExecutionMode == "unavailable" && !formal.IsVisible && view.ExecutionConfirmationForStart == null,
+        Check(view.ExecutionMode == "unavailable" && view.StartHint.Contains("尚未确认") && !formal.IsVisible && view.ExecutionConfirmationForStart == null,
             "conflicting_save_cancels_visible_mode_and_confirmation");
         Check(File.ReadAllBytes(modePath).SequenceEqual(externalMode) && view.StatusText.Contains("重新打开"),
             "conflicting_save_keeps_file_and_explains_retry");

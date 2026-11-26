@@ -30,6 +30,11 @@ public sealed class PcrClanDailyPlanView : UserControl
     private readonly TextBlock[] slots = Enumerable.Range(1, 3).Select(_ => Note("")).ToArray();
     private readonly TextBlock warnings = Note("");
     private readonly TextBlock status = Note("");
+    private const string ThreeReviewed = "三队原件、账号与期次引用已核对，未发现主刀自有角色重复。实际出刀数与补偿仍未知。";
+    private readonly TextBlock candidateSummary = Note("");
+    private readonly ComboBox lockSlot = new() { ItemsSource = new[] { "不锁定", "锁定第 1 刀", "锁定第 2 刀", "锁定第 3 刀" }, SelectedIndex = 0 };
+    private readonly Button saveCandidate;
+    private PcrClanDailyPlanDocument? candidate;
     public string StatusText => status.Text ?? "";
     public string[] SlotTexts => slots.Select(s => s.Text ?? "").ToArray();
     public PcrClanDailyPlanView(string repository, string statePath, string configDirectory, string guideStatePath, Func<PcrClanGuideDocument> capture, Func<bool> hasCurrentConfirmation, Action<PcrClanGuideDocument, string?>? loadCurrent = null, Func<PcrClanGuideDocument, string?, Func<bool>, Task>? loadCurrentAsync = null)
@@ -48,6 +53,16 @@ public sealed class PcrClanDailyPlanView : UserControl
             controls.Children.Add(Button($"清除第 {n} 刀", () => _ = ClearSlotAsync(slot))); row.Children.Add(controls); panel.Children.Add(row);
         }
         panel.Children.Add(warnings);
+        var recommendations = new WrapPanel();
+        Avalonia.Automation.AutomationProperties.SetName(lockSlot, "配队时保留已有刀位");
+        recommendations.Children.Add(lockSlot);
+        recommendations.Children.Add(Button("帮我配三刀", () => _ = PreviewRecommendationAsync(lockSlot.SelectedIndex > 0 ? lockSlot.SelectedIndex : null)));
+        saveCandidate = Button("保存推荐草案", () => _ = SaveRecommendationAsync());
+        saveCandidate.IsEnabled = false;
+        recommendations.Children.Add(saveCandidate);
+        panel.Children.Add(recommendations);
+        panel.Children.Add(candidateSummary);
+        lockSlot.SelectionChanged += (_, _) => CancelPendingLoad();
         var actions = new WrapPanel(); actions.Children.Add(Button("核对完整三刀预设", () => _ = ReviewThreeAsync())); actions.Children.Add(Button("重读三刀预设", () => _ = ReloadAsync())); panel.Children.Add(actions);
         panel.Children.Add(Note("补偿预设策略：游戏实际显示补偿可用，且同号 BOSS 已刷新时，才考虑继续同号 BOSS；同号目标尚未出现则保留。只有游戏实际确认 3 刀主刀均已结算后，才提醒仍有未用补偿。BOSS 死亡不等于已获得补偿，此处不生成出刀或补偿记录。"));
         panel.Children.Add(status); Content = panel;
@@ -73,32 +88,32 @@ public sealed class PcrClanDailyPlanView : UserControl
     }
     public void AssignCurrent(int slot)
     {
-        loadVersion++;
+        CancelPendingLoad();
         if (!hasCurrentConfirmation()) throw new InvalidOperationException("请先核对并保存当前五人和操作，再设定目标。");
         var value = Copy(); PcrClanDailyPlan.Assign(value, slot, capture(), guideStatePath, configDirectory, repository, DateTimeOffset.Now);
         Persist(value); status.Text = $"已保存第 {slot} 刀目标引用。未改变当前队伍与开始任务行为。";
     }
     public void ClearSlot(int slot)
-    { loadVersion++; var value = Copy(); PcrClanDailyPlan.Clear(value, slot); Persist(value); status.Text = $"已清除第 {slot} 刀预设，原队伍作业保留。"; }
+    { CancelPendingLoad(); var value = Copy(); PcrClanDailyPlan.Clear(value, slot); Persist(value); status.Text = $"已清除第 {slot} 刀预设，原队伍作业保留。"; }
     public void LoadSlot(int slot)
     {
-        loadVersion++;
+        CancelPendingLoad();
         if (!loaded || loadCurrent == null) throw new InvalidOperationException("当前预设尚不可载入，请重新读取。");
         if (PcrClanGuide.Stamp(statePath) != loadedHash) throw new IOException("三刀预设已被其他窗口修改，请重新读取；当前队伍未改变。");
         var value = PcrClanDailyPlan.Load(document, slot, guideStatePath, configDirectory, repository, DateTimeOffset.Now, out var guideHash);
         if (PcrClanGuide.Stamp(statePath) != loadedHash) throw new IOException("三刀预设在载入时发生变化；当前队伍未改变。");
         loadCurrent(value, guideHash);
-        status.Text = $"已载入第 {slot} 刀，并保存为当前模拟队。开始任务仍只模拟这一队一局，不连打三刀。";
+        status.Text = $"已载入第 {slot} 刀，并保存为当前队伍。";
     }
     public void ReviewThree()
     {
-        loadVersion++;
+        CancelPendingLoad();
         _ = PcrClanDailyPlan.Review(document, guideStatePath, configDirectory, repository, DateTimeOffset.Now, true); Refresh();
-        status.Text = "三队原件、账号与期次引用已核对，未发现主刀自有角色重复。实际出刀数与补偿仍未知，开始任务仍只模拟当前队伍一局。";
+        status.Text = ThreeReviewed;
     }
     public void Reload()
     {
-        loadVersion++;
+        CancelPendingLoad();
         loaded = false;
         try
         {
@@ -109,7 +124,7 @@ public sealed class PcrClanDailyPlanView : UserControl
     }
     public Task LoadSlotAsync(int slot)
     {
-        var version = ++loadVersion; status.Text = "正在载入本刀…";
+        var version = BeginOperation(); status.Text = "正在载入本刀…";
         return pendingLoad = Complete();
         async Task Complete()
         {
@@ -128,7 +143,7 @@ public sealed class PcrClanDailyPlanView : UserControl
                 }).ConfigureAwait(false);
                 if (version != Volatile.Read(ref loadVersion)) return;
                 await Dispatcher.UIThread.InvokeAsync(() => loadCurrentAsync(result.value, result.guideHash, () => version == Volatile.Read(ref loadVersion)));
-                await Dispatcher.UIThread.InvokeAsync(() => { if (version == loadVersion) status.Text = $"已载入第 {slot} 刀，并保存为当前模拟队。开始任务仍只模拟这一队一局，不连打三刀。"; });
+                await Dispatcher.UIThread.InvokeAsync(() => { if (version == loadVersion) status.Text = $"已载入第 {slot} 刀，并保存为当前队伍。"; });
             }
             catch (Exception ex) { await Dispatcher.UIThread.InvokeAsync(() => { if (version == loadVersion) status.Text = "未完成：" + ex.Message; }); }
             finally { loadGate.Release(); }
@@ -144,7 +159,7 @@ public sealed class PcrClanDailyPlanView : UserControl
     private Task ChangeAsync(Action<PcrClanDailyPlanDocument> change, string message)
     {
         if (!loaded) { status.Text = "原预设尚未成功载入，禁止覆盖。请保留原文件并重读。"; return Task.CompletedTask; }
-        var version = ++loadVersion; status.Text = "正在核对并保存三刀预设…";
+        var version = BeginOperation(); status.Text = "正在核对并保存三刀预设…";
         return pendingLoad = Complete();
         async Task Complete()
         {
@@ -180,12 +195,35 @@ public sealed class PcrClanDailyPlanView : UserControl
             finally { loadGate.Release(); }
         }
     }
-    internal void CancelPendingLoad() => loadVersion++;
+    private int BeginOperation()
+    {
+        candidate = null;
+        candidateSummary.Text = "";
+        saveCandidate.IsEnabled = false;
+        return ++loadVersion;
+    }
+    internal void CancelPendingLoad() => BeginOperation();
+    public Task PreviewRecommendationAsync(int? lockedSlot)
+    {
+        if (!loaded) { status.Text = "请先成功读取三刀预设。"; return Task.CompletedTask; }
+        var guide = capture();
+        return ReadReviewAsync(true, false, guide, lockedSlot);
+    }
+    public Task SaveRecommendationAsync()
+    {
+        var proposed = candidate;
+        if (proposed == null) { status.Text = "请先点击“帮我配三刀”预览候选。"; return Task.CompletedTask; }
+        return ChangeAsync(value =>
+        {
+            _ = PcrClanDailyPlan.Review(proposed, guideStatePath, configDirectory, repository, DateTimeOffset.Now, true);
+            value.Slots = proposed.Slots;
+        }, "已保存三刀推荐草案。正式挑战仍需单独核对和授权。");
+    }
     public Task ReloadAsync() => ReadReviewAsync(false, true);
     public Task ReviewThreeAsync() => ReadReviewAsync(true, false);
-    private Task ReadReviewAsync(bool requireThree, bool readFile)
+    private Task ReadReviewAsync(bool requireThree, bool readFile, PcrClanGuideDocument? guide = null, int? lockedSlot = null)
     {
-        var version = ++loadVersion; status.Text = "正在核对三刀预设…";
+        var version = BeginOperation(); status.Text = guide == null ? "正在核对三刀预设…" : "正在从本期已核对的作业中配队…";
         return pendingLoad = Complete();
         async Task Complete()
         {
@@ -198,16 +236,29 @@ public sealed class PcrClanDailyPlanView : UserControl
                 var result = await Task.Run(() =>
                 {
                     var value = readFile ? PcrClanDailyPlan.Read(statePath, out expected) : state.current;
+                    if (guide != null)
+                    {
+                        if (PcrClanGuide.Stamp(statePath) != expected) throw new IOException("三刀预设已变化，请重新读取。");
+                        value = PcrClanDailyPlan.Recommend(value, guide, lockedSlot, guideStatePath, configDirectory, repository, DateTimeOffset.Now);
+                    }
                     var review = PcrClanDailyPlan.Review(value, guideStatePath, configDirectory, repository, DateTimeOffset.Now, requireThree);
                     return (value, review);
                 }).ConfigureAwait(false);
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (version != loadVersion) return;
+                    if (guide != null)
+                    {
+                        candidate = result.value;
+                        candidateSummary.Text = "推荐草案（待保存）" + Environment.NewLine + string.Join(Environment.NewLine, result.review.Slots);
+                        saveCandidate.IsEnabled = true;
+                        status.Text = "已找到三队。核对候选后点击“保存推荐草案”写入三刀预设。";
+                        return;
+                    }
                     document = result.value; loadedHash = expected; loaded = true;
                     for (var index = 0; index < 3; index++) slots[index].Text = result.review.Slots[index];
                     warnings.Text = string.Join(Environment.NewLine, result.review.Warnings);
-                    status.Text = requireThree ? "三队原件、账号与期次引用已核对，未发现主刀自有角色重复。实际出刀数与补偿仍未知，开始任务仍只模拟当前队伍一局。" : $"已读取 {document.Slots.Count}/3 个目标。可先保存部分预设，凑齐后核对完整三刀。";
+                    status.Text = requireThree ? ThreeReviewed : $"已读取 {document.Slots.Count}/3 个目标。可先保存部分预设，凑齐后核对完整三刀。";
                 });
             }
             catch (Exception ex) { await Dispatcher.UIThread.InvokeAsync(() => { if (version == loadVersion) { if (readFile) loaded = false; status.Text = "载入失败，原文件未改：" + ex.Message; } }); }

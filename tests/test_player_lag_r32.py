@@ -88,7 +88,8 @@ def test_wait_changes_never_raise_input_budgets_or_weaken_ocr():
  additions={
   'event.json':{'StoryEventNavigationInitial','StoryEventNavigationRetry','StoryEventRetryOpenQuests','EventCheckedEmpty','EventSingleAdventureCar','EventCountGlyph'},
   'abyss.json':{'AbyssResultStart','AbyssSweepSkipFinish','AbyssLevelUpDismiss','AbyssMaxExpDismiss'},
-  'alpha_entry.json':{'PCRAlphaSelectGuideTrial','PCRAlphaSelectClanBattleSimulation','PCRAlphaSelectClanBattleDaily'},
+  'alpha_entry.json':{'PCRAlphaSelectGuideTrial','PCRAlphaSelectClanBattleSimulation','PCRAlphaSelectClanBattleDaily',
+                      'PCRAlphaSelectSanctumSurvey','PCRAlphaSelectTempleSurvey','PCRAlphaSelectTowerCloister'},
   'preset_execution.json':{'ExecSweepSkipButton','ExecSweepAnimationRound','ExecSweepAnimationExp',
                            'ExecSweepAnimationPanel','ExecSweepSkipGuard','ExecSweepSkipFinish',
                            'ExecLevelUpTitle','ExecLevelUpBody','ExecLevelUpButton','ExecLevelUpDismiss',

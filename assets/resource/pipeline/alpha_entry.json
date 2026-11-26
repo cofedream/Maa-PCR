@@ -124,6 +124,36 @@
     "next": [],
     "on_error": []
   },
+  "PCRAlphaSelectSanctumSurvey": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectTempleSurvey": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
+  "PCRAlphaSelectTowerCloister": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "selected": false
+    },
+    "next": [],
+    "on_error": []
+  },
   "PCRAlphaSelectGuideTrial": {
     "enabled": false,
     "recognition": "DirectHit",

@@ -21,6 +21,15 @@ ENTRY = 'PCRAlphaEntry'
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT / '.runtime/daily-config.json'
 LOG_ROOT = ROOT / '.runtime/alpha-agent'
+_SELECTION_NODES = {
+    'schedule_onekey': 'Schedule', 'event': 'Event', 'abyss': 'Abyss', 'deep': 'Deep',
+    'rewards': 'Rewards', 'very_hard': 'VeryHard', 'hard': 'Hard', 'normal': 'Normal',
+    'guide_trial': 'GuideTrial', 'clan_battle_simulation': 'ClanBattleSimulation',
+    'clan_battle_daily': 'ClanBattleDaily', 'sanctum_survey': 'SanctumSurvey',
+    'temple_survey': 'TempleSurvey', 'tower_cloister': 'TowerCloister', 'rewards_final': 'RewardsFinal',
+}
+_OPTIONAL_SELECTIONS = {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily',
+                        'sanctum_survey', 'temple_survey', 'tower_cloister'}
 
 
 def parse_selection(raw, *, context=None):
@@ -44,14 +53,11 @@ def parse_selection(raw, *, context=None):
                 or set(value) not in ({'selection_mode'}, {'selection_mode', 'selected_modules'})):
             raise ValueError('invalid_pi_selection_mode')
         # Fixed PI data slots, never a caller-supplied registry or node path.
-        nodes = ('PCRAlphaSelectSchedule', 'PCRAlphaSelectEvent', 'PCRAlphaSelectAbyss', 'PCRAlphaSelectDeep',
-                 'PCRAlphaSelectRewards', 'PCRAlphaSelectVeryHard', 'PCRAlphaSelectHard',
-                 'PCRAlphaSelectNormal', 'PCRAlphaSelectGuideTrial', 'PCRAlphaSelectClanBattleSimulation', 'PCRAlphaSelectClanBattleDaily', 'PCRAlphaSelectRewardsFinal')
-        flags = []
-        for name in nodes:
-            node = context.get_node_data(name)
-            if name in ('PCRAlphaSelectAbyss', 'PCRAlphaSelectGuideTrial', 'PCRAlphaSelectClanBattleSimulation', 'PCRAlphaSelectClanBattleDaily') and node is None:
-                flags.append(False)  # Older bundles do not contain the new opt-in slot.
+        flags = {}
+        for module, suffix in _SELECTION_NODES.items():
+            node = context.get_node_data('PCRAlphaSelect' + suffix)
+            if node is None and (module in _OPTIONAL_SELECTIONS or module == 'abyss'):
+                flags[module] = False  # Older bundles do not contain the new opt-in slot.
                 continue
             if (type(node) is not dict or node.get('enabled') is not False
                     or node.get('action') != {'type': 'DoNothing', 'param': {}}
@@ -61,23 +67,22 @@ def parse_selection(raw, *, context=None):
             if (type(data) is not dict or set(data) != {'selected'}
                     or type(data['selected']) is not bool):
                 raise ValueError('invalid_pi_selection_data')
-            flags.append(data['selected'])
-        selected = [name for name, enabled in zip(supported_daily.MODULE_ORDER, flags[:-1]) if enabled]
+            flags[module] = data['selected']
+        selected = [name for name in supported_daily.MODULE_ORDER if flags[name]]
         if 'selected_modules' in value:
             if type(value['selected_modules']) is not list:
                 raise ValueError('invalid_pi_selection_order')
-            ordered = gui_contract.make_combination(value['selected_modules'], rewards_final=flags[-1])
+            ordered = gui_contract.make_combination(value['selected_modules'], rewards_final=flags['rewards_final'])
             if set(ordered['selected_modules']) != set(selected):
                 raise ValueError('pi_selection_order_mismatch')
             selected = ordered['selected_modules']
-        value = dict(version=1, selected_modules=selected, rewards_final=flags[-1])
+        value = dict(version=1, selected_modules=selected, rewards_final=flags['rewards_final'])
     if type(value) is dict and 'module_flags' in value:
         flags = value['module_flags']
+        required = set(supported_daily.MODULE_ORDER) - _OPTIONAL_SELECTIONS
         if (set(value) != {'version', 'module_flags', 'rewards_final'}
                 or type(flags) is not dict
-                or set(flags) - {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily'} not in (set(supported_daily.MODULE_ORDER) - {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily'},
-                    set(supported_daily.MODULE_ORDER) - {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily', 'abyss'},
-                    set(supported_daily.MODULE_ORDER) - {'guide_trial', 'clan_battle_simulation', 'clan_battle_daily', 'abyss', 'normal'})
+                or set(flags) - _OPTIONAL_SELECTIONS not in (required, required - {'abyss'}, required - {'abyss', 'normal'})
                 or any(type(enabled) is not bool for enabled in flags.values())):
             raise ValueError('invalid_module_flags')
         value = dict(version=value['version'],
@@ -115,6 +120,8 @@ class ExecutionContext:
     observation_source: object = None  # Trusted live callable, never saved/PI data.
     clan_consumption_consent: object = None
     owner_core_sha256: str | None = None
+    timing_owner_pid: int | None = None
+    timing_owner_log: str | None = None
 
 
 class AlphaEntry(CustomAction):
@@ -250,6 +257,9 @@ class AlphaEntry(CustomAction):
                             report = run_owned(facade, config, directory,
                                 consumption_consent=grant.clan_consumption_consent, owner_core_sha256=grant.owner_core_sha256)
                         else:
+                            if (type(getattr(grant, 'timing_owner_pid', None)) is int
+                                    and isinstance(getattr(grant, 'timing_owner_log', None), str)):
+                                facade.timing_owner = grant
                             report = supported_daily.execute_supported(facade, config,
                                 execute=grant.execute, game_day=grant.game_day, context=grant.count_context,
                                 directory=directory, source='Alpha Agent owner-bound invocation',

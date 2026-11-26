@@ -48,7 +48,7 @@ public sealed partial class PcrClanGuideView
             {
                 data.Snapshot = PcrClanGuide.Snapshot(value, configDirectory, repository, DateTimeOffset.Now, inputs, out var verifiedCatalog);
                 data.Catalog = verifiedCatalog;
-                data.AccountNote = $"账号 {data.Snapshot["account_id"]} · 采集于 {data.Snapshot["observed_at"]} · {((bool?)data.Snapshot["ownership_complete"] == true ? "完整持有名单" : "部分持有资料")}。资料有效期 24 小时。";
+                data.AccountNote = $"账号资料可用：{data.Snapshot["account_id"]} · 内容版本 {data.Snapshot["content_version"]} · {((bool?)data.Snapshot["ownership_complete"] == true ? "完整持有名单" : "部分持有资料")}。采集于 {data.Snapshot["observed_at"]}，有效期 24 小时。";
             }
             catch (Exception ex)
             {
@@ -224,7 +224,7 @@ public sealed partial class PcrClanGuideView
         }, data =>
         {
             loadedHash = data.StateStamp.Length == 0 ? null : data.StateStamp; bundle = data.Bundle; ApplyDisplay(data); SynchronizeSelection(); loaded = true;
-            status.Text = data.Confirmed ? "已载入本队确认。开始前仍会核对实际账号、BOSS 和模拟战入口。" : "已载入草稿；请选作业、核对五人和操作后一次保存。";
+            status.Text = data.Confirmed ? "已载入本队保存的核对。" : "已载入草稿；请选作业、核对五人和操作后一次保存。";
             execution = data.Execution!; executionHash = data.ExecutionStamp; executionLoaded = true; SetExecutionDisplay();
             _ = dailyPlan.ReloadAsync(); ExecutionModeChanged?.Invoke(this, EventArgs.Empty);
         }, "正在载入公会战资料…");
@@ -350,7 +350,7 @@ public sealed partial class PcrClanGuideView
                     if (savedHash != null) loadedHash = savedHash;
                     if (data == null || !isCurrent() || version != loadVersion) return;
                     bundle = data.Bundle; cacheNotice.Text = ""; ApplyDisplay(data); SynchronizeSelection(); loaded = true;
-                    status.Text = "已载入并保存本刀为当前模拟队；可见队伍、原文件和开始任务读取的队伍一致。一次开始仍只做一场模拟战。";
+                    status.Text = "已载入本刀并保存为当前编辑队伍。";
                 });
             }
             catch (Exception ex)

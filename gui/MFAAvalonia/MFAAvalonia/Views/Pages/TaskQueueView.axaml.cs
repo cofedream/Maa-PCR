@@ -180,7 +180,10 @@ public partial class TaskQueueView : UserControl
         if (_subscribedViewModel != null)
         {
             if (ReferenceEquals(_subscribedViewModel.PcrClanGuideConfirmation, _pcrClanGuideConfirmation))
+            {
                 _subscribedViewModel.PcrClanGuideConfirmation = null;
+                _subscribedViewModel.PcrClanStartHint = null;
+            }
             _subscribedViewModel.PropertyChanged -= OnTaskQueueViewModelPropertyChanged;
             _subscribedViewModel.SetOptionRequested -= OnSetOptionRequested;
             _subscribedViewModel.TaskItemViewModels.CollectionChanged -= OnTaskItemsCollectionChanged;
@@ -193,6 +196,7 @@ public partial class TaskQueueView : UserControl
             _pcrClanGuideConfirmation = () => ReferenceEquals(DataContext, newVm) && IsEffectivelyVisible && newVm.IsAgentProfile
                 ? _pcrClanGuide?.ExecutionConfirmationForStart : null;
             _subscribedViewModel.PcrClanGuideConfirmation = _pcrClanGuideConfirmation;
+            _subscribedViewModel.PcrClanStartHint = () => _pcrClanGuide?.StartHint;
             if (_pcrClanGuide != null) _pcrClanGuide.ExecutionModeChanged += OnPcrExecutionModeChanged;
             _subscribedViewModel.PropertyChanged += OnTaskQueueViewModelPropertyChanged;
             _subscribedViewModel.SetOptionRequested += OnSetOptionRequested;

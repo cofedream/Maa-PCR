@@ -96,13 +96,16 @@ public static partial class PcrAlphaOwner
                 p[node.Name] = combined;
             }
         }
-        string[] nodes = {"Schedule", "Event", "Abyss", "Deep", "Rewards", "VeryHard", "Hard", "Normal", "GuideTrial", "ClanBattleSimulation", "ClanBattleDaily", "RewardsFinal"};
-        string[] modules = {"schedule_onekey", "event", "abyss", "deep", "rewards", "very_hard", "hard", "normal", "guide_trial", "clan_battle_simulation", "clan_battle_daily"};
+        string[] nodes = {"Schedule", "Event", "Abyss", "Deep", "Rewards", "VeryHard", "Hard", "Normal", "GuideTrial", "ClanBattleSimulation", "ClanBattleDaily",
+            "SanctumSurvey", "TempleSurvey", "TowerCloister", "RewardsFinal"};
+        string[] modules = {"schedule_onekey", "event", "abyss", "deep", "rewards", "very_hard", "hard", "normal", "guide_trial", "clan_battle_simulation", "clan_battle_daily",
+            "sanctum_survey", "temple_survey", "tower_cloister"};
         var selected = new JArray(); bool final = false;
         for (int i = 0; i < nodes.Length; i++)
         {
             var token = p["PCRAlphaSelect" + nodes[i]]?["attach"]?["selected"];
-            if ((nodes[i] is "Abyss" or "GuideTrial" or "ClanBattleSimulation" or "ClanBattleDaily") && token == null) continue; // optional nodes absent from older snapshots
+            if ((nodes[i] is "Abyss" or "GuideTrial" or "ClanBattleSimulation" or "ClanBattleDaily" or "SanctumSurvey" or "TempleSurvey" or "TowerCloister")
+                && p["PCRAlphaSelect" + nodes[i]] == null) continue; // optional nodes absent from older snapshots
             if (token?.Type != JTokenType.Boolean) throw new InvalidOperationException("Invalid selection node");
             if (i == nodes.Length - 1) final = (bool)token;
             else if ((bool)token) selected.Add(modules[i]);

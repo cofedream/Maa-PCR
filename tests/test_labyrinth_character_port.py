@@ -71,6 +71,54 @@ def test_full_names_do_not_collapse_seasonal_variants_or_unknown():
     with pytest.raises(BatchStopped):resolve_character_name('未识别名称')
     with pytest.raises(BatchStopped):resolve_character_name('雪菲(夏日)额外文字')
 
+def test_name_index_tracks_catalog_replacement_and_profile_names(tmp_path, monkeypatch):
+    import os
+    from pcr_maa.labyrinth import character_recognition
+
+    monkeypatch.setattr(character_recognition, 'PACK', tmp_path)
+    path = tmp_path / 'characters.landosolroster.json'
+    people = [
+        {'id': '1183', 'name': 'Pair A', 'aliases': ['Combined', 'Collides']},
+        {'id': '1184', 'name': 'Pair B', 'aliases': ['Combined']},
+        {'id': '1001', 'name': 'Form A', 'aliases': ['Collides']},
+        {'id': '1000', 'name': 'Reserved'},
+    ]
+    path.write_text(json.dumps({'characters': people}), encoding='utf-8')
+    reads = []
+    original_read = Path.read_text
+
+    def counted_read(self, *args, **kwargs):
+        if self == path:
+            reads.append(self)
+        return original_read(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, 'read_text', counted_read)
+    prof = SimpleNamespace(data={'displayName': 'Rating Name'})
+    optimizer = SimpleNamespace(profiles={'1059': prof})
+    lookup = lambda name: resolve_character_name(name, optimizer=optimizer)
+    assert lookup('Combined') == '1807'
+    assert lookup('RatingName') == '1059'
+    for invalid in ('Collides', 'Reserved', 'unknown'):
+        with pytest.raises(BatchStopped, match='character_identity_unknown'):
+            lookup(invalid)
+
+    prof.data.update(personalScore=99, displayName='Form A')
+    for invalid in ('RatingName', 'FormA'):
+        with pytest.raises(BatchStopped, match='character_identity_unknown'):
+            lookup(invalid)
+    assert len(reads) == 1
+
+    # Atomic replacement can preserve the archive's file size and timestamp.
+    timestamp = path.stat().st_mtime_ns
+    people[2]['name'] = 'Form B'
+    replacement = tmp_path / 'replacement'
+    replacement.write_text(json.dumps({'characters': people}), encoding='utf-8')
+    os.utime(replacement, ns=(timestamp, timestamp))
+    replacement.replace(path)
+    assert lookup('FormA') == '1059'
+    assert lookup('FormB') == '1001'
+    assert len(reads) == 2
+
 def test_incomplete_facts_are_zero_none_not_whole_pool_veto():
     base=load_optimizer();tank=copy.deepcopy(base.profiles['1075'].data)
     tank.update(position=100,roleClass='掩护者',functions=dict(reliableVanguard=100,selfSustain=100))

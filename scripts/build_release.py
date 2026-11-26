@@ -24,10 +24,12 @@ sys.path.insert(0, str(ROOT / 'src'))
 from pcr_maa import player_maintenance as maintenance
 
 if __package__:
+    from .prepare_dev_native import copy_maa_native
     from .release_baselines import BASELINE_HASHES, RELEASE_REVISION, RELEASE_VERSION, check_release_baseline
     from .source_delivery import LOCAL_ONLY_FILES
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from prepare_dev_native import copy_maa_native
     from release_baselines import BASELINE_HASHES, RELEASE_REVISION, RELEASE_VERSION, check_release_baseline
     from source_delivery import LOCAL_ONLY_FILES
 
@@ -461,12 +463,7 @@ def build(args):
         'python' + version_digits + '.zip\n.\nLib/site-packages\n', encoding='utf-8')
     # Both owners load the same locked Maa native distribution, not an older GUI snapshot.
     native = player / 'runtimes/win-x64/native'
-    native.mkdir(parents=True, exist_ok=True)
-    for path in (site / 'maa/bin').rglob('*'):
-        if path.is_file():
-            destination = native / path.relative_to(site / 'maa/bin')
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, destination)
+    copy_maa_native(site / 'maa/bin', native)
     for path in crt_paths:
         shutil.copyfile(path, native / path.name)
         shutil.copyfile(path, player / 'runtime/python' / path.name)

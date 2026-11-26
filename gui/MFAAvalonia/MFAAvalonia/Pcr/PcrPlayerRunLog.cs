@@ -22,7 +22,9 @@ internal sealed class PcrPlayerRunLog
     private static readonly object Gate = new();
     private static readonly Regex Id = new("^[0-9a-f]{32}$");
     private static readonly Regex ImageName = new("^image-[0-9a-f]{32}\\.png$");
-    private static readonly HashSet<string> Active = new();
+    private static readonly HashSet<string> Active = new(StringComparer.OrdinalIgnoreCase);
+    // Only closed runs are cached. The worker can publish pictures before the GUI receives their events.
+    private static readonly Dictionary<string, long> ClosedRunBytes = new(StringComparer.OrdinalIgnoreCase);
     internal const int FeedbackNoteLimit = 2000;
     private DateTimeOffset? startedAt;
     private string? version;
@@ -109,7 +111,7 @@ internal sealed class PcrPlayerRunLog
             File.AppendAllText(path, $"[{DateTime.Now:HH:mm:ss}] {text}\n", new UTF8Encoding(false));
             Interlocked.Increment(ref revision);
             Tail(path, native ? 512 * 1024 : 2 * 1024 * 1024);
-            Trim();
+            Trim(append: true);
         }
     }
     internal void CaptureConnectionNativeLog(string root, DateTime startedAt, DateTime endedAt)
@@ -203,11 +205,27 @@ internal sealed class PcrPlayerRunLog
         || ImageName.IsMatch(Path.GetFileName(path));
     private IEnumerable<string> Files(string directory) => Directory.EnumerateFiles(directory)
         .Where(p => Owned(p) && PcrLogFiles.IsRegularPath(FeatureDirectory, p));
-    private void Trim()
+    private long SizeOfRuns(IEnumerable<string> runs) => runs.SelectMany(Files).Sum(p => new FileInfo(p).Length);
+
+    private void Trim(bool append = false)
     {
+        var feature = FeatureDirectory;
+        var active = Active.Where(p => string.Equals(Path.GetDirectoryName(p), feature, StringComparison.OrdinalIgnoreCase))
+            .Where(p => Directory.Exists(p) && PcrLogFiles.IsRegularPath(feature, p)).ToArray();
+        if (append && Active.Contains(DirectoryPath) && ClosedRunBytes.TryGetValue(feature, out var knownClosedBytes)
+            && knownClosedBytes + SizeOfRuns(active) <= Quota) return;
+
+        // Reconcile from disk at begin, finish, image receipt, export, or whenever the budget is exhausted.
+        ClosedRunBytes.Remove(feature);
         var runs = Directory.EnumerateDirectories(FeatureDirectory).Where(p => Id.IsMatch(Path.GetFileName(p))
             && PcrLogFiles.IsRegularPath(FeatureDirectory, p)).ToArray();
-        long total = runs.SelectMany(Files).Sum(p => new FileInfo(p).Length);
+        long closedBytes = SizeOfRuns(runs.Where(p => !Active.Contains(p)));
+        long total = closedBytes + SizeOfRuns(active);
+        if (total <= Quota)
+        {
+            if (active.Length > 0) ClosedRunBytes[feature] = closedBytes;
+            return;
+        }
         bool Failed(string directory)
         {
             try { return (string?)JObject.Parse(File.ReadAllText(Path.Combine(directory,"manifest.json")))["outcome"]

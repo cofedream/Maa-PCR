@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Globalization;
@@ -29,12 +30,22 @@ internal static class PcrLabyrinthOwner
     private static Run? current;
     internal static bool IsActive => Volatile.Read(ref current) != null;
     internal static TimeSpan? StartupWait(string? stage) => stage switch {
-        "validating" or "dependencies"=>TimeSpan.FromSeconds(30),
+        "validating" or "dependencies" or "adapters" or "local_cache"=>TimeSpan.FromSeconds(30),
+        "ledger"=>TimeSpan.FromSeconds(120),
+        // The optional ADB probe has its own 30-second budget. Once the local
+        // setting is being changed, allow the bounded commands and readback to finish.
+        "animation_probe"=>TimeSpan.FromSeconds(45), "animation_apply"=>TimeSpan.FromSeconds(240),
         "resources" or "ocr_warmup" or "ocr_ready"=>TimeSpan.FromSeconds(120), "connecting"=>TimeSpan.FromSeconds(45),
         "authenticating"=>TimeSpan.FromSeconds(200),
         "recovering" or "retiring"=>TimeSpan.FromSeconds(120),
         "ready" or "opening" or "handoff" or "playing" or "cleared" or "moving" or "team" or "battle" or "shop" or "reward"
             =>Timeout.InfiniteTimeSpan, _=>null };
+    private static string? StartupLabel(string? stage) => stage switch {
+        "validating"=>"校验黎明界配置", "dependencies"=>"加载黎明界执行组件",
+        "ledger"=>"核对黎明界账本", "adapters"=>"加载路线与战斗组件",
+        "animation_probe"=>"检查角色加入动画设置", "animation_apply"=>"更新并核对角色加入动画设置",
+        "local_cache"=>"初始化本地数据库与诊断记录", "resources"=>"加载本地识别资源",
+        "connecting"=>"连接所选设备", "ocr_warmup"=>"首次预热文字识别", _=>null };
     internal static void Stop(TaskQueueViewModel vm) {
         lock (PcrProfileRunGate.StartGate) {
             if (current?.ViewModel != vm) return;
@@ -199,11 +210,21 @@ internal static class PcrLabyrinthOwner
         }
         var released=false;
         var cancelled=false;
+        var startupTimedOut=false;
         var finished=false;
         var terminalOutcome="stopped";
         using var timeout=new CancellationTokenSource(TimeSpan.FromHours(24));
         using var startup=new CancellationTokenSource(TimeSpan.FromSeconds(30));
         using var cancel=CancellationTokenSource.CreateLinkedTokenSource(run.Cancel.Token,timeout.Token,startup.Token);
+        string? timedStage="validating";
+        var stageClock=Stopwatch.StartNew();
+        void TrackStartup(string? stage) {
+            if (stage==timedStage) return;
+            if (StartupLabel(timedStage) is { } previous)
+                Trace(vm,$"{previous}耗时 {stageClock.Elapsed.TotalSeconds:F1} 秒。");
+            timedStage=StartupLabel(stage) is null ? null : stage;
+            stageClock.Restart();
+        }
         try {
             var root=PcrAlphaOwner.Repository;
             PcrRuntimePaths.RequireUpdateComplete(AppContext.BaseDirectory,root);
@@ -233,6 +254,7 @@ internal static class PcrLabyrinthOwner
                 request["cpu_only"]=true;
                 request["webgpu"]=false;
                 lastStage="validating";
+                TrackStartup(lastStage);
                 startup.CancelAfter(StartupWait(lastStage)!.Value);
                 vm.LabyrinthSettings.Progress=reason+"，本次改用 CPU 重试。";
                 Trace(vm,vm.LabyrinthSettings.Progress);
@@ -270,11 +292,13 @@ internal static class PcrLabyrinthOwner
                     if (value.Properties().Count()!=2 || state is not ("paused" or "running"))
                         throw new InvalidOperationException("黎明界暂停状态无效，本次任务已停止。");
                     if (state=="paused") {
+                        stageClock.Stop();
                         resumeProgress=vm.LabyrinthSettings.Progress;
                         vm.LabyrinthSettings.IsPaused=true;
                         vm.LabyrinthSettings.Progress="已暂停，当前操作已完成记账。";
                         startup.CancelAfter(Timeout.InfiniteTimeSpan);
                     } else {
+                        stageClock.Start();
                         vm.LabyrinthSettings.IsPaused=false;
                         vm.LabyrinthSettings.Progress=resumeProgress;
                         startup.CancelAfter(StartupWait(lastStage) ?? TimeSpan.FromSeconds(30));
@@ -319,16 +343,15 @@ internal static class PcrLabyrinthOwner
                 }
                 if (kind=="progress") {
                     var stage=(string?)value["stage"];
+                    TrackStartup(stage);
                     lastStage=stage;
                     // The worker starts OCR warmup only after the ADB controller is connected and bound.
                     if (stage=="ocr_warmup") vm.IsLabyrinthDeviceConnected=true;
                     // Only a pre-login warmup crash may replay this request.
-                    if (stage is not ("validating" or "dependencies" or "resources" or "connecting" or "ocr_warmup"))
+                    if (StartupLabel(stage) is null)
                         request.Remove("credentials");
                     if (StartupWait(stage) is { } wait) startup.CancelAfter(wait);
                     vm.LabyrinthSettings.Progress=stage switch {
-                        "validating"=>"正在校验黎明界配置…", "dependencies"=>"正在加载黎明界执行组件…",
-                        "resources"=>"正在加载本地识别资源…", "connecting"=>"正在连接所选设备…",
                         "ocr_warmup"=>$"正在首次预热文字识别（{InferenceMode(request)}）…",
                         "ocr_ready"=>"首次文字识别预热完成。",
                         "authenticating"=>"正在登录协议账号并核对游戏玩家 ID…",
@@ -339,7 +362,9 @@ internal static class PcrLabyrinthOwner
                         "playing"=>"正在执行黎明界路线…", "cleared"=>"已确认本局通关。",
                         "moving"=>"正在移动到路线目标…", "team"=>"正在选择并核对队伍…",
                         "battle"=>"正在战斗并等待结果…", "shop"=>"正在处理商店…",
-                        "reward"=>"正在选择奖励…", _=>"正在校验运行状态…" };
+                        "reward"=>"正在选择奖励…",
+                        _ when StartupLabel(stage) is { } label=>$"正在{label}…",
+                        _=>"正在校验运行状态…" };
                     vm.LabyrinthSettings.Progress+=ProgressCount(value,request);
                     // One line per visible change keeps the panel readable.
                     if (vm.LabyrinthSettings.Progress!=lastLogged) {
@@ -371,14 +396,15 @@ internal static class PcrLabyrinthOwner
                 }
             }
         } catch (OperationCanceledException) {
+            TrackStartup(null);
             cancelled=true;
             vm.PcrCleanupPending=true;
-            var timedOut=startup.IsCancellationRequested && !run.Cancel.IsCancellationRequested;
+            startupTimedOut=startup.IsCancellationRequested && !run.Cancel.IsCancellationRequested;
             var waiting=vm.LabyrinthSettings.Progress.TrimEnd('…');
             vm.LabyrinthSettings.Progress="已请求停止；正在回收执行组件…";
             Trace(vm,vm.LabyrinthSettings.Progress);
-            vm.LabyrinthSettings.Status=timedOut ? waiting+"等待超时，本次已停止。" : "已停止本次任务。";
-            if (timedOut) vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
+            vm.LabyrinthSettings.Status=startupTimedOut ? waiting+"等待超时，本次已停止。" : "已停止本次任务。";
+            if (startupTimedOut) vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
             else Trace(vm,vm.LabyrinthSettings.Status);
             if (run.Child is { Exited: false }) {
                 try {
@@ -400,6 +426,7 @@ internal static class PcrLabyrinthOwner
             vm.ShowPcrStartError(feedbackRun,vm.LabyrinthSettings.Status);
         } finally {
             try {
+            TrackStartup(null);
             PcrCaptchaHost.Hide();
             vm.IsLabyrinthDeviceConnected=false;
             vm.PcrCleanupPending=true;
@@ -426,7 +453,8 @@ internal static class PcrLabyrinthOwner
             }
             vm.Processor.AddLog(vm.LabyrinthSettings.Status,(IBrush?)null);
             vm.PcrCleanupPending=false;
-            vm.FinishPlayerLog(released ? cancelled ? "stopped" : terminalOutcome : "cleanup_unconfirmed");
+            vm.FinishPlayerLog(!released ? "cleanup_unconfirmed" : startupTimedOut ? "startup_timeout"
+                : cancelled ? "stopped" : terminalOutcome);
             } finally { run.Completion.TrySetResult(); }
         }
         if (released && finished && !cancelled)

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 from types import SimpleNamespace
+from time import monotonic
 from urllib.parse import unquote
 from uuid import uuid4
 
@@ -45,6 +46,10 @@ STOP_RUNNING = 'running'
 STOP_QUERY_FAILED = 'query_failed'
 WRITE_WRITTEN = 'written'
 WRITE_FAILED = 'failed'
+
+
+class _ProbeTimeout(TimeoutError):
+    """The shared preflight budget expired before changing the client option."""
 
 
 def pref_path(package):
@@ -86,6 +91,8 @@ def _run(adb_path, serial, args, *, timeout=10.0, input=None):
 def _call(run, args, **kwargs):
     try:
         return run(args, **kwargs)
+    except _ProbeTimeout:
+        raise
     except Exception:
         # None is distinct from a completed command.  In particular, a timed-out
         # process query must never be mistaken for exit status 1 ("no process").
@@ -103,15 +110,17 @@ def _rooted(run):
 
 
 def _ensure_root(run, stopped):
+    if stopped():
+        return False
     if _rooted(run):
         return True
     if stopped():
         return False
     result = _call(run, ['root'], timeout=20)
-    if result.returncode != 0:
+    if result.returncode != 0 or stopped():
         return False
     _call(run, ['wait-for-device'], timeout=20)
-    return _rooted(run)
+    return not stopped() and _rooted(run)
 
 
 def _read(run, pref):
@@ -204,7 +213,7 @@ def _write(run, pref, new_xml, stopped):
 
 
 def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
-                         stopped=lambda: False, runner=None):
+                         stopped=lambda: False, runner=None, before_apply=lambda: None):
     """Try to turn the Labyrinth join animation off; never fail the task.
 
     The client is read first.  Root is only requested when the setting is
@@ -219,9 +228,25 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
         return 'adb_missing'
     run = ((lambda args, **kwargs: _run(adb_path, serial, args, **kwargs))
            if runner is None else runner)
+    deadline = monotonic() + 30
+
+    def probe(args, *, timeout):
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            raise _ProbeTimeout
+        try:
+            result = run(args, timeout=min(timeout, remaining))
+        except subprocess.TimeoutExpired:
+            if remaining <= timeout:
+                raise _ProbeTimeout from None
+            raise
+        if monotonic() >= deadline:
+            raise _ProbeTimeout
+        return result
+
     pref = pref_path(package)
     try:
-        xml = _read(run, pref)
+        xml = _read(probe, pref)
         if xml is not None:
             status = state(xml)
             if status == 'off':
@@ -230,18 +255,20 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
             if status != 'on':
                 log(UNKNOWN_HINT)
                 return 'unknown'
-            if not _ensure_root(run, stopped):
+            if not _ensure_root(probe, stopped):
                 if stopped():
                     return 'stopped'
                 log(ROOT_HINT)
                 return 'no_root'
         else:
-            if not _ensure_root(run, stopped):
+            if not _ensure_root(probe, stopped):
                 if stopped():
                     return 'stopped'
                 log(ROOT_HINT)
                 return 'no_root'
-            xml = _read(run, pref)
+            if stopped():
+                return 'stopped'
+            xml = _read(probe, pref)
             if xml is None:
                 log(UNKNOWN_HINT)
                 return 'unknown'
@@ -254,6 +281,7 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
                 return 'unknown'
         if stopped():
             return 'stopped'
+        before_apply()
         stop = _stop(run, package, stopped)
         if stop != STOP_STOPPED:
             if stopped():
@@ -284,6 +312,11 @@ def ensure_animation_off(adb_path, serial, package, *, log=lambda text: None,
             return 'stopped'
         log(WRITE_FAILED_HINT)
         return 'write_failed'
+    except _ProbeTimeout:
+        if stopped():
+            return 'stopped'
+        log('检查角色加入动画已用完 30 秒，跳过本地修改，任务继续。')
+        return 'probe_timeout'
     except Exception:
         log(ERROR_HINT)
         return 'error'

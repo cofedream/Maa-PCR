@@ -24,6 +24,33 @@ internal static class PcrFeedbackActions
     internal static Func<IStorageProvider,FilePickerSaveOptions,Task<IStorageFile?>> PickFile = (provider,options) => provider.SaveFilePickerAsync(options);
     internal static Func<string,Task>? CopyText = null;
     internal static Action<Window>? WindowOpened = null;
+
+    internal static async Task<string> SaveArchiveAsync(
+        IStorageFile target, byte[] archive, Func<string, Stream>? createTemporaryFile = null)
+    {
+        var path = target.TryGetLocalPath();
+        if (path == null || !Path.IsPathFullyQualified(path))
+            throw new IOException("此位置不支持安全保存日志包，请选择本机文件夹。");
+
+        var temporary = Path.Combine(Path.GetDirectoryName(path)!, $".maa-pcr-feedback-{Guid.NewGuid():N}.tmp");
+        var output = createTemporaryFile?.Invoke(temporary)
+            ?? new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536, useAsync: true);
+        try
+        {
+            await using (output)
+            {
+                await output.WriteAsync(archive).ConfigureAwait(false);
+                await output.FlushAsync().ConfigureAwait(false);
+            }
+            File.Move(temporary, path, overwrite: true);
+            return path;
+        }
+        catch
+        {
+            File.Delete(temporary);
+            throw;
+        }
+    }
 }
 
 public sealed class PcrLiveLogView : UserControl
@@ -134,9 +161,7 @@ public sealed class PcrLiveLogView : UserControl
                     SuggestedFileName = $"Maa-PCR-{log.Function}-{log.RunId[..8]}.zip", DefaultExtension = "zip" });
                 if (target == null) return false;
                 var (bytes, pictureCount, revision) = await Task.Run(() => log.Export(selected, explanation));
-                await using var output = await target.OpenWriteAsync();
-                output.SetLength(0); await output.WriteAsync(bytes); await output.FlushAsync();
-                savedPath = target.TryGetLocalPath();
+                savedPath = await PcrFeedbackActions.SaveArchiveAsync(target, bytes);
                 preparedPictures = selected;
                 preparedNotes = explanation;
                 preparedRevision = revision;

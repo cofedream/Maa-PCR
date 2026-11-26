@@ -951,7 +951,8 @@ public partial class RootView : SukiWindow
             _ = BringToForegroundAsync();
         }
 
-        if (string.IsNullOrWhiteSpace(command.InstanceSelector) && !command.AutoStart)
+        if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled ||
+            (string.IsNullOrWhiteSpace(command.InstanceSelector) && !command.AutoStart))
             return;
 
         var manager = MaaProcessorManager.Instance;

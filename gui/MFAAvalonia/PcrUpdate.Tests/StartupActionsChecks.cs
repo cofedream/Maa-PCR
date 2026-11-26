@@ -49,10 +49,10 @@ internal static class StartupActionsChecks
         (type ?? target!.GetType()).GetField(name, Hidden)!.SetValue(target, value);
     private static void New(object target, string name) => Set(target, name,
         Activator.CreateInstance(target.GetType().GetField(name, Hidden)!.FieldType, nonPublic: true));
-    private static void Complete(Task task)
+    private static void Complete(Task task, int timeoutSeconds = 15)
     {
         var timer = Stopwatch.StartNew();
-        while (!task.IsCompleted && timer.Elapsed < TimeSpan.FromSeconds(15))
+        while (!task.IsCompleted && timer.Elapsed < TimeSpan.FromSeconds(timeoutSeconds))
         {
             Dispatcher.UIThread.RunJobs();
             Thread.Sleep(2);
@@ -111,7 +111,8 @@ internal static class StartupActionsChecks
             RootStartsOnce(vm);
             Require(ownerStarts == 1, "restarted_root_reaches_fresh_owner_once");
             Require(config.GetValue(ConfigurationKeys.BeforeTask, "None") == "StartupSoftwareAndScript"
-                && config.GetValue(ConfigurationKeys.AfterTask, "None") == "CloseEmulatorAndMFA", "restart_keeps_both_actions");
+                && config.GetValue(ConfigurationKeys.AfterTask, "None") == "CloseEmulatorAndMFA",
+                "restart_keeps_both_actions:" + config.GetValue(ConfigurationKeys.BeforeTask, "") + "/" + config.GetValue(ConfigurationKeys.AfterTask, ""));
             Require(Effects(vm.Processor).SequenceEqual(["emulator", "application"]), "restarted_completion_dispatches_both_effects");
             CheckSettingsView(root);
             Console.WriteLine("RESTART_STARTUP_AND_COMPLETION_ACTIONS=passed");
@@ -218,7 +219,8 @@ internal static class StartupActionsChecks
         vm.Processor.InstanceConfiguration.SetValue(ConfigurationKeys.BeforeTask, "StartupScriptOnly");
         var before = ownerStarts;
         Complete(Start(vm));
-        Require(ownerStarts == ++before, "consumed_receipt_allows_start_before_global_read_failure");
+        Require(ownerStarts == ++before, "consumed_receipt_allows_start_before_global_read_failure:"
+            + vm.PcrStartError + " " + GlobalConfiguration.LastFileAccessErrorMessage);
         GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.TrueString);
         var saved = File.ReadAllBytes(GlobalConfiguration.ConfigPath);
         using (var locked = new FileStream(GlobalConfiguration.ConfigPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -393,6 +395,17 @@ internal static class StartupActionsChecks
     private static void CheckSettingsView(string root)
     {
         var model = new StartSettingsUserControlModel();
+        var saveFailures = new List<string>();
+        var profile = ConfigurationManager.CurrentInstance;
+        profile.PersistenceFailed += saveFailures.Add;
+        void CheckRestored(string stage)
+        {
+            var reopened = new InstanceConfiguration("pcr-alpha-v1");
+            var before = reopened.GetValue(ConfigurationKeys.BeforeTask, "");
+            var after = reopened.GetValue(ConfigurationKeys.AfterTask, "");
+            Require(before == "StartupSoftwareAndScript" && after == "CloseEmulatorAndMFA" && saveFailures.Count == 0,
+                $"restored_startup_settings_{stage}: disk={before}/{after}, view={model.BeforeTask}/{model.AfterTask}, errors={string.Join(" | ", saveFailures)}");
+        }
         var cache = (ConcurrentDictionary<Type, Lazy<object>>)typeof(Instances).GetField("ServiceCache", Hidden)!.GetValue(null)!;
         cache[typeof(StartSettingsUserControlModel)] = new Lazy<object>(() => model);
         var view = new StartSettingsUserControl { Background = Brushes.White };
@@ -414,13 +427,21 @@ internal static class StartupActionsChecks
             Require(edited.GetValue(ConfigurationKeys.BeforeTask, "None") == "StartupScriptOnly"
                 && edited.GetValue(ConfigurationKeys.AfterTask, "None") == "None", "real_settings_control_edits_are_persisted");
             boxes[0].SetCurrentValue(ComboBox.SelectedValueProperty, "StartupSoftwareAndScript");
-            boxes[1].SetCurrentValue(ComboBox.SelectedValueProperty, "CloseEmulatorAndMFA");
+            // A short-lived independent reader must not leave the control and the next launch out of sync.
+            using (var held = new FileStream(profile.GetConfigFilePath(), FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                var release = Task.Delay(50).ContinueWith(_ => held.Dispose(), TaskScheduler.Default);
+                boxes[1].SetCurrentValue(ComboBox.SelectedValueProperty, "CloseEmulatorAndMFA");
+                release.GetAwaiter().GetResult();
+            }
             Dispatcher.UIThread.RunJobs();
+            CheckRestored("edited");
             using var frame = new RenderTargetBitmap(new PixelSize(960, 720));
             frame.Render(view);
             frame.Save(Path.Combine(root, "restarted-start-settings.png"));
         }
-        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); profile.PersistenceFailed -= saveFailures.Add; }
+        CheckRestored("closed");
     }
 
     private static void CheckUpdateProxySettings(string root)
@@ -516,7 +537,10 @@ internal static class StartupActionsChecks
                 var connectionProgress = outcome is "complete" or "worker-no-result" or "controller_connection_failed"
                     ? "print(json.dumps({'kind':'progress','stage':'connecting'}),flush=True)\n" : "";
                 if (outcome == "complete")
-                    connectionProgress += "print(json.dumps({'kind':'progress','stage':'ocr_warmup'}),flush=True)\n";
+                    connectionProgress = "import time\n"
+                        + "for stage in ('dependencies','ledger','adapters','animation_probe','animation_apply','local_cache','resources','connecting','ocr_warmup'):\n"
+                        + "    print(json.dumps({'kind':'progress','stage':stage}),flush=True)\n"
+                        + "    if stage=='ledger': time.sleep(.25)\n";
                 File.WriteAllText(script, readRequest + connectionProgress + (outcome == "cancelled" ? "json.loads(sys.stdin.readline())\n" :
                     outcome == "worker-no-result" ? "import os,time\nprint(json.dumps({'kind':'progress','stage':'ocr_warmup'}),flush=True)\nos.close(1)\nos.close(2)\ntime.sleep(.25)\nsys.exit(37)\n" :
                     "print(" +
@@ -542,6 +566,7 @@ internal static class StartupActionsChecks
                         .GetMethod("RequestStartAsync", Hidden)!.Invoke(null, [vm])!;
                     if (outcome == "cancelled") vm.StopTask();
                     Complete(request);
+                    if (outcome == "complete") PlayerLogChecks.CheckLabyrinthStartupExport(vm, root, "complete");
                     if (outcome == "worker-no-result") PlayerLogChecks.CheckMissingResult(vm);
                     if (outcome is "complete" or "defeated" or "controller_connection_failed")
                         Require(helper.WaitForExit(3000), "labyrinth_completion_closes_only_owned_helper:" + outcome + ":" + vm.LabyrinthSettings.Status);
@@ -561,6 +586,8 @@ internal static class StartupActionsChecks
                     if (!helper.HasExited) { helper.Kill(true); helper.WaitForExit(3000); }
                 }
             }
+            CheckLabyrinthStartupInterrupt(vm, root, script, timedOut: false);
+            CheckLabyrinthStartupInterrupt(vm, root, script, timedOut: true);
             CheckWarmupFallback(vm, root, script);
             // Reproduce a database log arriving while the human captcha layer is open.
             var overlay = new PcrCaptchaOverlay { IsVisible = true };
@@ -594,6 +621,42 @@ internal static class StartupActionsChecks
         finally { processField.SetValue(null, previous); }
     }
 
+    private static void CheckLabyrinthStartupInterrupt(TaskQueueViewModel vm, string root, string script, bool timedOut)
+    {
+        var marker = Path.Combine(root, $"animation-probe-{(timedOut ? "timeout" : "stop")}-{Guid.NewGuid():N}.txt");
+        File.WriteAllText(script, $$"""
+            import json, pathlib, sys
+            json.loads(sys.stdin.readline())
+            print(json.dumps({'kind':'progress','stage':'animation_probe'}), flush=True)
+            if json.loads(sys.stdin.readline()) == {'kind':'stop'}:
+                pathlib.Path({{System.Text.Json.JsonSerializer.Serialize(marker)}}).write_text('stopped')
+            """);
+        var pending = (Task)typeof(PcrAlphaOwner).Assembly.GetType("MFAAvalonia.Pcr.PcrLabyrinthOwner", true)!
+            .GetMethod("RequestStartAsync", Hidden)!.Invoke(null, [vm])!;
+        try
+        {
+            var timer = Stopwatch.StartNew();
+            while (!pending.IsCompleted && !vm.LabyrinthSettings.Progress.Contains("检查角色加入动画设置")
+                && timer.Elapsed < TimeSpan.FromSeconds(15))
+            {
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(2);
+            }
+            Require(vm.IsRunning && !vm.CanEditPcrTarget && vm.LabyrinthSettings.Progress.Contains("检查角色加入动画设置"),
+                "animation_probe_in_progress");
+            if (!timedOut) vm.StopTask();
+            // Exercise the real GUI watchdog and child shutdown on a silent probe.
+            Complete(pending, timedOut ? 65 : 15);
+        }
+        finally
+        {
+            if (!pending.IsCompleted) { vm.StopTask(); Complete(pending); }
+        }
+        Require(File.ReadAllText(marker) == "stopped" && !vm.IsRunning && vm.CanEditPcrTarget,
+            "animation_probe_worker_stopped_and_target_released");
+        PlayerLogChecks.CheckLabyrinthStartupExport(vm, root, timedOut ? "startup_timeout" : "stopped");
+    }
+
     private static void CheckWarmupFallback(TaskQueueViewModel vm, string root, string script)
     {
         foreach (var (scenario, stage, initialCpu, webgpu, secondFailure, code, expected) in new[] {
@@ -620,6 +683,8 @@ internal static class StartupActionsChecks
                 assert not (cpu and webgpu)
                 with open({{System.Text.Json.JsonSerializer.Serialize(marker)}}, 'a') as stream:
                     print('cpu' if cpu else 'webgpu' if webgpu else 'auto', file=stream)
+                for step in ('ledger', 'adapters', 'animation_probe', 'local_cache'):
+                    print(json.dumps({'kind':'progress','stage':step}), flush=True)
                 print(json.dumps({'kind':'progress','stage':'{{stage}}'}), flush=True)
                 if not cpu or {{(secondFailure ? "True" : "False")}}:
                     if {{code}} == 0:

@@ -123,6 +123,27 @@ def test_client_flush_before_exit_keeps_other_preferences():
     assert adb.xml == setting.rewrite_off(flushed)
 
 
+def test_slow_animation_probe_stops_at_shared_budget_before_applying(monkeypatch):
+    from pcr_maa.labyrinth.animation_ui import needs_ui_fallback
+    elapsed = 0
+    calls = []
+    logs = []
+    monkeypatch.setattr(setting, 'monotonic', lambda: elapsed)
+
+    def slow(args, *, timeout):
+        nonlocal elapsed
+        calls.append((args[:2], timeout))
+        elapsed += timeout
+        raise TimeoutExpired(args, timeout)
+
+    result = setting.ensure_animation_off('unused', 'serial', PKG, log=logs.append, runner=slow,
+        before_apply=lambda: calls.append(('unexpected mutation', 0)))
+    assert calls == [(['exec-out', 'cat'], 20), (['shell', 'id'], 10)]
+    assert elapsed == 30 and result == 'probe_timeout'
+    assert needs_ui_fallback(result)
+    assert len(logs) == 1 and '任务继续' in logs[0]
+
+
 def test_animation_already_off_after_exit_skips_write():
     adb = Adb(root=True)
 
@@ -317,6 +338,16 @@ def test_stopped_owner_returns_before_any_adb_call():
     assert setting.ensure_animation_off('C:/adb.exe', 'serial', PKG,
         stopped=lambda: True, runner=adb) == 'stopped'
     assert adb.calls == []
+
+
+def test_stop_during_initial_read_does_not_start_another_adb_command():
+    calls = []
+    def read_then_stop(args, *, timeout):
+        calls.append(args[:2])
+        return NS(returncode=1, stdout='', stderr='')
+    assert setting.ensure_animation_off('unused', 'serial', PKG,
+        stopped=lambda: bool(calls), runner=read_then_stop) == 'stopped'
+    assert calls == [['exec-out', 'cat']]
 
 
 def test_missing_adb_is_silent_and_touches_nothing(tmp_path):

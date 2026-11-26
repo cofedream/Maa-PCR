@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Helper;
 using Newtonsoft.Json.Linq;
@@ -23,7 +26,9 @@ internal static class PersistenceRecoveryChecks
         try
         {
             InstanceChecks(root);
+            InstanceConcurrencyChecks.Run(root);
             StartupSettingsChecks();
+            CheckConcurrentGlobalReads(root);
             GlobalChecks(root);
             Console.WriteLine("PCR configuration recovery checks passed: locked/malformed reads, reload, atomic failure, retained credentials/settings/records; game inputs=0");
         }
@@ -120,6 +125,65 @@ internal static class PersistenceRecoveryChecks
             && MFAAvalonia.Pcr.PcrAlphaPolicy.Value(ConfigurationKeys.GlobalStartEnabled) == bool.FalseString,
             "startup_execution_policy_changed");
         Console.WriteLine("PCR startup settings checks passed: every action survives reopening in all three profiles; game inputs=0");
+    }
+
+    internal static void RunGlobalSettingsPeer(string root)
+    {
+        const BindingFlags fields = BindingFlags.Static | BindingFlags.NonPublic;
+        typeof(AppPaths).GetField("_configDirectory", fields)!.SetValue(null, Path.Combine(root, "config"));
+        typeof(AppPaths).GetField("_initialized", fields)!.SetValue(null, true);
+        Console.WriteLine("ready");
+        Require(Console.ReadLine() == "go", "global_settings_peer_not_released");
+        for (var i = 0; i < 100; i++)
+        {
+            Require(GlobalConfiguration.GetValue("keep") == "unchanged", "peer_lost_global_config");
+            GlobalConfiguration.SetValue("peer", i.ToString());
+        }
+        Require(!GlobalConfiguration.HasFileAccessError, "peer_global_error:" + GlobalConfiguration.LastFileAccessErrorMessage);
+    }
+
+    private static void CheckConcurrentGlobalReads(string root)
+    {
+        const string key = "PcrUseWebGpu";
+        Require(GlobalConfiguration.GetValue("keep", "default") == "default" && !File.Exists(GlobalConfiguration.ConfigPath)
+            && !GlobalConfiguration.HasFileAccessError, "first_global_read_should_only_return_defaults");
+        GlobalConfiguration.SetValue("keep", "unchanged");
+        GlobalConfiguration.SetValue(key, "False");
+        var info = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        if (string.Equals(Path.GetFileNameWithoutExtension(info.FileName), "dotnet", StringComparison.OrdinalIgnoreCase))
+            info.ArgumentList.Add(typeof(PersistenceRecoveryChecks).Assembly.Location);
+        info.ArgumentList.Add(root);
+        info.ArgumentList.Add("--global-settings-peer");
+        using var peer = Process.Start(info)!;
+        Require(peer.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult() == "ready",
+            "global_settings_peer_not_ready");
+        using var barrier = new Barrier(5);
+        var readers = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+        {
+            barrier.SignalAndWait();
+            for (var i = 0; i < 100; i++)
+                Require(GlobalConfiguration.GetValue("keep") == "unchanged", "reader_lost_global_config");
+        })).ToArray();
+        peer.StandardInput.WriteLine("go");
+        peer.StandardInput.Close();
+        barrier.SignalAndWait();
+        for (var i = 0; i < 100; i++)
+            GlobalConfiguration.SetValue(key, (i % 2 == 0).ToString());
+        Task.WaitAll(readers);
+        if (!peer.WaitForExit(15000)) { peer.Kill(true); throw new TimeoutException("global_settings_peer_timeout"); }
+        Require(peer.ExitCode == 0 && GlobalConfiguration.GetValue("peer") == "99",
+            "concurrent_peer_lost_global_changes:" + peer.StandardError.ReadToEnd());
+        Require(!GlobalConfiguration.HasFileAccessError, "parallel_global_read_blocks_replace:" + GlobalConfiguration.LastFileAccessErrorMessage);
+
+        // Keep a snapshot handle open over replacement, as a separate launching process can.
+        var open = typeof(JsonHelper).GetMethod("OpenReadSnapshot", BindingFlags.Static | BindingFlags.NonPublic)!;
+        using var snapshot = (Stream)open.Invoke(null, [GlobalConfiguration.ConfigPath])!;
+        GlobalConfiguration.SetValue(key, "True");
+        using var reader = new StreamReader(snapshot);
+        Require((string?)JObject.Parse(reader.ReadToEnd())[key] == "False"
+            && GlobalConfiguration.GetValue(key) == "True" && !GlobalConfiguration.HasFileAccessError,
+            "open_reader_keeps_old_snapshot_while_new_global_value_is_published");
     }
 
     internal static void GlobalChecks(string root)

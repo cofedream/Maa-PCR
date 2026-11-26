@@ -34,7 +34,7 @@ RECOGNITIONS = frozenset({
     'ActivityEntryAbsent', 'ActivityHomePage', 'ActivityEventEntry', 'StoryEventNavigation',
     'AbyssHomePage', 'AbyssOpenPage', 'AbyssQuotePage', 'AbyssConfirmedQuote',
     'AbyssResultPage',
-    'AbyssTicketPage',
+    'AbyssTicketPage', 'OptionalSweepPage',
     # Historical routes stay compatible; GUI labyrinth uses a separate Owner.
     'LabyrinthCharacters', 'LabyrinthScene', 'LabyrinthShop', 'LabyrinthEvent',
     'LabyrinthAutoplayTarget', 'LabyRelicSelectedIconCapture',

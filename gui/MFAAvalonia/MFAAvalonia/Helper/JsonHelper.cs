@@ -1,14 +1,49 @@
-﻿using Avalonia.Threading;
+using Avalonia.Threading;
 using MFAAvalonia.Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
+using System.Threading;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MFAAvalonia.Helper;
 
 public static class JsonHelper
 {
+    // ReplaceFile on Windows can briefly hide the destination name. Serialize opening
+    // the snapshot and the entire read-modify-replace operation across GUI processes.
+    internal sealed class FileAccessScope : IDisposable
+    {
+        private readonly Mutex _mutex;
+
+        internal FileAccessScope(string path)
+        {
+            var fullPath = Path.GetFullPath(path);
+            if (OperatingSystem.IsWindows()) fullPath = fullPath.ToUpperInvariant();
+            var id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fullPath)));
+            _mutex = new Mutex(false, "MFAAvalonia.ConfigFile." + id, new NamedWaitHandleOptions { CurrentUserOnly = true });
+            try
+            {
+                if (_mutex.WaitOne(TimeSpan.FromSeconds(3))) return;
+                _mutex.Dispose();
+                throw new IOException("等待其他进程读写配置文件超时，请稍后重试。");
+            }
+            catch (AbandonedMutexException) { } // The previous owner exited; this thread now owns it.
+        }
+
+        public void Dispose()
+        {
+            _mutex.ReleaseMutex();
+            _mutex.Dispose();
+        }
+    }
+
+    // A reader keeps the previous snapshot when another process atomically replaces it.
+    internal static FileStream OpenReadSnapshot(string path) =>
+        new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
     // 加载JSON配置（自动处理线程问题，Newtonsoft.Json 反序列化到实体类时会自动忽略注释）
     public static T LoadJson<T>(string filePath, T defaultValue = default, params JsonConverter[] converters)
     {
@@ -64,17 +99,19 @@ public static class JsonHelper
     // The legacy SaveJson API above keeps its best-effort behavior for MFA callers.
     public static void SaveJsonAtomicallyOrThrow<T>(string filePath, T config, params JsonConverter[] converters)
     {
-        string json;
+        SaveJsonTextAtomicallyOrThrow(filePath, SerializeForAtomicSave(config, converters));
+    }
+
+    internal static string SerializeForAtomicSave<T>(T config, params JsonConverter[] converters)
+    {
         try
         {
-            json = TrySerialize(config, converters);
+            return TrySerialize(config, converters);
         }
         catch (Exception ex) when (IsThreadAccessException(ex))
         {
-            json = DispatcherHelper.RunOnMainThread(() => TrySerialize(config, converters));
+            return DispatcherHelper.RunOnMainThread(() => TrySerialize(config, converters));
         }
-
-        SaveJsonTextAtomicallyOrThrow(filePath, json);
     }
 
     internal static void SaveJsonTextAtomicallyOrThrow(string filePath, string json)
@@ -86,10 +123,23 @@ public static class JsonHelper
         try
         {
             File.WriteAllText(temporary, json);
-            if (File.Exists(destination))
-                File.Replace(temporary, destination, null);
-            else
-                File.Move(temporary, destination);
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    if (File.Exists(destination))
+                        File.Replace(temporary, destination, null);
+                    else
+                        File.Move(temporary, destination);
+                    break;
+                }
+                catch (IOException ex) when (OperatingSystem.IsWindows()
+                    && (ex.HResult & 0xffff) is 32 or 33 && attempt < 4)
+                {
+                    // Another process can briefly open the published file without delete sharing.
+                    Thread.Sleep(25 * (attempt + 1));
+                }
+            }
         }
         finally
         {

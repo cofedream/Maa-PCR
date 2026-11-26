@@ -26,6 +26,7 @@ public sealed class PcrClanGuideDocument
 }
 public sealed class PcrClanGuideSavedJob
 {
+    public string? BundlePath { get; set; }
     public JObject Job { get; set; } = new();
     public string SnapshotPath { get; set; } = "";
     public string SnapshotSha256 { get; set; } = "";
@@ -344,7 +345,7 @@ public static class PcrClanGuide
         using var gate = new FileStream(path + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         if (Stamp(path) != expectedHash) throw new IOException("作业已被其他窗口修改，请重开后核对；原文件未覆盖。");
         if (!string.IsNullOrEmpty(document.SelectedJobId) && document.BundleSha256.Length == 64)
-            document.SavedJobs[document.BundleSha256 + ":" + document.SelectedJobId] = new() { Job = Material(document.Job), ConfirmedFor = document.ConfirmedFor, SnapshotPath = document.SnapshotPath, SnapshotSha256 = document.SnapshotSha256 };
+            document.SavedJobs[document.BundleSha256 + ":" + document.SelectedJobId] = new() { BundlePath = document.BundlePath, Job = Material(document.Job), ConfirmedFor = document.ConfirmedFor, SnapshotPath = document.SnapshotPath, SnapshotSha256 = document.SnapshotSha256 };
         var saved = JObject.FromObject(document); saved["Job"] = Material(document.Job);
         var json = saved.ToString(Formatting.Indented); JsonHelper.SaveJsonTextAtomicallyOrThrow(path, json);
         return Hash(Encoding.UTF8.GetBytes(json));

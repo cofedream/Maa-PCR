@@ -11,7 +11,9 @@ namespace MFAAvalonia.Configuration;
 public sealed class InstanceConfiguration
 {
     private readonly string _instanceId;
-    private Dictionary<string, object> _config;
+    private volatile Dictionary<string, object> _config;
+    private readonly object _editLock = new();
+    private readonly HashSet<string> _dirtyKeys = new();
     private volatile bool _isDeleted;
 
     internal static string InstancesDir => AppPaths.InstancesDirectory;
@@ -39,6 +41,12 @@ public sealed class InstanceConfiguration
     /// </summary>
     private Dictionary<string, object> LoadInstanceConfig()
     {
+        var path = GetConfigFilePath();
+        if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled)
+        {
+            using var access = new JsonHelper.FileAccessScope(path);
+            return ReadDocument(path).ToObject<Dictionary<string, object>>()!;
+        }
         try
         {
             // Only an absent profile is empty. An unreadable profile must never
@@ -55,36 +63,115 @@ public sealed class InstanceConfiguration
     /// </summary>
     public event Action<string>? PersistenceFailed;
 
-    private void SaveInstanceConfig()
+    private static JObject ReadDocument(string path)
     {
-        if (_isDeleted) return;
-
-        if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled)
+        try
         {
-            try
+            using var stream = JsonHelper.OpenReadSnapshot(path);
+            using var reader = new StreamReader(stream);
+            // Keep unrecognized settings, including date-shaped strings, as stored.
+            using var json = new JsonTextReader(reader) { DateParseHandling = DateParseHandling.None };
+            var document = JObject.Load(json);
+            while (json.Read())
+                if (json.TokenType != JsonToken.Comment) throw new JsonReaderException("实例配置包含多余内容。");
+            return document;
+        }
+        catch (FileNotFoundException) { return new JObject(); }
+        catch (DirectoryNotFoundException) { return new JObject(); }
+    }
+
+    private void ChangeValues(Dictionary<string, object> values, string? removedKey = null)
+    {
+        lock (_editLock)
+        {
+            if (_isDeleted) return;
+            var candidate = new Dictionary<string, object>(_config);
+            foreach (var (key, value) in values) candidate[key] = value;
+            if (removedKey != null)
             {
-                JsonHelper.SaveJsonAtomicallyOrThrow(GetConfigFilePath(), _config,
-                    new MaaInterfaceSelectAdvancedConverter(false),
-                    new MaaInterfaceSelectOptionConverter(false));
+                var removed = candidate.Remove(removedKey);
+                if (!removed && !MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled) return;
             }
-            catch (Exception ex)
+            _config = candidate;
+            if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled)
             {
-                // Native task/option edits remain a draft in memory. Surface
-                // the failure without crashing a checkbox event or claiming save.
-                LoggerHelper.Error($"PCR 配置保存失败：{ex.Message}");
-                PersistenceFailed?.Invoke(ex.Message);
+                _dirtyKeys.UnionWith(values.Keys);
+                if (removedKey != null) _dirtyKeys.Add(removedKey);
             }
+        }
+
+        if (!MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled)
+        {
+            JsonHelper.SaveJson(GetConfigFilePath(), _config,
+                new MaaInterfaceSelectAdvancedConverter(false), new MaaInterfaceSelectOptionConverter(false));
             return;
         }
 
-        if (!Directory.Exists(InstancesDir))
-            Directory.CreateDirectory(InstancesDir);
+        try { PersistChanges(); }
+        catch (Exception ex)
+        {
+            // A failed ordinary edit stays in memory and is retried on the next save.
+            LoggerHelper.Error($"PCR 配置保存失败：{ex.Message}");
+            PersistenceFailed?.Invoke(ex.Message);
+        }
+    }
 
-        JsonHelper.SaveJson(
-            GetConfigFilePath(),
-            _config,
-            new MaaInterfaceSelectAdvancedConverter(false),
-            new MaaInterfaceSelectOptionConverter(false));
+    private void PersistChanges(string? strictKey = null, object? strictValue = null)
+    {
+        while (true)
+        {
+            Dictionary<string, object> original;
+            Dictionary<string, object> changes = new();
+            HashSet<string> keys;
+            lock (_editLock)
+            {
+                if (_isDeleted)
+                {
+                    if (strictKey != null) throw new InvalidOperationException("实例配置已删除");
+                    return;
+                }
+                original = _config;
+                keys = new HashSet<string>(_dirtyKeys);
+                foreach (var key in keys)
+                    if (original.TryGetValue(key, out var value)) changes.Add(key, value);
+                if (strictKey != null)
+                {
+                    keys.Add(strictKey);
+                    changes[strictKey] = strictValue!;
+                }
+                if (keys.Count == 0) return;
+            }
+
+            // Native option values can require the UI dispatcher to serialize.
+            // No state or file lock may be held while waiting for that dispatcher.
+            var patch = JsonHelper.SerializeForAtomicSave(changes,
+                new MaaInterfaceSelectAdvancedConverter(false), new MaaInterfaceSelectOptionConverter(false));
+            using var patchReader = new JsonTextReader(new StringReader(patch)) { DateParseHandling = DateParseHandling.None };
+            var fields = JObject.Load(patchReader);
+            lock (_editLock)
+            {
+                if (!ReferenceEquals(original, _config) || _isDeleted) continue;
+                var path = GetConfigFilePath();
+                using var access = new JsonHelper.FileAccessScope(path);
+                var document = ReadDocument(path);
+                bool changed = false;
+                foreach (var key in keys)
+                {
+                    if (fields.TryGetValue(key, out var token))
+                    {
+                        document[key] = token;
+                        changed = true;
+                    }
+                    else changed |= document.Remove(key);
+                }
+                if (changed) JsonHelper.SaveJsonTextAtomicallyOrThrow(path, document.ToString(Formatting.Indented));
+                var committed = new Dictionary<string, object>(original);
+                if (strictKey != null) committed[strictKey] = strictValue!;
+                _config = committed;
+                _dirtyKeys.Clear();
+                return;
+            }
+        }
     }
 
     private MFAConfiguration GlobalConfig => ConfigurationManager.Current;
@@ -114,8 +201,7 @@ public sealed class InstanceConfiguration
     public void SetValue(string key, object? value)
     {
         if (value == null || _isDeleted) return;
-        _config[key] = value;
-        SaveInstanceConfig();
+        ChangeValues(new Dictionary<string, object> { [key] = value });
     }
 
     /// <summary>Persist a candidate before exposing it to in-memory reads.</summary>
@@ -123,6 +209,11 @@ public sealed class InstanceConfiguration
     {
         if (_isDeleted) throw new InvalidOperationException("实例配置已删除");
         ArgumentNullException.ThrowIfNull(value);
+        if (MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled)
+        {
+            PersistChanges(key, value);
+            return;
+        }
         var candidate = new Dictionary<string, object>(_config) { [key] = value };
         JsonHelper.SaveJsonAtomicallyOrThrow(
             GetConfigFilePath(), candidate,
@@ -134,8 +225,7 @@ public sealed class InstanceConfiguration
     public void RemoveValue(string key)
     {
         if (_isDeleted) return;
-        if (!_config.Remove(key)) return;
-        SaveInstanceConfig();
+        ChangeValues(new Dictionary<string, object>(), key);
     }
 
     public T GetValue<T>(string key, T defaultValue)
@@ -378,11 +468,15 @@ public sealed class InstanceConfiguration
     public static string ReadValueFromFile(string instanceId, string key, string defaultValue = "")
     {
         var filePath = Path.Combine(InstancesDir, $"{instanceId}.json");
-        if (!File.Exists(filePath)) return defaultValue;
+        var pcr = MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled;
+        if (!pcr && !File.Exists(filePath)) return defaultValue;
 
         try
         {
-            var data = JsonHelper.LoadJson(filePath, new Dictionary<string, object>());
+            using var access = pcr ? new JsonHelper.FileAccessScope(filePath) : null;
+            var data = pcr
+                ? ReadDocument(filePath).ToObject<Dictionary<string, object>>()!
+                : JsonHelper.LoadJson(filePath, new Dictionary<string, object>());
             if (data.TryGetValue(key, out var value))
             {
                 if (value is string str)
@@ -408,7 +502,11 @@ public sealed class InstanceConfiguration
     /// </summary>
     public void ReloadFromDisk()
     {
-        _config = LoadInstanceConfig();
+        lock (_editLock)
+        {
+            _config = LoadInstanceConfig();
+            _dirtyKeys.Clear();
+        }
     }
 
     /// <summary>
@@ -435,11 +533,7 @@ public sealed class InstanceConfiguration
     /// </summary>
     public void SetValues(Dictionary<string, object> values)
     {
-        foreach (var kvp in values)
-        {
-            _config[kvp.Key] = kvp.Value;
-        }
-        SaveInstanceConfig();
+        ChangeValues(values);
     }
 
     /// <summary>
@@ -447,10 +541,13 @@ public sealed class InstanceConfiguration
     /// </summary>
     public void DeleteConfigFile()
     {
-        _isDeleted = true;
-        var filePath = GetConfigFilePath();
-        if (File.Exists(filePath))
-            File.Delete(filePath);
+        lock (_editLock)
+        {
+            _isDeleted = true;
+            var filePath = GetConfigFilePath();
+            using var access = MFAAvalonia.Pcr.PcrAlphaPolicy.Enabled ? new JsonHelper.FileAccessScope(filePath) : null;
+            if (File.Exists(filePath)) File.Delete(filePath);
+        }
     }
 
     /// <summary>

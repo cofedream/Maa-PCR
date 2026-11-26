@@ -73,6 +73,24 @@ def test_explicit_run_ignores_other_latest_entry(diagnostic_case):
     assert result['run_id'] == diagnostic_case[1] and document['error'] is None
 
 
+def test_diagnostics_from_bounded_summary_with_large_event_receipt(diagnostic_case):
+    from pcr_maa import supported_daily
+    path = diagnostic_case[2]
+    report = dict(control_version=1, run_id=diagnostic_case[1], daily_complete=False,
+                  supported_chain_complete=False, selection_version=1, selected_modules=['event'],
+                  rewards_final=False, event_targets=['current'], game_day='2026-11-26',
+                  started_at=1, finished_at=2, outcome='stopped', steps=[
+                      dict(name='event_current', status='stopped', started_at=1, finished_at=2,
+                           result=dict(event_target='current', error='quote_unknown: DEVICE-SECRET',
+                                       detail='x' * (maintenance.MAX_JSON + 1)))])
+    supported_daily._atomic_json(path, report)
+    supported_daily._atomic_json(path.with_name('control-final.json'), supported_daily._report_projection(report))
+    for options in ({}, {'run_id': diagnostic_case[1]}):
+        _, document, text = exported(diagnostic_case, **options)
+        assert document['steps'] == [dict(name='event_current', status='stopped', error='quote_unknown')]
+        assert document['outcome'] == 'stopped' and 'SECRET' not in text
+
+
 def test_no_runs_exports_version_without_scanning_private_runtime(diagnostic_case):
     diagnostic_case[2].unlink()
     diagnostic_case[3].unlink()
@@ -101,6 +119,19 @@ def test_existing_output_is_never_overwritten(diagnostic_case, tmp_path):
     with pytest.raises(ValueError, match='diagnostic_output_exists'):
         maintenance.export_diagnostics(diagnostic_case[0], output=output)
     assert output.read_bytes() == b'preserve existing file'
+
+
+def test_selected_surveys_and_cloister_export_only_allowed_fields(diagnostic_case):
+    ids = ['sanctum_survey', 'temple_survey', 'tower_cloister']
+    path = diagnostic_case[2]
+    report = json.loads(path.read_text(encoding='utf-8'))
+    report.update(selected_modules=ids, steps=[dict(name=name, status='skipped_not_cleared',
+        result=dict(consumption_sent=False, private_image='not-for-export')) for name in ids])
+    path.write_text(json.dumps(report), encoding='utf-8')
+    _, document, text = exported(diagnostic_case, run_id=diagnostic_case[1])
+    assert document['selected_modules'] == ids
+    assert [row['name'] for row in document['steps']] == ids
+    assert 'not-for-export' not in text
 
 
 def test_stopped_exception_error_is_reduced_to_a_safe_code(diagnostic_case):

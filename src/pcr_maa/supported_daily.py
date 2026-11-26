@@ -8,12 +8,13 @@ import time
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from .game_day import current_game_day
+from .optional_sweep import LABELS as OPTIONAL_SWEEPS, SURVEYS
 from pathlib import Path
 from uuid import uuid4
 
 LEGACY_ORDER = ('event', 'deep', 'rewards', 'very_hard', 'hard')
 ORDER = LEGACY_ORDER + ('rewards_final',)
-MODULE_ORDER = ('schedule_onekey', 'event', 'abyss') + LEGACY_ORDER[1:] + ('normal', 'guide_trial', 'clan_battle_simulation', 'clan_battle_daily')
+MODULE_ORDER = ('schedule_onekey', 'event', 'abyss') + LEGACY_ORDER[1:] + ('normal', 'guide_trial', 'clan_battle_simulation', 'clan_battle_daily') + tuple(OPTIONAL_SWEEPS)
 _DEFAULT_REWARDS_FINAL = object()
 REWARD_STEPS = ('rewards', 'rewards_final')
 PRESET_STEPS = ('deep', 'very_hard', 'hard', 'normal')
@@ -21,6 +22,7 @@ NOTICE = '【仅已支持项目串联：活动→深域→每日任务/礼物（
 SCHEDULE_NOTICE = '【显式可选日程一键→活动→深域→每日任务/礼物（早段）→高难→困难→每日任务/礼物（收尾）】\n日程只限本次逐项授权并通过独立门禁；深渊仅支持前哨；首领、购买重置和次数调整：unsupported。完整日常未交付，daily_complete=false。'
 CONTROL_ROOT = Path(__file__).resolve().parents[2] / '.runtime/supported-daily-work'
 REPORT_LIMIT = 16 * 1024 * 1024
+CONTROL_SNAPSHOT_LIMIT = 64 * 1024
 CONTROL_ERRORS = {'invalid_run_id', 'run_unavailable', 'unsafe_control_path', 'control_file_missing',
                   'control_file_too_large', 'control_snapshot_changed', 'invalid_control_json',
                   'invalid_report', 'invalid_stop_request', 'control_busy', 'cooperative_stop_unsupported'}
@@ -31,6 +33,8 @@ SKIP_REASONS = {
     'skipped_insufficient_tickets': '券不足，安全跳过（日目标未满）',
     'skipped_event_unavailable': '限时活动未开放，已安全跳过',
     'skipped_no_selection': '未勾选活动关卡，已跳过',
+    'skipped_not_cleared': '所选关卡未解锁或未达到扫荡条件，已跳过',
+    'skipped_no_attempts': '今日可用次数已用完，日目标未满',
 }
 STEP_STATES = {'not_run', 'running', 'executed', 'complete', 'partial', 'stopped', 'failed',
                'interrupted', *SKIP_REASONS}
@@ -39,6 +43,8 @@ STEP_STATES = {'not_run', 'running', 'executed', 'complete', 'partial', 'stopped
 def _skip_reason(step):
     if step['name'] == 'abyss' and step['status'] == 'skipped_event_unavailable':
         return '深渊前哨未开放，已安全跳过'
+    if step['name'] == 'tower_cloister' and step['status'] == 'skipped_event_unavailable':
+        return '露娜塔未开放，已跳过'
     return SKIP_REASONS.get(step['status'])
 
 
@@ -94,6 +100,13 @@ def _preset_exit_page(plan, index, config):
     return 'home'
 
 
+def _needs_sweep_context(plan, config):
+    return (any(name in plan for name in ('event', 'abyss', 'tower_cloister'))
+            or any(config['investigations'][name]['daily_target'] > 0 for name in SURVEYS if name in plan)
+            or any(p['kind'] != 'normal' and p['kind'] in plan and p['target_per_stage'] > 0
+                   for p in config['presets']))
+
+
 def _checked_directory(directory):
     # Reject symlinks and Windows junctions, including ancestors of the fixed root.
     for path in (*reversed(directory.parents), directory):
@@ -141,17 +154,22 @@ def _atomic_json(path, value):
 
 
 @contextmanager
-def _control_lock(directory):
+def _control_lock(directory, *, existing_only=False):
     """Serialize stop publication with step admission; never held during a component."""
     path = directory / 'control.lock'
     if _plain_file(path, optional=True) is None:
+        if existing_only:
+            # Legacy archives can have no writer and no lock; inspecting them
+            # must not create new files in the archive.
+            yield
+            return
         try:
             with path.open('xb') as handle:
                 handle.write(b'0')
         except FileExistsError:
             pass
     info = _plain_file(path)
-    with path.open('r+b') as handle:
+    with path.open('rb' if existing_only else 'r+b') as handle:
         opened = os.fstat(handle.fileno())
         if (opened.st_ino, opened.st_dev, opened.st_nlink) != (info.st_ino, info.st_dev, 1):
             raise ValueError('unsafe_control_path')
@@ -179,17 +197,21 @@ def _control_lock(directory):
             unlock()
 
 
-def _local_json(path):
+def _local_bytes(path, limit):
     info = _plain_file(path)
-    if info.st_size > REPORT_LIMIT:
+    if info.st_size > limit:
         raise ValueError('control_file_too_large')
     with path.open('rb') as handle:
         opened = os.fstat(handle.fileno())
         if (opened.st_ino, opened.st_dev, opened.st_nlink) != (info.st_ino, info.st_dev, 1):
             raise ValueError('control_snapshot_changed')
-        payload = handle.read(REPORT_LIMIT + 1)
-    if len(payload) > REPORT_LIMIT:
+        payload = handle.read(limit + 1)
+    if len(payload) > limit:
         raise ValueError('control_file_too_large')
+    return payload
+
+
+def _parse_local_json(payload):
     def object_fields(pairs):
         fields = {}
         for key, value in pairs:
@@ -203,6 +225,10 @@ def _local_json(path):
         raise ValueError('invalid_control_json') from None
 
 
+def _local_json(path, limit=None):
+    return _parse_local_json(_local_bytes(path, REPORT_LIMIT if limit is None else limit))
+
+
 def _timestamp(value):
     try:
         return type(value) in (int, float) and math.isfinite(value) and value >= 0
@@ -210,13 +236,95 @@ def _timestamp(value):
         return False
 
 
+def _report_projection(report):
+    # Only finite state and timestamps belong in the control path. The worker has
+    # already checked the raw component evidence before publishing a step status.
+    fields = ('run_id', 'control_version', 'game_day', 'started_at', 'finished_at',
+              'outcome', 'supported_chain_complete', 'daily_complete', 'stop_acknowledged',
+              'stopped_before', 'selection_version', 'selected_modules', 'rewards_final', 'event_targets')
+    snapshot = {key: report[key] for key in fields if key in report}
+    from .player_maintenance import _error_code
+    if report.get('original_execution_unresolved') is True:
+        snapshot['original_execution_unresolved'] = True
+    if error := _error_code(report.get('error')):
+        snapshot['error'] = error
+    snapshot['control_projection_version'] = 1
+    snapshot['steps'] = []
+    for step in report['steps']:
+        row = {key: step[key] for key in ('name', 'status', 'started_at', 'finished_at', 'exit_page')
+               if key in step}
+        error = step.get('error')
+        if isinstance(step.get('result'), dict):
+            result = step['result']
+            error = result.get('reason') or result.get('error') or error
+            row['result'] = {key: result[key] for key in ('consumption_sent', 'one_key_attempted',
+                             'settlement_verified', 'home_verified', 'original_execution_unresolved')
+                             if type(result.get(key)) is bool}
+            items = result.get('items')
+            if (row['name'] in REWARD_STEPS and isinstance(items, dict)
+                    and set(items) == {'missions', 'gifts'} and all(isinstance(i, dict) for i in items.values())):
+                projected = {}
+                for name, item in items.items():
+                    facts = {key: item[key] for key in ('claim_attempted', 'result_verified', 'claimable_after')
+                             if type(item.get(key)) is bool}
+                    if item.get('status') in ('claimed', 'no_claimable', 'remaining', 'deferred_stamina'):
+                        facts['status'] = item['status']
+                    projected[name] = facts
+                row['result']['items'] = projected
+        if code := _error_code(error):
+            row['error'] = code
+        snapshot['steps'].append(row)
+    return snapshot
+
+
 def _read_report(directory):
-    report = _local_json(directory / 'report.json')
+    return _validate_report(directory, _local_json(directory / 'report.json'))
+
+
+def _read_control(directory):
+    final_path = directory / 'control-final.json'
+    if _plain_file(final_path, optional=True) is None:
+        # Windows refuses replacement of an open file. Copy the bounded progress
+        # bytes under the writer's lock; all parsing and proof checks happen outside.
+        payload = None
+        oversized = False
+        with _control_lock(directory, existing_only=True):
+            if _plain_file(final_path, optional=True) is None:
+                path = directory / 'report.json'
+                oversized = _plain_file(path).st_size > REPORT_LIMIT
+                if not oversized:
+                    payload = _local_bytes(path, REPORT_LIMIT)
+        if payload is not None:
+            return _validate_report(directory, _parse_local_json(payload))
+        if oversized:
+            from .daily_legacy_control import read_legacy_control
+            return read_legacy_control(directory)
+    snapshot = _local_json(final_path, CONTROL_SNAPSHOT_LIMIT)
+    if not isinstance(snapshot, dict) or 'finished_at' not in snapshot or 'control_projection_version' not in snapshot:
+        raise ValueError('invalid_report')
+    return _validate_report(directory, snapshot)
+
+
+def _expected_step_status(step, report, directory):
+    result = step['result']
+    if step['name'] == 'schedule_onekey':
+        return _schedule_status(result, report['game_day'], result.get('device'), result.get('authorizations', []),
+                                report.get('schedule_attest_current_plan', False),
+                                report.get('run_id', directory.name), report.get('schedule_gui_start_intent', False))
+    return _status(step['name'], result, exit_page=step.get('exit_page', 'home'))
+
+
+def _validate_report(directory, report, *, legacy_projection=False):
     def require(condition):
         if not condition:
             raise ValueError('invalid_report')
     try:
         require(isinstance(report, dict) and report['daily_complete'] is False)
+        compact = 'control_projection_version' in report
+        if compact:
+            require(type(report['control_projection_version']) is int and report['control_projection_version'] == 1)
+            require(legacy_projection or 'run_id' in report and report.get('control_version') == 1)
+            require(report == _report_projection(report))
         require(type(report['supported_chain_complete']) is bool)
         require(report.get('run_id', directory.name) == directory.name)
         require(report.get('control_version') is None or type(report['control_version']) is int and report['control_version'] == 1)
@@ -264,15 +372,13 @@ def _read_report(directory):
                 require(step['finished_at'] >= step['started_at'])
             if step['status'] in ('executed', 'complete', 'partial', 'skipped_goal_met', 'skipped_disabled',
                                   'skipped_insufficient_stamina', 'skipped_insufficient_tickets',
-                                  'skipped_event_unavailable', 'skipped_no_selection'):
+                                  'skipped_event_unavailable', 'skipped_no_selection', 'skipped_not_cleared', 'skipped_no_attempts'):
                 result = step['result']
-                expected = (_schedule_status(result, report['game_day'], result.get('device'),
-                                              result.get('authorizations', []),
-                                              report.get('schedule_attest_current_plan', False),
-                                              report.get('run_id', directory.name), report.get('schedule_gui_start_intent', False))
-                            if step['name'] == 'schedule_onekey' else
-                            _status(step['name'], result, exit_page=step.get('exit_page', 'home')))
-                require(step['status'] == expected)
+                if compact:
+                    if step['status'] == 'executed' or result.get('consumption_sent') is True:
+                        require(result.get('settlement_verified') is True)
+                else:
+                    require(step['status'] == _expected_step_status(step, report, directory))
             if outcome != 'running':
                 require(step['status'] != 'running')
         if outcome in ('complete', 'partial'):
@@ -309,7 +415,7 @@ def _stop_requested(directory):
 def inspect_run(run_id):
     """Read one report only. Never follow receipt paths, inspect a process, or clear a ledger."""
     directory = _run_directory(run_id)
-    report = _read_report(directory)
+    report = _read_control(directory)
     requested = _stop_requested(directory)
     steps = []
     for step in report['steps']:
@@ -324,7 +430,8 @@ def inspect_run(run_id):
         if type(attempted) is not bool:
             attempted = False if step['status'] == 'not_run' else None
         settled = settled if type(settled) is bool else None
-        unknown = (step['status'] in ('running', 'stopped', 'failed', 'interrupted')
+        unknown = (result.get('original_execution_unresolved') is True
+                   or step['status'] in ('running', 'stopped', 'failed', 'interrupted')
                    or attempted is True and settled is not True)
         steps.append(dict(name=step['name'], status=step['status'], consumption_attempted=attempted,
                           settlement_verified=settled, unsettled_or_unknown=unknown))
@@ -332,7 +439,8 @@ def inspect_run(run_id):
                 process_state='unknown', report_finalized='finished_at' in report,
                 stop_state=('acknowledged_at_boundary' if report.get('stop_acknowledged') is True
                             else 'requested_not_acknowledged' if requested else 'not_requested'),
-                steps=steps, unsettled_or_unknown=any(s['unsettled_or_unknown'] for s in steps),
+                steps=steps, unsettled_or_unknown=(report.get('original_execution_unresolved') is True
+                                                   or any(s['unsettled_or_unknown'] for s in steps)),
                 supported_chain_complete=report['supported_chain_complete'], daily_complete=False,
                 abyss='frontposts_only', abyss_boss='unsupported', settlement_source='selected_report_only',
                 message='报告状态不证明进程存活；摘要不是账本核销或重试许可。')
@@ -340,24 +448,38 @@ def inspect_run(run_id):
 
 def request_stop(run_id):
     directory = _run_directory(run_id)
-    # Reject unreadable/legacy runs before creating a lock; recheck under lock for races.
-    report = _read_report(directory)
-    if report['outcome'] != 'running':
-        return dict(run_id=run_id, outcome='already_finalized', process_state='unknown',
-                    daily_complete=False, message='报告已结束；未请求停止，未改写报告。')
-    if report.get('control_version') != 1:
-        raise ValueError('cooperative_stop_unsupported')
-    with _control_lock(directory):
-        report = _read_report(directory)
+
+    def snapshot_identity():
+        for name in ('control-final.json', 'report.json'):
+            info = _plain_file(directory / name, optional=True)
+            if info is not None:
+                return name, info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns
+        raise ValueError('control_file_missing')
+
+    # Verify legacy proof outside the step-admission lock. All worker snapshots
+    # are published by replacement; an unchanged identity binds the verified
+    # state to this stop request without holding up a slow historical scan.
+    for _ in range(3):
+        identity = snapshot_identity()
+        try:
+            report = _read_control(directory)
+        except ValueError as exc:
+            if str(exc) == 'control_snapshot_changed':
+                continue
+            raise
         if report['outcome'] != 'running':
             return dict(run_id=run_id, outcome='already_finalized', process_state='unknown',
                         daily_complete=False, message='报告已结束；未请求停止，未改写报告。')
         if report.get('control_version') != 1:
             raise ValueError('cooperative_stop_unsupported')
-        if not _stop_requested(directory):
-            _atomic_json(directory / 'stop-request.json', dict(version=1, run_id=run_id, requested_at=time.time()))
-    return dict(run_id=run_id, outcome='stop_requested', process_state='unknown', daily_complete=False,
-                message='已请求，当前在途步骤可能尚未停止；仅在步骤边界确认。')
+        with _control_lock(directory):
+            if snapshot_identity() != identity:
+                continue
+            if not _stop_requested(directory):
+                _atomic_json(directory / 'stop-request.json', dict(version=1, run_id=run_id, requested_at=time.time()))
+            return dict(run_id=run_id, outcome='stop_requested', process_state='unknown', daily_complete=False,
+                        message='已请求，当前在途步骤可能尚未停止；仅在步骤边界确认。')
+    raise ValueError('control_snapshot_changed')
 
 
 def validate(config, *, execute, game_day, context, include_schedule_onekey=False,
@@ -372,13 +494,15 @@ def validate(config, *, execute, game_day, context, include_schedule_onekey=Fals
     if execute is not True:
         raise ValueError('必须显式 --execute；只读请使用 inspect-daily')
     config = validate_config(config)
+    for name in SURVEYS:
+        if name in plan and name not in config.get('investigations', {}):
+            raise ValueError('所选调查缺少关卡与每日目标')
     if 'clan_battle_daily' in plan and 'clan_battle_daily' not in config:
         raise ValueError('clan_battle_daily_configuration_required')
     if config['version'] in (3, 4):
         if selected_modules is None:
             raise ValueError(f"v{config['version']}_requires_explicit_alpha_selection")
-    has_sweep = any(name in plan for name in ('event', 'abyss')) or any(
-        p['kind'] != 'normal' and p['kind'] in plan and p['target_per_stage'] > 0 for p in config['presets'])
+    has_sweep = _needs_sweep_context(plan, config)
     # Only explicit local GUI selections use current counters, not legacy CLI.
     # The derived date labels this run; it does not prove a game refresh.
     current_state = context == 'gui-current-state'
@@ -413,6 +537,10 @@ def validate(config, *, execute, game_day, context, include_schedule_onekey=Fals
 
 
 def _run_step(tasker, name, config, game_day, context, *, exit_page='home'):
+    if name in SURVEYS and config['investigations'][name]['daily_target'] == 0:
+        return dict(module=name, stage=config['investigations'][name]['stage'], daily_target=0,
+                    outcome='skipped_disabled', consumption_sent=False,
+                    settlement_verified=False, daily_complete=False)
     if name == 'normal' and not any(p['kind'] == 'normal' for p in config['presets']):
         return dict(outcome='skipped_disabled', consumption_sent=False,
                     settlement_verified=False, daily_complete=False)
@@ -421,6 +549,18 @@ def _run_step(tasker, name, config, game_day, context, *, exit_page='home'):
                     settlement_verified=False, daily_complete=False)
     from .native import ROOT
     from .preset_execution import Journal, execute_one
+    if name in OPTIONAL_SWEEPS:
+        from .optional_sweep import execute_optional_sweep
+        from .optional_sweep_native import NativeOptionalSweep
+        from .onekey_history import schedule_device
+        from .schedule_quick import gui_device
+        device = gui_device(config) if context == 'gui-current-state' else schedule_device(config)
+        settings = config.get('investigations', {}).get(name, {})
+        stage = settings.get('stage')
+        return execute_optional_sweep(NativeOptionalSweep(tasker, name, stage, game_day=game_day),
+            Journal(ROOT / '.runtime/optional-sweep-work/ledger' / name),
+            module=name, stage=stage, daily_target=settings.get('daily_target'),
+            game_day=game_day, context=context, device=device, execute=True)
     if name in ('event', 'event_current', 'event_revival'):
         from .event import execute_event
         from .event_native import NativeEvent
@@ -606,6 +746,9 @@ def _readonly_schedule_status(result, game_day, device, authorizations, invocati
 
 
 def _status(name, result, *, exit_page='home'):
+    if name in OPTIONAL_SWEEPS:
+        from .optional_sweep import step_status
+        return step_status(name, result)
     if name in ('event_current', 'event_revival'):
         if result.get('event_target') != name.removeprefix('event_'):
             return 'stopped'
@@ -716,8 +859,7 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
     has_schedule = 'schedule_onekey' in plan
     if schedule_confirm_new_cycle and not has_schedule:
         raise ValueError('new_cycle_confirmation_requires_schedule')
-    has_sweep = any(name in plan for name in ('event', 'abyss')) or any(
-        p['kind'] != 'normal' and p['kind'] in plan and p['target_per_stage'] > 0 for p in config['presets'])
+    has_sweep = _needs_sweep_context(plan, config)
     last_wall = datetime.now(timezone.utc)
     rewards_only = not has_sweep and not has_schedule
     current_state = context == 'gui-current-state'
@@ -782,16 +924,21 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
         return reason
 
     def save():
-        _atomic_json(directory / 'report.json', report)
+        _atomic_json(directory / 'report.json', _report_projection(report))
 
     with _control_lock(directory):
-        if _plain_file(directory / 'report.json', optional=True) is not None:
+        if any(_plain_file(directory / name, optional=True) is not None
+               for name in ('report.json', 'control-final.json')):
             raise ValueError('existing_report_cannot_restart')
         save()
     try:
         try:
             controller = getattr(tasker, 'controller', None)
-            if controller is not None and callable(getattr(tasker, 'add_context_sink', None)):
+            if getattr(tasker, 'timing_owner', None) is not None:
+                from .daily_timing import GuiDailyTimings
+                native_timings = GuiDailyTimings(tasker, timings, tasker.timing_owner)
+                timing_collection = 'attached'
+            elif controller is not None and callable(getattr(tasker, 'add_context_sink', None)):
                 from . import native
                 native_timings = NativeTimings(tasker, controller, timings,
                     trace_path=native.RUNTIME / 'maa/maafw.log', measure_page_wait=True,
@@ -801,7 +948,7 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
             timing_collection = 'unavailable'
         for index, step in enumerate(report['steps']):
             from . import player_log
-            labels = {'schedule_onekey': '日程', 'event': '活动', 'abyss': '深渊前哨',
+            labels = {**OPTIONAL_SWEEPS, 'schedule_onekey': '日程', 'event': '活动', 'abyss': '深渊前哨',
                       'event_current': '当期活动', 'event_revival': '复刻活动',
                       'deep': '深域', 'very_hard': '高难', 'hard': '困难 / 外传',
                       'normal': '普通', 'rewards': '领取奖励', 'rewards_final': '末尾补领'}
@@ -843,7 +990,13 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
                 step['elapsed_seconds'] = time.monotonic() - step_elapsed_start
                 path = directory / f'{index + 1}-{step["name"]}.json'
                 step['receipt'] = str(path)
-                _atomic_json(path, step)
+                try:
+                    _atomic_json(path, step)
+                except (OSError, ValueError, TypeError):
+                    # A published terminal control state must never certify a
+                    # successful step whose separate evidence was not committed.
+                    step.update(status='failed', error='step_receipt_write_failed')
+                    raise
                 with _control_lock(directory):
                     save()
             if step['status'] in ('stopped', 'failed', 'interrupted'):
@@ -886,8 +1039,13 @@ def execute_supported(tasker, config, *, game_day, context, directory, execute=F
                             if 'elapsed_seconds' in step},
             native_timings=timings.payload(), native_timing_collection=timing_collection,
             totals_policy='module durations are exclusive; page_wait includes screenshot, recognition and input; swipe is an input subset; nested durations are not added')
+        if native_timings is not None and hasattr(native_timings, 'coverage'):
+            report['performance']['coverage'] = native_timings.coverage()
         with _control_lock(directory):
-            save()
+            # The control snapshot is the commit point. Even if writing the
+            # legacy full report fails, completed step receipts remain on disk.
+            _atomic_json(directory / 'control-final.json', _report_projection(report))
+        _atomic_json(directory / 'report.json', report)
     return report
 
 
@@ -965,7 +1123,7 @@ def summary(report, *, player=False):
             error = '游戏已断线（6002），已停止。' + started + '请手动重连；本次不会自动登录或重发。\n诊断信息：' + error
         return f"{result.get('stage', '所选关卡')}：{label}。{returned}{scope} {result.get('attempts_used', 0)}/3。{history}" + (
             '\n原因：' + error if error else '')
-    labels = dict(schedule_onekey='日程一键', event='活动', abyss='深渊前哨', deep='深域',
+    labels = dict(OPTIONAL_SWEEPS, schedule_onekey='日程一键', event='活动', abyss='深渊前哨', deep='深域',
                   event_current='当期活动', event_revival='复刻活动',
                   rewards='每日任务/礼物（早段）', rewards_final='每日任务/礼物（收尾）',
                   very_hard='高难', hard='困难', normal='普通（每关本次次数）')
@@ -1000,6 +1158,7 @@ def summary(report, *, player=False):
             messages = []
             if player:
                 message = {
+                    'optional_sweep_counter_reset': '同一设备上的关卡余次比上次结算后更多，可能已切换账号或重置次数。请核对账号和今日已扫次数。',
                     'count_fit_mixed_gap': '各关卡距离每日目标的差额不同，无法用整组次数完成本次目标。请在游戏内核对各关卡进度。',
                     'count_fit_exceeds_available': '每日目标超过所选关卡当前可执行次数。请降低该模块的每日目标。',
                     'count_fit_original_unknown': '未能读取游戏内当前的扫荡次数。请核对预设页面和次数显示。',
@@ -1090,7 +1249,7 @@ def summary(report, *, player=False):
     return '\n'.join([heading, *[labels[s['name']] + '：' +
         ('未找到已选关卡或列表未识别，请先在游戏核对勾选（未提交）'
          if s['name'] == 'normal' and s.get('result', {}).get('outcome') == 'empty_or_unreadable_selection'
-         else '已执行并结算，日目标未满' if s['name'] in ('event', 'event_current', 'event_revival') and s['status'] == 'partial'
+         else '已执行并结算，日目标未满' if s['name'] in ('event', 'event_current', 'event_revival', *SURVEYS) and s['status'] == 'partial'
          else '余下奖励已在收尾领完' if s['name'] == 'rewards' and early_rewards_resolved
           else _skip_reason(s) or states.get(s['status'], s['status'])) + detail(s)
         for s in report.get('steps', [])], *report_detail,
