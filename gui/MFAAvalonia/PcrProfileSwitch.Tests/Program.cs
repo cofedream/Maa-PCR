@@ -51,7 +51,7 @@ if (args.Length == 4 && args[3] == "--clan-only") return 0;
 GuideReviewChecks.Run(args[1]);
 GuideDataChecks.Run(args[0], args[1]);
 GuideDraftChecks.Run(args[1]);
-GuideAccountChecks.Run(args[1]);
+GuideAccountChecks.Run(args[0], args[1]);
 GuideOpeningChecks.Run(args[0], args[1]);
 GuideMinimumChecks.Run(args[1]);
 GuideSourceChecks.Run(args[0], args[1]);

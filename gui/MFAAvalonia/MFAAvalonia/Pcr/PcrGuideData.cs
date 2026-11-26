@@ -105,6 +105,18 @@ public static class PcrGuideData
             Units = Rows(root["units"], 2000).Select(u => new PcrGuideUnit(Integer(u["unit_id"], 1), Text(u["name"], 100))).ToList() };
         ValidateCatalog(result); return result;
     }
+    internal static PcrGuideCatalog? RefreshCatalog(PcrGuideCatalog? existing, string repository)
+    {
+        const string name = "unit-catalog-cn-bilibili.json";
+        if (existing != null && (existing.ContentVersion.Length != 12 || !existing.ContentVersion.All(char.IsAsciiDigit)))
+            return existing;
+        var path = Path.Combine(repository, "assets", "guide", name);
+        if (!File.Exists(path)) return existing;
+        var shipped = Catalog(ReadLocal(path), name);
+        if (existing == null || string.CompareOrdinal(shipped.ContentVersion, existing.ContentVersion) > 0)
+            return shipped;
+        return existing;
+    }
     public static DateTimeOffset Observation(string value)
     {
         if (string.IsNullOrWhiteSpace(value) || !(value.EndsWith("Z", StringComparison.Ordinal) || value.Length >= 6 && (value[^6] == '+' || value[^6] == '-') && value[^3] == ':')
