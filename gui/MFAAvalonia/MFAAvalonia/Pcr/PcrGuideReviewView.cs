@@ -97,7 +97,10 @@ public sealed class PcrGuideReviewView : UserControl
     public string TeamSummaryText => teamSummary.Text ?? "";
     public IReadOnlyList<PcrGuideLibraryEntry> SavedTeams => library.Entries;
 
-    public PcrGuideReviewView(string path, Func<PcrGuideInput, CancellationToken, Task<byte[]>>? readSnapshot = null, Func<string?>? configuredAccount = null)
+    private readonly string? refreshCatalogRepository;
+
+    public PcrGuideReviewView(string path, Func<PcrGuideInput, CancellationToken, Task<byte[]>>? readSnapshot = null,
+        Func<string?>? configuredAccount = null, string? refreshCatalogRepository = null)
     {
         store = new(path);
         accountDirectory = Path.GetDirectoryName(Path.GetFullPath(path))!;
@@ -105,6 +108,7 @@ public sealed class PcrGuideReviewView : UserControl
         library = new(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, "guide-library"));
         this.configuredAccount = configuredAccount;
         this.readSnapshot = readSnapshot;
+        this.refreshCatalogRepository = refreshCatalogRepository;
         DetachedFromVisualTree += (_, _) => syncCancel?.Cancel();
         Styles.Add(new StyleInclude(new Uri("avares://MFAAvalonia.Core/")) { Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml") });
         var guide = new StackPanel { Spacing = 8 };
@@ -440,11 +444,10 @@ public sealed class PcrGuideReviewView : UserControl
     {
         var current = Capture();
         var id = current.Snapshot?.AccountId ?? configuredAccount?.Invoke() ?? Newtonsoft.Json.Linq.JObject.Parse(System.Text.Encoding.UTF8.GetString(bytes))["account_id"]?.ToString() ?? "";
-        PublishSnapshot(bytes, fileName, id, current.Catalog == null ? null : accounts.Stamp(current.Catalog, id));
+        PublishSnapshot(current, bytes, fileName, id, current.Catalog == null ? null : accounts.Stamp(current.Catalog, id));
     }
-    private void PublishSnapshot(byte[] bytes, string fileName, string accountId, string? expectedHash)
+    private void PublishSnapshot(PcrGuideInput current, byte[] bytes, string fileName, string accountId, string? expectedHash)
     {
-        var current = Capture();
         var now = DateTimeOffset.Now;
         var catalog = current.Catalog ?? throw new InvalidDataException("请先导入静态角色表。");
         _ = PcrGuideData.AccountSnapshot(bytes, catalog, accountId, now);
@@ -695,13 +698,15 @@ public sealed class PcrGuideReviewView : UserControl
             var input = Capture();
             var fingerprint = PcrGuideReview.Fingerprint(input);
             var accountId = configuredAccount?.Invoke() ?? input.Snapshot?.AccountId;
+            if (refreshCatalogRepository != null)
+                input.Catalog = PcrGuideData.RefreshCatalog(input.Catalog, refreshCatalogRepository);
             var stamp = input.Catalog != null && accountId != null ? accounts.Stamp(input.Catalog, accountId) : null;
             var bytes = await readSnapshot(input, cancel.Token);
             cancel.Token.ThrowIfCancellationRequested();
             if (fingerprint != PcrGuideReview.Fingerprint(Capture()))
             { status.Text = "读取期间材料或账号资料已改变，本次结果未写入；请按新条件重新读取。"; return; }
             accountId ??= Newtonsoft.Json.Linq.JObject.Parse(System.Text.Encoding.UTF8.GetString(bytes))["account_id"]?.ToString() ?? "";
-            PublishSnapshot(bytes, "protocol-account-snapshot.json", accountId, stamp);
+            PublishSnapshot(input, bytes, "protocol-account-snapshot.json", accountId, stamp);
         }
         catch (OperationCanceledException) { status.Text = "读取已停止或超时，原资料保持。"; }
         catch (Exception ex)

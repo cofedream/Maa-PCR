@@ -15,7 +15,7 @@ using Newtonsoft.Json.Linq;
 
 internal static class GuideAccountChecks
 {
-    public static void Run(string directory)
+    public static void Run(string repository, string directory)
     {
         var root = Path.Combine(directory, "guide-accounts-check"); Directory.CreateDirectory(root);
         var store = new PcrGuideAccountStore(root); var now = DateTimeOffset.Now; var count = 0;
@@ -111,6 +111,36 @@ internal static class GuideAccountChecks
         var newer=(JObject)refreshed.DeepClone(); newer["observed_at"]=now.AddHours(26).ToString("O");
         Reject(()=>refreshStore.Save(Bytes(newer),catalog,"123",now.AddHours(26),refreshedHash),"changed_history_blocks_refresh");
         Check(refreshStore.Stamp(catalog,"123")==refreshedHash,"changed_history_preserves_live_snapshot");
+        var migration = Path.Combine(root, "catalog-migration", "guide-review.json");
+        var migrationStore = new PcrGuideAccountStore(Path.GetDirectoryName(migration)!);
+        var oldCatalog = new PcrGuideCatalog { Server = "cn-bilibili", ContentVersion = "202611021739",
+            Source = "synthetic old catalog", Sha256 = new string('a', 64), Units = new() { new(100101, "日和莉") } };
+        var oldSnapshot = (JObject)data.DeepClone();
+        oldSnapshot["content_version"] = oldCatalog.ContentVersion;
+        oldSnapshot["units"] = new JArray(new JObject { ["unit_id"] = 100101, ["level"] = 365 });
+        migrationStore.Save(Bytes(oldSnapshot), oldCatalog, "123", now, null);
+        var oldHash = migrationStore.Stamp(oldCatalog, "123");
+        var oldDocument = new PcrGuideStore(migration);
+        _ = oldDocument.Load();
+        oldDocument.Save(new() { Input = new() { Catalog = oldCatalog } });
+        var currentSnapshot = (JObject)oldSnapshot.DeepClone();
+        currentSnapshot["content_version"] = "202611131613";
+        ((JArray)currentSnapshot["units"]!).Add(new JObject { ["unit_id"] = 136201, ["level"] = 365 });
+        var migrated = new PcrGuideReviewView(migration, (request, _) =>
+        {
+            Check(request.Catalog?.ContentVersion == "202611131613"
+                && request.Catalog.Units.Any(u => u.UnitId == 136201 && u.Name == "纳娜"), "request_uses_shipped_catalog");
+            return Task.FromResult(Bytes(currentSnapshot));
+        }, () => "123", repository);
+        migrated.ReadSnapshot();
+        migrated.UseAccountAndReturn();
+        var reloaded = new PcrGuideStore(migration).Load().Input;
+        var snapshotPath = PcrClanGuide.SnapshotPaths(Path.GetDirectoryName(migration)!).Single(path =>
+            PcrClanGuide.Hash(File.ReadAllBytes(path)).Equals(reloaded.Snapshot?.Sha256, StringComparison.OrdinalIgnoreCase));
+        var roster = PcrGuideData.AccountSnapshot(File.ReadAllBytes(snapshotPath), reloaded.Catalog!, "123", now)["units"]!;
+        Check(reloaded.Catalog!.ContentVersion == "202611131613"
+            && roster.Select(u => (int)u["unit_id"]!).SequenceEqual(new[] { 100101, 136201 })
+            && migrationStore.Stamp(oldCatalog, "123") == oldHash, "shipped_catalog_and_complete_roster_survive_reload");
         Console.WriteLine($"Guide account checks passed: {count}; data synthetic; protocol logins=0");
     }
     private static void RenderAccount(PcrGuideReviewView view, string root, string label, int width, int height, int dpi)

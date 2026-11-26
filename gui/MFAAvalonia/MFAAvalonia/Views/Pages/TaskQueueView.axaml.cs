@@ -64,7 +64,7 @@ public partial class TaskQueueView : UserControl
         if (DataContext is not TaskQueueViewModel vm) return;
         var review = new MFAAvalonia.Pcr.PcrGuideReviewView(System.IO.Path.Combine(AppPaths.ConfigDirectory, "guide-review.json"),
             (input, token) => MFAAvalonia.Pcr.PcrGuideSyncOwner.ReadAsync(vm, input, token),
-            MFAAvalonia.Pcr.PcrGuideSyncOwner.ConfiguredAccountId);
+            MFAAvalonia.Pcr.PcrGuideSyncOwner.ConfiguredAccountId, MFAAvalonia.Pcr.PcrAlphaOwner.Repository);
         if (accountPage) review.ShowAccountPage();
         review.AccountAccepted += async snapshot =>
         {
