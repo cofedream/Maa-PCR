@@ -80,7 +80,6 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private int responseIntervalMs = 300;
     [ObservableProperty] private bool autoDatabaseUpdate = true;
     public ObservableCollection<PcrLabyrinthGoal> Goals { get; }
-    public string[] RouteModes { get; } = { "价值路线 v2", "固定模板路线" };
     public string[] ThirdChoices { get; } = { "必须遗物", "必须事件", "两者都行" };
     [ObservableProperty] private string difficulty = "1";
     [ObservableProperty] private bool reroll = true;
@@ -89,10 +88,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     [ObservableProperty] private string maxAttempts = "100";
     [ObservableProperty] private string maxMinutes = "30";
     [ObservableProperty] private bool buyRelics = true;
-    [ObservableProperty] private string routeMode = "价值路线 v2";
     [ObservableProperty] private string allowance = "1";
     [ObservableProperty] private string thirdChoice = "必须遗物";
-    [ObservableProperty] private bool perfectStart = true;
     public IReadOnlyList<PcrLabyrinthBossChoice> Area3Bosses { get; }
     public IReadOnlyList<PcrLabyrinthBossChoice> Area5Bosses { get; }
     [ObservableProperty]
@@ -321,10 +318,8 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         }
         ApplySavedEventChoices();
 
-        RouteMode=(string?)d["route"]?["mode"]=="template" ? RouteModes[1] : RouteModes[0];
         ThirdChoice=(string?)d["route"]?["third_choice"] switch { "event"=>ThirdChoices[1],"either"=>ThirdChoices[2],_=>ThirdChoices[0] };
         Allowance=d["route"]?["allowance"]?.ToString() ?? "1";
-        PerfectStart=(bool?)d["route"]?["perfect_start"] ?? true;
         ApplyBossFilters(d["route"] as JObject);
         foreach (var g in Goals) { var row=(d["draft_goals"] ?? d["goals"])?.FirstOrDefault(x=>(int?)x["guild_id"]==g.GuildId); g.Enabled=(bool?)row?["enabled"] ?? (row!=null || d["draft_goals"] is null && d["goals"] is null && g.GuildId==1); g.Clears=row?["clears"]?.ToString() ?? "1"; g.TargetMode=(string?)row?["mode"]=="attempts" ? g.TargetModes[1]:g.TargetModes[0]; }
     }
@@ -618,12 +613,12 @@ public partial class PcrLabyrinthSettings : ObservableObject {
         if (Goals.Any(g=>!g.TargetModes.Contains(g.TargetMode))) throw new InvalidOperationException("目标计数方式无效。");
         var goals=new JArray(Goals.Where(g=>g.Enabled).Select(g=>new JObject { ["guild_id"]=g.GuildId,["clears"]=Number(g.Clears,1,999,g.Name+"目标次数"),["mode"]=g.TargetMode==g.TargetModes[0] ? "clears":"attempts" }));
         if (goals.Count==0) throw new InvalidOperationException("请至少选择一个目标公会。");
-        if (!RouteModes.Contains(RouteMode) || !ThirdChoices.Contains(ThirdChoice)) throw new InvalidOperationException("路线设置无效。");
+        if (!ThirdChoices.Contains(ThirdChoice)) throw new InvalidOperationException("路线设置无效。");
         if (bossCatalog is null) throw new InvalidOperationException("Boss 目录加载失败，无法保存或开始："+bossCatalogError);
         return new JObject { ["version"]=1,["goals"]=goals,["difficulty"]=Number(Difficulty,1,5,"难度"),["reroll"]=Reroll,
             ["max_attempts"]=Number(MaxAttempts,1,5000,"刷取次数"),["max_seconds"]=loadedMaxSeconds is >=1 and <=1800 && MaxMinutes==loadedMaxMinutes ? loadedMaxSeconds.Value:Number(MaxMinutes,1,30,"刷取分钟")*60,
             ["buy_relics"]=BuyRelics,["refresh_shop"]=RefreshShop,["strategy"]=StrategySnapshot(),["route"]=new JObject {
-                ["mode"]=RouteMode==RouteModes[0] ? "value":"template",["perfect_start"]=PerfectStart,["allowance"]=Number(Allowance,0,3,"价值容差"),
+                ["allowance"]=Number(Allowance,0,3,"价值容差"),
                 ["third_choice"]=ThirdChoice==ThirdChoices[0] ? "relic":ThirdChoice==ThirdChoices[1] ? "event":"either",
                 ["area3_bosses"]=new JArray(bossCatalog.SelectedIds(3,Area3Bosses)),
                 ["area5_bosses"]=new JArray(bossCatalog.SelectedIds(5,Area5Bosses)) } };

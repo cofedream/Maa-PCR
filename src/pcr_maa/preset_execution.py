@@ -177,6 +177,9 @@ class Journal:
             return event['state'] == 'settled'
         if event.get('operation') == 'schedule_onekey':
             return True
+        if scope == 'labyrinth_reroll':
+            from .labyrinth.records import is_reroll_unknown_history
+            return is_reroll_unknown_history(event, intent)
         if event.get('resolution') == 'user_confirmed_retired':
             from .labyrinth.records import is_retired_invitation
             return is_retired_invitation(event, intent)

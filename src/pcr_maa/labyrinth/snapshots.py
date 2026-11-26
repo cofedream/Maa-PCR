@@ -59,7 +59,7 @@ class OpeningSnapshot:
         if created:
             start=cls(account_id,enter_id,guild,difficulty,nodes).initial_start_block_id
             if block not in (None,0,start):raise ValueError("mid_run_not_supported")
-        route=select_route(enter_id,nodes,difficulty,Policy(perfect_start=False,allowance=3,area3_bosses=(),area5_bosses=()),
+        route=select_route(enter_id,nodes,difficulty,Policy(allowance=3,area3_bosses=(),area5_bosses=()),
                            enforce_allowance=False,require_terminal_boss=True)
         for area in (3,) if difficulty==1 else (3,5):
             last=max(n.column for n in nodes if n.area==area)

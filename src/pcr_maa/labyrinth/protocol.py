@@ -23,6 +23,12 @@ from .servers import get_server
 class ProtocolFailure(RuntimeError):
     pass
 
+# Network-class failures leave it undetermined whether the request was applied.
+_UNKNOWN_CODES = frozenset(('network_failed','network_or_protocol_failed','session_closed'))
+
+class ProtocolUnknown(ProtocolFailure):
+    """Preserved-session unknown: only the reroll may reconcile it with TOP."""
+
 # One request may spend 10 s on connect/TLS and 10 s on the response. A login
 # step performs at most two sequential requests, so the outer walls below keep
 # one handshake spike from cancelling an otherwise valid login.
@@ -377,14 +383,14 @@ class LabyrinthClient:
             self._request_fields(endpoint,fields)
             return await self._request_locked(endpoint,fields)
 
-    async def _request_locked(self,endpoint,fields):
+    async def _request_locked(self,endpoint,fields,preserve=False):
         with self.timings.measure('protocol_request',label=endpoint.value) as sample:
-            try:return await self._request_wire(endpoint,fields)
+            try:return await self._request_wire(endpoint,fields,preserve)
             except ProtocolFailure as error:
-                sample['outcome']='unknown' if str(error) in ('network_failed','network_or_protocol_failed','session_closed') else 'failed'
+                sample['outcome']='unknown' if str(error) in _UNKNOWN_CODES else 'failed'
                 raise
 
-    async def _request_wire(self,endpoint,fields):
+    async def _request_wire(self,endpoint,fields,preserve=False):
         # Caller owns the one operation lock, including retire's readback.
         self._check_open()
         if not self.logged_in:raise ProtocolFailure('not_authenticated')
@@ -425,14 +431,20 @@ class LabyrinthClient:
             if header.get('sid'):self.auth.headers['SID']=hashlib.md5((header['sid']+'c!SID!n').encode()).hexdigest()
             if header.get('request_id'):self.auth.headers['REQUEST-ID']=header['request_id']
             return result
-        except ProtocolFailure:
+        except ProtocolUnknown:
+            raise
+        except ProtocolFailure as error:
+            if preserve and str(error) in _UNKNOWN_CODES:
+                raise ProtocolUnknown(str(error)) from None
             self.close();raise
         except asyncio.CancelledError:
             self.close();raise
         except requests.RequestException:
             player_log.text(f'黎明界协议 {endpoint.name} 第 {attempt} 次请求未取得完整响应，已停止请求。')
+            if preserve:raise ProtocolUnknown('network_or_protocol_failed') from None
             self.close();raise ProtocolFailure('network_or_protocol_failed') from None
         except Exception:
+            if preserve:raise ProtocolUnknown('network_or_protocol_failed') from None
             self.close();raise ProtocolFailure('network_or_protocol_failed') from None
 
     @staticmethod
@@ -459,14 +471,15 @@ class LabyrinthClient:
             try:return self._top(await self._request_locked(Endpoint.TOP,{}))
             except ProtocolFailure:self.close();raise
 
-    async def enter(self,guild_id,difficulty):
+    async def enter(self,guild_id,difficulty,*,preserve=False):
         if not valid_guild_id(guild_id) or type(difficulty) is not int or not 1<=difficulty<=5:raise ProtocolFailure('request_rejected')
         async with self._operation():
             try:
-                value=await self._request_locked(Endpoint.ENTER,dict(guild_id=guild_id,difficulty=difficulty))
+                value=await self._request_locked(Endpoint.ENTER,dict(guild_id=guild_id,difficulty=difficulty),preserve)
                 if not self._positive_id(value.get('enter_id')):raise ProtocolFailure('opening_invalid')
                 value['map_list']=self._map(value.get('map_list'))
                 return value
+            except ProtocolUnknown:raise
             except ProtocolFailure:self.close();raise
 
     async def resume(self,enter_id):
@@ -478,17 +491,18 @@ class LabyrinthClient:
                 return value
             except ProtocolFailure:self.close();raise
 
-    async def retire(self,enter_id):
+    async def retire(self,enter_id,*,preserve=False):
         async with self._operation():
             self._request_fields(Endpoint.RETIRE,dict(enter_id=enter_id))
-            await self._request_locked(Endpoint.RETIRE,dict(enter_id=enter_id))
+            await self._request_locked(Endpoint.RETIRE,dict(enter_id=enter_id),preserve)
             # This is a fresh readback, never a retry of the consuming request.
             # Any unknown readback closes the SDK session and leaves the Owner's
             # persisted intent pending, so resume_protocol cannot replay it.
             try:
-                if self._top(await self._request_locked(Endpoint.TOP,{})).get('enter_id') not in (None,0):
+                if self._top(await self._request_locked(Endpoint.TOP,{},preserve)).get('enter_id') not in (None,0):
                     raise ProtocolFailure('retire_result_unknown')
                 return True
+            except ProtocolUnknown:raise
             except ProtocolFailure:self.close();raise
 
     @staticmethod

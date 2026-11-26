@@ -164,8 +164,8 @@ class Settings:
     def payload(self):
         return dict(version=1,goals=[dict(guild_id=g.guild_id,clears=g.clears,**({'mode':g.mode} if g.mode!='clears' else {})) for g in self.goals],
             difficulty=self.difficulty,reroll=self.reroll,max_attempts=self.max_attempts,max_seconds=self.max_seconds,
-            buy_relics=self.buy_relics,refresh_shop=self.refresh_shop,strategy=self.strategy.payload(),route=dict(mode=self.policy.mode,
-                perfect_start=self.policy.perfect_start,allowance=self.policy.allowance,third_choice=self.policy.third_choice,
+            buy_relics=self.buy_relics,refresh_shop=self.refresh_shop,strategy=self.strategy.payload(),route=dict(
+                allowance=self.policy.allowance,third_choice=self.policy.third_choice,
                 area3_bosses=list(self.policy.area3_bosses),area5_bosses=list(self.policy.area5_bosses)))
 
     @classmethod
@@ -192,5 +192,12 @@ class Settings:
         if type(r) is not dict or set(r)-{'mode','perfect_start','allowance','third_choice','area3_bosses','area5_bosses'}:
             raise ValueError('invalid_route_policy')
         if any(type(x) is not list for k,x in r.items() if k.endswith('_bosses')): raise ValueError('invalid_boss_filter')
+        # Legacy template mode: perfect start maps to allowance 0, a template
+        # without perfect start to the loosest allowance. Only read, never written.
+        legacy_mode=r.get('mode','value');perfect=r.get('perfect_start',True)
+        if legacy_mode not in ('value','template') or type(perfect) is not bool:
+            raise ValueError('invalid_route_policy')
+        route={k:(tuple(x) if k.endswith('_bosses') else x) for k,x in r.items() if k not in ('mode','perfect_start')}
+        if 'allowance' not in route and legacy_mode=='template': route['allowance']=0 if perfect else 3
         strategy=Strategy.parse(v.get('strategy',{}))
-        return cls(tuple(result),**nums,**flags,strategy=strategy,policy=Policy(**{k:tuple(x) if k.endswith('_bosses') else x for k,x in r.items()}))
+        return cls(tuple(result),**nums,**flags,strategy=strategy,policy=Policy(**route))

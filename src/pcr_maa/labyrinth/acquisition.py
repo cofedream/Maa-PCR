@@ -8,6 +8,8 @@ import asyncio,re
 from dataclasses import dataclass
 from .routes import Node
 from .batch import BatchStopped,current_position_basis
+from .protocol import ProtocolUnknown
+from .unknown import RerollUnknown
 from .snapshots import OpeningSnapshot,canonical_map
 from .handoff import match_current_marker_consensus,VisibleBindingFailure
 from .portrait_cache import joined_portrait_readback
@@ -41,6 +43,7 @@ class ProtocolAcquisitionPort:
         self.sequence=0;self.game_frame=-1;self.openings={};self.creations={};self.closed=False
         self._game_enter_id=None
         self._creation_acks={};self._opening_receipts={};self._created_snapshots={};self._observed_openings={}
+        self._reconciled=set()
         self._play_started=False;self._play_finished=False
         self._resume_after_clear=False;self._resume_after_defeat=False
         self._handoff_receipt=None
@@ -65,18 +68,19 @@ class ProtocolAcquisitionPort:
         if self.client.phase!='game' or self.client.logged_in:
             self._fail('game_phase_unknown')
 
-    def _run(self,method,*args):
+    def _run(self,method,*args,**kwargs):
         self._checkpoint()
-        try:value=self.runner.run(method(*args))
+        try:value=self.runner.run(method(*args,**kwargs))
         except asyncio.CancelledError:self._fail('stopped')
+        except ProtocolUnknown:raise
         except Exception:
             self.close();raise
         self._checkpoint()
         return value
 
-    def _call(self,method,*args):
+    def _call(self,method,*args,**kwargs):
         self._protocol()
-        value=self._run(method,*args)
+        value=self._run(method,*args,**kwargs)
         self._protocol()
         return value
 
@@ -109,7 +113,8 @@ class ProtocolAcquisitionPort:
     def enter(self,guild,difficulty,oid):
         if type(oid) is not str or not oid:self._fail("enter_identity_unknown")
         generation=getattr(self.client,"session_generation",None)
-        value=self._call(self.client.enter,guild,difficulty)
+        try:value=self._call(self.client.enter,guild,difficulty,preserve=True)
+        except ProtocolUnknown:return self._reconcile_enter(guild,difficulty,oid)
         # ENTER proves creation; read its actual active identity before settling.
         # Configuration is only the expectation, never observed guild/difficulty.
         top=self._call(self.client.top)
@@ -235,7 +240,9 @@ class ProtocolAcquisitionPort:
 
     def read_opening(self,enter_id):
         self._protocol()
-        ack=self._require_ack(enter_id) if hasattr(self.client,'session_generation') else None
+        # A reconciled ENTER has no creation ACK; its map comes from RESUME and
+        # is bound to the same enter_id by the two TOP reads below.
+        ack=None if enter_id in self._reconciled else (self._require_ack(enter_id) if hasattr(self.client,'session_generation') else None)
         before=self._call(self.client.top)
         if ack:self._require_ack(enter_id)
         resumed=self._call(self.client.resume,enter_id)
@@ -260,11 +267,50 @@ class ProtocolAcquisitionPort:
         return receipt
 
     def retire(self,enter_id,oid):
-        if self._call(self.client.retire,enter_id) is not True:self._fail('retire_result_unknown')
+        try:retired=self._call(self.client.retire,enter_id,preserve=True)
+        except ProtocolUnknown:return self._reconcile_retire(enter_id,oid)
+        if retired is not True:self._fail('retire_result_unknown')
+        self._reconciled.discard(enter_id)
         self.openings.pop(enter_id,None)
         self.creations.pop(enter_id,None)
         self._creation_acks.pop(enter_id,None);self._opening_receipts.pop(enter_id,None);self._created_snapshots.pop(enter_id,None);self._observed_openings.pop(enter_id,None)
         return self.stamp(enter_id=enter_id,operation_id=oid)
+
+    def _reconcile_enter(self,guild,difficulty,oid):
+        """Read-only TOP after an unknown ENTER; never resend ENTER here."""
+        try:top=self._call(self.client.top)
+        except BatchStopped as error:
+            if error.args==('stopped',):raise
+            raise RerollUnknown('enter_reconcile_failed') from None
+        except Exception:raise RerollUnknown('enter_reconcile_failed') from None
+        enter=top.get('enter_id')
+        if enter in (None,0):raise RerollUnknown('enter_not_created')
+        if (type(enter) is not int or enter<1 or top.get('guild_id')!=guild
+                or top.get('difficulty')!=difficulty):
+            raise RerollUnknown('enter_identity_unknown')
+        created=self.stamp(enter_id=enter,guild_id=guild,difficulty=difficulty,
+            operation_id=oid,source='protocol_reconciled',reconciled=True)
+        self.creations[enter]=dict(created)
+        self._reconciled.add(enter)
+        return created
+
+    def _reconcile_retire(self,enter_id,oid):
+        """Read-only TOP after an unknown RETIRE; one explicit retry is allowed."""
+        try:top=self._call(self.client.top)
+        except BatchStopped as error:
+            if error.args==('stopped',):raise
+            raise RerollUnknown('retire_reconcile_failed') from None
+        except Exception:raise RerollUnknown('retire_reconcile_failed') from None
+        enter=top.get('enter_id')
+        if enter in (None,0):
+            self._reconciled.discard(enter_id)
+            return self.stamp(enter_id=enter_id,operation_id=oid,reconciled=True)
+        if enter!=enter_id:raise RerollUnknown('retire_other_run')
+        try:retired=self._call(self.client.retire,enter_id,preserve=True)
+        except ProtocolUnknown:raise RerollUnknown('retire_still_unknown') from None
+        if retired is not True:raise RerollUnknown('retire_still_unknown')
+        self._reconciled.discard(enter_id)
+        return self.stamp(enter_id=enter_id,operation_id=oid,reconciled=True,retried=True)
 
     def _game(self,value,**expected):
         self._game_phase()
@@ -474,6 +520,7 @@ class ProtocolAcquisitionPort:
             self.creations.clear()
             self._creation_acks.clear();self._opening_receipts.clear();self._created_snapshots.clear();self._observed_openings.clear()
             self._resume_after_clear=False
+            self._reconciled.clear()
             self._handoff_receipt=None
             self._game_enter_id=None
             try:self.client.close()

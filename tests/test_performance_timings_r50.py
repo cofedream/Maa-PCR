@@ -69,7 +69,7 @@ def test_protocol_measurement_never_logs_fields_or_changes_send_count(error, out
     client = LabyrinthClient.__new__(LabyrinthClient)
     client.timings = timing.Timings()
     calls = []
-    async def wire(endpoint, fields):
+    async def wire(endpoint, fields, preserve=False):
         calls.append((endpoint, fields))
         if error is not None:raise error
         return {'accepted': True}

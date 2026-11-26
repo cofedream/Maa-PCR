@@ -38,7 +38,7 @@ def opening_map():
         kinds = (1, 6, 8) if area == 3 else (1, 6, 6)
         for column, kind in enumerate(kinds, 1):
             uid = area * 100 + column
-            quest = 7703 * 100000 + 4 * 100 + 1 if kind == 8 else None
+            quest = 7703 * 100000 + 30000 + 4 * 100 + 1 if kind == 8 else None
             nodes.append(Node(uid, area, column, 1, kind,
                               (uid + 1,) if column < len(kinds) else (), quest))
     return [node.payload() for node in nodes]
@@ -58,7 +58,7 @@ def fake_client():
     client.close = close
     calls = []
 
-    async def locked(endpoint, fields):
+    async def locked(endpoint, fields, preserve=False):
         calls.append((endpoint, fields))
         return dict(enter_id=169, map_list=opening_map())
     client._request_locked = locked

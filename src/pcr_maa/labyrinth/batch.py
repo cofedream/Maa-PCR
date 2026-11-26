@@ -11,6 +11,7 @@ from .routes import select_route,Route
 from .records import RunRecord
 from .timing import Timings
 from .snapshots import OpeningSnapshot
+from .unknown import RerollUnknown
 
 class BatchStopped(RuntimeError):
     pass
@@ -172,6 +173,20 @@ class Batch:
                 self.emit_log(f'操作 {operation} 已发出，等待确认')
                 # An unresolved or partly written intent is never retried.
                 try:result=send(operation_id)
+                except RerollUnknown as error:
+                    reason=str(error)
+                    if reason=='enter_not_created':
+                        # TOP proved no run was created; the next attempt may ENTER again.
+                        self.journal.append(dict(intent,state='settled',result=dict(
+                            operation_id=operation_id,created=False,reconciled=True,reason=reason)))
+                        self.emit_log('开局请求结果未知，核对确认未创建对局，准备重试')
+                        return dict(enter_id=0,created=False,operation_id=operation_id)
+                    self.journal.append(dict(intent,state='historical_unknown',recovery_scope='labyrinth_reroll',
+                        resolution=reason,original_result_unknown=True,replay_forbidden=True))
+                    self.emit_log(f'操作 {operation} 结果未知且只读核对未完成（{reason}），本次结束；'
+                                  '下次启动会先核对旧局，不会重发原操作')
+                    self.invalidate_game_session()
+                    raise BatchStopped('reroll_unknown') from None
                 except NativeInputNotSent as error:
                     # Positive native completion evidence only; never reconcile old unknowns.
                     self.journal.append(dict(intent,state='settled',result=dict(
@@ -249,7 +264,14 @@ class Batch:
             else:
                 opening=self.transaction('enter',dict(guild_id=guild_id,difficulty=self.settings.difficulty),
                     lambda oid:self.port.enter(guild_id,self.settings.difficulty,oid))
-                observed=self.port.read_opening(opening['enter_id'])
+                if not opening.get('enter_id'):continue
+                try:observed=self.port.read_opening(opening['enter_id'])
+                except BatchStopped as error:
+                    if error.args==('stopped',):raise
+                    self.emit_log(f'第 {attempt} 次开局读取地图失败（{error.args[0] if error.args else error}），撤退后重开')
+                    self.transaction('retire',dict(enter_id=opening['enter_id']),lambda oid:self.port.retire(opening['enter_id'],oid))
+                    self.observation(self.port.top(),enter_id=0)
+                    continue
                 route=self.route_for(observed,guild_id,opening['enter_id'])
             if route is not None:
                 # Keep the complete map in the protocol. Maa independently

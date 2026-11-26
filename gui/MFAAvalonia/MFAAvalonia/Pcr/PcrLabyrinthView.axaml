@@ -101,9 +101,7 @@
      <TextBlock Text="账号协议读取完整地图并筛选路线，Maa 执行游戏操作；网络异常或未知结果会先核对，不重复发送原操作。" TextWrapping="Wrap" FontSize="12" />
     </StackPanel></Expander>
     <Expander Name="RouteSettings" Header="路线条件与策略" IsExpanded="False"><StackPanel Spacing="10" Margin="0,8">
-     <TextBlock Text="路线筛选" /><ComboBox ItemsSource="{Binding LabyrinthSettings.RouteModes}" SelectedItem="{Binding LabyrinthSettings.RouteMode}" HorizontalAlignment="Stretch" />
-     <TextBlock Text="价值路线按地图实际连线计算；固定模板可要求完美开局。" TextWrapping="Wrap" />
-     <CheckBox Content="固定模板要求完美开局" IsChecked="{Binding LabyrinthSettings.PerfectStart}" />
+     <TextBlock Text="价值路线按地图实际连线计算；容差 0 即要求每列都有可拿的价值格（完美开局）。" TextWrapping="Wrap" />
      <TextBlock Text="价值容差（0–3）" /><TextBox Text="{Binding LabyrinthSettings.Allowance, Mode=TwoWay}" />
      <TextBlock Text="第三区域与第五区域遗物／事件偏好" />
      <ComboBox ItemsSource="{Binding LabyrinthSettings.ThirdChoices}" SelectedItem="{Binding LabyrinthSettings.ThirdChoice}" HorizontalAlignment="Stretch" />

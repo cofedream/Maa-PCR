@@ -1,9 +1,15 @@
 """Adapted from wbero/limingjie-assistant RouteSearch.kt (CC BY-NC-SA 4.0).
 Pinned provenance is recorded in docs/LABYRINTH_SOURCES.json.
+
+Only the value-route v2 evaluation is kept. Perfect start is expressed with
+``allowance=0``: every valuable column must be reachable, instead of binding
+EX/character/relic/shop to fixed columns.
 """
 from dataclasses import dataclass
 from functools import lru_cache
 
+# Published perfect-opening layout, kept as reference data and as the fixture
+# shape used by tests. Route selection no longer requires these exact columns.
 AREA_REQUIREMENTS = {
  1: (1,2,4,2,4,6), 2: (1,4,2,6,3,4,6),
  3: (1,2,6,4,3,7,8), 4: (1,4,3,5,3,2,4,7), 5: (1,2,6,3,6,3,7,8)}
@@ -40,16 +46,13 @@ class Node:
 
 @dataclass(frozen=True)
 class Policy:
-    mode: str = 'value'
-    perfect_start: bool = True
     allowance: int = 1
     third_choice: str = 'relic'
     area3_bosses: tuple[int,...] = (312505,319604)
     area5_bosses: tuple[int,...] = (310103,)
 
     def __post_init__(self):
-        if type(self.perfect_start) is not bool: raise ValueError('invalid_route_flag')
-        if self.mode not in ('value','template') or self.third_choice not in ('relic','event','either'):
+        if self.third_choice not in ('relic','event','either'):
             raise ValueError('invalid_route_policy')
         if type(self.allowance) is not int or not 0 <= self.allowance <= 3:
             raise ValueError('invalid_route_allowance')
@@ -62,19 +65,13 @@ class Policy:
         if not ids: return True
         boss=next((n for n in reversed(path) if n.block_type==8),None)
         if boss is None or boss.quest_id is None: return False
-        prefix=7703 if area==3 else 7705
-        ordinal=boss.quest_id//100%100
-        return boss.quest_id//100000==prefix and 1<=ordinal<=20 and BOSSES[area][(ordinal-1)%5] in ids
-
-    def types(self, area, column):
-        if area in (3,5) and column==3:
-            return {'relic':{6},'event':{5},'either':{5,6}}[self.third_choice]
-        return {AREA_REQUIREMENTS[area][column-1]}
-
-    def accepts(self, area, path):
-        if not self.boss_matches(area,path): return False
-        return not self.perfect_start or (set(n.column for n in path)==set(range(1,len(AREA_REQUIREMENTS[area])+1))
-             and all(n.block_type in self.types(area,n.column) for n in path))
+        bosses=BOSSES[area];prefix=7703 if area==3 else 7705
+        quest=boss.quest_id;ordinal=quest//100%100
+        # Master numbering is `770<area><quest_type><ordinal><variant>`; type 3 is
+        # the boss battle, and the boss repeats every len(bosses) ordinals. Both
+        # facts are read from the table, so a new rotation length still maps.
+        return (quest//100000==prefix and quest//10000%10==3 and ordinal>=1
+                and bosses[(ordinal-1)%len(bosses)] in ids)
 
 @dataclass(frozen=True)
 class Route:
@@ -113,7 +110,7 @@ def select_route(enter_id, nodes, difficulty, policy=Policy(), *, source='protoc
     selected=[]
     for area in areas:
         area_nodes=sorted((n for n in nodes if n.area==area),key=lambda n:(n.column,n.row,n.block_id))
-        last=max(n.column for n in area_nodes) if policy.mode=='value' else len(AREA_REQUIREMENTS[area])
+        last=max(n.column for n in area_nodes)
         if set(n.column for n in area_nodes)!=set(range(1,last+1)):
             raise ValueError('incomplete_map')
         valuable={}
@@ -131,8 +128,6 @@ def select_route(enter_id, nodes, difficulty, policy=Policy(), *, source='protoc
         @lru_cache(None)
         def walk(block_id):
             n=by_id[block_id]
-            if policy.mode=='template' and policy.perfect_start and n.block_type not in policy.types(area,n.column):
-                return None
             gain=int(n.block_type in valuable[n.column])
             preference=int(area in (3,5) and policy.third_choice=='either' and n.block_type==6)
             if n.column==last:
@@ -144,12 +139,11 @@ def select_route(enter_id, nodes, difficulty, policy=Policy(), *, source='protoc
                 suffix=walk(c.block_id)
                 if suffix: candidates.append((gain+suffix[0],preference+suffix[1],(n,)+suffix[2]))
             if not candidates: return None
-            if policy.mode=='template': return candidates[0]
             return max(candidates,key=lambda c:c[:2])
         choices=[walk(n.block_id) for n in area_nodes if n.column==1]
-        choices=[p for p in choices if p and (policy.mode!='template' or policy.accepts(area,p[2]))]
+        choices=[p for p in choices if p]
         if not choices: return None
-        best=choices[0] if policy.mode=='template' else max(choices,key=lambda p:p[:2])
-        if enforce_allowance and policy.mode=='value' and upper-best[0]>policy.allowance: return None
+        best=max(choices,key=lambda p:p[:2])
+        if enforce_allowance and upper-best[0]>policy.allowance: return None
         selected.extend(best[2])
     return Route(enter_id,tuple(selected),nodes,source)

@@ -22,6 +22,21 @@ def is_retired_invitation(event, intent):
                     ('operation', 'operation_id', 'binding', 'enter_id', 'expected_roles')))
 
 
+def is_reroll_unknown_history(event, intent):
+    """A reroll ENTER/RETIRE that TOP could not settle; replay stays forbidden.
+
+    Unlike a battle intent this must not block the next start: the next acquire
+    begins with a fresh TOP and retires or reuses whatever run actually exists.
+    """
+    return (event.get('state') == 'historical_unknown'
+            and event.get('recovery_scope') == 'labyrinth_reroll'
+            and event.get('operation') in ('enter', 'retire')
+            and event.get('original_result_unknown') is True
+            and event.get('replay_forbidden') is True
+            and type(event.get('resolution')) is str and bool(event['resolution'])
+            and all(event.get(key) == intent.get(key) for key in ('operation', 'operation_id', 'binding')))
+
+
 class RunRecord:
     def __init__(self,directory,run_id,binding,*,resume=False):
         if len(run_id)!=32 or any(x not in '0123456789abcdef' for x in run_id):raise ValueError('invalid_run_id')

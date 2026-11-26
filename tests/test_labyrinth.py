@@ -8,6 +8,7 @@ from pcr_maa.labyrinth.snapshots import OpeningSnapshot
 from pcr_maa.labyrinth.handoff import match_current_marker_consensus
 from pcr_maa.labyrinth.strategies import Relic,choose_relic,opening_roster,next_opening_role,shop_relic
 from pcr_maa.preset_execution import Journal
+from pcr_maa.labyrinth.unknown import RerollUnknown
 
 def map_nodes(difficulty=1,*,template=False,boss3=4,boss5=3):
     result=[]
@@ -15,13 +16,13 @@ def map_nodes(difficulty=1,*,template=False,boss3=4,boss5=3):
         kinds=AREA_REQUIREMENTS[area] if template else (1,6,8 if area in (3,5) else 6)
         for col,kind in enumerate(kinds,1):
             uid=area*100+col
-            quest=(7703 if area==3 else 7705)*100000+(boss3 if area==3 else boss5)*100+1 if kind==8 else None
+            quest=(7703 if area==3 else 7705)*100000+30000+(boss3 if area==3 else boss5)*100+1 if kind==8 else None
             result.append(Node(uid,area,col,1,kind,(uid+1,) if col<len(kinds) else (),quest))
     return tuple(result)
 
 class RouteTests(unittest.TestCase):
     def test_template_and_dynamic_value_columns(self):
-        self.assertEqual(len(select_route(1,map_nodes(template=True),1,Policy(mode='template')).nodes),20)
+        self.assertEqual(len(select_route(1,map_nodes(template=True),1,Policy(allowance=0)).nodes),20)
         self.assertEqual(len(select_route(1,map_nodes(),1).nodes),9)
         self.assertEqual(len(select_route(1,map_nodes(2),2).nodes),15)
     def test_boss_filters(self):
@@ -46,7 +47,7 @@ class RouteTests(unittest.TestCase):
         self.assertIsNone(select_route(1,nodes,1,Policy(allowance=0)))
         self.assertIsNotNone(select_route(1,nodes,1,Policy(allowance=1)))
     def test_flags_are_not_truthy_strings(self):
-        with self.assertRaises(ValueError): Policy(perfect_start='true')
+        with self.assertRaises(ValueError): Policy(allowance='1')
         with self.assertRaises(ValueError): Policy(area3_bosses=(312505,312505))
 
 class StrategyTests(unittest.TestCase):
@@ -102,6 +103,16 @@ class ConfigBudgetTests(unittest.TestCase):
                 self.assertEqual((settings.max_attempts,settings.max_seconds),(attempts,seconds))
                 self.assertEqual((settings.payload()['max_attempts'],settings.payload()['max_seconds']),(attempts,seconds))
                 self.assertTrue(settings.reroll)
+    def test_legacy_template_mode_migrates_to_value_allowance(self):
+        base=dict(version=1,goals=[dict(guild_id=1,clears=1)])
+        self.assertEqual(Settings.parse(dict(base,route=dict(mode='template',perfect_start=True))).policy.allowance,0)
+        self.assertEqual(Settings.parse(dict(base,route=dict(mode='template',perfect_start=False))).policy.allowance,3)
+        self.assertEqual(Settings.parse(dict(base,route=dict(mode='template',perfect_start=True,allowance=2))).policy.allowance,2)
+        self.assertNotIn('mode',Settings.parse(base).payload()['route'])
+        self.assertNotIn('perfect_start',Settings.parse(base).payload()['route'])
+        with self.assertRaises(ValueError):
+            Settings.parse(dict(base,route=dict(mode='legacy')))
+
     def test_reroll_budget_rejects_above_confirmed_caps(self):
         base=dict(version=1,goals=[dict(guild_id=1,clears=1)])
         for field,values in (('max_attempts',(5001,8000)),('max_seconds',(1801,21600))):
@@ -169,19 +180,27 @@ def synthetic_handoff(stamp,snapshot,creation):
 
 
 class Port:
-    def __init__(self,*,bad=False,defeated=False,unknown_enter=False,wrong_handoff=False):
+    def __init__(self,*,bad=False,defeated=False,unknown_enter=False,wrong_handoff=False,fail_enter=None,fail_opening=None):
         self.binding=Binding(123,'custom-controller');self.seq=0;self.enter_id=0
         self.enters=0;self.retires=0;self.bad=bad;self.defeated=defeated;self.unknown_enter=unknown_enter;self.wrong_handoff=wrong_handoff
+        self.fail_enter=fail_enter;self.fail_opening=fail_opening
     def observe(self,**kw):
         self.seq+=1
         return dict(verified=True,binding=self.binding.payload(),frame=self.seq,**kw)
     def top(self): return self.observe(enter_id=0,fresh_start=True)
     def enter(self,guild,difficulty,oid):
         self.enters+=1
+        if self.fail_enter:
+            reason=self.fail_enter;self.fail_enter=None
+            raise RerollUnknown(reason)
         if self.unknown_enter: raise TimeoutError('secret transport detail')
         self.enter_id=self.enters;self.guild=guild;self.difficulty=difficulty;self.creation_oid=oid
         return self.observe(operation_id=oid,guild_id=guild,difficulty=difficulty,enter_id=self.enter_id)
     def read_opening(self,enter_id):
+        if self.fail_opening:
+            from pcr_maa.labyrinth.batch import BatchStopped
+            reason=self.fail_opening;self.fail_opening=None
+            raise BatchStopped(reason)
         snapshot=OpeningSnapshot.read(self.binding.account_id,enter_id,
             dict(enter_id=enter_id,guild_id=self.guild,difficulty=self.difficulty),
             dict(guild_id=self.guild,block_id=0,map_list=[n.payload() for n in handoff_map_nodes(boss3=1 if self.bad else 4)]))
@@ -237,6 +256,28 @@ class BatchTests(unittest.TestCase):
             port.unknown_enter=False
             result=Batch(settings,port,journal,port.binding).run()
             self.assertEqual(result['outcome'],'blocked_in_flight');self.assertEqual(port.enters,1);self.assertEqual(journal.path.read_bytes(),original)
+    def test_unknown_enter_records_history_and_next_start_is_not_blocked(self):
+        with TemporaryDirectory() as tmp:
+            port=Port(fail_enter='enter_reconcile_failed');journal=Journal(tmp);settings=Settings((Goal(1,1),))
+            result=Batch(settings,port,journal,port.binding).run()
+            self.assertEqual(result['outcome'],'reroll_unknown')
+            self.assertEqual(journal.events()[-1]['state'],'historical_unknown')
+            self.assertEqual(journal.events()[-1]['recovery_scope'],'labyrinth_reroll')
+            original=journal.path.read_bytes()
+            result=Batch(settings,port,journal,port.binding).run()
+            self.assertEqual(result['outcome'],'complete')
+            self.assertTrue(result['batch_complete'])
+            self.assertGreater(len(journal.path.read_bytes()),len(original))
+    def test_map_read_failure_retires_and_reopens(self):
+        port=Port(fail_opening='opening_changed')
+        result,events=self.run_batch(port,Settings((Goal(1,1),),max_attempts=3))
+        self.assertTrue(result['batch_complete']);self.assertEqual(port.enters,2);self.assertEqual(port.retires,1)
+    def test_enter_not_created_retries_without_retire(self):
+        port=Port(fail_enter='enter_not_created')
+        result,events=self.run_batch(port,Settings((Goal(1,1),),max_attempts=3))
+        self.assertTrue(result['batch_complete']);self.assertEqual(port.enters,2);self.assertEqual(port.retires,0)
+        self.assertEqual(events[1]['state'],'settled');self.assertEqual(events[1]['result']['created'],False)
+
     def test_stop_and_handoff_mismatch(self):
         port=Port();result,_=self.run_batch(port,stopped=lambda:True)
         self.assertEqual(result['outcome'],'stopped');self.assertEqual(port.enters,0)
