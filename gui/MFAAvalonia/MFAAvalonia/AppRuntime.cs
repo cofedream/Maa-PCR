@@ -1,14 +1,12 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Security.Cryptography;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using MFAAvalonia.Helper;
 
@@ -29,12 +27,10 @@ public static class AppRuntime
     private static readonly object _mutexLock = new();
     private static int _mutexOwnerThreadId = -1;
     private static bool _ownsMutex;
-    private static string? _instanceKey;
-    private static string? _executablePath;
-    private static string? _instanceRecordPath;
     private static string? _pipeName;
     private static CancellationTokenSource? _pipeCancellation;
-    private static readonly ConcurrentQueue<LaunchCommand> PendingLaunchCommands = new();
+    private static readonly Channel<LaunchCommand> PendingLaunchCommands =
+        Channel.CreateUnbounded<LaunchCommand>(new UnboundedChannelOptions { SingleReader = true });
     private static Func<LaunchCommand, Task<bool>>? _launchCommandHandler;
 
     public static bool IsNewInstance { get; private set; } = true;
@@ -164,15 +160,7 @@ MFAAvalonia 命令行参数
     public static void Initialize(string[] args, string instanceKey)
     {
         Args = ParseArguments(args);
-        _instanceKey = instanceKey;
-        _executablePath = Environment.ProcessPath;
-        // Unix domain socket paths have a short platform limit; keep the
-        // full key for mutexes and instance records, but bound the pipe name.
-        var pipeInstanceKey = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? instanceKey
-            : instanceKey.Length > 12 ? instanceKey[..12] : instanceKey;
-        _pipeName = $"MFAAvalonia_{pipeInstanceKey}";
-        _instanceRecordPath = Path.Combine(Path.GetTempPath(), "MFAAvalonia", "instances", $"{instanceKey}.json");
+        _pipeName = CommandPipeName(instanceKey);
         _mutex = new Mutex(true, $"MFAAvalonia_{instanceKey}", out var isNewInstance);
         IsNewInstance = isNewInstance;
         _ownsMutex = isNewInstance;
@@ -181,11 +169,20 @@ MFAAvalonia 命令行参数
 
         if (isNewInstance)
         {
-            WriteInstanceRecord();
             _pipeCancellation = new CancellationTokenSource();
             _ = RunCommandPipeServerAsync(_pipeCancellation.Token);
         }
     }
+
+    private static string CommandPipeName(string instanceKey)
+    {
+        // Keep Unix domain socket paths within the platform limit.
+        var shortKey = OperatingSystem.IsWindows() || instanceKey.Length <= 12 ? instanceKey : instanceKey[..12];
+        return $"MFAAvalonia_{shortKey}";
+    }
+
+    public static bool TryForwardActivation(string instanceKey, int timeoutMilliseconds = 3000) =>
+        SendLaunchCommand(CommandPipeName(instanceKey), new LaunchCommand(false, false, false, null), timeoutMilliseconds);
 
     public static bool TryForwardLaunchCommand(int timeoutMilliseconds = 3000)
     {
@@ -193,6 +190,11 @@ MFAAvalonia 命令行参数
             return false;
 
         var command = new LaunchCommand(IsAutoStart, QuitAfterRun, ForceStart, RequestedInstance);
+        return SendLaunchCommand(_pipeName, command, timeoutMilliseconds);
+    }
+
+    private static bool SendLaunchCommand(string pipeName, LaunchCommand command, int timeoutMilliseconds)
+    {
         var deadline = Environment.TickCount64 + timeoutMilliseconds;
 
         while (Environment.TickCount64 < deadline)
@@ -200,7 +202,7 @@ MFAAvalonia 命令行参数
             var connected = false;
             try
             {
-                using var client = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+                using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
                 var remaining = (int)Math.Max(1, deadline - Environment.TickCount64);
                 client.Connect(Math.Min(remaining, 500));
                 connected = true;
@@ -229,104 +231,34 @@ MFAAvalonia 命令行参数
         return false;
     }
 
-    public static bool TryRecoverUnresponsiveInstance(int waitMilliseconds = 5000)
-    {
-        if (IsNewInstance || string.IsNullOrEmpty(_instanceRecordPath) || string.IsNullOrEmpty(_instanceKey))
-            return false;
-
-        InstanceProcessRecord? record;
-        try
-        {
-            record = JsonSerializer.Deserialize<InstanceProcessRecord>(File.ReadAllText(_instanceRecordPath));
-        }
-        catch
-        {
-            return false;
-        }
-
-        if (record == null || record.ProcessId == Environment.ProcessId || string.IsNullOrWhiteSpace(record.ExecutablePath))
-            return false;
-
-        try
-        {
-            using var process = Process.GetProcessById(record.ProcessId);
-            if (process.HasExited
-                || process.StartTime.ToUniversalTime().Ticks != record.StartTimeUtcTicks
-                || !PathsReferToSameExecutable(process.MainModule?.FileName, record.ExecutablePath)
-                || !PathsReferToSameExecutable(record.ExecutablePath, _executablePath))
-            {
-                return false;
-            }
-
-            process.Kill(entireProcessTree: true);
-            if (!process.WaitForExit(waitMilliseconds))
-                return false;
-        }
-        catch
-        {
-            return false;
-        }
-
-        try
-        {
-            _mutex?.Close();
-            _mutex = new Mutex(true, $"MFAAvalonia_{_instanceKey}", out var isNewInstance);
-            if (!isNewInstance)
-            {
-                _mutex.Close();
-                _mutex = null;
-                return false;
-            }
-
-            IsNewInstance = true;
-            _ownsMutex = true;
-            _mutexOwnerThreadId = Environment.CurrentManagedThreadId;
-            _mutexReleased = false;
-            WriteInstanceRecord();
-            _pipeCancellation = new CancellationTokenSource();
-            _ = RunCommandPipeServerAsync(_pipeCancellation.Token);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static bool PathsReferToSameExecutable(string? left, string? right)
-    {
-        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right)) return false;
-        var comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-        return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
-    }
-
-    private static void WriteInstanceRecord()
-    {
-        if (string.IsNullOrEmpty(_instanceRecordPath) || string.IsNullOrEmpty(_executablePath)) return;
-
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(_instanceRecordPath)!);
-            var record = new InstanceProcessRecord(
-                Environment.ProcessId,
-                Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks,
-                Path.GetFullPath(_executablePath));
-            File.WriteAllText(_instanceRecordPath, JsonSerializer.Serialize(record));
-        }
-        catch
-        {
-        }
-    }
-
-    private sealed record InstanceProcessRecord(int ProcessId, long StartTimeUtcTicks, string ExecutablePath);
-
     public static void RegisterLaunchCommandHandler(Func<LaunchCommand, Task<bool>> handler)
     {
-        _launchCommandHandler = handler;
-        while (PendingLaunchCommands.TryDequeue(out var command))
-            _ = handler(command);
+        if (Interlocked.Exchange(ref _launchCommandHandler, handler) == null && _pipeCancellation is { } lifetime)
+            _ = DispatchLaunchCommandsAsync(lifetime.Token);
+    }
+
+    private static async Task DispatchLaunchCommandsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var command in PendingLaunchCommands.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    var handler = Volatile.Read(ref _launchCommandHandler)!;
+                    if (!await handler(command).ConfigureAwait(false))
+                        LoggerHelper.Warning("窗口未能处理转发的启动请求。");
+                }
+                catch (Exception e)
+                {
+                    LoggerHelper.Warning($"处理转发启动请求失败：{e.Message}");
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
     }
 
     private static async Task RunCommandPipeServerAsync(CancellationToken cancellationToken)
@@ -352,18 +284,8 @@ MFAAvalonia 命令行参数
 
                 if (command != null)
                 {
-                    var handler = _launchCommandHandler;
-                    if (handler != null)
-                    {
-                        var handled = await handler(command)
-                            .WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
-                        await writer.WriteLineAsync(handled ? "OK" : "FAILED");
-                    }
-                    else
-                    {
-                        PendingLaunchCommands.Enqueue(command);
-                        await writer.WriteLineAsync("OK");
-                    }
+                    // Receipt acknowledges the queued request. UI dispatch may wait for a busy window.
+                    await writer.WriteLineAsync(PendingLaunchCommands.Writer.TryWrite(command) ? "OK" : "FAILED");
                 }
                 else
                 {
@@ -389,7 +311,11 @@ MFAAvalonia 命令行参数
 
     public static void ReleaseMutex()
     {
-        _pipeCancellation?.Cancel();
+        if (_pipeCancellation is { } lifetime)
+        {
+            PendingLaunchCommands.Writer.TryComplete();
+            lifetime.Cancel();
+        }
         if (_mutexReleased || _mutex == null)
         {
             return;
@@ -435,16 +361,6 @@ MFAAvalonia 命令行参数
                 _mutex.Close();
                 _mutex = null;
                 _mutexReleased = true;
-                if (_ownsMutex && !string.IsNullOrEmpty(_instanceRecordPath))
-                {
-                    try
-                    {
-                        File.Delete(_instanceRecordPath);
-                    }
-                    catch
-                    {
-                    }
-                }
                 _ownsMutex = false;
             }
             catch (ApplicationException)

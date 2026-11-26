@@ -303,6 +303,8 @@ public static partial class PcrAlphaOwner
                 session.Consumed = true; Grants++;
                 var binding = session.Config.Binding();
                 var reply = new JObject { ["ok"] = true, ["fixed_binding"] = true, ["invocation_id"] = session.Invocation,
+                    ["timing_owner_pid"] = Environment.ProcessId,
+                    ["timing_owner_log"] = Path.GetFullPath(Path.Combine("debug", "maafw.log")),
                     ["root_task_id"] = session.Root, ["controller_uuid"] = session.Uuid,
                     ["serial"] = binding["connection"]!["serial"],
                     ["combination"] = session.Selection.DeepClone(), ["execute"] = true,

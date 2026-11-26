@@ -86,6 +86,9 @@ def request():
         'synthetic-user', 'synthetic-password')
 
 
+STARTUP_BEFORE_RESOURCES = ['dependencies', 'ledger', 'adapters', 'animation_probe', 'local_cache']
+
+
 @pytest.mark.parametrize('completed, valid', [
     ({1: 1, 6: 0, 10: 2}, True), ({'10': 999}, True),
     ({1: 1, 11: 0}, False), ({True: 1}, False), ({6: True}, False), ({10: 1000}, False),
@@ -197,8 +200,8 @@ def test_progress_reaches_ready_before_batch_and_never_contains_credentials(tmp_
     owned.request.webgpu = webgpu
     assert not (tmp_path / 'assets/labyrinth/protocol-version.json').exists()
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
-    assert [value['stage'] for value in events] == [
-        'dependencies', 'resources', 'connecting', 'ocr_warmup', 'ocr_ready', 'authenticating', 'recovering', 'ready']
+    assert [value['stage'] for value in events] == STARTUP_BEFORE_RESOURCES + [
+        'resources', 'connecting', 'ocr_warmup', 'ocr_ready', 'authenticating', 'recovering', 'ready']
     assert calls.index('ocr_prepare') < calls.index('client') < calls.index('authenticate')
     assert calls.index('authenticate') < calls.index('restart_check') < calls.index('batch')
     assert calls.index('authenticate') < calls.index('batch')
@@ -261,10 +264,11 @@ def test_animation_setting_preflight_runs_before_controller(tmp_path, monkeypatc
     owned, events, calls = runtime(tmp_path, monkeypatch)
     seen = []
 
-    def fake(adb_path, serial, package, *, log, stopped):
+    def fake(adb_path, serial, package, *, log, stopped, before_apply):
         seen.append((adb_path, serial, package, callable(log), callable(stopped)))
         calls.append('animation')
-        return 'already_off'
+        before_apply()
+        return 'fixed'
 
     monkeypatch.setattr(animation_setting, 'ensure_animation_off', fake)
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
@@ -272,6 +276,7 @@ def test_animation_setting_preflight_runs_before_controller(tmp_path, monkeypatc
                      True, True)]
     assert calls[0] == 'animation'
     assert calls.index('animation') < calls.index('controller')
+    assert [value['stage'] for value in events][3:6] == ['animation_probe','animation_apply','local_cache']
 
 
 def test_animation_setting_no_root_does_not_stop_the_run(tmp_path, monkeypatch):
@@ -279,7 +284,7 @@ def test_animation_setting_no_root_does_not_stop_the_run(tmp_path, monkeypatch):
     owned, events, calls = runtime(tmp_path, monkeypatch)
     logs = []
 
-    def no_root(adb_path, serial, package, *, log, stopped):
+    def no_root(adb_path, serial, package, *, log, stopped, before_apply):
         logs.append('synthetic no root')
         return 'no_root'
 
@@ -411,7 +416,7 @@ def test_resource_timeout_is_reported_before_device_or_login(tmp_path, monkeypat
     owned, events, calls = runtime(tmp_path, monkeypatch, resource_timeout=True)
     assert owned.run() == dict(outcome='runtime_resources_timeout', batch_complete=False)
     assert calls == ['resource']
-    assert [value['stage'] for value in events] == ['dependencies', 'resources']
+    assert [value['stage'] for value in events] == STARTUP_BEFORE_RESOURCES + ['resources']
     assert owned.request.username == owned.request.password == ''
 
 
@@ -419,7 +424,7 @@ def test_stop_while_connecting_does_not_allocate_login_or_start_batch(tmp_path, 
     owned, events, calls = runtime(tmp_path, monkeypatch, stop_on_connect=True)
     assert owned.run() == dict(outcome='stopped', batch_complete=False)
     assert calls == ['resource', 'controller', 'connect']
-    assert [value['stage'] for value in events] == ['dependencies', 'resources', 'connecting']
+    assert [value['stage'] for value in events] == STARTUP_BEFORE_RESOURCES + ['resources', 'connecting']
     assert owned.request.username == owned.request.password == ''
 
 
@@ -442,7 +447,7 @@ def test_unknown_ledger_is_preserved_without_resource_device_or_login(tmp_path, 
     before = journal.path.read_bytes()
     assert owned.run() == dict(outcome='blocked_in_flight', batch_complete=False)
     assert journal.path.read_bytes() == before and not calls
-    assert events == [dict(kind='progress', stage='dependencies')]
+    assert [value['stage'] for value in events] == ['dependencies', 'ledger']
 
 
 def client():

@@ -1,4 +1,7 @@
-﻿param([string]$PlayerExe)
+﻿param(
+    [string]$PlayerExe,
+    [ValidateSet('v0.2.7', 'v0.2.8')][string]$TargetVersion = 'v0.2.7'
+)
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 
@@ -10,10 +13,21 @@ function Get-Sha256([string]$Path) {
 }
 
 try {
+    if ($TargetVersion -eq 'v0.2.8') {
+        $sourceVersion = 'v0.2.7'
+        $sourceHash = '2161fc63ed7953e01966663e9b413c8d11d1a2c12c679a7a3c084f5280dc47ab'
+        $targetHash = '06e4341ac1134021cb8d834c131fd888110f2405bb378aec13ae3ddacb495a8c'
+        $patchHash = 'd4995bf0a1fc50892a982337a13c3047f225012f87731c5bf4176fd4f6820949'
+    } else {
+        $sourceVersion = 'v0.2.6'
+        $sourceHash = '51537f6a646e9611625cb180436ce804dae026ba055d49215f1dfbe7031c2c71'
+        $targetHash = '2161fc63ed7953e01966663e9b413c8d11d1a2c12c679a7a3c084f5280dc47ab'
+        $patchHash = '330a5f4851d66a2a8d02ac945747cbdaeb7d64cfd03241841f7f1a85dc464188'
+    }
     if (-not $PlayerExe) {
         Add-Type -AssemblyName System.Windows.Forms
         $dialog = New-Object System.Windows.Forms.OpenFileDialog
-        $dialog.Title = '更新到 v0.2.7：请选择原来使用的 Maa-PCR 主程序'
+        $dialog.Title = "更新到 ${TargetVersion}：请选择原来使用的 Maa-PCR 主程序"
         $dialog.Filter = 'Maa-PCR 主程序 (MFAAvalonia.exe)|MFAAvalonia.exe'
         try {
             if ($dialog.ShowDialog() -ne 'OK') { exit 0 }
@@ -37,13 +51,11 @@ try {
     $marker = Join-Path $player '.runtime\player-maintenance\update-in-progress.json'
     if (Test-Path -LiteralPath $marker) { throw '上次更新尚未完成。请打开原软件，先恢复中断的更新。' }
     $installedHash = Get-Sha256 $manifest
-    $targetHash = '2161fc63ed7953e01966663e9b413c8d11d1a2c12c679a7a3c084f5280dc47ab'
-    if ($installedHash -eq $targetHash) { Write-Host '已经是 v0.2.7。'; exit 0 }
-    if ($installedHash -ne '51537f6a646e9611625cb180436ce804dae026ba055d49215f1dfbe7031c2c71') {
-        throw '这个工具仅适用于官方 v0.2.6。请核对所选安装目录。'
+    if ($installedHash -eq $targetHash) { Write-Host "已经是 ${TargetVersion}。"; exit 0 }
+    if ($installedHash -ne $sourceHash) {
+        throw "这个工具仅适用于官方 ${sourceVersion}。请核对所选安装目录。"
     }
-    $patch = Join-Path $bundle 'Maa-PCR-v0.2.6-to-v0.2.7.patch.zip'
-    $patchHash = '330a5f4851d66a2a8d02ac945747cbdaeb7d64cfd03241841f7f1a85dc464188'
+    $patch = Join-Path $bundle "Maa-PCR-${sourceVersion}-to-${TargetVersion}.patch.zip"
     if (-not [IO.File]::Exists($patch) -or (Get-Sha256 $patch) -ne $patchHash) {
         throw '缺少完整的官方增量包。请重新完整解压工具 ZIP，保留里面的补丁 ZIP。'
     }
@@ -68,11 +80,11 @@ try {
     $report = Get-Content -LiteralPath $result.log_path -Encoding UTF8 |
         Where-Object { $_.StartsWith('{"status": "updated",') } | Select-Object -First 1
     $completed = if ($report) { $report | ConvertFrom-Json }
-    if ($completed.status -ne 'updated' -or $completed.version -ne 'v0.2.7' -or $completed.gui_started -ne $true -or
+    if ($completed.status -ne 'updated' -or $completed.version -ne $TargetVersion -or $completed.gui_started -ne $true -or
         (Test-Path -LiteralPath $marker) -or (Get-Sha256 $manifest) -ne $targetHash) {
         throw ('请核对软件版本，并保留安装目录和解压目录。更新记录在 ' + $result.log_path)
     }
-    Write-Host '已更新到 v0.2.7。'
+    Write-Host "已更新到 ${TargetVersion}。"
 } catch {
     [Console]::Error.WriteLine($_.Exception.Message)
     exit 1

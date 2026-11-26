@@ -1,0 +1,66 @@
+{
+  "OptionalSweepWords": {
+    "recognition": "OCR",
+    "roi": [0, 0, 1280, 720],
+    "threshold": 0.75,
+    "action": "DoNothing",
+    "next": []
+  },
+  "OptionalSweepObserve": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "next": ["OptionalSweepRead"],
+    "pre_delay": 0,
+    "post_delay": 0,
+    "timeout": 5000,
+    "on_error": []
+  },
+  "OptionalSweepAct": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "next": ["OptionalSweepClick"],
+    "pre_delay": 0,
+    "post_delay": 0,
+    "timeout": 5000,
+    "on_error": []
+  },
+  "OptionalSweepScroll": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "next": ["OptionalSweepDrag"],
+    "pre_delay": 0,
+    "post_delay": 0,
+    "timeout": 5000,
+    "on_error": []
+  },
+  "OptionalSweepDrag": {
+    "recognition": "Custom",
+    "custom_recognition": "OptionalSweepPage",
+    "action": "Swipe",
+    "begin": true,
+    "end": [990, 178, 12, 8],
+    "duration": 400,
+    "max_hit": 1,
+    "pre_delay": 0,
+    "post_delay": 300,
+    "next": []
+  },
+  "OptionalSweepRead": {
+    "recognition": "Custom",
+    "custom_recognition": "OptionalSweepPage",
+    "action": "DoNothing",
+    "pre_delay": 0,
+    "post_delay": 0,
+    "next": []
+  },
+  "OptionalSweepClick": {
+    "recognition": "Custom",
+    "custom_recognition": "OptionalSweepPage",
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "pre_delay": 0,
+    "post_delay": 150,
+    "next": []
+  }
+}

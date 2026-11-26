@@ -8,7 +8,9 @@ import re
 
 from maa.custom_recognition import CustomRecognition
 
-from .clan_battle_native import ClanBattlePage, NativeClanBattle, OPENING_CLOCK_PATTERN, _current_period, _detail, _node, _result_detail, _roi, result_damage_line, result_damage_nodes
+from .clan_battle_native import (ClanBattlePage, NativeClanBattle, OPENING_CLOCK_PATTERN, _boss_name_node,
+    _boss_name_pattern, _current_period, _detail, _node, _result_detail, _roi, result_damage_line,
+    result_damage_nodes, reviewed_damage_line_nodes)
 from .clan_battle_characters import ClanBattleCharacters, box_inside_roi
 from .guide_trial_native import NativeGuideTrial
 from .frame_recognition import same_frame_context
@@ -19,7 +21,7 @@ PAGE_FIELDS = {
     'target': {'remaining_count', 'cp', 'health', 'boss', 'phase'},
     'carry_empty': set(),
 }
-FULL_CP_PATTERN = r'已达今[天无]的上限'
+FULL_CP_PATTERN = r'[已己]达今[天无]的上限'
 PATTERNS = {
     'remaining_count': r'^[0-3]$',
     'carry_count': r'^[0-3]$',
@@ -186,6 +188,25 @@ def validate_daily_calibration(calibration):
     return daily
 
 
+def _formal_damage_nodes(calibration, plan, spec):
+    name = 'CBDaily_result_damage'
+    roi = spec['fields']['damage']
+    if 'damage_line' in spec:
+        layout = spec['damage_line']
+        if isinstance(layout, dict) and any(s['page'] == 'result' and s['sha256'] == layout.get('sample_sha256')
+                                            for s in calibration['samples']):
+            raise ValueError('clan_battle_result_damage_uncalibrated')
+        return reviewed_damage_line_nodes(name, roi, layout, calibration['daily']['execution']['samples'])
+    production = calibration.get('evidence_kind') == 'device_saved_frame'
+    if (calibration.get('calibration_id') == 'cn-bilibili-202610141448-clan-simulation'
+            and calibration.get('frame_size') == [1280, 720]
+            and (not production or plan.get('content_version') == '202610141448')):
+        return result_damage_nodes(roi, name)
+    if production:
+        raise ValueError('clan_battle_result_damage_uncalibrated')
+    return {name: _node({'roi': roi}, expected=PATTERNS['damage'])}
+
+
 def daily_pipeline(calibration, plan):
     daily = validate_daily_calibration(calibration)
     nodes = {}
@@ -199,12 +220,13 @@ def daily_pipeline(calibration, plan):
                     ocr_threshold=.8 if page == 'adventure' and kind == 'labels' else .9)
         for field, roi in spec['fields'].items():
             expected = PATTERNS.get(field)
+            if field == 'boss' and 'nameplate_levels' in calibration.get('pages', {}).get('boss_detail', {}):
+                nodes[f'CBDaily_{page}_{field}'] = _boss_name_node(calibration, roi, [plan['boss']])
+                continue
             if field == 'boss':
                 expected = '^' + re.escape(calibration['boss_targets'][str(plan['boss'])]['name']) + '$'
-            if (page == 'result' and field == 'damage'
-                    and calibration.get('calibration_id') == 'cn-bilibili-202610141448-clan-simulation'
-                    and calibration.get('frame_size') == [1280, 720]):
-                nodes.update(result_damage_nodes(roi, 'CBDaily_result_damage'))
+            if page == 'result' and field == 'damage':
+                nodes.update(_formal_damage_nodes(calibration, plan, spec))
             else:
                 nodes[f'CBDaily_{page}_{field}'] = _node({'roi': roi}, expected=expected)
                 if field == 'health':
@@ -238,9 +260,11 @@ class ClanBattleDailyPage(CustomRecognition):
             raise RuntimeError('clan_battle_daily_page_unknown:' + page)
         values = {'page': page}
         fields = () if labels_only else spec['fields']
+        boss_text = None
         for field in fields:
             text = self.word(context, image, f'CBDaily_{page}_{field}')
             if field == 'boss':
+                boss_text = text
                 values[field] = self.plan['boss']
             elif field == 'phase':
                 values['phase_label'] = text
@@ -263,13 +287,18 @@ class ClanBattleDailyPage(CustomRecognition):
                 minute, second = map(int, text.replace('：', ':').split(':'))
                 values[field] = minute * 60 + second
             elif field == 'damage':
-                if (self.calibration.get('calibration_id') == 'cn-bilibili-202610141448-clan-simulation'
+                if ('damage_line' in spec or self.calibration.get('evidence_kind') == 'device_saved_frame'
+                        or self.calibration.get('calibration_id') == 'cn-bilibili-202610141448-clan-simulation'
                         and self.calibration.get('frame_size') == [1280, 720]):
                     values[field] = result_damage_line(text, self.word(context, image, 'CBDaily_result_damage_verify'))
                 else:
                     values[field] = int(re.sub('[,，]', '', text))
             else:
                 values[field] = int(text)
+        if boss_text is not None and 'nameplate_levels' in self.calibration.get('pages', {}).get('boss_detail', {}):
+            phase = values.get('phase')
+            if phase is None or not re.fullmatch(_boss_name_pattern(self.calibration, [self.plan['boss']], phase=phase), boss_text):
+                raise RuntimeError('clan_battle_daily_target_unknown')
         if page == 'carry_empty':
             values['carry_stock_indices'] = []
         if page == 'target':
@@ -312,10 +341,13 @@ class NativeClanDailyPages(NativeGuideTrial):
         return _detail(receipt), receipt
 
 
-def require_daily_execution(calibration, plan, *, require_scope=True, capability='formal'):
+def require_daily_execution(calibration, plan, *, require_scope=True, capability='formal', require_carry_pages=False):
     """A read-only daily profile never qualifies as an executable formal profile."""
     if capability not in ('simulation', 'formal', 'carryover'):
         raise ValueError('clan_battle_pipeline_capability_invalid')
+    if require_scope and capability in ('formal', 'carryover'):
+        from .clan_battle_native import _require_target_scope
+        _require_target_scope(calibration, plan, capability)
     daily = validate_daily_calibration(calibration)
     execution = daily.get('execution')
     personal = type(execution) is dict and 'used_units' in execution
@@ -334,7 +366,7 @@ def require_daily_execution(calibration, plan, *, require_scope=True, capability
         raise ValueError('clan_battle_daily_execution_pages_missing')
     support = 'support' in execution['pages']
     carry = 'carry' in execution['pages']
-    if (not carry and (capability == 'carryover' or selection)
+    if (not carry and (capability == 'carryover' or require_carry_pages or selection)
             or (not support or not carry) and calibration.get('support_modes') != ['none']):
         raise ValueError('clan_battle_daily_execution_scope_missing')
     if not support:
@@ -353,7 +385,8 @@ def require_daily_execution(calibration, plan, *, require_scope=True, capability
         raise ValueError('clan_battle_daily_execution_pages_missing')
     for page, fields in page_fields.items():
         spec = execution['pages'][page]
-        if (type(spec) is not dict or set(spec) != {'labels', 'rejects', 'fields'}
+        allowed_options = {'damage_line'} if page == 'result' else set()
+        if (type(spec) is not dict or set(spec) - allowed_options != {'labels', 'rejects', 'fields'}
                 or type(spec['labels']) is not list or len(spec['labels']) < 2
                 or type(spec['rejects']) is not list or not spec['rejects']
                 or type(spec['fields']) is not dict or set(spec['fields']) != fields):
@@ -401,7 +434,6 @@ def require_daily_execution(calibration, plan, *, require_scope=True, capability
     actions = execution['actions']
     if type(actions) is not dict or set(actions) != set(action_pages):
         raise ValueError('clan_battle_daily_execution_actions_missing')
-    shared_formation = None
     for name, page in action_pages.items():
         spec = actions[name]
         scrolling = name in ('characters_top', 'characters_next', 'support_top', 'support_next')
@@ -418,15 +450,12 @@ def require_daily_execution(calibration, plan, *, require_scope=True, capability
         if scrolling:
             begin, end = _roi(spec['begin']), _roi(spec['end'])
             if name in ('characters_top', 'characters_next'):
-                from .clan_battle_native import calibration_pipeline
-                if shared_formation is None:
-                    shared_formation = calibration_pipeline(calibration, plan, capability='formal')
-                shared = shared_formation['CBAction_' + name]
+                from .clan_battle_native import _scroll_action
+                shared = _scroll_action(name, calibration['actions'].get(name))
                 if begin != shared['begin'] or end != shared['end']:
                     raise ValueError('clan_battle_daily_formation_scroll_mismatch:' + name)
                 # Reuse the reviewed gesture; keep the formal page/identity callback.
-                nodes['CBAction_' + name].update({key: deepcopy(shared[key]) for key in
-                    ('action', 'begin', 'end', 'duration', 'end_hold', 'post_delay') if key in shared})
+                nodes['CBAction_' + name].update(deepcopy(shared))
             else:
                 nodes['CBAction_' + name].update(action='Swipe', begin=begin, end=end, duration=300)
     for page in {*PAGE_FIELDS, *page_fields}:
@@ -1381,15 +1410,32 @@ class NativeClanDailyAdapter(NativeClanBattle):
             self._regular_empty_observation = (deepcopy(observation), inventory_source, self._account_binding)
         return observation
 
+    @staticmethod
+    def _require_observed_target(calibration, job, target, capability):
+        if capability + '_targets' not in calibration:
+            return
+        from .clan_battle_native import _require_target_scope
+        phase = target['phase']
+        job_phases = ('B', 'C') if job['phase'] == 'BC' else (job['phase'],)
+        if phase not in job_phases or target['boss'] != job['boss']:
+            raise RuntimeError('clan_battle_daily_target_changed')
+        _require_target_scope(calibration, dict(job, phase=phase), capability)
+
     def blocked_carryovers(self, request, grants):
+        from .clan_battle_batch import _target
         from .clan_battle_calibration import load_calibration
         blocked = {}
         for stock, grant in grants.items():
             job = request['slot_plans'][str(grant['source_slot'])]
             try:
                 calibration = load_calibration(job, capability='carryover')
+                if 'carryover_targets' in calibration:
+                    observed = self.last_bosses.get(job['boss'])
+                    if observed and _target(job, [observed]) is not None:
+                        self._require_observed_target(calibration, job, observed, 'carryover')
             except RuntimeError as exc:
-                if str(exc) != 'clan_battle_calibration_capability_missing:carryover':
+                if str(exc) not in ('clan_battle_calibration_capability_missing:carryover',
+                                    'clan_battle_carryover_target_uncalibrated'):
                     raise
                 blocked[stock] = 'carryover_capability_not_calibrated'
                 continue
@@ -1412,15 +1458,17 @@ class NativeClanDailyAdapter(NativeClanBattle):
             raise RuntimeError('clan_battle_daily_previous_input_unresolved')
         self.enter_lobby()
         self._selected_carry = None
-        self.configure_slot(job, capability='carryover' if action['kind'] == 'carryover' else 'formal')
+        capability = 'carryover' if action['kind'] == 'carryover' else 'formal'
+        self.configure_slot(job, capability=capability)
         self.action, self.start_seconds = deepcopy(action), action['start_seconds']
         if (action['kind'] != 'carryover' and (self.start_seconds <= 1 or self.start_seconds not in
                 self.calibration['daily']['execution']['opening'].get('start_seconds', [90]))):
             raise RuntimeError('clan_battle_daily_start_time_uncalibrated')
-        self.prepare_inheritance()
         actual = self.last_bosses.get(action['boss'])
         if not actual or any(actual[key] != action[key] for key in ('boss', 'round', 'phase', 'instance_id')):
             raise RuntimeError('clan_battle_daily_target_changed')
+        self._require_observed_target(self.calibration, job, actual, capability)
+        self.prepare_inheritance()
         self.page.bound = dict(period=job['period'], formal=True,
             **{key: action[key] for key in ('boss', 'round', 'phase', 'instance_id')})
         self.run('CBAction_open_boss', click=True)
@@ -1487,7 +1535,11 @@ class NativeClanDailyAdapter(NativeClanBattle):
             raise RuntimeError('clan_battle_daily_start_binding_changed')
         if self.action['kind'] == 'carryover':
             from .clan_battle_calibration import load_calibration
-            require_daily_execution(load_calibration(job, capability='carryover'), job, capability='carryover')
+            calibration = load_calibration(job, capability='carryover')
+            require_daily_execution(calibration, job, capability='carryover')
+            self._require_observed_target(calibration, job, self.action, 'carryover')
+        else:
+            self._require_observed_target(self.calibration, job, self.action, 'formal')
         require_timing(self, job)
         team = self.read_team()
         self.page.require_team(team)

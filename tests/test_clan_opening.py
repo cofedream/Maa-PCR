@@ -96,6 +96,34 @@ def sampled_plan():
         support_mode='none', support_unit_id=None, auto=True, set_by_unit={}, switches=[])
 
 
+def test_optional_paused_boss_roi_preserves_legacy_and_exact_boss_match():
+    plan = sampled_plan()
+    profile = load_calibration(plan)
+    assert backend.auto_battle_pipeline(profile, plan)['CBOpeningBoss']['roi'] == [805, 160, 135, 33]
+    profile['auto_battle']['paused_boss_roi'] = [760, 157, 178, 40]
+    profile['boss_targets'][str(plan['boss'])]['name'] = '厄勒克特拉夫人'
+    node = backend.auto_battle_pipeline(profile, plan)['CBOpeningBoss']
+    assert node['roi'] == [760, 157, 178, 40]
+    assert node['expected'] == '^厄勒克特拉夫人$'
+    assert node['threshold'] == .9
+    profile['auto_battle']['paused_boss_roi'] = [1200, 157, 178, 40]
+    with pytest.raises(ValueError, match='calibration_roi_invalid'):
+        backend.auto_battle_pipeline(profile, plan)
+
+
+def test_optional_paused_clock_roi_compiles_an_exact_time_on_the_original_frame():
+    plan = sampled_plan()
+    profile = load_calibration(plan)
+    assert 'CBOpeningClockAlternate' not in backend.auto_battle_pipeline(profile, plan)
+    profile['auto_battle']['paused_clock_alternate_roi'] = [1077, 18, 44, 32]
+    node = backend.auto_battle_pipeline(profile, plan)['CBOpeningClockAlternate']
+    assert node['roi'] == [1077, 18, 44, 32] and node['threshold'] == .9
+    assert node['expected'] == backend.OPENING_CLOCK_PATTERN
+    profile['auto_battle']['paused_clock_alternate_roi'] = [1279, 18, 44, 32]
+    with pytest.raises(ValueError, match='calibration_roi_invalid'):
+        backend.auto_battle_pipeline(profile, plan)
+
+
 @pytest.mark.parametrize('sample,auto,sets,speed,second', [
     ('paused-all-on.png', False, [True]*5, 4, 90), ('paused-all-off.png', False, [False]*5, 4, 90),
     ('paused-mixed-1.png', True, [False, True, True, True, True], 1, 90),
@@ -508,6 +536,30 @@ def test_opening_clock_gray_linear_requires_complete_unambiguous_same_frame_read
         assert seconds==expected
         assert [row['transform'] for row in evidence['readings']]==list(transforms)
         assert evidence['frame_pixel_sha256']==hashlib.sha256(frame.tobytes()).hexdigest()
+
+
+@pytest.mark.parametrize('primary,alternate,expected', [
+    ('17','1:17',77), ('1:17','117',77), ('1:17','1:27',None), ('17','1:37',None)])
+def test_calibrated_alternate_paused_clock_rejects_conflicting_or_incomplete_times(primary,alternate,expected):
+    import numpy as np
+    frame = np.zeros((720,1280,3),np.uint8)
+    reader = object.__new__(ClanBattleCharacters)
+    def word(context, image, name, **options):
+        if name == 'ClockAlternate':
+            assert image is frame
+            return alternate
+        return primary
+    reader.page = NS(word=word)
+    args = (None, frame, 'Clock', [1081,18,45,28])
+    roi = [1077,18,44,32]
+    if expected is None:
+        with pytest.raises(RuntimeError, match='opening_clock_unknown'):
+            reader.read_opening_clock(*args, alternate_roi=roi)
+    else:
+        actual, evidence = reader.read_opening_clock(*args, alternate_roi=roi)
+        assert actual == expected
+        assert evidence['readings'][-1]['roi'] == roi
+        assert evidence['readings'][-1]['image_pixel_sha256'] == evidence['frame_pixel_sha256']
 
 
 @pytest.mark.parametrize('wrong_token',[False,True])

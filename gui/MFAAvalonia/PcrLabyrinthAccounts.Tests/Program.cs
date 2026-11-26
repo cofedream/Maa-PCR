@@ -67,18 +67,27 @@ try {
         && settings.Username==loginA && settings.Password==passwordA,"legacy_account_and_dpapi_values_loaded");
     Require(settings.Difficulty=="4" && (int?)settings.Snapshot()["max_seconds"]==61
         && settings.Goals[0].Clears=="3", "legacy_strategy_goal_and_non_minute_deadline_preserved");
+    Require(settings.RefreshMinBalance=="0" && (int?)settings.Snapshot()["strategy"]?["refresh_min_balance"]==0,
+        "legacy_shop_refresh_has_no_coin_reserve");
     Require(settings.GetPersonalScores()["9999"]!.Value<decimal>()==61.25m && settings.Goals[0].HasCustomRoster,
         "legacy_unknown_decimal_ratings_and_roster_preserved");
     settings.AccountName="测试主账号";
     Require(config.GetValue(bookKey,"").Length>0 && Reload().AccountName=="测试主账号","account_rename_migrates_and_persists_library");
     var primary=settings.SelectedAccount!;
     settings.ResponseIntervalMs=500; settings.AutoDatabaseUpdate=false;
+    settings.RefreshMinBalance="500";
+    Require((int?)Reload().Snapshot()["strategy"]?["refresh_min_balance"]==500,"shop_refresh_reserve_persists_to_run_settings");
+    settings.RefreshMinBalance="-1";
+    Require(settings.Status.Contains("商店刷新后最低余额") && Reload().RefreshMinBalance=="500",
+        "invalid_shop_refresh_reserve_keeps_last_valid_value");
+    settings.RefreshMinBalance="500";
     settings.SpecialEquipmentMode="自动装备"; settings.SpecialEquipmentEx=false;
     Require((int?)Reload().Snapshot()["strategy"]?["response_interval_ms"]==500
         && (bool?)Reload().Snapshot()["strategy"]?["auto_database_update"]==false,"response_and_database_options_persist");
     Require(Reload().Snapshot()["strategy"]?["special_equipment_battles"]?.Values<string>().SequenceEqual(new[]{"NORMAL","BOSS"})==true,
         "special_equipment_mode_and_scope_persist");
     settings.AddAccountCommand.Execute(null);
+    Require(settings.RefreshMinBalance=="0","new_account_has_default_shop_refresh_reserve");
     Require(settings.Accounts.Count==2 && settings.SelectedAccount!=primary && settings.Username=="" && settings.Password==""
         && settings.ExpectedPlayerId=="" && !settings.ShowCredentials,"adding_account_starts_empty_and_masked");
     Require(settings.Difficulty=="1" && settings.Goals[0].Clears=="1" && settings.GetPersonalScores().Count==0
@@ -97,6 +106,7 @@ try {
         "no_plaintext_player_uid_login_or_password_on_disk");
     Require(new InstanceConfiguration(profile).GetValue("unrelated-fixture-marker","")=="retain-me","unrelated_instance_values_retained");
     settings.SelectedAccount=primary;
+    Require(settings.RefreshMinBalance=="500","switching_back_restores_shop_refresh_reserve");
     Require(settings.Username==loginA && settings.Password==passwordA && settings.ExpectedPlayerId==playerA
         && settings.Difficulty=="4" && settings.Goals[0].Clears=="3" && settings.ResponseIntervalMs==500,
         "account_switch_restores_credentials_and_independent_settings");
@@ -180,6 +190,15 @@ try {
         // 账号 A 给 1 号公会选过三人后切到使用默认阵容的账号 B：B 没有 opening_rosters 条目，
         // 也必须刷新方案标签与默认名单，不能停在 A 的「已自定义」。
         var guiSettings=guiOwner.LabyrinthSettings;
+        var shopPanel=view.FindControl<Expander>("RelicSettings")!;
+        shopPanel.IsExpanded=true;
+        Dispatcher.UIThread.RunJobs(); view.UpdateLayout();
+        var reserveInput=view.FindControl<TextBox>("RefreshMinBalanceInput")!;
+        reserveInput.SetCurrentValue(TextBox.TextProperty,"1100");
+        Dispatcher.UIThread.RunJobs();
+        Require(guiSettings.RefreshMinBalance=="1100" && (int?)Reload().Snapshot()["strategy"]?["refresh_min_balance"]==1100,
+            "real_shop_refresh_reserve_input_persists");
+        shopPanel.IsExpanded=false;
         var openingPanel=view.GetLogicalDescendants().OfType<Expander>().Single(control=>control.Name=="OpeningSettings");
         openingPanel.IsExpanded=true; Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(350); Dispatcher.UIThread.RunJobs();
         openingPanel.BringIntoView(); Dispatcher.UIThread.RunJobs(); view.UpdateLayout();

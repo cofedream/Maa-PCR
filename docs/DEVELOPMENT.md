@@ -94,6 +94,11 @@ if (-not (Test-Path (Join-Path $app 'assets'))) {
 
 ```powershell
 dotnet build gui\MFAAvalonia\MFAAvalonia.Desktop\MFAAvalonia.Desktop.csproj -c Release -r win-x64 -p:Platform=x64 -p:UsedAvaloniaProducts= --no-restore
+if ($LASTEXITCODE -ne 0) { throw 'GUI 编译失败。' }
+if ((Test-Path 'runtime/python/python.exe') -or (Test-Path '.venv/Scripts/python.exe')) {
+    python -X utf8 -B scripts\prepare_dev_native.py
+    if ($LASTEXITCODE -ne 0) { throw 'GUI 的 MaaFramework 原生库准备失败。' }
+}
 Start-Process (Join-Path $app 'MFAAvalonia.exe')
 ```
 

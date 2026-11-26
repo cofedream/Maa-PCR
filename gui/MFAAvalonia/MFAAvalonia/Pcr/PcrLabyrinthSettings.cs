@@ -127,6 +127,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
     public bool HasRelicPriorityNotice => RelicPriorityNotice.Length>0;
     [ObservableProperty] private bool refreshShop = true;
     [ObservableProperty] private string refreshFromArea = "5";
+    [ObservableProperty] private string refreshMinBalance = "0";
     [ObservableProperty] private string normalWinRate = "95";
     [ObservableProperty] private string extremeWinRate = "70";
     public string[] EventChainPolicies { get; } = { "自动（按价值模型）", "优先继续", "优先停止" };
@@ -297,6 +298,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             DebuffPivotTolerance=strategy["debuff_pivot_tolerance"]?.ToString() ?? "2";
             RelicMarkPriority=NormalizeRelicPriority(strategy["relic_mark_priority"] as JArray);
             RefreshFromArea=strategy["refresh_from_area"]?.ToString() ?? "5";
+            RefreshMinBalance=strategy["refresh_min_balance"]?.ToString() ?? "0";
             NormalWinRate=strategy["normal_win_rate"]?.ToString() ?? "95";
             ExtremeWinRate=strategy["extreme_win_rate"]?.ToString() ?? "70";
             EventChainPolicy=(string?)strategy["event_chain_policy"] switch { "continue"=>EventChainPolicies[1],"stop"=>EventChainPolicies[2],_=>EventChainPolicies[0] };
@@ -597,6 +599,7 @@ public partial class PcrLabyrinthSettings : ObservableObject {
             ["debuff_pivot_tolerance"]=Number(DebuffPivotTolerance,0,5,"弱体落后容差"),
             ["relic_mark_priority"]=RelicPrioritySnapshot(),
             ["refresh_from_area"]=Number(RefreshFromArea,1,5,"商店刷新起始区域"),
+            ["refresh_min_balance"]=Number(RefreshMinBalance,0,int.MaxValue,"商店刷新后最低余额"),
             ["normal_win_rate"]=Number(NormalWinRate,0,100,"普通战胜率"),
             ["extreme_win_rate"]=Number(ExtremeWinRate,0,100,"EX战胜率"),
             ["event_chain_policy"]=EventChainPolicy==EventChainPolicies[1] ? "continue" : EventChainPolicy==EventChainPolicies[2] ? "stop" : "auto",

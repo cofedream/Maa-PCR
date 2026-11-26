@@ -52,7 +52,8 @@ def test_daily_profile_has_only_read_operations_and_zero_challenges_is_valid(pro
 
 
 @pytest.mark.parametrize('page_name', ['lobby', 'target'])
-@pytest.mark.parametrize('text,expected', [('已达今天的上限', 900), ('已达今无的上限', 900), ('0/900', 0), ('900/900', 900), ('345 / 900', 345)])
+@pytest.mark.parametrize('text,expected', [('已达今天的上限', 900), ('已达今无的上限', 900),
+    ('己达今无的上限', 900), ('己达今天的上限', 900), ('0/900', 0), ('900/900', 900), ('345 / 900', 345)])
 def test_daily_cp_numeric_and_exact_limit_message_share_the_earned_semantics(profile, plan, page_name, text, expected):
     page, context, image, _ = reading(profile, plan, page_name, cp=text)
     actual = page.read(context, image, page_name)
@@ -62,7 +63,8 @@ def test_daily_cp_numeric_and_exact_limit_message_share_the_earned_semantics(pro
 
 @pytest.mark.parametrize('text', ['901/900', '1000/900', '900/', '/900', '已达今天的上', '今天的上限',
     '已达今日的上限', '已达今天的上限。', '其他文案', '已达今天的上限900',
-    '没达到今天的上限', '未达今天的上限', '未达今无的上限', '已达今无上限', '已达今无的上限900'])
+    '没达到今天的上限', '未达今天的上限', '未达今无的上限', '已达今无上限', '已达今无的上限900',
+    '己达今无的上', '己达今无的上限900', '己未达今无的上限'])
 def test_daily_cp_rejects_partial_different_or_out_of_range_text(profile, plan, text):
     page, context, image, _ = reading(profile, plan, 'lobby', cp=text)
     assert page.analyze(context, NS(image=image, custom_recognition_param='{"page":"lobby"}')) is None
@@ -197,7 +199,9 @@ def executable(profile):
     from pathlib import Path
     from pcr_maa import native
     index = json.loads((native.ROOT / 'assets/resource/clan-battle-calibrations/index.json').read_text(encoding='utf-8'))
-    shipped = json.loads((native.ROOT / index['entries'][0]['profile_path']).read_text(encoding='utf-8'))
+    october = next(entry for entry in index['entries']
+                   if entry['server'] == 'cn-bilibili' and entry['content_version'] == '202610141448')
+    shipped = json.loads((native.ROOT / october['profile_path']).read_text(encoding='utf-8'))
     inheritance = deepcopy(shipped['auto_battle']['inheritance'])
     for sample in inheritance['samples']:
         sample['path'] = str(native.ROOT / sample['path'])

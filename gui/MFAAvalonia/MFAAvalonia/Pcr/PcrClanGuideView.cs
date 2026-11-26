@@ -85,6 +85,12 @@ public sealed partial class PcrClanGuideView : UserControl
     private readonly TextBlock accountNote = Note("");
     public string StatusText => status.Text ?? "";
     public string ExecutionMode => executionLoaded ? execution.Mode : "unavailable";
+    public string StartHint => ExecutionMode switch
+    {
+        PcrClanDailyExecution.Simulation => "模拟当前队伍一局",
+        PcrClanDailyExecution.FormalDaily => "准备正式三刀，核对现场后另行确认普通挑战和补偿",
+        _ => "会战执行模式尚未确认"
+    };
     public int BattleSpeed => execution.BattleSpeed;
     public string ExecutionSummaryText => executionSummary.Text ?? "";
     public event EventHandler? ExecutionModeChanged;
@@ -144,7 +150,8 @@ public sealed partial class PcrClanGuideView : UserControl
         for (var index = 0; index < targetFields.Length; index++)
         {
             var (key, label) = targetFields[index]; var panel = new StackPanel { Spacing = 3 }; panel.Children.Add(Note(label));
-            var box = new TextBox(); Avalonia.Automation.AutomationProperties.SetName(box, label); fields.Add(key, box); panel.Children.Add(box); Watch(box);
+            var box = new TextBox(); Avalonia.Automation.AutomationProperties.SetName(box, label); fields.Add(key, box); panel.Children.Add(box);
+            Watch(box, targetChanged: key is "period" or "phase" or "boss");
             if (index < 6) { Grid.SetRow(panel, index / 3); Grid.SetColumn(panel, index % 3); target.Children.Add(panel); }
             else reference.Children.Add(panel);
         }
@@ -219,7 +226,12 @@ public sealed partial class PcrClanGuideView : UserControl
     private void SetVideoStatus(string text) { videoStatus.Text = text; status.Text = text; }
     private void Guard(Action action, bool videoChoice = false)
     { try { action(); } catch (Exception ex) { document.ConfirmedFor = null; var message = "作业不可用，尚未确认：" + ex.Message; if (videoChoice) SetVideoStatus(message); else status.Text = message; } }
-    private void Watch(TextBox box) => box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Invalidate(); };
+    private void Watch(TextBox box, bool targetChanged = false) => box.PropertyChanged += (_, e) =>
+    {
+        if (e.Property != TextBox.TextProperty || displaying) return;
+        Invalidate();
+        if (targetChanged) UpdateCalibrationSummary();
+    };
     private void Invalidate()
     { if (displaying) return; CancelPendingLoad(); document.ConfirmedFor = null; execution.ConfirmedFor = null; UpdateSelectionSummary(); status.Text = "内容已修改，请对照原图后一次确认保存。"; }
     private void UpdateSelectionSummary()
@@ -454,8 +466,13 @@ public sealed partial class PcrClanGuideView : UserControl
         var formal = execution.Mode == PcrClanDailyExecution.FormalDaily;
         var capability = formal ? "formal" : "simulation";
         var label = formal ? "正式三刀" : "模拟战";
-        var reason = calibration.Error ?? (!calibration.Supports(capability) ? "缺少对应页面校准和真实验收。" : null);
-        if (reason == null && calibration.OwnUnitsOnly)
+        var version = (string?)displaySnapshot?["content_version"];
+        var prefix = version == null ? "战斗校准" : $"战斗校准（内容版本 {version}）";
+        var reason = calibration.UnavailableReason(capability) ?? (!calibration.Supports(capability) ? "缺少对应页面校准。" : null);
+        string? simulationTarget = null;
+        if (reason == null && !formal)
+            (simulationTarget, reason) = calibration.CheckTarget("simulation", fields["period"].Text?.Trim(), fields["phase"].Text?.Trim(), Numeric(fields["boss"].Text), execution.BattleSpeed);
+        if (reason == null && !formal && calibration.OwnUnitsOnly)
         {
             try
             {
@@ -468,7 +485,10 @@ public sealed partial class PcrClanGuideView : UserControl
         if (reason == null && formal && execution.BattleSpeed != 2) reason = "旧正式配置需重新确认并保存为 2 倍速。";
         if (reason == null && !formal && execution.BattleSpeed != 1 && calibration.AutoBattleSpeeds?.Contains(execution.BattleSpeed) != true)
             reason = $"缺少 {execution.BattleSpeed} 倍速校准。";
-        calibrationSummary.Text = reason == null ? label + "：资料校验通过；开始前仍会核对实际页面。不代表当前阶段已通过正常 Start 全程验收。" : label + "不可用：" + reason;
+        calibrationSummary.Text = !executionLoaded ? prefix + "：待读取执行模式。"
+            : reason != null ? $"{prefix}：{label}不可用。{reason}"
+            : $"{prefix}：已登记{label}校准。{(simulationTarget == null ? "" : $"本队目标为 {simulationTarget}。")}{(calibration.OwnUnitsOnly ? "支持全自有队伍。" : "")}"
+                + (formal ? "预览正式三目标可分别核对每队。" : "开始前会核对所选队伍、操作和当前游戏页面。");
     }
     private void Persist(bool confirm)
     {
@@ -538,15 +558,16 @@ public sealed partial class PcrClanGuideView : UserControl
         formalControls.IsVisible = executionLoaded && execution.Mode == PcrClanDailyExecution.FormalDaily;
         dailyDetails.IsExpanded = formalControls.IsVisible;
         executionSummary.Text = !executionLoaded ? "会战模式保存未完成，执行确认已取消；编辑内容保留，请重新打开后核对实际保存的模式。"
-            : execution.Mode == PcrClanDailyExecution.Simulation ? $"单次模拟，{execution.BattleSpeed} 倍速；保留继承，开场只校正不同的 SET／AUTO 和速度。已击败的 BOSS 仍可选择模拟战。"
-            : "正式三刀固定 2 倍速，保留继承并只校正开场差异。请在三刀目标中预览并核对保存；只有对应资料校验通过时才能开始。"
+            : execution.Mode == PcrClanDailyExecution.Simulation ? $"{StartHint}，{execution.BattleSpeed} 倍速。已击败的 BOSS 仍可选择模拟战。"
+            : $"{StartHint}。正式挑战固定 2 倍速，请先核对并保存三目标。"
                 + (execution.BattleSpeed != 2 ? " 旧 1 倍配置尚未重新确认。" : "");
         UpdateCalibrationSummary();
     }
     public void PreviewDaily()
     {
         var request = PcrClanDailyExecution.BuildPlan(PcrClanDailyPlan.PathFor(configDirectory), statePath, configDirectory, repository, DateTimeOffset.Now);
-        executionSummary.Text = string.Join(Environment.NewLine, ((JObject)request["slot_plans"]!).Properties().Select(p => $"第 {p.Name} 刀：{p.Value["period"]} · {p.Value["phase"]} · BOSS {p.Value["boss"]} · {p.Value["package"]} / {p.Value["team_label"]} · 作业 {p.Value["source"]?["job_id"]}"))
+        executionSummary.Text = StartHint + Environment.NewLine
+            + string.Join(Environment.NewLine, ((JObject)request["slot_plans"]!).Properties().Select(p => $"第 {p.Name} 刀：{p.Value["period"]} · {p.Value["phase"]} · BOSS {p.Value["boss"]} · {p.Value["package"]} / {p.Value["team_label"]} · 作业 {p.Value["source"]?["job_id"]}"))
             + Environment.NewLine + "实际次数、日界与补偿未知；开始时从游戏核对。本次只预览，不执行。";
         try { PcrClanDailyExecution.RequireCapabilities(request, repository); executionSummary.Text += Environment.NewLine + "三个目标均有正式校准；实际出刀仍需通过现场核对。"; }
         catch (InvalidOperationException ex) { executionSummary.Text += Environment.NewLine + ex.Message; }
@@ -587,7 +608,7 @@ public sealed partial class PcrClanGuideView : UserControl
             loadedHash = readHash; bundle = nextBundle; cacheNotice.Text = ""; Display(saved); SynchronizeSelection(); loaded = true;
         }
         catch { document.ConfirmedFor = null; status.Text = "当前模拟队读回失败，请重新打开核对；旧显示已取消确认。"; throw; }
-        status.Text = "已载入并保存本刀为当前模拟队；可见队伍、原文件和开始任务读取的队伍一致。一次开始仍只做一场模拟战。";
+        status.Text = "已载入本刀并保存为当前编辑队伍。";
     }
     public void Reload()
     {
@@ -602,7 +623,7 @@ public sealed partial class PcrClanGuideView : UserControl
                 bundle = PcrClanGuide.Bundle(value.BundlePath);
                 SynchronizeSelection();
             }
-            loaded = true; status.Text = HasCurrentConfirmation ? "已载入本队确认。开始前仍会核对实际账号、BOSS 和模拟战入口。" : "已载入草稿；请选作业、核对五人和操作后一次保存。";
+            loaded = true; status.Text = HasCurrentConfirmation ? "已载入本队保存的核对。" : "已载入草稿；请选作业、核对五人和操作后一次保存。";
             dailyPlan.Reload();
             executionLoaded = false;
             execution = PcrClanDailyExecution.Read(PcrClanDailyExecution.PathFor(configDirectory), out executionHash);

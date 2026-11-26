@@ -409,10 +409,12 @@ public static class TelemetryService
         try
         {
             var path = Path.Combine(dataRoot, "appsettings.json");
+            using var access = new JsonHelper.FileAccessScope(path);
             if (!File.Exists(path))
                 return true;
 
-            var root = JObject.Parse(File.ReadAllText(path));
+            using var reader = new StreamReader(JsonHelper.OpenReadSnapshot(path));
+            var root = JObject.Parse(reader.ReadToEnd());
             var value = root[ConfigurationKeys.HelpImproveSoftware]?.Value<string>();
             return !bool.TryParse(value, out var enabled) || enabled;
         }

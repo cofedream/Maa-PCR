@@ -14,7 +14,7 @@ using Newtonsoft.Json.Linq;
 
 internal static class ChannelConfigChecks
 {
-    internal static void Run(string fixtureDirectory)
+    internal static void Run(string fixtureDirectory, string sourceRoot)
     {
         CapturePerformanceChecks.Run(fixtureDirectory);
         var count = 0;
@@ -211,6 +211,7 @@ ActivityStackSupervisor state:
             if (hadRoot) cache[rootType] = previousRoot!; else cache.TryRemove(rootType, out _);
             if (hadPlugins) resources["MdXamlPlugin"] = previousPlugins!; else resources.Remove("MdXamlPlugin");
         }
+        InvestigationSettingsChecks.Run(view, sourceRoot, fixtureDirectory);
         var channel = view.FindControl<Expander>("PcrChannelSettings")!;
         var selector = view.FindControl<ComboBox>("PcrChannelSelector")!;
         Check(view.FindControl<TextBox>("PcrGamePackage") == null && view.FindControl<TextBox>("PcrGameActivity") == null,

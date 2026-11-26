@@ -33,7 +33,7 @@ DEFAULT_TIMEOUT_SECONDS=60
 # The pref/root attempt did not confirm "不播放"; only these statuses need the
 # in-game fallback.  "already_off"/"fixed" are confirmed, "stopped" is already
 # the owner stopping, and "adb_missing" cannot automate Maa either.
-FALLBACK_STATUSES=frozenset({'no_root','unknown','write_failed','error',
+FALLBACK_STATUSES=frozenset({'no_root','unknown','probe_timeout','write_failed','error',
     'stop_unverified','stop_failed'})
 
 # Custom recognition registered once per Owner Resource. It hit-tests the same

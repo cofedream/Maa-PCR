@@ -65,16 +65,43 @@ def result_damage_line(text, verify):
 
 
 def result_damage_nodes(roi, name):
-    if roi != [88, 47, 162, 38]:
-        raise ValueError('clan_battle_result_damage_uncalibrated')
-    # The old damage box clips long numbers; compare two full same-frame reads.
-    x, y, w, h = roi
+    from .clan_battle_calibration_data import legacy_damage_rois
+    return _damage_line_nodes(name, *legacy_damage_rois(roi))
+
+
+def _damage_line_nodes(name, line, verification):
     nodes = {
-        name: _node(dict(roi=[x-8, y-2, w*2+8, h+4]), expected=RESULT_DAMAGE_LINE_PATTERN),
-        name + '_verify': _node(dict(roi=[x, y, w*2, h]), expected=RESULT_DAMAGE_LINE_PATTERN),
+        name: _node(dict(roi=line), expected=RESULT_DAMAGE_LINE_PATTERN),
+        name + '_verify': _node(dict(roi=verification), expected=RESULT_DAMAGE_LINE_PATTERN),
     }
     nodes[name + '_verify']['only_rec'] = True
     return nodes
+
+
+def _simulation_damage_nodes(calibration, result, line, content_version=None):
+    name = 'CBField_result_damage'
+    if 'damage_line' not in result:
+        if (calibration['evidence_kind'] == 'device_saved_frame'
+                and (content_version != '202610141448'
+                     or calibration['calibration_id'] != 'cn-bilibili-202610141448-clan-simulation')):
+            raise ValueError('clan_battle_result_damage_uncalibrated')
+        return result_damage_nodes(line, name)
+
+    return reviewed_damage_line_nodes(name, line, result['damage_line'], calibration['samples'])
+
+
+def reviewed_damage_line_nodes(name, line, layout, samples):
+    if (type(layout) is not dict or set(layout) != {'sample_sha256', 'verify_roi'}
+            or not any(s['page'] == 'result' and s['sha256'] == layout['sample_sha256']
+                       for s in samples)):
+        raise ValueError('clan_battle_result_damage_uncalibrated')
+    # Both reads target the same printed line on the reviewed result frame.
+    x, y, w, h = _roi(line)
+    vx, vy, vw, vh = _roi(layout['verify_roi'])
+    if (layout['verify_roi'] == line or vx < x or vy < y
+            or vx + vw > x + w or vy + vh > y + h):
+        raise ValueError('clan_battle_result_damage_uncalibrated')
+    return _damage_line_nodes(name, line, layout['verify_roi'])
 
 
 def _roi(value):
@@ -83,6 +110,21 @@ def _roi(value):
             or value[0]+value[2] > 1280 or value[1]+value[3] > 720):
         raise ValueError('clan_battle_calibration_roi_invalid')
     return value
+
+
+def _scroll_action(name, spec):
+    if type(spec) is not dict or spec.get('page') != ('formation' if name.startswith('characters_') else 'support'):
+        raise ValueError('clan_battle_calibration_action_page_invalid')
+    gesture = dict(action='Swipe', begin=_roi(spec.get('begin')), end=_roi(spec.get('end')),
+                   duration=400, post_delay=200)
+    if name == 'characters_next':
+        timing = dict(duration=spec.get('duration', 400), end_hold=spec.get('end_hold', 0),
+                      post_delay=spec.get('post_delay', 200))
+        if any(type(value) is not int or not (1 if key == 'duration' else 0) <= value <= 5000
+               for key, value in timing.items()):
+            raise ValueError('clan_battle_calibration_scroll_timing_invalid')
+        gesture.update(timing)
+    return gesture
 
 
 def _node(spec, *, expected=None, ocr_threshold=.9):
@@ -115,16 +157,77 @@ def _node(spec, *, expected=None, ocr_threshold=.9):
     return value
 
 
-def _difficulty_choice(calibration, plan):
+def _target_rows(calibration, capability):
+    field = capability + '_targets'
+    if field not in calibration:
+        return None
+    invalid = 'clan_battle_' + field + '_invalid'
+    rows = calibration[field]
+    if calibration.get('version') != 2 or type(rows) is not list or not 1 <= len(rows) <= 100:
+        raise ValueError(invalid)
+    if capability == 'simulation':
+        actions = calibration.get('actions')
+        difficulty = actions.get('select_difficulty') if type(actions) is dict else None
+        phases = difficulty.get('choices') if type(difficulty) is dict else None
+    else:
+        labels = calibration.get('phase_labels')
+        phases = tuple(labels.values()) if type(labels) is dict else None
+    if not phases or (capability == 'simulation' and type(phases) is not dict):
+        raise ValueError(invalid)
+    auto_battle = calibration.get('auto_battle')
+    available = auto_battle.get('speeds') if type(auto_battle) is dict else None
+    reviewed = {}
+    for row in rows:
+        if (type(row) is not dict or set(row) - ({'speeds'} if capability == 'simulation' else set()) != {'period', 'phase', 'boss'}
+                or type(row['period']) is not str or not re.fullmatch(r'[0-9]{4}-(?:0[1-9]|1[0-2])', row['period'])
+                or type(row['phase']) is not str or row['phase'] not in ('B', 'C', 'D', 'E') or row['phase'] not in phases
+                or type(row['boss']) is not int or not 1 <= row['boss'] <= 5):
+            raise ValueError(invalid)
+        key = row['period'], row['phase'], row['boss']
+        if key in reviewed:
+            raise ValueError(invalid)
+        speeds = None
+        if 'speeds' in row:
+            values = row['speeds']
+            if (type(values) is not list or not 1 <= len(values) <= 3 or type(available) is not list
+                    or any(type(speed) is not int or speed not in (1, 2, 4) or speed not in available for speed in values)
+                    or len(set(values)) != len(values)):
+                raise ValueError(invalid)
+            speeds = frozenset(values)
+        reviewed[key] = speeds
+    return reviewed
+
+
+def _require_target_scope(calibration, plan, capability):
+    reviewed = _target_rows(calibration, capability)
+    if reviewed is None:
+        return None
+    if type(plan.get('boss')) is not int:
+        raise RuntimeError('clan_battle_' + capability + '_target_uncalibrated')
+    allowed = ('B', 'C') if plan.get('phase') == 'BC' else (plan.get('phase'),)
+    for phase in allowed:
+        if (plan.get('period'), phase, plan.get('boss')) in reviewed:
+            return phase
+    raise RuntimeError('clan_battle_' + capability + '_target_uncalibrated')
+
+
+def _difficulty_phase(calibration, plan):
     choices = calibration['actions']['select_difficulty'].get('choices')
     if (type(choices) is not dict or not choices or not set(choices) <= {'B', 'C', 'D', 'E'}
             or any(type(row) is not dict or set(row) != {'label', 'selected'} for row in choices.values())):
         raise ValueError('clan_battle_calibration_difficulty_invalid')
     allowed = ('B', 'C') if plan['phase'] == 'BC' else (plan['phase'],)
+    if 'simulation_targets' in calibration:
+        return _require_target_scope(calibration, plan, 'simulation')
     phase = next((phase for phase in allowed if phase in choices), None)
     if phase is None:
         raise RuntimeError('clan_battle_difficulty_unavailable')
-    return choices[phase]
+    return phase
+
+
+def _difficulty_choice(calibration, plan):
+    phase = _difficulty_phase(calibration, plan)
+    return calibration['actions']['select_difficulty']['choices'][phase]
 
 
 def auto_battle_pipeline(calibration, plan):
@@ -132,7 +235,7 @@ def auto_battle_pipeline(calibration, plan):
     if spec is None:
         return {}
     if (calibration.get('version') != 2 or type(spec) is not dict
-            or set(spec) - {'inheritance', 'empty_tp'} != {'speeds', 'opening_guards', 'paused_guards', 'auto_on', 'auto_off', 'speed', 'set_badge', 'samples'}
+            or set(spec) - {'inheritance', 'empty_tp', 'paused_boss_roi', 'paused_clock_alternate_roi'} != {'speeds', 'opening_guards', 'paused_guards', 'auto_on', 'auto_off', 'speed', 'set_badge', 'samples'}
             or type(spec['speeds']) is not list or not spec['speeds'] or 1 not in spec['speeds']
             or any(type(n) is not int or n not in (1, 2, 4) for n in spec['speeds'])
             or len(set(spec['speeds'])) != len(spec['speeds'])
@@ -149,7 +252,9 @@ def auto_battle_pipeline(calibration, plan):
     clock = spec['paused_guards'][2]
     nodes['CBOpeningClock'] = _node({'roi': _roi(clock['roi'])}, expected=OPENING_CLOCK_PATTERN)
     nodes['CBOpeningClockScaled'] = _node({'roi': [0, 0, clock['roi'][2]*2, clock['roi'][3]*2]}, expected=OPENING_CLOCK_PATTERN)
-    nodes['CBOpeningBoss'] = _node(dict(roi=[805, 160, 135, 33]),
+    if 'paused_clock_alternate_roi' in spec:
+        nodes['CBOpeningClockAlternate'] = _node({'roi': spec['paused_clock_alternate_roi']}, expected=OPENING_CLOCK_PATTERN)
+    nodes['CBOpeningBoss'] = _node(dict(roi=spec.get('paused_boss_roi', [805, 160, 135, 33])),
         expected='^' + re.escape(calibration['boss_targets'][str(plan['boss'])]['name']) + '$')
     for name in ('auto_on', 'auto_off'):
         nodes['CBOpening_'+name] = _node(spec[name])
@@ -179,6 +284,12 @@ def auto_battle_pipeline(calibration, plan):
     # Wait for the clock to start; this does not prove anything about UB timing.
     nodes['CBOpeningReadyClock'] = _node({'roi': calibration['pages']['battle']['fields']['remaining_seconds']},
         expected=r'^(?:1[:：][0-2][0-9]|0[:：](?:0[1-9]|[1-5][0-9]))$')
+    opening_guards = [f'CBOpening_opening_guards_{i}' for i in range(3)]
+    # On the usual HUD the positive running clock implies the general clock reading
+    # on the very same pixels. Keep independent or more restrictive profile guards.
+    if nodes[opening_guards[-1]] == dict(nodes['CBOpeningReadyClock'], expected=FIELDS['remaining_seconds']):
+        opening_guards.pop()
+    opening_guards.append('CBOpeningReadyClock')
     nodes['CBOpeningMatch'] = dict(recognition='Custom', custom_recognition='ClanBattleCharacters',
         custom_recognition_param=dict(mode='opening_match'), action='DoNothing', next=[],
         timeout=1000, pre_delay=0, post_delay=0)
@@ -186,13 +297,12 @@ def auto_battle_pipeline(calibration, plan):
         custom_recognition_param=dict(mode='pause_retry'), action='DoNothing', next=[],
         timeout=1000, pre_delay=0, post_delay=0)
     nodes['CBPauseOpening'] = dict(recognition='And',
-        all_of=['CBOpeningObserve', 'CBOpeningInputReady', *[f'CBOpening_opening_guards_{i}' for i in range(3)], 'CBOpeningReadyClock'], action='Click', target=[1204, 31, 6, 6],
+        all_of=['CBOpeningObserve', 'CBOpeningInputReady', *opening_guards], action='Click', target=[1204, 31, 6, 6],
         max_hit=1, next=['CBOpeningRead', 'CBPauseRetry'], timeout=15000, rate_limit=1, pre_delay=0, post_delay=300,
         on_error=['LabyDisconnect6002Observed'])
     # Only reached after a successful first menu input and an unsuccessful paused read.
     nodes['CBPauseRetry'] = dict(recognition='And',
-        all_of=['CBOpeningInputReady', *[f'CBOpening_opening_guards_{i}' for i in range(3)],
-            'CBOpeningReadyClock', 'CBOpeningRetryGuard'], action='Click', target=[1204, 31, 6, 6],
+        all_of=['CBOpeningInputReady', *opening_guards, 'CBOpeningRetryGuard'], action='Click', target=[1204, 31, 6, 6],
         max_hit=1, next=['CBOpeningRead'], timeout=15000, rate_limit=1, pre_delay=0, post_delay=300,
         on_error=['LabyDisconnect6002Observed'])
     if 'inheritance' in spec:
@@ -213,6 +323,11 @@ def require_battle_speed(calibration, plan, battle_speed):
         raise ValueError('clan_battle_speed_invalid')
     if battle_speed != 1 and (plan.get('switches') or battle_speed not in calibration.get('auto_battle', {}).get('speeds', [])):
         raise RuntimeError('clan_battle_auto_speed_uncalibrated')
+    if 'simulation_targets' in calibration:
+        phase = _difficulty_phase(calibration, plan)
+        speeds = _target_rows(calibration, 'simulation')[(plan['period'], phase, plan['boss'])]
+        if speeds is not None and battle_speed not in speeds:
+            raise RuntimeError('clan_battle_auto_speed_uncalibrated')
 
 
 
@@ -263,6 +378,27 @@ def _navigation_popup_key(reading):
     return ('difficulty_notice:' + signature) if page == 'difficulty_notice' else signature
 
 
+def _boss_name_pattern(calibration, slots, *, phase=None, with_level=True):
+    levels = calibration['pages']['boss_detail'].get('nameplate_levels') if with_level else None
+    alternatives = []
+    for slot in slots:
+        name = re.escape(calibration['boss_targets'][str(slot)]['name'])
+        if levels is not None:
+            allowed = [row[slot-1] for stage, row in levels.items() if phase is None or stage == phase]
+            if not allowed:
+                continue
+            name += r'\s*-?\s*等级\s*[.．]?\s*(?:' + '|'.join(map(str, sorted(set(allowed)))) + ')'
+        alternatives.append(name)
+    return '^(?:'+'|'.join(alternatives)+')$' if alternatives else r'^(?!)$'
+
+
+def _boss_name_node(calibration, roi, slots):
+    node = _node(dict(roi=roi), expected=_boss_name_pattern(calibration, slots))
+    if 'nameplate_levels' in calibration['pages']['boss_detail']:
+        node['only_rec'] = True
+    return node
+
+
 def simulation_navigation_pipeline(calibration):
     slots = calibration['pages']['lobby'].get('boss_slots')
     arrows = calibration['pages']['boss_detail'].get('navigation')
@@ -280,9 +416,7 @@ def simulation_navigation_pipeline(calibration):
         nodes['CBNavDefeated'+boss] = _node(spec['defeated'])
     for direction, marker in arrows.items():
         nodes['CBNavArrow_'+direction] = _node(marker)
-    names = [re.escape(row['name']) for row in calibration['boss_targets'].values()]
-    nodes['CBNavBoss'] = _node(dict(roi=calibration['pages']['boss_detail']['fields']['boss']),
-        expected='^(?:'+'|'.join(names)+')$')
+    nodes['CBNavBoss'] = _boss_name_node(calibration, calibration['pages']['boss_detail']['fields']['boss'], range(1, 6))
     nodes['CBNavSimulation'] = _node(dict(roi=calibration['pages']['target']['fields']['simulation']),
         expected=r'^设定为模拟战[。.]?$')
     modes = dict(CBNavDetail='read', CBNavOpenBoss='open_boss',
@@ -311,6 +445,113 @@ def simulation_navigation_pipeline(calibration):
     return nodes
 
 
+def page_recognition_nodes(calibration, plan, page, *, simulation=True):
+    """Build per-page recognizers for live execution and saved-frame layout review."""
+    modern = calibration['version'] == 2
+    spec = calibration['pages'][page]
+    levels = calibration['pages'].get('boss_detail', {}).get('nameplate_levels')
+    nodes = {}
+    if type(spec) is not dict or type(spec.get('labels')) is not list or len(spec['labels']) < 2:
+        raise ValueError('clan_battle_calibration_page_guards_missing')
+    for index, label in enumerate(spec['labels']):
+        nodes[f'CBLabel_{page}_{index}'] = _node(label, ocr_threshold=.8 if page == 'adventure' else .9)
+    fields = spec.get('fields', {})
+    if type(fields) is not dict:
+        raise ValueError('clan_battle_calibration_fields_missing:' + page)
+    nameplate = levels is not None and page in ('boss_detail', 'target')
+    if nameplate:
+        # Replace only the declared full-name label, leaving every independent
+        # detail, mode and period guard in place.
+        labels = [i for i, label in enumerate(spec['labels'])
+                  if label.get('roi') == fields.get('boss')
+                  and label.get('expected') == _boss_name_pattern(calibration, range(1, 6), with_level=False)]
+        if len(labels) != 1:
+            raise ValueError('clan_battle_nameplate_guard_missing')
+        nodes[f'CBLabel_{page}_{labels[0]}'] = _boss_name_node(calibration, fields['boss'], range(1, 6))
+    required = set(IDENTITY_FIELDS if page in ('target', 'formation', 'support', 'result')
+                   else ('period', 'phase', 'round') if page == 'lobby'
+                   else ('remaining_seconds',) if page == 'battle' else ())
+    inherited = spec.get('inherit', [])
+    if modern:
+        required = set(('period', 'phase', 'boss', 'simulation') if page in ('target', 'formation', 'support', 'result')
+                       else ('period', 'phase', 'boss') if page == 'boss_detail'
+                       else ('period', 'boss') if page == 'difficulty'
+                       else ('period',) if page == 'lobby' else ('remaining_seconds',) if page == 'battle' else ())
+        if (type(inherited) is not list or any(type(key) is not str for key in inherited)
+                or len(set(inherited)) != len(inherited)
+                or any(key not in required for key in inherited) or set(inherited) & set(fields)):
+            raise ValueError('clan_battle_calibration_inheritance_invalid:' + page)
+        visible = {'period'} if page == 'lobby' else {'phase', 'boss'} if page in ('boss_detail', 'target') else set()
+        if page in ('target', 'formation', 'support', 'result'):
+            visible.add('simulation')
+        if not visible <= set(fields):
+            raise ValueError('clan_battle_calibration_fields_missing:' + page)
+    if page == 'result':
+        required.add('damage')
+    if type(fields) is not dict or set(fields) | set(inherited) != required:
+        raise ValueError('clan_battle_calibration_fields_missing:' + page)
+    for field, roi in fields.items():
+        if nameplate and field == 'boss':
+            nodes[f'CBField_{page}_boss'] = _boss_name_node(calibration, roi, [plan['boss']])
+            continue
+        expected = FIELDS.get(field)
+        if modern:
+            if field == 'boss':
+                expected = '^' + re.escape(calibration['boss_targets'][str(plan['boss'])]['name']) + '$'
+            elif field == 'phase':
+                expected = '^(?:' + '|'.join(re.escape(key) for key in calibration['phase_labels'])
+                expected += r'|第[1-5]阶段)$' if page == 'boss_detail' else ')$'
+            elif field == 'simulation':
+                expected = (r'^模拟战的战斗结果不会显示在团队战成绩中[。.]?$' if page == 'result'
+                            else r'^设定为模拟战[。.]?$')
+            elif field == 'period':
+                expected = r'^(?:20[0-9]{2}[-年](?:0[1-9]|1[0-2])月?|[0-1]?[0-9]/[0-3]?[0-9]\s*[:：]?\s*[0-2][0-9]:[0-5][0-9]\s*[~～〜至—－-]\s*[0-1]?[0-9]/[0-3]?[0-9]\s*[:：]?\s*[0-2][0-9]:[0-5][0-9])$'
+        if modern and simulation and page == 'result' and field == 'damage':
+            nodes.update(_simulation_damage_nodes(calibration, spec, roi, plan.get('content_version')))
+            continue
+        nodes[f'CBField_{page}_{field}'] = _node(dict(roi=roi), expected=expected)
+        if modern and page == 'lobby' and field == 'period':
+            # Read the whole date row; detector splits can duplicate boundary digits.
+            nodes[f'CBField_{page}_{field}']['only_rec'] = True
+    if modern and page == 'battle':
+        nodes['CBOneSpeed'] = _node(spec.get('speed_one'))
+        for speed, key in ((2, 'speed_two'), (4, 'speed_four')):
+            if key in spec:
+                nodes['CBBattleSpeed'+str(speed)] = _node(spec[key])
+    if modern and page == 'target':
+        states = spec.get('live_state')
+        if type(states) is not dict or set(states) != {'on', 'off', 'absent'}:
+            raise ValueError('clan_battle_calibration_simulation_settings_missing')
+        for state, marker in states.items():
+            nodes['CBLiveState_'+state] = _node(marker)
+    if page in ('formation', 'support'):
+        nodes[f'CBFormal_{page}'] = _node(spec.get('formal'), expected=r'^(?:实战|设定为实战[。.]?|正式战|正式挑战|消耗挑战次数)$')
+    nodes['CBPage_'+page] = dict(recognition='Custom', custom_recognition='ClanBattlePage',
+        custom_recognition_param=dict(page=page), action='DoNothing', next=[], timeout=1000,
+        pre_delay=0, post_delay=0)
+    if modern and page in ('lobby', 'boss_detail'):
+        nodes['CBObserve_'+page] = dict(nodes['CBPage_'+page],
+            custom_recognition_param=dict(page=page, observe_only=True))
+    return nodes
+
+
+def action_label_node(name, spec, plan, selected=None):
+    label = dict(selected['label'] if selected is not None else spec.get('label', {}))
+    if name == 'open_simulation':
+        label['expected'] = '^模拟战$'
+    elif name == 'open_boss':
+        label['expected'] = rf'^BOSS\s*{plan["boss"]}$'
+    elif name == 'start':
+        label['expected'] = '^(?:模拟战开始|开始模拟战|战斗开始)$'
+    elif name == 'open_formation':
+        label['expected'] = '^挑战$'
+    elif name == 'open_difficulty':
+        label['expected'] = '^难度变更$'
+    elif name == 'confirm_difficulty':
+        label['expected'] = '^确认$'
+    return _node(label)
+
+
 def calibration_pipeline(calibration, plan, *, capability='simulation'):
     """Build shared nodes for the internally selected battle capability."""
     if capability not in ('simulation', 'formal', 'carryover'):
@@ -327,6 +568,12 @@ def calibration_pipeline(calibration, plan, *, capability='simulation'):
         raise ValueError('clan_battle_calibration_invalid')
     modern = calibration['version'] == 2
     simulation = not modern or capability == 'simulation'
+    if not modern:
+        for mode in ('simulation', 'formal', 'carryover'):
+            if mode + '_targets' in calibration:
+                raise ValueError('clan_battle_' + mode + '_targets_invalid')
+    if capability in ('formal', 'carryover'):
+        _require_target_scope(calibration, plan, capability)
     support_scope = calibration.get('support_modes')
     if 'support_modes' in calibration and (not modern or support_scope != ['none']):
         raise ValueError('clan_battle_calibration_support_scope_invalid')
@@ -373,84 +620,23 @@ def calibration_pipeline(calibration, plan, *, capability='simulation'):
     if (type(pages) is not dict or not set(page_names) - ({'closed'} if modern else set()) <= set(pages)
             or not set(pages) <= set(page_names)):
         raise ValueError('clan_battle_calibration_pages_missing')
+    detail_spec = pages.get('boss_detail')
+    levels = detail_spec.get('nameplate_levels') if type(detail_spec) is dict else None
+    if type(detail_spec) is dict and 'nameplate_levels' in detail_spec:
+        if (not modern or type(levels) is not dict or not levels or not set(levels) <= set(phases.values())
+                or any(type(row) is not list or len(row) != 5
+                       or any(type(level) is not int or not 1 <= level <= 9999 for level in row)
+                       for row in levels.values())
+                or len({row['name'] for row in targets.values()}) != 5):
+            raise ValueError('clan_battle_nameplate_levels_invalid')
     nodes = {}
     if modern and 'closed' not in pages:
         # An unavailable closed-event sample must not be replaced by invented positive guards.
         nodes['CBPage_closed'] = dict(recognition='Custom', custom_recognition='ClanBattlePage',
             custom_recognition_param=dict(page='closed'), action='DoNothing', next=[], timeout=1000,
             pre_delay=0, post_delay=0)
-    for page, spec in pages.items():
-        if type(spec) is not dict or type(spec.get('labels')) is not list or len(spec['labels']) < 2:
-            raise ValueError('clan_battle_calibration_page_guards_missing')
-        for index, label in enumerate(spec['labels']):
-            nodes[f'CBLabel_{page}_{index}'] = _node(label, ocr_threshold=.8 if page == 'adventure' else .9)
-        fields = spec.get('fields', {})
-        if type(fields) is not dict:
-            raise ValueError('clan_battle_calibration_fields_missing:' + page)
-        required = set(IDENTITY_FIELDS if page in ('target', 'formation', 'support', 'result')
-                       else ('period', 'phase', 'round') if page == 'lobby'
-                       else ('remaining_seconds',) if page == 'battle' else ())
-        inherited = spec.get('inherit', [])
-        if modern:
-            required = set(('period', 'phase', 'boss', 'simulation') if page in ('target', 'formation', 'support', 'result')
-                           else ('period', 'phase', 'boss') if page == 'boss_detail'
-                           else ('period', 'boss') if page == 'difficulty'
-                           else ('period',) if page == 'lobby' else ('remaining_seconds',) if page == 'battle' else ())
-            if (type(inherited) is not list or any(type(key) is not str for key in inherited)
-                    or len(set(inherited)) != len(inherited)
-                    or any(key not in required for key in inherited) or set(inherited) & set(fields)):
-                raise ValueError('clan_battle_calibration_inheritance_invalid:' + page)
-            visible = {'period'} if page == 'lobby' else {'phase', 'boss'} if page in ('boss_detail', 'target') else set()
-            if page in ('target', 'formation', 'support', 'result'):
-                visible.add('simulation')
-            if not visible <= set(fields):
-                raise ValueError('clan_battle_calibration_fields_missing:' + page)
-        if page == 'result':
-            required.add('damage')
-        if type(fields) is not dict or set(fields) | set(inherited) != required:
-            raise ValueError('clan_battle_calibration_fields_missing:' + page)
-        for field, roi in fields.items():
-            expected = FIELDS.get(field)
-            if modern:
-                if field == 'boss':
-                    expected = '^' + re.escape(targets[str(plan['boss'])]['name']) + '$'
-                elif field == 'phase':
-                    expected = '^(?:' + '|'.join(re.escape(key) for key in phases)
-                    expected += r'|第[1-5]阶段)$' if page == 'boss_detail' else ')$'
-                elif field == 'simulation':
-                    expected = (r'^模拟战的战斗结果不会显示在团队战成绩中[。.]?$' if page == 'result'
-                                else r'^设定为模拟战[。.]?$')
-                elif field == 'period':
-                    expected = r'^(?:20[0-9]{2}[-年](?:0[1-9]|1[0-2])月?|[0-1]?[0-9]/[0-3]?[0-9]\s*[:：]?\s*[0-2][0-9]:[0-5][0-9]\s*[~～〜至—－-]\s*[0-1]?[0-9]/[0-3]?[0-9]\s*[:：]?\s*[0-2][0-9]:[0-5][0-9])$'
-            if modern and simulation and page == 'result' and field == 'damage':
-                if (calibration['evidence_kind'] == 'device_saved_frame'
-                        and calibration['calibration_id'] != 'cn-bilibili-202610141448-clan-simulation'):
-                    raise ValueError('clan_battle_result_damage_uncalibrated')
-                nodes.update(result_damage_nodes(roi, 'CBField_result_damage'))
-                continue
-            nodes[f'CBField_{page}_{field}'] = _node(dict(roi=roi), expected=expected)
-            if modern and page == 'lobby' and field == 'period':
-                # Read the whole date row; detector splits can duplicate boundary digits.
-                nodes[f'CBField_{page}_{field}']['only_rec'] = True
-        if modern and page == 'battle':
-            nodes['CBOneSpeed'] = _node(spec.get('speed_one'))
-            for speed, key in ((2, 'speed_two'), (4, 'speed_four')):
-                if key in spec:
-                    nodes['CBBattleSpeed'+str(speed)] = _node(spec[key])
-        if modern and page == 'target':
-            states = spec.get('live_state')
-            if type(states) is not dict or set(states) != {'on', 'off', 'absent'}:
-                raise ValueError('clan_battle_calibration_simulation_settings_missing')
-            for state, marker in states.items():
-                nodes['CBLiveState_'+state] = _node(marker)
-        if page in ('formation', 'support'):
-            nodes[f'CBFormal_{page}'] = _node(spec.get('formal'), expected=r'^(?:实战|设定为实战[。.]?|正式战|正式挑战|消耗挑战次数)$')
-        nodes['CBPage_'+page] = dict(recognition='Custom', custom_recognition='ClanBattlePage',
-            custom_recognition_param=dict(page=page), action='DoNothing', next=[], timeout=1000,
-            pre_delay=0, post_delay=0)
-        if modern and page in ('lobby', 'boss_detail'):
-            nodes['CBObserve_'+page] = dict(nodes['CBPage_'+page],
-                custom_recognition_param=dict(page=page, observe_only=True))
+    for page in pages:
+        nodes.update(page_recognition_nodes(calibration, plan, page, simulation=simulation))
     if modern and not simulation:
         # Daily execution supplies formal page/navigation guards; keep validation above.
         nodes = {}
@@ -470,35 +656,14 @@ def calibration_pipeline(calibration, plan, *, capability='simulation'):
         if type(spec) is not dict or spec.get('page') != page:
             raise ValueError('clan_battle_calibration_action_page_invalid')
         if name in ('characters_top', 'characters_next', 'support_top', 'support_next'):
-            begin, end = spec.get('begin'), spec.get('end')
-            _roi(begin); _roi(end)
-            action = dict(action='Swipe', begin=begin, end=end, duration=400)
-            if name == 'characters_next':
-                timing = dict(duration=spec.get('duration', 400), end_hold=spec.get('end_hold', 0),
-                    post_delay=spec.get('post_delay', 200))
-                if any(type(value) is not int or not (1 if key == 'duration' else 0) <= value <= 5000
-                        for key, value in timing.items()):
-                    raise ValueError('clan_battle_calibration_scroll_timing_invalid')
-                action.update(duration=timing['duration'], end_hold=timing['end_hold'])
-                post_delay = timing['post_delay']
+            action = _scroll_action(name, spec)
+            post_delay = action.pop('post_delay')
         elif modern and name in ('open_boss', 'back_to_lobby', 'back_to_adventure', 'disable_live_state'):
             _roi(targets[str(plan['boss'])]['target'] if name == 'open_boss' else spec.get('target'))
             action = dict(action='Click', target=True)
         else:
-            label = dict(selected['label'] if modern and name == 'select_difficulty' else spec.get('label', {}))
-            if name == 'open_simulation':
-                label['expected'] = '^模拟战$'
-            elif name == 'open_boss':
-                label['expected'] = rf'^BOSS\s*{plan["boss"]}$'
-            elif name == 'start':
-                label['expected'] = '^(?:模拟战开始|开始模拟战|战斗开始)$'
-            elif name == 'open_formation':
-                label['expected'] = '^挑战$'
-            elif name == 'open_difficulty':
-                label['expected'] = '^难度变更$'
-            elif name == 'confirm_difficulty':
-                label['expected'] = '^确认$'
-            nodes['CBActionLabel_'+name] = _node(label)
+            choice = selected if modern and name == 'select_difficulty' else None
+            nodes['CBActionLabel_'+name] = action_label_node(name, spec, plan, choice)
             action = dict(action='Click', target=True)
         if name == 'start':
             # Only CBStart is actionable; its character callback rechecks all five slots.
@@ -608,19 +773,8 @@ def _current_period(text):
     return start.strftime('%Y-%m')
 
 
-class ClanBattlePage(CustomRecognition):
-    def __init__(self, plan, calibration, support_unit_id=None):
-        super().__init__()
-        self.plan, self.calibration, self.support_unit_id = plan, calibration, support_unit_id
-        self.modern = calibration.get('version') == 2
-        self.reset_context()
-
-    def reset_context(self):
-        self.bound, self.current_page, self.expected_page = {}, None, None
-
-    def advance(self, action):
-        if self.modern:
-            self.expected_page = V2_DESTINATIONS.get(action, self.current_page)
+class ClanPageFields:
+    """Read the visible fields of one frame without inheriting navigation or owner state."""
 
     def hit(self, context, image, name):
         seen = context.run_recognition(name, image)
@@ -659,6 +813,35 @@ class ClanBattlePage(CustomRecognition):
                 or re.fullmatch(expected, words[0]['text']) is None):
             raise RuntimeError('clan_battle_page_field_unknown:' + name)
         return words[0]['text']
+
+    def visible_boss_slot(self, context, image, boss):
+        if type(boss) is not int or not 1 <= boss <= 5:
+            raise RuntimeError('clan_battle_simulation_boss_changed')
+        dead = self.hit(context, image, 'CBNavDefeated'+str(boss))
+        alive = self.hit(context, image, 'CBNavRound'+str(boss))
+        if dead == alive:
+            raise RuntimeError('clan_battle_simulation_boss_state_unknown')
+        round_ = None if dead else int(re.sub(r'\D', '', self.word(context, image, 'CBNavRound'+str(boss))))
+        return dict(boss=boss, round=round_, available=alive)
+
+
+
+class ClanBattlePage(ClanPageFields, CustomRecognition):
+    def __init__(self, plan, calibration, support_unit_id=None):
+        super().__init__()
+        if 'simulation_targets' in calibration:
+            # Every inherited identity, including a resumed formation, must use the reviewed stage.
+            plan = dict(plan, phase=_difficulty_phase(calibration, plan))
+        self.plan, self.calibration, self.support_unit_id = plan, calibration, support_unit_id
+        self.modern = calibration.get('version') == 2
+        self.reset_context()
+
+    def reset_context(self):
+        self.bound, self.current_page, self.expected_page = {}, None, None
+
+    def advance(self, action):
+        if self.modern:
+            self.expected_page = V2_DESTINATIONS.get(action, self.current_page)
 
     def read(self, context, image, page, *, observe_only=False):
         if (context.tasker.stopping or image is None or image.shape != (720, 1280, 3)
@@ -699,6 +882,9 @@ class ClanBattlePage(CustomRecognition):
                 value = _current_period(text) if self.modern else text.replace('年', '-').replace('月', '')
             elif field == 'phase':
                 value = self.calibration['phase_labels'].get(text) if self.modern else text
+            elif field == 'boss' and self.modern and page in ('boss_detail', 'target') and 'nameplate_levels' in self.calibration['pages']['boss_detail']:
+                # Phase and boss may appear in either order in a profile.
+                value = text
             elif field == 'boss' and self.modern:
                 if text != self.calibration['boss_targets'][str(self.plan['boss'])]['name']:
                     raise RuntimeError('clan_battle_boss_unknown')
@@ -709,6 +895,11 @@ class ClanBattlePage(CustomRecognition):
             else:
                 value = int(re.sub('[^0-9]', '', text))
             values[field] = value
+        if (self.modern and page in ('boss_detail','target')
+                and 'nameplate_levels' in self.calibration['pages']['boss_detail']):
+            if self._nameplate_slot(values['boss'], values.get('phase')) != self.plan['boss']:
+                raise RuntimeError('clan_battle_boss_unknown')
+            values['boss'] = self.plan['boss']
         if self.modern:
             if page == 'battle':
                 speeds = [speed for speed, key in ((1, 'speed_one'), (2, 'speed_two'), (4, 'speed_four'))
@@ -771,17 +962,17 @@ class ClanBattlePage(CustomRecognition):
     def read_boss_slot(self, context, image, boss):
         if 'boss_slots' not in self.calibration['pages']['lobby']:
             raise RuntimeError('clan_battle_simulation_navigation_uncalibrated')
-        if type(boss) is not int or not 1 <= boss <= 5:
-            raise RuntimeError('clan_battle_simulation_boss_changed')
-        dead = self.hit(context, image, 'CBNavDefeated'+str(boss))
-        alive = self.hit(context, image, 'CBNavRound'+str(boss))
-        if dead == alive:
-            raise RuntimeError('clan_battle_simulation_boss_state_unknown')
-        round_ = None if dead else int(re.sub(r'\D', '', self.word(context, image, 'CBNavRound'+str(boss))))
-        return dict(boss=boss, round=round_, available=alive)
+        return self.visible_boss_slot(context, image, boss)
 
     def read_boss_slots(self, context, image):
         return [self.read_boss_slot(context, image, boss) for boss in range(1, 6)]
+
+    def _nameplate_slot(self, text, phase):
+        if phase is None:
+            return None
+        matches = [slot for slot in range(1, 6)
+                   if re.fullmatch(_boss_name_pattern(self.calibration, [slot], phase=phase), text)]
+        return matches[0] if len(matches) == 1 else None
 
     def read_navigation(self, context, image):
         if 'navigation' not in self.calibration['pages']['boss_detail']:
@@ -792,14 +983,14 @@ class ClanBattlePage(CustomRecognition):
                 or self.current_page == 'lobby' and self.expected_page != 'boss_detail'):
             raise RuntimeError('clan_battle_simulation_navigation_unbound')
         name = self.word(context, image, 'CBNavBoss')
-        matches = [int(boss) for boss, row in self.calibration['boss_targets'].items() if row['name'] == name]
         phase = self.calibration['phase_labels'].get(self.word(context, image, 'CBField_boss_detail_phase'))
-        if len(matches) != 1 or phase is None:
+        boss = self._nameplate_slot(name, phase)
+        if boss is None:
             raise RuntimeError('clan_battle_simulation_navigation_unknown')
         simulation = self.hit(context, image, 'CBNavSimulation')
         if simulation:
             self.word(context, image, 'CBNavSimulation')
-        return dict(page='boss_detail', period=self.bound['period'], boss=matches[0],
+        return dict(page='boss_detail', period=self.bound['period'], boss=boss,
                     phase=phase, simulation=simulation)
 
     def navigation_action(self, context, image, params):
@@ -1458,7 +1649,10 @@ class NativeClanBattle(NativeGuideTrial):
                 if detail['boss'] != plan['boss'] or detail['simulation'] is not True:
                     raise RuntimeError('clan_battle_simulation_navigation_changed')
                 detail, _ = self.read_page('boss_detail')
-                phases = ('B', 'C') if plan['phase'] == 'BC' else (plan['phase'],)
+                if 'simulation_targets' in self.calibration:
+                    phases = (_difficulty_phase(self.calibration, plan),)
+                else:
+                    phases = ('B', 'C') if plan['phase'] == 'BC' else (plan['phase'],)
                 if detail['phase'] not in phases:
                     self.run('CBAction_open_difficulty', click=True)
                     wait(['CBPage_difficulty'])

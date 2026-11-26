@@ -13,15 +13,32 @@ namespace MFAAvalonia.Pcr;
 public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabilities, string? Error, bool OwnUnitsOnly = false, bool AccountStars = false, IReadOnlySet<int>? AutoBattleSpeeds = null, bool ManageInheritance = false, bool FormalOpening = false)
 {
     public const string IndexPath = "assets/resource/clan-battle-calibrations/index.json";
-    // Kept with the reviewed Python calibration loader when the bundled index changes.
-    public const string IndexSha256 = "b006c5b9810d9ff9a0ebe378e7107611f632d790e9d7f2e1a014b3a4bd48a214";
+    public const string IndexSha256 = PcrClanCalibrationPin.IndexSha256;
     private static readonly string[] Names = { "simulation", "timed", "formal", "carryover" };
     private static readonly string[] Labels = { "模拟战", "秒数轴", "正式三刀", "补偿刀" };
-    public bool Supports(string capability) => Error == null && Capabilities.Contains(capability);
+    private string? SimulationError { get; init; }
+    private string? FormalResultError { get; init; }
+    private sealed record TargetScope(Dictionary<(string Period, string Phase, int Boss), IReadOnlySet<int>?> Targets, string? Error = null)
+    {
+        public string Description => string.Join("、", Targets
+            .OrderBy(t => t.Key.Period, StringComparer.Ordinal).ThenBy(t => t.Key.Phase, StringComparer.Ordinal).ThenBy(t => t.Key.Boss)
+            .Select(t => $"{t.Key.Period} {t.Key.Phase}{t.Key.Boss}" + (t.Value == null ? "" : $"（{string.Join("／", t.Value.Order())} 倍速）")));
+    }
+    private static readonly string[] TargetCapabilities = { "simulation", "formal", "carryover" };
+    private static string TargetLabel(string capability) => capability switch { "simulation" => "模拟", "formal" => "正式", _ => "补偿" };
+    private IReadOnlyDictionary<string, TargetScope> TargetScopes { get; init; } = new Dictionary<string, TargetScope>();
+    internal string? UnavailableReason(string capability) => Error ?? TargetScopes.GetValueOrDefault(capability)?.Error ?? (capability switch
+    {
+        "simulation" => SimulationError,
+        "formal" or "carryover" => FormalResultError,
+        _ => null
+    });
+    public bool Supports(string capability) => Capabilities.Contains(capability) && UnavailableReason(capability) == null;
     public string Summary => (Error != null ? string.Join(" / ", Labels) + "：不可用。" + Error
         : string.Join("；", Names.Select((name, i) => Labels[i] + "：" + (Supports(name)
-            ? name == "timed" ? "测量资料齐全，开始前核对时限" : Version == 1 && name == "simulation" ? "校准资料已登记（仅全程 AUTO、无切换）" : "校准资料已登记" : "缺少校准"))))
+            ? name == "timed" ? "测量资料齐全，开始前核对时限" : Version == 1 && name == "simulation" ? "校准资料已登记（仅全程 AUTO、无切换）" : "校准资料已登记" : UnavailableReason(name) ?? "缺少校准"))))
         + (Error == null ? "。资料校验通过不代表当前阶段已通过正常 Start 全程验收。" : "")
+        + string.Concat(TargetScopes.Where(s => Supports(s.Key)).Select(s => $" 可{TargetLabel(s.Key)}目标为 {s.Value.Description}。"))
         + (OwnUnitsOnly ? "仅全自有队伍可用；借人身份尚未校准。" : "")
         + (AccountStars ? " 出战星级使用24小时内的已确认账号资料，调整后须重新同步。" : "");
     public string AutoBattleSummary => AutoBattleSpeeds == null ? "开场设置与倍速：缺少校准。"
@@ -83,21 +100,107 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
             var starSource = profile["formation"]?["star_source"];
             if (starSource != null && ((int?)profile["version"] != 2 || !ownUnitsOnly || (string?)starSource != "account_snapshot"))
                 throw new InvalidDataException("星级资料来源无效。[clan_battle_calibration_star_source_invalid]");
+            var scopes = ReadTargetScopes(profile);
+            var execution = (profile["daily"] as JObject)?["execution"] as JObject;
+            var formalReady = !capabilities.Contains("formal") || HasDamageLine(profile, contentVersion, execution, formal: true);
+            // The binding is data; only the referenced result sample is a file dependency.
+            if (execution?["pages"] is JObject formalPages && formalPages["result"] is JObject formalResult)
+                formalResult.Remove("damage_line");
             VerifyDependencies(root, profile, capabilities, ownUnitsOnly);
             return new(version == 1 ? 1 : (int)profile["version"]!, capabilities, null, ownUnitsOnly, starSource != null,
                 profile["auto_battle"] is JObject autoBattle ? autoBattle["speeds"]!.Values<int>().ToHashSet() : null,
-                profile["auto_battle"]?["inheritance"] is JObject, profile["daily"]?["execution"]?["opening"] is JObject);
+                profile["auto_battle"]?["inheritance"] is JObject, profile["daily"]?["execution"]?["opening"] is JObject)
+            {
+                TargetScopes = scopes,
+                FormalResultError = formalReady ? null : "正式结算缺少已核验的伤害行和正式结果截图。[clan_battle_result_damage_uncalibrated]",
+                SimulationError = capabilities.Contains("simulation") && (int)profile["version"]! == 2 && !HasDamageLine(profile, contentVersion, profile, formal: false)
+                    ? "模拟战结算伤害行缺少已核验的截图或识别范围。[clan_battle_result_damage_uncalibrated]" : null
+            };
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException
             or InvalidCastException or FormatException or OverflowException or Newtonsoft.Json.JsonException)
         { return new(0, new HashSet<string>(StringComparer.Ordinal), ex.Message); }
     }
 
+    private static Dictionary<string, TargetScope> ReadTargetScopes(JObject profile)
+    {
+        var scopes = new Dictionary<string, TargetScope>(StringComparer.Ordinal);
+        foreach (var capability in TargetCapabilities)
+        {
+            var field = capability + "_targets";
+            if (!profile.TryGetValue(field, out var value)) continue;
+            scopes[capability] = ReadTargetScope(profile, capability, value);
+            // A scope declares data only. Even a malformed entry cannot add a file dependency.
+            profile.Remove(field);
+        }
+        return scopes;
+    }
+
+    private static TargetScope ReadTargetScope(JObject profile, string capability, JToken value)
+    {
+        var invalid = new TargetScope(new(), $"{TargetLabel(capability)}目标清单格式无效。[clan_battle_{capability}_targets_invalid]");
+        if ((int?)profile["version"] != 2 || value is not JArray { Count: >= 1 and <= 100 } rows) return invalid;
+        var simulation = capability == "simulation";
+        var choices = ((profile["actions"] as JObject)?["select_difficulty"] as JObject)?["choices"] as JObject;
+        var phaseLabels = profile["phase_labels"] as JObject;
+        var declaredSpeeds = (profile["auto_battle"] as JObject)?["speeds"] as JArray;
+        var targets = new Dictionary<(string Period, string Phase, int Boss), IReadOnlySet<int>?>();
+        foreach (var token in rows)
+        {
+            if (token is not JObject row || !(Keys(row, "period", "phase", "boss") || simulation && Keys(row, "period", "phase", "boss", "speeds"))
+                || row["period"] is not JValue { Value: string period } || !Regex.IsMatch(period, @"\A[0-9]{4}-(?:0[1-9]|1[0-2])\z")
+                || row["phase"] is not JValue { Value: string phase } || phase is not ("B" or "C" or "D" or "E")
+                || !TryBoss(row["boss"], out var boss)) return invalid;
+            if (simulation ? choices?.ContainsKey(phase) != true
+                : phaseLabels?.Properties().Any(p => p.Value is JValue { Value: string label } && label == phase) != true) return invalid;
+            HashSet<int>? speeds = null;
+            if (row.TryGetValue("speeds", out var requested))
+            {
+                if (requested is not JArray { Count: >= 1 and <= 3 } values || declaredSpeeds == null) return invalid;
+                speeds = new HashSet<int>();
+                foreach (var speed in values)
+                    if (!TryInteger(speed, out var n) || n is not (1 or 2 or 4)
+                        || !declaredSpeeds.Any(s => JToken.DeepEquals(s, speed)) || !speeds.Add(n)) return invalid;
+            }
+            if (!targets.TryAdd((period, phase, boss), speeds)) return invalid;
+        }
+        return new TargetScope(targets);
+    }
+
+    private static bool TryInteger(JToken? token, out int number)
+    {
+        number = 0;
+        return token?.Type == JTokenType.Integer && int.TryParse(token.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out number);
+    }
+
+    private static bool TryBoss(JToken? token, out int boss) => TryInteger(token, out boss) && boss is >= 1 and <= 5;
+
+    internal (string? Target, string? Error) CheckTarget(string capability, JToken? periodValue, JToken? phaseValue, JToken? bossValue, int battleSpeed)
+    {
+        if (!TargetScopes.TryGetValue(capability, out var scope) || scope.Error != null) return (null, scope?.Error);
+        if (periodValue is JValue { Value: string period } && phaseValue is JValue { Value: string phase }
+            && TryBoss(bossValue, out var boss))
+        {
+            // Shared B/C guides use the first calibrated phase in B, C order.
+            foreach (var candidate in phase == "BC" ? new[] { "B", "C" } : new[] { phase })
+                if (scope.Targets.TryGetValue((period, candidate, boss), out var speeds))
+                {
+                    var target = $"{period} {candidate}{boss}";
+                    if (speeds != null && !speeds.Contains(battleSpeed))
+                        return (target, $"{target} 可用 {string.Join("／", speeds.Order())} 倍速。[clan_battle_auto_speed_uncalibrated]");
+                    return (target, null);
+                }
+        }
+        return (null, $"当前作业与可{TargetLabel(capability)}目标不符。可选目标为 {scope.Description}。[clan_battle_{capability}_target_uncalibrated]");
+    }
+
     public void Require(JObject plan, string capability, int battleSpeed = 1)
     {
         if (!Names.Contains(capability)) throw new InvalidDataException("未知会战校准能力。");
-        if (!Supports(capability)) throw new InvalidOperationException((Error ?? "缺少" + Labels[Array.IndexOf(Names, capability)] + "校准")
+        if (!Supports(capability)) throw new InvalidOperationException((UnavailableReason(capability) ?? "缺少" + Labels[Array.IndexOf(Names, capability)] + "校准")
             + " [clan_battle_calibration_capability_missing:" + capability + "]");
+        if (CheckTarget(capability, plan["period"], plan["phase"], plan["boss"], battleSpeed).Error is string targetError)
+            throw new InvalidOperationException(targetError);
         if (Version == 1 && ((bool?)plan["auto"] != true || plan["switches"] is not JArray { Count: 0 }))
             throw new InvalidOperationException("此校准只支持全程 AUTO、无战中切换。[clan_battle_calibration_auto_only]");
         JObject? supportSnapshot = null;
@@ -170,19 +273,7 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
         snapshot ??= ReadAccountSnapshot(plan);
         if ((string?)plan["support_mode"] != "none" && ((string?)plan["support_mode"] != "qsjs" || PcrClanGuide.SupportRequirement(plan, snapshot).HasValue))
             throw new InvalidOperationException("账号星级资料不包含支援校验。[clan_battle_account_stars_support_uncalibrated]");
-        var unknown = snapshot["unknown_fields"]!.Values<string>().ToArray();
-        var units = snapshot["units"]!.OfType<JObject>().ToDictionary(unit => (int)unit["unit_id"]!);
-        var ids = plan["unit_ids"]!.Values<int>().ToArray();
-        for (var index = 0; index < ids.Length; index++)
-        {
-            var key = $"units.{ids[index]}.battle_rarity";
-            if (!units.TryGetValue(ids[index], out var unit) || unit["battle_rarity"]?.Type != JTokenType.Integer
-                || (int)unit["battle_rarity"]! is < 1 or > 6
-                || unknown.Any(field => key == field || key.StartsWith(field + ".", StringComparison.Ordinal)))
-                throw new InvalidOperationException("账号资料缺少出战星级。[clan_battle_account_stars_unknown]");
-            if (!JToken.DeepEquals(unit["battle_rarity"], plan["stars"]![index]))
-                throw new InvalidOperationException("当前出战星级与作业不符，请先在游戏调整后重新同步。[clan_battle_account_stars_mismatch]");
-        }
+        PcrClanGuide.RequireAccountStars(plan, snapshot);
     }
 
     private static IEnumerable<JToken> SetResetMarkers(JObject inheritance)
@@ -196,6 +287,24 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
     }
 
     private static bool Keys(JObject value, params string[] names) => value.Properties().Select(p => p.Name).ToHashSet(StringComparer.Ordinal).SetEquals(names);
+    private static bool HasDamageLine(JObject profile, string? contentVersion, JObject? section, bool formal)
+    {
+        if (section?["pages"] is not JObject pages || pages["result"] is not JObject result
+            || result["fields"] is not JObject fields || fields["damage"] is not JArray main || !Roi(main)) return false;
+        if (!result.ContainsKey("damage_line"))
+            return contentVersion == "202610141448" && (string?)profile["calibration_id"] == "cn-bilibili-202610141448-clan-simulation"
+                && JToken.DeepEquals(main, new JArray(88, 47, 162, 38));
+        if (result["damage_line"] is not JObject line || !Keys(line, "sample_sha256", "verify_roi")
+            || line["sample_sha256"]?.Type != JTokenType.String || line["verify_roi"] is not JArray verify
+            || !Roi(verify) || JToken.DeepEquals(main, verify)) return false;
+        if (formal && profile["samples"] is JArray simulationSamples && simulationSamples.OfType<JObject>().Any(sample =>
+            (string?)sample["page"] == "result" && JToken.DeepEquals(sample["sha256"], line["sample_sha256"]))) return false;
+        return (int)verify[0] >= (int)main[0] && (int)verify[1] >= (int)main[1]
+            && (int)verify[0] + (int)verify[2] <= (int)main[0] + (int)main[2]
+            && (int)verify[1] + (int)verify[3] <= (int)main[1] + (int)main[3]
+            && section["samples"] is JArray samples && samples.OfType<JObject>().Any(sample =>
+                (string?)sample["page"] == "result" && JToken.DeepEquals(sample["sha256"], line["sample_sha256"]));
+    }
     private static bool Digest(string value) => Regex.IsMatch(value, "\\A[0-9a-f]{64}\\z");
     private static JObject Json(byte[] bytes)
     {
@@ -216,7 +325,11 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
             if ((int?)profile["version"] != 2 || profile["auto_battle"] is not JObject autoBattle
                 || !Keys(autoBattle, new[] { "speeds", "opening_guards", "paused_guards", "auto_on", "auto_off", "speed", "set_badge", "samples" }
                     .Concat(autoBattle.ContainsKey("empty_tp") ? new[] { "empty_tp" } : Array.Empty<string>())
+                    .Concat(autoBattle.ContainsKey("paused_boss_roi") ? new[] { "paused_boss_roi" } : Array.Empty<string>())
+                    .Concat(autoBattle.ContainsKey("paused_clock_alternate_roi") ? new[] { "paused_clock_alternate_roi" } : Array.Empty<string>())
                     .Concat(autoBattle.ContainsKey("inheritance") ? new[] { "inheritance" } : Array.Empty<string>()).ToArray())
+                || autoBattle.ContainsKey("paused_boss_roi") && !Roi(autoBattle["paused_boss_roi"])
+                || autoBattle.ContainsKey("paused_clock_alternate_roi") && !Roi(autoBattle["paused_clock_alternate_roi"])
                 || autoBattle["speeds"] is not JArray { Count: > 0 } speeds || !speeds.Any(v => v.Type == JTokenType.Integer && (int)v == 1)
                 || speeds.Any(v => v.Type != JTokenType.Integer || (int)v is not (1 or 2 or 4)) || speeds.Values<int>().Distinct().Count() != speeds.Count
                 || autoBattle["opening_guards"] is not JArray { Count: 3 } || autoBattle["paused_guards"] is not JArray { Count: 3 or 4 }
@@ -478,7 +591,8 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
         && ((string?)(node.ContainsKey("recognition") ? node["recognition"] : new JValue("OCR")) == "TemplateMatch"
             || (string?)(node.ContainsKey("recognition") ? node["recognition"] : new JValue("OCR")) == "OCR"
                 && node["expected"]?.Type == JTokenType.String && ((string)node["expected"]!).StartsWith('^') && ((string)node["expected"]!).EndsWith('$'));
-    private static bool Roi(JToken? value) => value is JArray { Count: 4 } roi && roi.All(item => item.Type == JTokenType.Integer)
+    private static bool Roi(JToken? value) => value is JArray { Count: 4 } roi
+        && roi.All(item => item is JValue { Type: JTokenType.Integer, Value: not System.Numerics.BigInteger })
         && (long)roi[0] is >= 0 and < 1280 && (long)roi[1] is >= 0 and < 720
         && (long)roi[2] is > 0 and <= 1280 && (long)roi[3] is > 0 and <= 720
         && (long)roi[0] + (long)roi[2] <= 1280 && (long)roi[1] + (long)roi[3] <= 720;

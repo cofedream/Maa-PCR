@@ -202,9 +202,12 @@ internal static class PreviewConnectionChecks
 
         var replacement = new PreviewController("none");
         fixture.Factory(replacement);
+        fixture.Timeout(TimeSpan.FromSeconds(5));
         var reconnect = fixture.Connect();
         Until(() => reconnect.IsCompleted, name + "_reconnect_completes");
         reconnect.GetAwaiter().GetResult();
+        // Connect returns before its cleanup observer clears the pending session on the UI thread.
+        Until(() => !fixture.Pending, name + "_reconnect_cleanup_finishes");
         var tasker = fixture.Processor.MaaTasker;
         Require(fixture.Vm.IsConnected && !fixture.Pending && !fixture.Vm.PcrTargetBusy
             && tasker != null && ReferenceEquals(tasker.Controller, fixture.LastController),

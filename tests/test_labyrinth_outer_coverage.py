@@ -46,9 +46,13 @@ def test_start_existing_run_retires_actual_id_once(tmp_path):
 
 def test_safe_checkpoint_reuses_real_record_counts(tmp_path):
     port=Port();settings=Settings((Goal(1,2),));record=RunRecord(tmp_path,'a'*32,port.binding)
-    record.append('started',settings=settings.payload())
+    legacy_settings=settings.payload()
+    legacy_settings['strategy'].pop('refresh_min_balance',None)
+    record.append('started',settings=legacy_settings)
     record.append('cleared',enter_id=50,guild_id=1,difficulty=1,frame=100,completed={1:1})
-    record.checkpoint(settings.payload(),'ready',{1:1},{1:0})
+    record.checkpoint(legacy_settings,'ready',{1:1},{1:0})
+    changed = Settings.parse(dict(legacy_settings,strategy=dict(legacy_settings['strategy'],refresh_min_balance=500)))
+    assert RunRecord.recover(tmp_path,port.binding,changed.payload()) is None
     result=Batch(settings,port,Journal(tmp_path),port.binding,resume=True).run()
     assert result['run_id']=='a'*32 and result['completed']=={1:2} and port.enters==1
     rows=[json.loads(v) for v in record.path.read_text(encoding='utf-8').splitlines()]

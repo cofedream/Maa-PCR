@@ -212,16 +212,17 @@ def test_empty_screen_without_empty_inventory_readback_stops(regular_only):
     assert calls == ['CBAction_open_carry']
 
 
-@pytest.mark.parametrize('capability', ['formal', 'carryover'])
-def test_loader_forwards_capability_to_daily_scope(v2_bundle, plan, monkeypatch, capability):
+@pytest.mark.parametrize(('capability', 'caps'), [
+    ('formal', ['formal']), ('formal', ['formal', 'carryover']), ('carryover', ['formal', 'carryover'])])
+def test_loader_forwards_capability_to_daily_scope(v2_bundle, plan, monkeypatch, capability, caps):
     from pcr_maa import clan_battle_calibration as loader
     root, _, entry, _, save = v2_bundle
-    entry['capabilities'] = ['formal', 'carryover'] if capability == 'carryover' else ['formal']
+    entry['capabilities'] = caps
     save()
     calls = []
     monkeypatch.setattr(daily, 'require_daily_execution', lambda *args, **kwargs: calls.append(kwargs) or {})
     loader.load_calibration(plan, root=root, capability=capability)
-    assert calls == [dict(require_scope=True, capability=capability)]
+    assert calls == [dict(require_scope=True, capability=capability, require_carry_pages='carryover' in caps)]
 
 
 def test_loader_never_advertises_carryover_with_a_partial_profile(daily_execution_bundle, plan):

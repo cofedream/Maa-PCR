@@ -48,10 +48,15 @@ def test_shipped_registry_is_pinned_and_each_profile_is_valid(plan):
         with pytest.raises(RuntimeError, match='calibration_missing'):
             module.load_calibration(plan)
     for entry in index['entries']:
+        profile = module.read_profile(native.ROOT, entry)
         for capability in entry.get('capabilities', ['simulation']):
             if capability != 'timed':
-                selected = dict(plan, server=entry['server'], content_version=entry['content_version'])
-                assert module.load_calibration(selected, capability=capability)['calibration_id'] == entry['calibration_id']
+                targets = profile.get(f'{capability}_targets', [{}])
+                assert targets
+                for target in targets:
+                    selected = dict(plan, server=entry['server'], content_version=entry['content_version'])
+                    selected.update(target)
+                    assert module.load_calibration(selected, capability=capability)['calibration_id'] == entry['calibration_id']
 
 
 def test_loads_only_reviewed_bundled_profile_and_resolves_samples(bundle, plan):
@@ -360,6 +365,18 @@ def daily_execution_bundle(daily_bundle, executable, monkeypatch):
     for section in (bundled['daily'], bundled['daily']['execution'], opening, opening['inheritance']):
         for sample in section['samples']:
             sample.update(path=bundled['samples'][0]['path'], sha256=bundled['samples'][0]['sha256'])
+    shipped = json.loads((native.ROOT / module.INDEX_PATH).read_text(encoding='utf-8'))
+    october = next(entry for entry in shipped['entries'] if entry['content_version'] == '202610141448')
+    official = json.loads((native.ROOT / october['profile_path']).read_text(encoding='utf-8'))['daily']['execution']
+    formal_sample = next(s for s in official['samples'] if s['page'] == 'result')
+    target = root / formal_sample['path']
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes((native.ROOT / formal_sample['path']).read_bytes())
+    execution = bundled['daily']['execution']
+    next(s for s in execution['samples'] if s['page'] == 'result').update(formal_sample)
+    result = execution['pages']['result']
+    result['fields']['damage'] = [80, 45, 332, 42]
+    result['damage_line'] = dict(sample_sha256=formal_sample['sha256'], verify_roi=[88, 47, 324, 38])
     for key in ('battle_selected', 'radio_on', 'radio_off'):
         marker = opening['inheritance'][key]
         target = root / 'assets/resource/image' / marker['template']

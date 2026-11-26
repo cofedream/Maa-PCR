@@ -4,6 +4,7 @@ The merged refresh path also requires the control's inner-luma evidence before i
 treats the quote as actionable, so synthetic frames have to carry an enabled
 refresh button instead of a blank fill.
 """
+import json
 from types import SimpleNamespace as NS
 
 import numpy as np
@@ -22,7 +23,7 @@ def enabled_shop_frame(luma=200):
     return image
 
 
-def observe_refresh(text, balance):
+def observe_refresh(text, balance, guard=None):
     values = {'Currency': '持有阿尔法金币', 'Balance': str(balance), 'Refresh': text}
 
     def recognize(node, image, *args):
@@ -32,7 +33,7 @@ def observe_refresh(text, balance):
             text=text, box=shops._READS[key][1], score=.99)] if text is not None else []})
 
     return shops.ShopRecognition().analyze(NS(run_recognition=recognize), NS(
-        image=enabled_shop_frame(), custom_recognition_param='{}')).detail
+        image=enabled_shop_frame(), custom_recognition_param=json.dumps(guard or {}))).detail
 
 
 @pytest.mark.parametrize('text,balance,allowed,known', [
@@ -48,6 +49,23 @@ def test_refresh_affordability_uses_the_observed_price(text, balance, allowed, k
     result = observe_refresh(text, balance)
     assert result['refresh_allowed'] is allowed
     assert result['refresh_known'] is known
+
+
+@pytest.mark.parametrize('text,balance,accepted', [
+    ('用600更新', 1100, True), ('用600更新', 800, False), ('用900更新', 1100, False),
+    ('更新', 1100, False)])
+def test_refresh_click_rechecks_observed_balance_and_quote(text, balance, accepted):
+    result = observe_refresh(text, balance, dict(state='shop', refresh_balance=1100, price=600))
+    assert (result.get('status') == 'observed') is accepted
+
+
+def test_refresh_below_the_reserve_never_starts_a_transaction():
+    batch, _ = harness(NS(refresh_min_balance=500))
+    shop = shops.MaaShop.__new__(shops.MaaShop)
+    current = dict(balance=800, refresh_allowed=True, words={'Refresh':[word('用600更新')]})
+    with pytest.raises(BatchStopped, match='shop_refresh_quote_unknown'):
+        shop._refresh(batch, 1, 50601, current, 0)
+    assert batch.journal.events() == []
 
 
 @pytest.mark.parametrize('price', [200, 300, 600, 750, 900, 1200])
@@ -67,6 +85,7 @@ def test_refresh_quote_confirmation_journal_and_balance_use_the_same_price(price
     result = shop._refresh(batch, 1, 50601, current, 7)
     assert result['refresh_verified'] and result['price'] == price
     assert [state for state, _ in calls] == ['refresh', 'refresh_confirmation']
+    assert calls[0][1] == {'price': price, 'refresh_balance': current['balance']}
     assert calls[1][1]['price'] == price
     settled = [event for event in batch.journal.events() if event['state'] == 'settled']
     assert len(settled) == 2 and all(event['result']['price'] == price for event in settled)

@@ -7,6 +7,7 @@ import pytest
 from pcr_maa.labyrinth import shop_execution as shops, autoplay
 from pcr_maa import native
 from pcr_maa.labyrinth.batch import BatchStopped
+from pcr_maa.labyrinth.config import Strategy
 from pcr_maa.labyrinth.scene import Scene
 from pcr_maa.labyrinth.strategies import MARKS, Relic, shop_relic
 from test_labyrinth_reward_shop_upstream import harness
@@ -14,11 +15,11 @@ from test_labyrinth_reward_shop_upstream import harness
 
 def shelf(*, state='exhausted', known=True, allowed=True, balance=1000):
     return dict(state='shop', items=[], balance=balance, stock_state=state,
-        refresh_known=known, refresh_allowed=allowed, words={})
+        refresh_known=known, refresh_allowed=allowed, words={'Refresh':[dict(text='用600更新')] if known else []})
 
 
-def make_shop(monkeypatch, states, *, area=5, start=5, refresh=True, stop=False):
-    batch, stamp = harness(NS(refresh_from_area=start))
+def make_shop(monkeypatch, states, *, area=5, start=5, refresh=True, stop=False, minimum_balance=0, final_shop=False):
+    batch, stamp = harness(Strategy.parse(dict(refresh_from_area=start, refresh_min_balance=minimum_balance)))
     shop = shops.MaaShop.__new__(shops.MaaShop)
     shop.stamp, shop.tasker, shop.blocked = stamp, NS(), False
     shop.observer, shop.pending, shop.spent = NS(), None, set()
@@ -46,8 +47,26 @@ def make_shop(monkeypatch, states, *, area=5, start=5, refresh=True, stop=False)
         def wait_for(self, *args, **kwargs): return Scene('map', {}, {'area':area})
     shop.scene = Runtime()
     run = lambda: shop.run(batch, 1, area * 10000 + 601, stacks=dict.fromkeys(MARKS, 0),
-        area=area, refresh_shop=refresh)
+        area=area, refresh_shop=refresh, final_shop=final_shop)
     return run, log, reads, clock, shop
+
+
+@pytest.mark.parametrize('balance,minimum,expected', [(800, 0, True), (800, 500, False), (1100, 500, True)])
+@pytest.mark.parametrize('final_shop', [False, True])
+def test_refresh_budget_for_each_shop(monkeypatch, balance, minimum, expected, final_shop):
+    run, actions, _, _, _ = make_shop(monkeypatch, [shelf(balance=balance)],
+        minimum_balance=minimum, final_shop=final_shop)
+    assert run()['refresh_performed'] is expected
+    assert actions == (['refresh', 'leave_shop'] if expected else ['leave_shop'])
+
+
+def test_refresh_minimum_balance_legacy_and_roundtrip():
+    assert Strategy.parse({}).refresh_min_balance == 0
+    for amount in (0, 500, 2**31-1):
+        assert Strategy.parse(Strategy(refresh_min_balance=amount).payload()).refresh_min_balance == amount
+    for invalid in (-1, 2**31, True, 1.2):
+        with pytest.raises(ValueError, match='invalid_refresh_min_balance'):
+            Strategy.parse(dict(refresh_min_balance=invalid))
 
 
 @pytest.mark.parametrize('start', [1, 4])

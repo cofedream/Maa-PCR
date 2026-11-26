@@ -49,6 +49,7 @@ internal static class PlayerLogChecks
     {
         var root = Path.Combine(directory, "player-logs"); Directory.CreateDirectory(root);
         CheckConnectionNativeLog(root);
+        CheckActiveQuota(Path.Combine(root, "active-quota"));
         var log = Call(null,"Begin",root,"daily","connection")!;
         var path = (string)Property(log,"DirectoryPath")!;
         Call(log,"Append","测试 password=SECRET token=HIDDEN UID:123456789",false);
@@ -168,6 +169,39 @@ internal static class PlayerLogChecks
         using var invalidZip = new ZipArchive(new MemoryStream(Export(Call(null, "Latest", root, "labyrinth")!).Bytes));
         Check(ReadEntry(invalidZip, "feedback.txt") == feedback, "bad_optional_manifest_fields_do_not_block_export");
     }
+    private static void CheckActiveQuota(string root)
+    {
+        const int mib = 1024 * 1024;
+        object Begin() => Call(null, "Begin", root, "daily", "task")!;
+        string Folder(object log) => (string)Property(log, "DirectoryPath")!;
+        void Size(string path, long length)
+        {
+            using var file = File.Create(path);
+            file.SetLength(length);
+        }
+
+        var old = Begin();
+        Size(Path.Combine(Folder(old), "events.log"), 6 * mib);
+        Call(old, "Finish", "complete", null);
+        var failed = Begin();
+        Size(Path.Combine(Folder(failed), "events.log"), 4 * mib);
+        Call(failed, "Finish", "failed", null);
+        var first = Begin();
+        var second = Begin();
+        // The worker publishes an image on disk before its notification reaches the GUI.
+        var pending = Path.Combine(Folder(first), "image-" + new string('a', 32) + ".png");
+        Size(pending, 7 * mib);
+        Call(second, "Append", "another run is still capturing", false);
+        Check(!Directory.Exists(Folder(old)) && File.Exists(Path.Combine(Folder(failed), "events.log")),
+            "append_evicts_completed_before_recent_error");
+        Check(File.Exists(pending) && File.Exists(Path.Combine(Folder(second), "events.log")),
+            "append_accounts_for_unannounced_sibling_image_and_protects_active_runs");
+        var feature = Path.GetDirectoryName(Folder(first))!;
+        Check(Directory.EnumerateFiles(feature, "*", SearchOption.AllDirectories)
+            .Sum(p => new FileInfo(p).Length) <= 16 * mib, "shared_append_quota");
+        Call(first, "Finish", "complete", null);
+        Call(second, "Finish", "complete", null);
+    }
     internal static void CheckMissingResult(TaskQueueViewModel vm)
     {
         var bytes = Export(Property(vm, "PlayerLog")!).Bytes;
@@ -177,6 +211,34 @@ internal static class PlayerLogChecks
         var text = events.ReadToEnd();
         Check(text.Contains("正在首次预热文字识别") && text.Contains("强制 CPU") && text.Contains("0x00000025")
             && (string?)JObject.Parse(manifest.ReadToEnd())["outcome"] == "worker_no_result", "no_result_zip_stage_mode_exit");
+    }
+    internal static void CheckLabyrinthStartupExport(TaskQueueViewModel vm, string directory, string outcome)
+    {
+        var bytes = Export(Property(vm, "PlayerLog")!).Bytes;
+        var path = Path.Combine(directory, $"labyrinth-startup-{outcome}.zip");
+        File.WriteAllBytes(path, bytes);
+        using var zip = ZipFile.OpenRead(path);
+        var events = ReadEntry(zip, "events.log");
+        Check((string?)JObject.Parse(ReadEntry(zip, "manifest.json"))["outcome"] == outcome
+            && events.Contains("执行资源已释放"), "startup_export_outcome_and_release:" + outcome);
+        if (outcome == "complete")
+        {
+            var cursor = 0;
+            foreach (var stage in new[] { "核对黎明界账本", "加载路线与战斗组件", "检查角色加入动画设置",
+                         "更新并核对角色加入动画设置", "初始化本地数据库与诊断记录" })
+            {
+                var start = events.IndexOf("正在" + stage, cursor, StringComparison.Ordinal);
+                var timing = start < 0 ? -1 : events.IndexOf(stage + "耗时", start, StringComparison.Ordinal);
+                Check(timing > start && start >= cursor, "startup_export_stage_and_duration:" + stage);
+                cursor = timing + stage.Length;
+            }
+            return;
+        }
+        var elapsed = System.Text.RegularExpressions.Regex.Match(events, @"检查角色加入动画设置耗时 ([\d.,]+) 秒");
+        Check(elapsed.Success && double.TryParse(elapsed.Groups[1].Value, out var seconds)
+            && seconds >= (outcome == "startup_timeout" ? 40 : 0), "startup_export_interrupted_stage_duration:" + outcome);
+        Check(events.Contains("检查角色加入动画设置等待超时") == (outcome == "startup_timeout"),
+            "startup_export_distinguishes_timeout_from_stop:" + outcome);
     }
     private static void CheckConnectionNativeLog(string root)
     {

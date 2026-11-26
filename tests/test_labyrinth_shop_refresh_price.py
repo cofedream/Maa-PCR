@@ -32,7 +32,7 @@ def test_refresh_uses_escalated_600_quote_for_intent_dialog_and_balance():
  assert result['refresh_verified'] is True and result['price']==600
  settled=[e for e in batch.journal.events() if e['state']=='settled' and e['operation'].startswith('shop_refresh')]
  assert [e['price'] for e in settled]==[600,600]
- assert calls==[('refresh',None),('refresh_confirmation',600)]
+ assert calls==[('refresh',600),('refresh_confirmation',600)]
 
 
 def test_refresh_refuses_dialog_price_that_differs_from_visible_quote():

@@ -413,6 +413,18 @@
                                 <TextBlock Text="{Binding PcrModuleDescription}" TextWrapping="Wrap" Foreground="{DynamicResource SukiLowText}" />
                             </StackPanel>
                             <StackPanel x:Name="PcrPlayerSettingsPanel" IsEnabled="{Binding CanEditPcrTarget}" Spacing="10">
+                                <StackPanel IsVisible="{Binding PcrEditingSanctum}" Spacing="6">
+                                    <TextBlock Text="调查关卡编号" FontWeight="SemiBold" />
+                                    <pcr:PcrCountInput x:Name="PcrSanctumStage" DraftText="{Binding PcrSettings.SanctumStage, Mode=TwoWay}" Minimum="1" Maximum="999" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" HorizontalAlignment="Stretch" />
+                                    <TextBlock Text="每日目标次数（0 次跳过）" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                    <pcr:PcrCountInput x:Name="PcrSanctumDailyTarget" DraftText="{Binding PcrSettings.SanctumDailyTarget, Mode=TwoWay}" Minimum="0" Maximum="999" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+                                <StackPanel IsVisible="{Binding PcrEditingTemple}" Spacing="6">
+                                    <TextBlock Text="调查关卡编号" FontWeight="SemiBold" />
+                                    <pcr:PcrCountInput x:Name="PcrTempleStage" DraftText="{Binding PcrSettings.TempleStage, Mode=TwoWay}" Minimum="1" Maximum="999" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" HorizontalAlignment="Stretch" />
+                                    <TextBlock Text="每日目标次数（0 次跳过）" FontWeight="SemiBold" Margin="0,8,0,0" />
+                                    <pcr:PcrCountInput x:Name="PcrTempleDailyTarget" DraftText="{Binding PcrSettings.TempleDailyTarget, Mode=TwoWay}" Minimum="0" Maximum="999" Increment="1" FormatString="0" ParsingNumberStyle="Integer" ClipValueToMinMax="False" HorizontalAlignment="Stretch" />
+                                </StackPanel>
                                 <StackPanel IsVisible="{Binding PcrEditingEvent}" Spacing="6">
                                     <CheckBox Content="当期活动" IsChecked="{Binding PcrSettings.CurrentEvent, Mode=TwoWay}" />
                                     <CheckBox Content="复刻活动" IsChecked="{Binding PcrSettings.RevivalEvent, Mode=TwoWay}" />

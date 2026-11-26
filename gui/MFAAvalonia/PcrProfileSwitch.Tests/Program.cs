@@ -38,7 +38,7 @@ if (args.Length == 4 && args[3] == "--clan-workflow-window") { ClanWorkflowCheck
 if (args.Length == 4 && args[3] == "--clan-daily-only") { ClanDailyPlanChecks.Run(args[0], args[1]); return 0; }
 if (args.Length == 4 && args[3] == "--profile-registration-only") { AgentProfileRegistrationChecks.Run(args[1]); return 0; }
 if (args.Length == 4 && args[3] == "--agent-shutdown-only") { AgentShutdownChecks.Run(args); return 0; }
-if (args.Length == 4 && args[3] == "--channel-config-only") { ChannelConfigChecks.Run(args[1]); return 0; }
+if (args.Length == 4 && args[3] == "--channel-config-only") { ChannelConfigChecks.Run(args[1], args[0]); return 0; }
 if (args.Length == 4 && args[3] == "--window-lifecycle-only") { PcrWindowLifecycleChecks.Run(); return 0; }
 if (args.Length == 4 && args[3] == "--runbar-only") { RunBarStateChecks.Run(); return 0; }
 if (args.Length == 4 && args[3] == "--clan-performance-only") { ClanGuidePerformanceChecks.Run(args[0], args[2], args[1]); return 0; }
@@ -181,7 +181,7 @@ try
     Require(ReferenceEquals(viewModel.ActiveTab, labyrinth) && labyrinth.IsActive && !agent.IsActive, "normal_selection_can_return_from_agent");
     Require(PcrAlphaOwner.ControllerCreations == 0 && PcrAlphaOwner.AgentCreations == 0 && PcrAlphaOwner.Grants == 0 && PcrAlphaOwner.SessionCreations == 0, "no_device_or_run_created");
     if (!guideOwnerOnly) {
-        ChannelConfigChecks.Run(args.Length > 1 ? args[1] : System.IO.Path.GetTempPath());
+        ChannelConfigChecks.Run(args[1], args[0]);
         LogExportChecks.Run(args[1]);
     }
     AlphaOwnerChecks.Run();

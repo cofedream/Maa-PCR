@@ -30,6 +30,7 @@ public partial class PcrLabyrinthView : UserControl {
             : Has("响应间隔", "数据库") ? ("RerollSettings", "RerollSettings")
             : Has("开局候选") ? ("OpeningSettings", "OpeningSettings")
             : Has("路线", "Boss ID", "价值容差") ? ("RouteSettings", "RouteSettings")
+            : Has("商店刷新后最低余额") ? ("RelicSettings", "RefreshMinBalanceInput")
             : Has("层数", "弱体", "遗物印记", "商店") ? ("RelicSettings", "RelicSettings")
             : Has("普通战胜率") ? ("EventSettings", "NormalWinRateInput")
             : Has("EX战胜率") ? ("EventSettings", "ExtremeWinRateInput")

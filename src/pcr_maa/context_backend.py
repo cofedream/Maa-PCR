@@ -121,6 +121,8 @@ class ContextTasker:
         self._stop_request = _StopRequest()
         self.resource = _ContextResource(self)
         self.controller = _ContextController(self)
+        self.timing_owner = None
+        self.page_timings = None
 
     def __enter__(self):
         self._check_open()
@@ -214,7 +216,21 @@ class ContextTasker:
                     raise RuntimeError('Cannot rearm native operation budget: ' + node)
             dispatch = self._callback_scope.dispatch() if self._callback_scope else nullcontext()
             with dispatch:
-                detail = self._context.run_task(entry)
+                if self.page_timings is None:
+                    detail = self._context.run_task(entry)
+                else:
+                    started = time.perf_counter()
+                    outcome = 'unknown'
+                    try:
+                        detail = self._context.run_task(entry)
+                        outcome = 'succeeded' if detail and detail.status.succeeded else 'failed'
+                    finally:
+                        # Diagnostic failures must not block a completed action.
+                        try:
+                            self.page_timings.record('page_wait', (time.perf_counter() - started) * 1000,
+                                                     outcome=outcome)
+                        except Exception:
+                            pass
             # No post_task, wait, retry, or post_stop-and-wait on this path.
             if time.monotonic() >= deadline:
                 raise RuntimeError('Context deadline exceeded after synchronous return; outcome unknown')

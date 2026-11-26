@@ -34,9 +34,14 @@ function Stop-Process {
 }
 function Set-Content { [CmdletBinding()] param($Path,$Value,[switch]$NoNewline); $global:reviewActions += 'write' }
 function Copy-Item { [CmdletBinding()] param($Path,$Destination,[switch]$Force); $global:reviewActions += 'copy' }
-function Test-Path { param($Path); $true }
+function Test-Path { param($Path); $Scenario -ne 'gui_only' -or $Path -notlike '*python.exe' }
 function New-Item { [CmdletBinding()] param($ItemType,$Path,$Target); $global:reviewActions += 'new' }
 function dotnet { $global:LASTEXITCODE=0; $global:reviewActions += 'build' }
+function python {
+    if ($args[-1] -notlike '*prepare_dev_native.py') { throw 'unexpected development command' }
+    $global:reviewActions += 'prepare'
+    $global:LASTEXITCODE = [int]($Scenario -eq 'prepare_failed')
+}
 function Start-Process { param($FilePath); $global:reviewActions += 'start' }
 $blocked = $false
 $failure = ''
@@ -51,6 +56,7 @@ Write-Output ('RESULT=' + (@{ blocked=$blocked; actions=@($global:reviewActions)
     ('current', False, True), ('current', True, True),
     ('other', False, False), ('other', True, False),
     ('none', False, False), ('unreadable', False, True), ('empty', True, True),
+    ('gui_only', True, False), ('prepare_failed', True, True),
 ])
 def test_documented_launcher_checks_process_scope_before_any_action(tmp_path, scenario, no_build, blocked):
     pwsh = shutil.which('pwsh')
@@ -70,7 +76,12 @@ def test_documented_launcher_checks_process_scope_before_any_action(tmp_path, sc
     assert result.returncode == 0, result.stdout + result.stderr
     outcome = json.loads(next(line[7:] for line in result.stdout.splitlines() if line.startswith('RESULT=')))
     assert outcome['blocked'] is blocked, outcome
-    if blocked:
+    if scenario == 'prepare_failed':
+        assert outcome['actions'] == ['write', 'copy', 'prepare']
+    elif blocked:
         assert outcome['actions'] == [], 'guard must precede writes, builds and starts'
     else:
-        assert outcome['actions'] == ['write', 'copy', *([] if no_build else ['build']), 'start']
+        expected = ['write', 'copy', *([] if no_build else ['build'])]
+        if scenario != 'gui_only':
+            expected.append('prepare')
+        assert outcome['actions'] == [*expected, 'start']

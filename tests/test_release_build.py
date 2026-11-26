@@ -210,6 +210,34 @@ def test_release_preflight_rejects_version_mismatch_before_output(case, monkeypa
     assert not output.exists()
 
 
+@pytest.mark.parametrize('tag,include_patch', [('v0.2.9', False), ('v0.3.0', True),
+                                              ('v0.2.9', True)])
+def test_release_checks_offline_bridge_before_sealing(case, monkeypatch, tag, include_patch):
+    _, player, patch, _, _ = case
+    manifest = builder.maintenance._read_json(player / builder.maintenance.MANIFEST)
+    manifest['update']['version'] = tag
+    save_manifest(player, manifest)
+    check = player.parent / 'acceptance.json'
+    builder.save(check, dict(accepted(), revision=manifest['update']['revision'],
+                             expected_version=tag, accepted_owned_payload_sha256=owned_payload_sha256(manifest)))
+    output = player.parent / 'release-output'
+    argv = ['release_ci.py', '--player', str(player), '--acceptance', str(check),
+            '--tag', tag, '--output', str(output)]
+    if include_patch:
+        patch.write_bytes(b'wrong historical patch')
+        argv.extend(['--v027-bridge-patch', str(patch)])
+    monkeypatch.setattr(sys, 'argv', argv)
+    if tag == 'v0.2.9' and include_patch:
+        with pytest.raises(ValueError, match='SHA-256'):
+            release_ci.main()
+        assert not list(output.iterdir())
+    else:
+        with pytest.raises(SystemExit) as error:
+            release_ci.main()
+        assert error.value.code == 2 and not output.exists()
+    assert not (player / (builder.maintenance.MANIFEST + '.sealed')).exists()
+
+
 def test_update_index_uses_business_revision_and_exact_runtime_asset(tmp_path):
     manifest = {'update': {'schema_version': 1, 'product': builder.maintenance.PRODUCT,
                           'revision': 39, 'version': 'v0.1.0'}}
@@ -280,6 +308,7 @@ def test_package_receipt_contains_exact_bootstrap_asset_hash(case, monkeypatch):
     (93, 94, 'v0.2.5', 'v0.2.6'),
     (94, 95, 'v0.2.6', 'v0.2.7'),
     (95, 96, 'v0.2.7', 'v0.2.8'),
+    (96, 97, 'v0.2.8', 'v0.2.9'),
 ])
 def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revision, target_revision, base_version, target_version):
     base, target, _, _, _ = case
@@ -309,7 +338,7 @@ def test_patch_requires_pinned_baseline(case, monkeypatch, trusted, base_revisio
 
 
 @pytest.mark.parametrize('provide_wrong_baseline', [False, True])
-@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52), (55, 'v0.1.10', 53), (56, 'v0.1.11', 55), (57, 'v0.1.12', 56), (58, 'v0.1.13', 57), (59, 'v0.1.14', 58), (60, 'v0.1.15', 59), (61, 'v0.1.16', 60), (64, 'v0.1.17', 61), (65, 'v0.1.18', 64), (66, 'v0.1.19', 65), (67, 'v0.1.20', 66), (68, 'v0.1.21', 67), (69, 'v0.1.22', 68), (70, 'v0.1.23', 69), (71, 'v0.1.24', 70), (72, 'v0.1.25', 71), (73, 'v0.1.26', 72), (74, 'v0.1.27', 73), (75, 'v0.1.28', 74), (76, 'v0.1.29', 75), (77, 'v0.1.30', 76), (78, 'v0.1.31', 77), (79, 'v0.1.32', 78), (80, 'v0.1.33', 79), (81, 'v0.1.34', 80), (82, 'v0.1.35', 81), (83, 'v0.1.36', 82), (84, 'v0.1.37', 83), (85, 'v0.1.38', 84), (86, 'v0.1.39', 85), (88, 'v0.2.0', 87), (89, 'v0.2.1', 88), (90, 'v0.2.2', 89), (91, 'v0.2.3', 90), (92, 'v0.2.4', 91), (93, 'v0.2.5', 92), (94, 'v0.2.6', 93), (95, 'v0.2.7', 94), (96, 'v0.2.8', 95)])
+@pytest.mark.parametrize('revision,version,base_revision', [(41, 'v0.1.2', 39), (45, 'v0.1.3', 41), (46, 'v0.1.4', 45), (49, 'v0.1.5', 46), (50, 'v0.1.6', 49), (51, 'v0.1.7', 50), (52, 'v0.1.8', 51), (53, 'v0.1.9', 52), (55, 'v0.1.10', 53), (56, 'v0.1.11', 55), (57, 'v0.1.12', 56), (58, 'v0.1.13', 57), (59, 'v0.1.14', 58), (60, 'v0.1.15', 59), (61, 'v0.1.16', 60), (64, 'v0.1.17', 61), (65, 'v0.1.18', 64), (66, 'v0.1.19', 65), (67, 'v0.1.20', 66), (68, 'v0.1.21', 67), (69, 'v0.1.22', 68), (70, 'v0.1.23', 69), (71, 'v0.1.24', 70), (72, 'v0.1.25', 71), (73, 'v0.1.26', 72), (74, 'v0.1.27', 73), (75, 'v0.1.28', 74), (76, 'v0.1.29', 75), (77, 'v0.1.30', 76), (78, 'v0.1.31', 77), (79, 'v0.1.32', 78), (80, 'v0.1.33', 79), (81, 'v0.1.34', 80), (82, 'v0.1.35', 81), (83, 'v0.1.36', 82), (84, 'v0.1.37', 83), (85, 'v0.1.38', 84), (86, 'v0.1.39', 85), (88, 'v0.2.0', 87), (89, 'v0.2.1', 88), (90, 'v0.2.2', 89), (91, 'v0.2.3', 90), (92, 'v0.2.4', 91), (93, 'v0.2.5', 92), (94, 'v0.2.6', 93), (95, 'v0.2.7', 94), (96, 'v0.2.8', 95), (97, 'v0.2.9', 96)])
 def test_release_requires_baseline_before_sealing(case, monkeypatch, revision, version, base_revision, provide_wrong_baseline):
     base, target, _, _, _ = case
     metadata = builder.maintenance._read_json(target / builder.maintenance.MANIFEST)
@@ -436,7 +465,7 @@ def test_build_defaults_to_current_release_identity_without_running_build(tmp_pa
     captured = []
     monkeypatch.setattr(builder, 'build', lambda args: captured.append(args) or {'status': 'not_executed'})
     assert builder.main(['--output', str(tmp_path / 'unused-output')]) == 0
-    assert captured[0].revision == 96 and captured[0].version == 'v0.2.8'
+    assert captured[0].revision == 97 and captured[0].version == 'v0.2.9'
     assert not (tmp_path / 'unused-output').exists()
 
 
@@ -460,7 +489,7 @@ def test_current_release_preflight_rejects_drift_before_build(tmp_path):
         baselines.check_release_baseline(root=tmp_path)
 
 
-@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8'), (53, 'v0.1.9'), (55, 'v0.1.10'), (56, 'v0.1.11'), (57, 'v0.1.12'), (58, 'v0.1.13'), (59, 'v0.1.14'), (60, 'v0.1.15'), (61, 'v0.1.16'), (64, 'v0.1.17'), (65, 'v0.1.18'), (66, 'v0.1.19'), (67, 'v0.1.20'), (68, 'v0.1.21'), (69, 'v0.1.22'), (70, 'v0.1.23'), (71, 'v0.1.24'), (72, 'v0.1.25'), (73, 'v0.1.26'), (74, 'v0.1.27'), (75, 'v0.1.28'), (76, 'v0.1.29'), (77, 'v0.1.30'), (78, 'v0.1.31'), (79, 'v0.1.32'), (80, 'v0.1.33'), (81, 'v0.1.34'), (87, 'v0.1.40'), (88, 'v0.2.0')])
+@pytest.mark.parametrize('revision,version', [(51, 'v0.1.7'), (52, 'v0.1.8'), (53, 'v0.1.9'), (55, 'v0.1.10'), (56, 'v0.1.11'), (57, 'v0.1.12'), (58, 'v0.1.13'), (59, 'v0.1.14'), (60, 'v0.1.15'), (61, 'v0.1.16'), (64, 'v0.1.17'), (65, 'v0.1.18'), (66, 'v0.1.19'), (67, 'v0.1.20'), (68, 'v0.1.21'), (69, 'v0.1.22'), (70, 'v0.1.23'), (71, 'v0.1.24'), (72, 'v0.1.25'), (73, 'v0.1.26'), (74, 'v0.1.27'), (75, 'v0.1.28'), (76, 'v0.1.29'), (77, 'v0.1.30'), (78, 'v0.1.31'), (79, 'v0.1.32'), (80, 'v0.1.33'), (81, 'v0.1.34'), (87, 'v0.1.40'), (88, 'v0.2.0'), (96, 'v0.2.8')])
 def test_public_manifest_is_exact_pinned_release_baseline(revision, version):
     path = ROOT / f'delivery/baselines/r{revision}-package-manifest.json'
     assert builder.digest(path) == builder.BASELINE_HASHES[revision]

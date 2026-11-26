@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -9,7 +9,6 @@ namespace MFAAvalonia.Configuration;
 
 public static class GlobalConfiguration
 {
-    private static readonly object _fileLock = new();
     private static string ConfigFilePath
     {
         get
@@ -23,22 +22,41 @@ public static class GlobalConfiguration
     public static bool HasFileAccessError { get; private set; }
     public static string? LastFileAccessErrorMessage { get; private set; }
 
+    private static Dictionary<string, JsonElement> ReadValues(string path)
+    {
+        using var reader = new StreamReader(JsonHelper.OpenReadSnapshot(path));
+        using var document = JsonDocument.Parse(reader.ReadToEnd(), new JsonDocumentOptions
+        {
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+            AllowDuplicateProperties = false
+        });
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+            throw new JsonException("全局配置必须是 JSON 对象，原文件已保留。");
+
+        // GetValue uses case-insensitive configuration keys. Keep the other
+        // values in their original JSON types when updating just one setting.
+        var values = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in document.RootElement.EnumerateObject())
+            if (!values.TryAdd(property.Name, property.Value.Clone()))
+                throw new JsonException($"全局配置包含重复键 {property.Name}，原文件已保留。");
+        return values;
+    }
+
     private static IConfigurationRoot LoadConfiguration()
     {
         try
         {
             var configPath = ConfigFilePath;
-            if (!File.Exists(configPath))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(configPath));
-                File.WriteAllText(configPath, "{}");
-            }
-
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Path.GetDirectoryName(configPath))
-                .AddJsonFile(configPath, optional: false, reloadOnChange: false);
-
-            return builder.Build();
+            using var access = new JsonHelper.FileAccessScope(configPath);
+            using var snapshot = JsonHelper.OpenReadSnapshot(configPath);
+            return new ConfigurationBuilder().AddJsonStream(snapshot).Build();
+        }
+        catch (FileNotFoundException) { } // A fresh installation uses defaults until its first save.
+        catch (DirectoryNotFoundException) { }
+        catch (Exception ex) when (ex is FormatException or JsonException)
+        {
+            ReportFileAccessError(ex);
         }
         catch (InvalidDataException ex)
         {
@@ -60,79 +78,71 @@ public static class GlobalConfiguration
 
     public static void SetValue(string key, string value)
     {
-        lock (_fileLock)
+        try
         {
-            try
+            var configDict = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+            var configPath = ConfigFilePath;
+            using var access = new JsonHelper.FileAccessScope(configPath);
+            if (File.Exists(configPath))
             {
-                var configDict = new Dictionary<string, string>();
-                var configPath = ConfigFilePath;
-                if (File.Exists(configPath))
+                configDict = ReadValues(configPath);
+            }
+
+            configDict[key] = JsonSerializer.SerializeToElement(value);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(configPath));
+            JsonHelper.SaveJsonTextAtomicallyOrThrow(configPath,
+                JsonSerializer.Serialize(configDict, new JsonSerializerOptions
                 {
-                    var json = File.ReadAllText(configPath);
-                    configDict = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                        ?? throw new JsonException("全局配置必须是 JSON 对象，原文件已保留。");
-                }
-
-                configDict[key] = value;
-
-                Directory.CreateDirectory(Path.GetDirectoryName(configPath));
-                JsonHelper.SaveJsonTextAtomicallyOrThrow(configPath,
-                    JsonSerializer.Serialize(configDict, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    }));
-            }
-            catch (JsonException ex)
-            {
-                ReportFileAccessError(ex);
-            }
-            catch (IOException ex)
-            {
-                ReportFileAccessError(ex);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                ReportFileAccessError(ex);
-            }
+                    WriteIndented = true
+                }));
+        }
+        catch (JsonException ex)
+        {
+            ReportFileAccessError(ex);
+        }
+        catch (IOException ex)
+        {
+            ReportFileAccessError(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            ReportFileAccessError(ex);
         }
     }
 
     public static void RemoveValues(IEnumerable<string> keys)
     {
-        lock (_fileLock)
+        try
         {
-            try
-            {
-                var configPath = ConfigFilePath;
-                if (!File.Exists(configPath)) return;
+            var configPath = ConfigFilePath;
+            using var access = new JsonHelper.FileAccessScope(configPath);
+            if (!File.Exists(configPath)) return;
 
-                var json = File.ReadAllText(configPath);
-                var configDict = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                    ?? throw new JsonException("全局配置必须是 JSON 对象，原文件已保留。");
-                var changed = false;
-                foreach (var key in keys)
-                    changed |= configDict.Remove(key);
+            var configDict = ReadValues(configPath);
+            var changed = false;
+            foreach (var key in keys)
+                changed |= configDict.Remove(key);
 
-                if (!changed) return;
+            if (!changed) return;
 
-                JsonHelper.SaveJsonTextAtomicallyOrThrow(configPath,
-                    JsonSerializer.Serialize(configDict, new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    }));
-            }
-            catch (JsonException ex)
-            {
-                ReportFileAccessError(ex);
-            }
-            catch (IOException ex)
-            {
-                ReportFileAccessError(ex);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                ReportFileAccessError(ex);
-            }
+            JsonHelper.SaveJsonTextAtomicallyOrThrow(configPath,
+                JsonSerializer.Serialize(configDict, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                }));
+        }
+        catch (JsonException ex)
+        {
+            ReportFileAccessError(ex);
+        }
+        catch (IOException ex)
+        {
+            ReportFileAccessError(ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            ReportFileAccessError(ex);
         }
     }
 

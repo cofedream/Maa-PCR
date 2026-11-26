@@ -48,9 +48,15 @@ sealed class Program
         var repository = MFAAvalonia.Pcr.PcrRuntimePaths.ResolveRepository(AppContext.BaseDirectory);
         var diagnostic = MFAAvalonia.Pcr.PcrFormalPreflight.Configure(args, repository);
         if (args.Length != 0 && !diagnostic) throw new InvalidOperationException("PCR Alpha accepts no auto-start or device arguments");
+        var executablePath = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "MFAAvalonia.exe");
+        var instanceKey = AppRuntime.CreateInstanceKey(executablePath);
         using var productMutex = new System.Threading.Mutex(true,
             MFAAvalonia.Pcr.PcrFormalPreflight.SettingsOnly ? "PCRAlphaV1.PlayerSettingsDiagnostic" : "PCRAlphaV1.FixedDeviceOwner", out var ownsMutex);
-        if (!ownsMutex) return;
+        if (!ownsMutex)
+        {
+            if (!diagnostic) AppRuntime.TryForwardActivation(instanceKey);
+            return;
+        }
         if (!diagnostic)
         {
             MFAAvalonia.Pcr.PcrRuntimePaths.RemoveEmptyLegacyMaaMetadata(AppContext.BaseDirectory, repository);
@@ -72,19 +78,14 @@ sealed class Program
 
         try
         {
-            var executablePath = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "MFAAvalonia.exe");
-            var instanceKey = AppRuntime.CreateInstanceKey(executablePath);
             AppRuntime.Initialize(args, instanceKey);
-            TelemetryService.InitializeBootstrapFromInterface(AppContext.BaseDirectory);
-
-            if (!AppRuntime.IsNewInstance && AppRuntime.TryForwardLaunchCommand())
+            if (!AppRuntime.IsNewInstance)
             {
+                if (!diagnostic) AppRuntime.TryForwardLaunchCommand();
                 AppRuntime.ReleaseMutex();
                 return;
             }
-
-            if (!AppRuntime.IsNewInstance)
-                _ = AppRuntime.TryRecoverUnresponsiveInstance();
+            TelemetryService.InitializeBootstrapFromInterface(AppContext.BaseDirectory);
 
             CheckSkiaAvailability();
 

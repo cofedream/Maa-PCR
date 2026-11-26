@@ -340,8 +340,6 @@ class OwnedRuntime:
             pass
 
     def _progress(self, value):
-        stages = {'dependencies','resources','connecting','ocr_warmup','ocr_ready','authenticating','ready',
-            'opening','handoff','playing','cleared','moving','battle','shop','reward','team','recovering','retiring'}
         stage = value.get('stage')
         stage = {'map':'moving','move_confirmation':'moving',
             'normal_challenge':'team','ex_challenge':'team','boss_challenge':'team',
@@ -350,7 +348,7 @@ class OwnedRuntime:
             'free_role_reward':'reward','clear_congratulations':'reward','clear_character_summary':'reward',
             'clear_reward_animation':'reward','clear_chest_animation':'reward','role_reward':'reward','relic_reward':'reward','link_reward':'reward',
             'joined':'reward','event':'playing'}.get(stage,stage)
-        if stage in stages:
+        if stage in self.timings.labels['business_phase']:
             if self.diagnostics is not None:
                 try:
                     if stage in ('connecting','ready'):self.diagnostics.capture_state(stage)
@@ -436,6 +434,7 @@ class OwnedRuntime:
                 server.package,
                 log=self._log,
                 stopped=self.stop,
+                before_apply=lambda: self._progress(dict(stage='animation_apply')),
             )
         except Exception:
             self.animation_setting_status = 'error'
@@ -456,6 +455,7 @@ class OwnedRuntime:
         from maa.controller import AdbController
         from maa.tasker import Tasker
         from maa.define import MaaAdbScreencapMethodEnum, MaaAdbInputMethodEnum
+        self._progress(dict(stage='ledger'))
         area = self.root/'.runtime/labyrinth-work'
         from .servers import get_server
         server=get_server(self.request.server).server_id
@@ -477,13 +477,17 @@ class OwnedRuntime:
                         raise BatchStopped('restart_records_invalid')
                 # Import the complete adapter before allocating a device/client.
                 # A partially assembled checkout reports a missing component.
+                self._checkpoint()
+                self._progress(dict(stage='adapters'))
                 from .scene import MaaSceneRuntime
                 from .autoplay import AutoplayRunner
                 if not callable(getattr(MaaSceneRuntime,'observe',None)) or not callable(getattr(AutoplayRunner,'play',None)):
                     raise BatchStopped('runtime_components_missing')
                 self._checkpoint()
+                self._progress(dict(stage='animation_probe'))
                 self._prepare_animation_setting(get_server(server))
                 self._checkpoint()
+                self._progress(dict(stage='local_cache'))
                 native.RUNTIME=area/'runs'/self.run_id/'native'
                 trace=native.RUNTIME/'maa/maafw.log'
                 from .diagnostics import RuntimeDiagnostics
@@ -499,6 +503,7 @@ class OwnedRuntime:
                 self.database_token=DATABASE_SNAPSHOT.set(self.database.snapshot())
                 if self.request.settings.strategy.auto_database_update:
                     self.database.start_update(self._database_progress)
+                self._checkpoint()
                 self._progress(dict(stage='resources'))
                 try:resource=native.load_resource(self.root/'assets/resource', cpu_only=self.request.cpu_only,
                                                  webgpu=self.request.webgpu)

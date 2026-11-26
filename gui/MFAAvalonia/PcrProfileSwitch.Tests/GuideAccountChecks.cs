@@ -141,6 +141,20 @@ internal static class GuideAccountChecks
         Check(reloaded.Catalog!.ContentVersion == "202611131613"
             && roster.Select(u => (int)u["unit_id"]!).SequenceEqual(new[] { 100101, 136201 })
             && migrationStore.Stamp(oldCatalog, "123") == oldHash, "shipped_catalog_and_complete_roster_survive_reload");
+        var clanDirectory = Path.GetDirectoryName(migration)!;
+        var clan = new PcrClanGuideView(repository, Path.Combine(clanDirectory, "agent-guide-review.json"), clanDirectory);
+        clan.UseAccountSnapshot(reloaded.Snapshot!);
+        string Text(string field) => ((TextBlock)typeof(PcrClanGuideView).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(clan)!).Text ?? "";
+        var version = reloaded.Catalog.ContentVersion;
+        var shippedCalibration = PcrClanCalibration.Read(repository, version);
+        Check(Text("accountNote").Contains("账号资料可用") && Text("accountNote").Contains(version)
+            && Text("calibrationSummary").Contains(version)
+            && (shippedCalibration.Error == null || Text("calibrationSummary").Contains(shippedCalibration.Error)),
+            "current_account_readable_and_simulation_calibration_are_distinct");
+        clan.ChangeExecutionMode(PcrClanDailyExecution.FormalDaily);
+        Check(Text("accountNote").Contains("账号资料可用") && Text("calibrationSummary").Contains("正式三刀")
+            && (shippedCalibration.Supports("formal") || Text("calibrationSummary").Contains("不可用"))
+            && clan.ExecutionConfirmationForStart == null, "current_account_alone_cannot_authorize_formal_challenge");
         Console.WriteLine($"Guide account checks passed: {count}; data synthetic; protocol logins=0");
     }
     private static void RenderAccount(PcrGuideReviewView view, string root, string label, int width, int height, int dpi)

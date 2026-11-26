@@ -110,6 +110,11 @@ def refresh_quote(observation):
     if type(words) not in (list,tuple) or len(words)!=1 or type(words[0]) is not dict:return None
     return _refresh_price(words)
 
+def _refresh_within_budget(current, price, minimum_balance):
+    balance = current.get('balance')
+    return (current.get('refresh_allowed') is True and current.get('refresh_enabled') is not False
+        and price is not None and type(balance) is int and balance - price >= minimum_balance)
+
 def shop_pipeline():
     nodes={f'LabyShopRead_{key}':dict(recognition='OCR',expected=pattern,roi=roi,threshold=.8,
         action='DoNothing',next=[],pre_delay=0,post_delay=0) for key,(pattern,roi) in _READS.items()}
@@ -386,6 +391,9 @@ class ShopRecognition(CustomRecognition):
         payload.update(dialog_evidence)
         if type(param) is dict:
             if param.get('state') and param['state']!=state:return self.AnalyzeResult(None,payload)
+            if param.get('refresh_balance') is not None and (not payload['refresh_allowed']
+                    or balance != param['refresh_balance'] or refresh_price != param.get('price')):
+                return self.AnalyzeResult(None,payload)
             if state!='shop' and (param.get('price') is not None or param.get('mark') is not None):
                 try:_,price=confirmation_terms(payload,mark=param.get('mark'),bonus=param.get('bonus'))
                 except BatchStopped:return self.AnalyzeResult(None,payload)
@@ -502,7 +510,7 @@ class MaaShop:
             batch.checkpoint();return None,None
         finally:native.RUN_DEADLINE.reset(token)
 
-    def _input(self,state,box,*,name=None,price=None,mark=None,bonus=None,identity_method=None,catalog_id=None):
+    def _input(self,state,box,*,name=None,price=None,mark=None,bonus=None,identity_method=None,catalog_id=None,refresh_balance=None):
         if not _box(box):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='shop_input_unknown'))
         if state=='shop':
             slots=[i for i in range(3) if _box(box) and box[0]>=_READS[f'Buy{i}'][1][0] and box[0]+box[2]<=_READS[f'Buy{i}'][1][0]+_READS[f'Buy{i}'][1][2]]
@@ -510,8 +518,11 @@ class MaaShop:
             roi=_READS[f'Buy{slots[0]}'][1]
         elif state=='refresh':roi=_READS['Refresh'][1]
         else:roi=_READS['Confirm'][1]
+        guard = dict(state='shop' if state=='refresh' else state, slot=slots[0] if state=='shop' else None,
+            name=name, price=price, mark=mark, bonus=bonus, identity_method=identity_method,
+            catalog_id=catalog_id, refresh_balance=refresh_balance)
         nodes={'LabyShopActionControl':dict(recognition='OCR',expected=r'^购买$' if state=='shop' else _READS['Refresh'][0] if state=='refresh' else r'^确认$',roi=roi,threshold=.8,action='DoNothing',next=[]),
-          'LabyShopActionGuard':dict(recognition='Custom',custom_recognition=NAME,custom_recognition_param=dict(state='shop' if state=='refresh' else state,slot=slots[0] if state=='shop' else None,name=name,price=price,mark=mark,bonus=bonus,identity_method=identity_method,catalog_id=catalog_id),roi=[0,0,1280,720],action='DoNothing',next=[]),
+          'LabyShopActionGuard':dict(recognition='Custom',custom_recognition=NAME,custom_recognition_param=guard,roi=[0,0,1280,720],action='DoNothing',next=[]),
           'LabyShopActionOnce':dict(recognition='And',all_of=['LabyShopActionControl','LabyShopActionGuard'],action='Click',target=True,max_hit=1,next=[],timeout=3000,pre_delay=0,post_delay=0)}
         if state=='shop':nodes['LabyShopSelectedIconCapture']=dict(custom_recognition_param=dict(slot=slots[0]))
         if not self.tasker.resource.override_pipeline(nodes):raise native.NativeInputNotSent(dict(input_execution='not_sent',pre_input_validation_failed=True,reason='shop_input_unknown'))
@@ -569,16 +580,16 @@ class MaaShop:
     buy_relic=purchase_once
 
     def _refresh(self,batch,enter_id,block_id,current,cycle):
+        from .roles import strategy_value
         words=current.get('words',{}).get('Refresh',())
         price=refresh_quote(current)
-        if (len(words)!=1 or price is None or not current.get('refresh_allowed')
-                or current.get('refresh_enabled') is False
-                or type(current.get('balance')) is not int or current['balance']<price):
+        minimum_balance = strategy_value(getattr(batch.settings,'strategy',None),'refresh_min_balance',0)
+        if not _refresh_within_budget(current, price, minimum_balance):
             raise BatchStopped('shop_refresh_quote_unknown')
         expected_balance=current['balance']-price
         fields=dict(enter_id=enter_id,block_id=block_id,cycle=cycle,price=price,currency='run_coins')
         def proposal(oid):
-            sent=self._input('refresh',words[0]['box'])
+            sent=self._input('refresh',words[0]['box'],price=price,refresh_balance=current['balance'])
             return self.stamp(operation_id=oid,**fields,native=sent,input_native=sent,input_action_verified=True)
         clicked=batch.transaction('shop_refresh_proposal',fields,proposal)
         dialog,receipt=self._probe_state(batch,'refresh_confirmation')
@@ -690,6 +701,7 @@ class MaaShop:
         policy={key:strategy_value(strategy,key,default) for key,default in (('baseline_last_area',3),('baseline_target',4),('debuff_pivot_minimum',12),('debuff_pivot_tolerance',2))}
         priority=priority or strategy_value(strategy,'relic_mark_priority',())
         refresh_permitted=refresh_shop and area is not None and area>=strategy_value(strategy,'refresh_from_area',5)
+        minimum_balance = strategy_value(strategy,'refresh_min_balance',0)
         def exhausted(value):
             return (relic_cycle>=3 or value.get('stock_state')=='exhausted'
                 or len(value['items'])==3 and all(i['kind']=='role_imprint' for i in value['items']))
@@ -712,11 +724,8 @@ class MaaShop:
                 calibrated_marks.update(i['relic'].mark for i in items if i['kind']=='relic')
                 purchasable=any(i.get('purchasable') is True for i in items)
                 refresh_price=refresh_quote(current)
-                refresh_ok=bool(not refresh_unavailable and refresh_permitted
-                    and current.get('refresh_allowed') and current.get('refresh_enabled') is not False
-                    and (refresh_price is None or type(current.get('balance')) is int and current['balance']>=refresh_price))
-                # Last shop of the run must not carry run coins out: keep
-                # refreshing even when the leftover stock has nothing purchasable.
+                refresh_ok = (not refresh_unavailable and refresh_permitted
+                    and _refresh_within_budget(current, refresh_price, minimum_balance))
                 if (exhausted(current) or (final_shop and not purchasable)) and refresh_ok:
                     result=self._refresh(batch,enter_id,block_id,current,cycle) or {}
                     current=None

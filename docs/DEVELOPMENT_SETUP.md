@@ -124,10 +124,15 @@ New-Item -ItemType Junction -Path "$app\assets" -Target "$PWD\assets"  # 资源�
 ```powershell
 cd <仓库>
 dotnet build gui\MFAAvalonia\MFAAvalonia.Desktop\MFAAvalonia.Desktop.csproj -c Release -r win-x64 -p:Platform=x64 -p:UsedAvaloniaProducts= --no-restore
+if ($LASTEXITCODE -ne 0) { throw 'GUI 编译失败。' }
+python -X utf8 -B scripts\prepare_dev_native.py
+if ($LASTEXITCODE -ne 0) { throw 'GUI 的 MaaFramework 原生库准备失败。' }
 Start-Process 'gui\MFAAvalonia\bin\x64\Release\MFAAvalonia.exe'
 ```
 
 成功标志：标题 `MFA 任务管理器 Maa-PCR（开发模式） | PCR Alpha <版本>`。编译前必须先关 GUI，否则 DLL 被占用。开发模式标题还会追加 ` · <分支名>`；多 worktree 并行开发、单实例限制和零设备设置诊断模式见[开发与验证](DEVELOPMENT.md)的「多 worktree 并行开发与 GUI 核对」。
+
+每次编译后、启动任务前运行 `prepare_dev_native.py`。它从开发 GUI 实际使用的 Python 环境读取锁定的 `maafw`，将同一份原生库复制到 GUI。只使用 NuGet 编译输出时，窗口能打开，但启动任务可能因 GUI 与 Agent 使用不同的协议而失败。只检查界面且未安装 Agent 的工作树可直接打开窗口。
 
 ### 可选：生成一条命令启动的本地脚本
 
@@ -160,6 +165,10 @@ if ($args -notcontains '-NoBuild') {
     dotnet build (Join-Path $root 'gui\MFAAvalonia\MFAAvalonia.Desktop\MFAAvalonia.Desktop.csproj') `
         -c Release -r win-x64 -p:Platform=x64 -p:UsedAvaloniaProducts= --no-restore -v:minimal
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+if ((Test-Path (Join-Path $root 'runtime/python/python.exe')) -or (Test-Path (Join-Path $root '.venv/Scripts/python.exe'))) {
+    python -X utf8 -B (Join-Path $root 'scripts/prepare_dev_native.py')
+    if ($LASTEXITCODE -ne 0) { throw 'GUI 的 MaaFramework 原生库准备失败。' }
 }
 Start-Process (Join-Path $app 'MFAAvalonia.exe')
 '@ | Set-Content -Encoding utf8 .runtime\run-gui.ps1

@@ -71,8 +71,17 @@ jobs:
           python -X utf8 -B -m pytest tests/test_player_candidate.py::test_packaged_runtime_ignores_external_python_environment tests/test_player_candidate.py::test_packaged_native_crt_loads_from_python_directory tests/test_player_candidate.py::test_native_entry_uses_bundled_runtime --basetemp .runtime/release/bundled-runtime-temp --junitxml .runtime/release/bundled-runtime.xml
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Seal Matching Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python -X utf8 -B scripts/release_ci.py --player .runtime/release/build/player --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --output .runtime/release/assets --release-baseline
+          $bridgeArgs = @()
+          if ($env:PCR_RELEASE_TAG -eq 'v0.2.9') {
+            $patch = 'Maa-PCR-v0.2.7-to-v0.2.8.patch.zip'
+            gh release download v0.2.8 --repo shiwandehongbai/Maa-PCR --pattern $patch --dir .runtime/release
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $bridgeArgs = @('--v027-bridge-patch', ".runtime/release/$patch")
+          }
+          python -X utf8 -B scripts/release_ci.py --player .runtime/release/build/player --acceptance delivery/acceptance.json --tag $env:PCR_RELEASE_TAG --output .runtime/release/assets --release-baseline @bridgeArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Create GitHub Release
         env:

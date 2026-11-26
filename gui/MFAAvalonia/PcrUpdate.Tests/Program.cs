@@ -11,6 +11,9 @@ using MFAAvalonia.ViewModels.UsersControls.Settings;
 using Newtonsoft.Json.Linq;
 using SukiUI.MessageBox;
 
+if (args.Length > 0 && args[0] == LaunchForwardingChecks.Argument)
+    return LaunchForwardingChecks.Run(args[1..]);
+
 if (args.Length == 2 && Path.IsPathFullyQualified(args[0]) && args[1] is "--startup-launch-marker" or "--startup-hold-marker")
 {
     File.AppendAllText(args[0], "launched\n");
@@ -22,6 +25,12 @@ if (args.Length == 2 && Path.IsPathFullyQualified(args[0]) && args[1] == "--ocr-
 {
     using var held = new FileStream(Path.Combine(args[0], ".quota-lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
     Environment.Exit(17); // Skip managed cleanup while the test child owns the OS lock.
+}
+
+if (args.Length == 2 && Path.IsPathFullyQualified(args[0]) && args[1] == "--global-settings-peer")
+{
+    try { PersistenceRecoveryChecks.RunGlobalSettingsPeer(args[0]); return 0; }
+    catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
 }
 
 if (args.Length is not (1 or 2 or 3) || !Path.IsPathFullyQualified(args[0])
@@ -49,7 +58,9 @@ if (args.Length == 2)
     return 0;
 }
 var count = 0;
+if (LaunchForwardingChecks.Run([]) != 0) return 1;
 AppPathsChecks.Run();
+await FeedbackArchiveChecks.Run(args[0]);
 count += NetworkProxyChecks.Run();
 count += LabyrinthNetworkChecks.Run();
 void Require(bool value, string test)
@@ -205,7 +216,7 @@ try
 {
     var versionRoot = (MFAAvalonia.ViewModels.Windows.RootViewModel)System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(
         typeof(MFAAvalonia.ViewModels.Windows.RootViewModel));
-    var versionSamples = new List<(int Revision, string Version)> { (53, "v0.1.9"), (57, "v0.1.12"), (88, "v0.2.0"), (89, "v0.2.1"), (90, "v0.2.2"), (91, "v0.2.3"), (92, "v0.2.4"), (93, "v0.2.5"), (94, "v0.2.6"), (95, "v0.2.7"), (96, "v0.2.8") };
+    var versionSamples = new List<(int Revision, string Version)> { (53, "v0.1.9"), (57, "v0.1.12"), (88, "v0.2.0"), (89, "v0.2.1"), (90, "v0.2.2"), (91, "v0.2.3"), (92, "v0.2.4"), (93, "v0.2.5"), (94, "v0.2.6"), (95, "v0.2.7"), (96, "v0.2.8"), (97, "v0.2.9") };
     if (savedDisplayManifest is not null)
     {
         var installed = JObject.Parse(Encoding.UTF8.GetString(savedDisplayManifest))["update"]!;

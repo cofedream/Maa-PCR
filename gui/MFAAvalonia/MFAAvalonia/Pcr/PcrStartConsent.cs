@@ -13,7 +13,9 @@ public sealed record PcrStartConsent(string GameDay, string CountContext,
     {
         var modules = selection["selected_modules"]!.Values<string>().ToArray();
         bool schedule = modules.Contains("schedule_onekey");
-        bool sweep = modules.Contains("event") || modules.Contains("abyss") || config["presets"]!.Any(p =>
+        bool sweep = modules.Contains("event") || modules.Contains("abyss") || modules.Contains("tower_cloister") ||
+            modules.Any(id => (id is "sanctum_survey" or "temple_survey") && (int?)config["investigations"]?[id]?["daily_target"] > 0) ||
+            config["presets"]!.Any(p =>
             (string?)p["kind"] != "normal" && modules.Contains((string?)p["kind"]) && (int?)p["target_per_stage"] > 0);
         return (sweep || schedule, sweep, schedule);
     }

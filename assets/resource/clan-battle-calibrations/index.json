@@ -16,6 +16,21 @@
         "formal",
         "carryover"
       ]
+    },
+    {
+      "calibration_id": "cn-bilibili-202611131613-clan-simulation",
+      "server": "cn-bilibili",
+      "content_version": "202611131613",
+      "frame_size": [
+        1280,
+        720
+      ],
+      "profile_path": "assets/resource/clan-battle-calibrations/cn-bilibili-202611131613/profile.json",
+      "profile_sha256": "232106dce01ba7cbcb6b56d83a3b3a6a1e9eaec86134f8bbdc43f655ff59798e",
+      "capabilities": [
+        "simulation",
+        "formal"
+      ]
     }
   ]
 }

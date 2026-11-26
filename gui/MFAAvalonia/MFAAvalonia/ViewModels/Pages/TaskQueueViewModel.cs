@@ -1474,6 +1474,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public bool IsAgentProfile => IsPcrMode && Processor.InstanceId == PcrClanGuide.ProfileId;
     public bool IsDailyProfile => IsPcrMode && !IsLabyrinthProfile && !IsAgentProfile;
     internal Func<string?>? PcrClanGuideConfirmation { get; set; }
+    internal Func<string?>? PcrClanStartHint { get; set; }
     internal string PcrClanGuideConfirmationForStart() => PcrClanGuideConfirmation?.Invoke() is { Length: 64 } value
         ? value : throw new InvalidOperationException("会战当前模式的作业尚未确认保存；单队模拟与正式三目标确认不能混用。请核对后保存。");
     private PcrLabyrinthSettings? _labyrinthSettings;
@@ -1536,7 +1537,8 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PcrModuleTitle), nameof(PcrModuleDescription), nameof(PcrEditingDeep),
         nameof(PcrEditingVeryHard), nameof(PcrEditingHard), nameof(PcrEditingNormal),
-        nameof(PcrEditingPreset), nameof(PcrEditingSchedule), nameof(PcrEditingRewards), nameof(PcrEditingEvent))]
+        nameof(PcrEditingPreset), nameof(PcrEditingSchedule), nameof(PcrEditingRewards), nameof(PcrEditingEvent),
+        nameof(PcrEditingSanctum), nameof(PcrEditingTemple))]
     private string _pcrSelectedModuleId = "";
 
     public void SelectPcrModule(string id) => PcrSelectedModuleId = id;
@@ -1547,16 +1549,21 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
     public bool PcrEditingPreset => PcrEditingDeep || PcrEditingVeryHard || PcrEditingHard || PcrEditingNormal;
     public bool PcrEditingRewards => PcrSelectedModuleId == "rewards";
     public bool PcrEditingEvent => PcrSelectedModuleId == "event";
+    public bool PcrEditingSanctum => PcrSelectedModuleId == "sanctum_survey";
+    public bool PcrEditingTemple => PcrSelectedModuleId == "temple_survey";
     public bool PcrEditingSchedule => PcrSelectedModuleId == "schedule_onekey";
     public string PcrModuleTitle => PcrModuleName(PcrSelectedModuleId);
     public static string PcrModuleName(string id) => id switch {
         "schedule_onekey" => "日程", "event" => "活动", "abyss" => "深渊前哨", "deep" => "深域",
         "rewards" => "每日任务 / 礼物", "very_hard" => "高难", "hard" => "困难 / 外传", "normal" => "普通",
+        "sanctum_survey" => "圣迹调查", "temple_survey" => "神殿调查", "tower_cloister" => "露娜塔回廊",
         _ => "选择一个模块" };
     public string PcrModuleDescription => PcrSelectedModuleId switch {
         "schedule_onekey" => "按游戏内已经设置的日程执行。已完成项目会跳过，无需在这里重复配置九项任务。",
         "event" => "扫荡游戏内已勾选的困难关卡，每关每日最多 3 次。两项都勾选时，先扫当期，再扫复刻。",
         "abyss" => "按本次剩余次数扫荡已解锁的普通、困难和高难前哨。不打首领，不购买或重置。",
+        "sanctum_survey" or "temple_survey" => "选择已通关的调查关卡。按每日目标和画面剩余次数扫荡，仅使用现有次数。",
+        "tower_cloister" => "露娜塔开放期间，按画面剩余次数扫荡已首通的回廊。",
         "rewards" => "领取每日任务奖励与礼物。可选择是否领取礼物箱里的体力；同样适用于末尾补领。",
         "normal" => "按每个关卡的本次次数扫荡。先在游戏内保存普通关卡预设，再填写以下参数。",
         "deep" or "very_hard" or "hard" => "按每关每日目标核对当前剩余次数；已经完成的目标不会重复执行。",
@@ -1568,7 +1575,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
         get
         {
             if (IsLabyrinthProfile) return "本次目标：" + string.Join("，", LabyrinthSettings.Goals.Where(g=>g.Enabled).Select(g=>$"{g.Name}：{(g.TargetMode == g.TargetModes[1] ? "尝试" : "通关")} {g.Clears} 次"));
-            if (IsAgentProfile) { try { return PcrSettings.ClanExecutionMode == PcrClanDailyExecution.FormalDaily ? "本次：正式三目标预设 · 开始前核对校准与现场状态" : "本次：所选公会战作业 · 单次模拟"; } catch { return "会战执行模式无法读取，请重新打开核对"; } }
+            if (IsAgentProfile) return PcrClanStartHint?.Invoke() ?? "正在读取会战执行模式";
             var options = TaskItemViewModels.FirstOrDefault(item => item.InterfaceItem?.Entry == "PCRAlphaEntry")?.InterfaceItem?.Option;
             var modules = options?.FirstOrDefault(item => item.Name == "AlphaModules")?.SelectedCases;
             var final = options?.FirstOrDefault(item => item.Name == "AlphaRewardsFinal")?.Index == 1;
@@ -1593,7 +1600,7 @@ public partial class TaskQueueViewModel : ViewModelBase, IDisposable
                 TaskRunState.Failed => "最近执行未完成 · 请展开运行日志",
                 TaskRunState.Stopped => "最近执行已停止 · 可查看运行日志",
                 TaskRunState.Skipped => "最近执行已跳过 · 请查看运行日志",
-                _ => IsAgentProfile ? PcrSelectionSummary : "准备就绪 · 勾选模块后开始" };
+                _ => IsAgentProfile ? "等待开始" : "准备就绪 · 勾选模块后开始" };
         }
     }
 

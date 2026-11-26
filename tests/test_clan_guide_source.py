@@ -7,11 +7,27 @@ from unittest.mock import patch
 
 from pcr_maa.clan_guide_source import (
     build_page_jobs, digest, parse_damage, parse_header, parse_support, parse_switches,
-    operation_mark, period_from_title, prepare_bundle, static_frames, verify_source,
+    operation_mark, period_from_title, prepare_bundle, static_frames, table_candidates, verify_source,
 )
 
 
 class ClanGuideSourceTest(unittest.TestCase):
+    def test_optional_fifth_bc_team_preserves_existing_job_order(self):
+        import numpy as np
+        frame = np.full((720, 1280, 3), 240, np.uint8)
+        original = [(120, 226), (506, 226), (120, 361), (506, 361)]
+        for x, y in original:
+            frame[y:y+60, x:x+320] = (55, 110, 210)
+
+        def generic_locations():
+            return [(row['x'], row['y']) for row in table_candidates(frame) if row['boss'] is None]
+
+        self.assertEqual(generic_locations(), original)
+        frame[226:286, 888:1144] = (55, 110, 210)  # Only four portraits
+        self.assertEqual(generic_locations(), original)
+        frame[226:286, 1144:1208] = (55, 110, 210)
+        self.assertEqual(generic_locations(), original + [(888, 226)])
+
     def test_stable_slide_detection_keeps_real_middle_frames_once(self):
         import cv2
         import numpy as np

@@ -20,7 +20,9 @@ class Timings:
     categories=frozenset(('screenshot','recognition','strategy','input','swipe','page_wait','protocol_request','business_phase'))
     labels={
         'protocol_request':frozenset(('authentication','sdk_login','labyrinth/top','labyrinth/enter','labyrinth/resume','labyrinth/retire')),
-        'business_phase':frozenset(('dependencies','resources','connecting','ocr_warmup','ocr_ready','authenticating','ready','opening','handoff','playing','cleared','moving','battle','shop','reward','team','recovering','retiring')),
+        'business_phase':frozenset(('dependencies','ledger','adapters','animation_probe','animation_apply','local_cache',
+            'resources','connecting','ocr_warmup','ocr_ready','authenticating','ready','opening','handoff','playing',
+            'cleared','moving','battle','shop','reward','team','recovering','retiring')),
     }
     def __init__(self):
         self.samples=defaultdict(lambda:deque(maxlen=256));self.stats={};self.lock=RLock()
@@ -93,7 +95,96 @@ class FrameCache:
         if key not in self.results:self.results[key]=calculate()
         return self.results[key]
 
-class NativeTimings:
+class NativeTimingTrace:
+    """Read only scalar samples appended to the current run's native logs."""
+    capture_pattern = re.compile(r'ControlUnitMgr::screencap\]\s*\|\s*leave,\s*(\d+)ms(?:\s|$)')
+    recognition_pattern = re.compile(r'VisionNS::(?:OCRer|TemplateMatcher|ColorMatcher|FeatureMatcher|NeuralNetworkClassifier|NeuralNetworkDetector)::analyze\].*\[cost=(\d+)ms\]')
+
+    def __init__(self, timings, trace_path):
+        self.timings = timings
+        self.lock = RLock()
+        self.trace_path=trace_path
+        self.trace_positions={};self.trace_issues=set();self.trace_read=set();self.trace_collected=False
+        self._snapshot_native_trace()
+
+    def _record_trace_line(self, line):
+        capture = self.capture_pattern.search(line)
+        if capture:
+            self.timings.record("screenshot", int(capture[1]))
+        recognition = self.recognition_pattern.search(line)
+        if recognition:
+            self.timings.record("recognition", int(recognition[1]))
+
+    def finish_native_trace(self):
+        # Maa 5.13's pipeline-internal captures bypass Controller.Action events.
+        # Read only the Owner's new private trace tail, extracting scalar native
+        # capture durations. Never add another screenshot merely for profiling.
+        if not self.trace_path:return
+        with self.lock:
+            present=set()
+            for path in self._native_trace_files():
+                try:
+                    with path.open('rb') as handle:
+                        identity=self._native_trace_identity(handle)
+                        if identity is None:continue
+                        if identity in present:continue
+                        present.add(identity)
+                        offset,length,fingerprint=self.trace_positions.get(identity,(0,0,hashlib.sha256(b'').digest()))
+                        size=os.fstat(handle.fileno()).st_size
+                        handle.seek(max(0,offset-length))
+                        if size<offset or hashlib.sha256(handle.read(length)).digest()!=fingerprint:
+                            # Rewritten bytes cannot be safely distinguished from already counted samples.
+                            self.trace_issues.add('trace_truncated_or_rewritten')
+                            self.trace_positions[identity]=self._native_trace_position(handle,size)
+                            continue
+                        handle.seek(offset)
+                        while handle.tell() < size:
+                            line=handle.readline()
+                            if not line or handle.tell() > size or not line.endswith(b'\n'):break
+                            decoded=line.decode('utf-8',errors='replace')
+                            self._record_trace_line(decoded)
+                            self.trace_positions[identity]=(handle.tell(),min(len(line),64),hashlib.sha256(line[-64:]).digest())
+                        self.trace_positions.setdefault(identity,(offset,length,fingerprint))
+                        self.trace_read.add(identity)
+                except OSError:self.trace_issues.add('trace_read_failed')
+            if self.trace_positions.keys()-present:self.trace_issues.add('trace_file_missing')
+            self.trace_collected=True
+            if self.trace_issues:raise RuntimeError('native_trace_incomplete')
+    def _native_trace_files(self):
+        if not self.trace_path:return []
+        backup=re.compile(re.escape(self.trace_path.stem)+r'\.bak\.\d{4}\.\d{2}\.\d{2}-\d{2}\.\d{2}\.\d{2}\.\d{1,3}'+re.escape(self.trace_path.suffix))
+        try:
+            return sorted(path for path in self.trace_path.parent.iterdir()
+                if path.name==self.trace_path.name or backup.fullmatch(path.name))
+        except FileNotFoundError:return []
+        except OSError:
+            self.trace_issues.add('trace_directory_unreadable');return []
+    def _native_trace_identity(self,handle):
+        stat=os.fstat(handle.fileno())
+        if not stat.st_ino:
+            self.trace_issues.add('trace_identity_unavailable');return None
+        return stat.st_dev,stat.st_ino
+    @staticmethod
+    def _native_trace_position(handle,offset):
+        length=min(offset,64)
+        handle.seek(offset-length)
+        return offset,length,hashlib.sha256(handle.read(length)).digest()
+    def _snapshot_native_trace(self):
+        for path in self._native_trace_files():
+            try:
+                with path.open('rb') as handle:
+                    identity=self._native_trace_identity(handle)
+                    if identity is not None:
+                        self.trace_positions[identity]=self._native_trace_position(handle,os.fstat(handle.fileno()).st_size)
+            except OSError:self.trace_issues.add('trace_read_failed')
+    def trace_diagnostics(self):
+        """Scalar completeness for a performance sidecar, never ledger authority."""
+        with self.lock:
+            return dict(status=('not_configured' if not self.trace_path else 'incomplete' if self.trace_issues
+                else 'collected' if self.trace_collected else 'not_collected'),
+                issues=sorted(self.trace_issues),files_seen=len(self.trace_positions),files_read=len(self.trace_read))
+
+class NativeTimings(NativeTimingTrace):
     """Attach to the Owner's actual Tasker/controller, including child Contexts.
 
     The sinks retain only IDs and elapsed times. An optional private native
@@ -107,11 +198,9 @@ class NativeTimings:
         from maa.context import ContextEventSink
         from maa.event_sink import NotificationType
         self.tasker,self.controller,self.timings=tasker,controller,timings
-        self.pending={};self.lock=RLock();self.closed=False;self.action_kinds={}
+        self.pending={};self.closed=False;self.action_kinds={}
         self.input_evidence={}
-        self.trace_path=trace_path
-        self.trace_positions={};self.trace_issues=set();self.trace_read=set();self.trace_collected=False
-        self._snapshot_native_trace()
+        super().__init__(timings, trace_path)
         owner=self
         class ControllerSink(ControllerEventSink):
             def on_controller_action(self,controller,noti_type,detail):
@@ -193,79 +282,6 @@ class NativeTimings:
                 started=self.pending.pop(key,None)
                 if started:self.timings.record(started[0],(perf_counter()-started[1])*1000,
                     outcome='succeeded' if notification==types.Succeeded else 'failed')
-    def finish_native_trace(self):
-        # Maa 5.13's pipeline-internal captures bypass Controller.Action events.
-        # Read only the Owner's new private trace tail, extracting scalar native
-        # capture durations. Never add another screenshot merely for profiling.
-        if not self.trace_path:return
-        pattern=re.compile(r'ControlUnitMgr::screencap\]\s*\|\s*leave,\s*(\d+)ms(?:\s|$)')
-        recognition=re.compile(r'VisionNS::(?:OCRer|TemplateMatcher|ColorMatcher|FeatureMatcher|NeuralNetworkClassifier|NeuralNetworkDetector)::analyze\].*\[cost=(\d+)ms\]')
-        with self.lock:
-            present=set()
-            for path in self._native_trace_files():
-                try:
-                    with path.open('rb') as handle:
-                        identity=self._native_trace_identity(handle)
-                        if identity is None:continue
-                        if identity in present:continue
-                        present.add(identity)
-                        offset,length,fingerprint=self.trace_positions.get(identity,(0,0,hashlib.sha256(b'').digest()))
-                        size=os.fstat(handle.fileno()).st_size
-                        handle.seek(max(0,offset-length))
-                        if size<offset or hashlib.sha256(handle.read(length)).digest()!=fingerprint:
-                            # Rewritten bytes cannot be safely distinguished from already counted samples.
-                            self.trace_issues.add('trace_truncated_or_rewritten')
-                            self.trace_positions[identity]=self._native_trace_position(handle,size)
-                            continue
-                        handle.seek(offset)
-                        while True:
-                            line=handle.readline()
-                            if not line or not line.endswith(b'\n'):break
-                            decoded=line.decode('utf-8',errors='replace')
-                            match=pattern.search(decoded)
-                            if match:self.timings.record('screenshot',int(match.group(1)))
-                            match=recognition.search(decoded)
-                            if match:self.timings.record('recognition',int(match.group(1)))
-                            self.trace_positions[identity]=(handle.tell(),min(len(line),64),hashlib.sha256(line[-64:]).digest())
-                        self.trace_positions.setdefault(identity,(offset,length,fingerprint))
-                        self.trace_read.add(identity)
-                except OSError:self.trace_issues.add('trace_read_failed')
-            if self.trace_positions.keys()-present:self.trace_issues.add('trace_file_missing')
-            self.trace_collected=True
-            if self.trace_issues:raise RuntimeError('native_trace_incomplete')
-    def _native_trace_files(self):
-        if not self.trace_path:return []
-        backup=re.compile(re.escape(self.trace_path.stem)+r'\.bak\.\d{4}\.\d{2}\.\d{2}-\d{2}\.\d{2}\.\d{2}\.\d{1,3}'+re.escape(self.trace_path.suffix))
-        try:
-            return sorted(path for path in self.trace_path.parent.iterdir()
-                if path.name==self.trace_path.name or backup.fullmatch(path.name))
-        except FileNotFoundError:return []
-        except OSError:
-            self.trace_issues.add('trace_directory_unreadable');return []
-    def _native_trace_identity(self,handle):
-        stat=os.fstat(handle.fileno())
-        if not stat.st_ino:
-            self.trace_issues.add('trace_identity_unavailable');return None
-        return stat.st_dev,stat.st_ino
-    @staticmethod
-    def _native_trace_position(handle,offset):
-        length=min(offset,64)
-        handle.seek(offset-length)
-        return offset,length,hashlib.sha256(handle.read(length)).digest()
-    def _snapshot_native_trace(self):
-        for path in self._native_trace_files():
-            try:
-                with path.open('rb') as handle:
-                    identity=self._native_trace_identity(handle)
-                    if identity is not None:
-                        self.trace_positions[identity]=self._native_trace_position(handle,os.fstat(handle.fileno()).st_size)
-            except OSError:self.trace_issues.add('trace_read_failed')
-    def trace_diagnostics(self):
-        """Scalar completeness for a performance sidecar, never ledger authority."""
-        with self.lock:
-            return dict(status=('not_configured' if not self.trace_path else 'incomplete' if self.trace_issues
-                else 'collected' if self.trace_collected else 'not_collected'),
-                issues=sorted(self.trace_issues),files_seen=len(self.trace_positions),files_read=len(self.trace_read))
     def close(self):
         with self.lock:
             if self.closed:return

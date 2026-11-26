@@ -90,6 +90,21 @@
             "selected": false
           }
         },
+        "PCRAlphaSelectSanctumSurvey": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectTempleSurvey": {
+          "attach": {
+            "selected": false
+          }
+        },
+        "PCRAlphaSelectTowerCloister": {
+          "attach": {
+            "selected": false
+          }
+        },
         "PCRAlphaSelectGuideTrial": {
           "attach": {
             "selected": false
@@ -204,6 +219,42 @@
           "description": "先在游戏内预选普通关卡，再设置预设槽位和每关本次次数；填 0 次跳过，不需要每日目标。",
           "pipeline_override": {
             "PCRAlphaSelectNormal": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "sanctum_survey",
+          "label": "圣迹调查",
+          "description": "扫荡所选圣迹调查关卡，按每日目标和当前余次执行。",
+          "pipeline_override": {
+            "PCRAlphaSelectSanctumSurvey": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "temple_survey",
+          "label": "神殿调查",
+          "description": "扫荡所选神殿调查关卡，按每日目标和当前余次执行。",
+          "pipeline_override": {
+            "PCRAlphaSelectTempleSurvey": {
+              "attach": {
+                "selected": true
+              }
+            }
+          }
+        },
+        {
+          "name": "tower_cloister",
+          "label": "露娜塔回廊",
+          "description": "开放期间扫荡已首通的回廊，次数取自当前画面。",
+          "pipeline_override": {
+            "PCRAlphaSelectTowerCloister": {
               "attach": {
                 "selected": true
               }

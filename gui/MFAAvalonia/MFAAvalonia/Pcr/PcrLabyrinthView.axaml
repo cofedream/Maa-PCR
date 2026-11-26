@@ -169,6 +169,7 @@
                 Foreground="{DynamicResource SukiPrimaryColor}" IsVisible="{Binding LabyrinthSettings.HasRelicPriorityNotice}" />
      <CheckBox Content="允许刷新商店" IsChecked="{Binding LabyrinthSettings.RefreshShop}" />
      <TextBlock Text="商店刷新起始区域（1–5）" /><TextBox Text="{Binding LabyrinthSettings.RefreshFromArea, Mode=TwoWay}" />
+     <TextBlock Text="刷新后至少保留的金币（0 表示不限）" /><TextBox Name="RefreshMinBalanceInput" Text="{Binding LabyrinthSettings.RefreshMinBalance, Mode=TwoWay}" />
     </StackPanel></Expander>
     <Expander Name="EventSettings" Header="事件策略" IsExpanded="False"><StackPanel Spacing="10" Margin="0,8">
      <TextBlock Text="事件选项由固定的期望价值模型自动选择：职阶/角色、遗物、金币和战斗分别估值，优先取按钮可用的最高价值项。" TextWrapping="Wrap" />

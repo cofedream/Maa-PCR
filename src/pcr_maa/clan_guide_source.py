@@ -209,6 +209,8 @@ def table_candidates(frame):
     grids = [(x, y, 64, 60, None, '通用') for y in (226, 361) for x in (120, 506)]
     grids += [(x, y, 37, 35, i+1, f'刀{j+1}') for j, y in enumerate((160, 306, 452))
               for i, x in enumerate((170, 380, 600, 814, 1028))]
+    # Keep the existing row order: the row number is part of saved job IDs.
+    grids.append((888, 226, 64, 60, None, '通用'))
     for x, y, cell, height, boss, label in grids:
         cells = [hsv[y:y+height, x+i*cell:x+(i+1)*cell] for i in range(5)]
         # Blank slide/table regions cannot become a five-person team.

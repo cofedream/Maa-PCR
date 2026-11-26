@@ -50,6 +50,10 @@ public partial class PcrPlayerSettings : ObservableObject
     [ObservableProperty] private string? hardCount = "0";
     [ObservableProperty] private string normalSlot = "";
     [ObservableProperty] private string? normalCount = "0";
+    [ObservableProperty] private string? sanctumStage = "1";
+    [ObservableProperty] private string? sanctumDailyTarget = "0";
+    [ObservableProperty] private string? templeStage = "1";
+    [ObservableProperty] private string? templeDailyTarget = "0";
     [ObservableProperty] private bool validateDisplayMapping;
     [ObservableProperty] private string gamePackage = PcrMuMuDisplay.Package;
     [ObservableProperty] private string gameActivity = ".MainActivity";
@@ -143,6 +147,8 @@ public partial class PcrPlayerSettings : ObservableObject
         ["veryHardSlot"] = VeryHardSlot, ["veryHardCount"] = VeryHardCount,
         ["hardSlot"] = HardSlot, ["hardCount"] = HardCount,
         ["normalSlot"] = NormalSlot, ["normalCount"] = NormalCount,
+        ["sanctumStage"] = SanctumStage, ["sanctumDailyTarget"] = SanctumDailyTarget,
+        ["templeStage"] = TempleStage, ["templeDailyTarget"] = TempleDailyTarget,
         ["validateDisplayMapping"] = ValidateDisplayMapping,
         ["gamePackage"] = GamePackage, ["gameActivity"] = GameActivity,
         ["collectGiftStamina"] = CollectGiftStamina,
@@ -160,6 +166,10 @@ public partial class PcrPlayerSettings : ObservableObject
         VeryHardSlot = (string?)p["veryHardSlot"] ?? ""; VeryHardCount = (string?)p["veryHardCount"];
         HardSlot = (string?)p["hardSlot"] ?? ""; HardCount = (string?)p["hardCount"];
         NormalSlot = (string?)p["normalSlot"] ?? ""; NormalCount = (string?)p["normalCount"];
+        SanctumStage = p.ContainsKey("sanctumStage") ? (string?)p["sanctumStage"] : "1";
+        SanctumDailyTarget = p.ContainsKey("sanctumDailyTarget") ? (string?)p["sanctumDailyTarget"] : "0";
+        TempleStage = p.ContainsKey("templeStage") ? (string?)p["templeStage"] : "1";
+        TempleDailyTarget = p.ContainsKey("templeDailyTarget") ? (string?)p["templeDailyTarget"] : "0";
         ValidateDisplayMapping = p["validateDisplayMapping"] == null || p["validateDisplayMapping"]!.Type == JTokenType.Null
             ? false : p["validateDisplayMapping"]!.Type == JTokenType.Boolean
             ? p["validateDisplayMapping"]!.Value<bool>()
@@ -223,6 +233,17 @@ public partial class PcrPlayerSettings : ObservableObject
             if (!CurrentEvent && !RevivalEvent) throw new InvalidOperationException("请在活动设置中勾选当期活动或复刻活动。");
             config["event_targets"] = EventTargets();
         }
+        var investigations = new JObject();
+        void AddSurvey(string id, string label, string? stage, string? target)
+        {
+            if (selected != null && !selected.Contains(id)) return;
+            investigations[id] = new JObject {
+                ["stage"] = Number(stage, 1, 999, label + "关卡（1..999）"),
+                ["daily_target"] = Number(target, 0, 999, label + "每日目标（0..999）") };
+        }
+        AddSurvey("sanctum_survey", "圣迹调查", SanctumStage, SanctumDailyTarget);
+        AddSurvey("temple_survey", "神殿调查", TempleStage, TempleDailyTarget);
+        if (investigations.HasValues) config["investigations"] = investigations;
         return config;
     }
     // Called only after Owner's fresh fixed-command read and pending/target check.
@@ -304,7 +325,9 @@ public partial class PcrPlayerSettings : ObservableObject
     {
         var modules = selection["selected_modules"]!.Values<string>().ToArray();
         bool schedule = modules.Contains("schedule_onekey");
-        bool sweep = modules.Contains("event") || modules.Contains("abyss") ||
+        bool sweep = modules.Contains("event") || modules.Contains("abyss") || modules.Contains("tower_cloister") ||
+            modules.Contains("sanctum_survey") && Number(SanctumDailyTarget, 0, 999, "圣迹调查次数") > 0 ||
+            modules.Contains("temple_survey") && Number(TempleDailyTarget, 0, 999, "神殿调查次数") > 0 ||
             modules.Contains("deep") && Number(DeepCount, 0, 999, "深域次数") > 0 ||
             modules.Contains("very_hard") && Number(VeryHardCount, 0, 999, "高难次数") > 0 ||
             modules.Contains("hard") && Number(HardCount, 0, 999, "困难次数") > 0;
@@ -339,6 +362,22 @@ public partial class PcrPlayerSettings : ObservableObject
         if (version == 3 && identity == null) throw new InvalidOperationException("v3 导入缺少 mumu 身份。");
         var importedGiftStamina = ReadGiftStamina(config, "collect_gift_stamina");
         var eventTargets = ReadEventTargets(config);
+        if (config["investigations"] is { } rawSurveys &&
+            (rawSurveys is not JObject surveyOptions ||
+             surveyOptions.Properties().Any(p => p.Name is not ("sanctum_survey" or "temple_survey"))))
+            throw new InvalidOperationException("导入的调查种类无效。");
+        (string Stage, string Target) Survey(string id)
+        {
+            if (config["investigations"]?[id] is not { } raw) return ("1", "0");
+            var label = TaskQueueViewModel.PcrModuleName(id);
+            if (raw is not JObject row || row.Count != 2 ||
+                row["stage"]?.Type != JTokenType.Integer || row["daily_target"]?.Type != JTokenType.Integer)
+                throw new InvalidOperationException(label + "须包含整数关卡和每日目标。");
+            return (Number(row["stage"]!.ToString(), 1, 999, label + "关卡").ToString(),
+                    Number(row["daily_target"]!.ToString(), 0, 999, label + "每日目标").ToString());
+        }
+        var sanctum = Survey("sanctum_survey");
+        var temple = Survey("temple_survey");
         var importedPackage = version == 3 ? (string?)identity?["app_package"]
             : (string?)config["controller"]?["app_package"];
         var importedActivity = (string?)config["controller"]?["app_activity"] ?? ".MainActivity";
@@ -346,6 +385,8 @@ public partial class PcrPlayerSettings : ObservableObject
         if (PcrChannelCatalog.Find(importedPackage!, importedActivity) == null)
             throw new InvalidOperationException("导入的渠道尚未收录，请反馈维护者补充；现有设置和历史记录保留。");
         ready = false;
+        (SanctumStage, SanctumDailyTarget) = sanctum;
+        (TempleStage, TempleDailyTarget) = temple;
         CollectGiftStamina = importedGiftStamina;
         CurrentEvent = eventTargets.Contains("current"); RevivalEvent = eventTargets.Contains("revival");
         GamePackage = importedPackage!; GameActivity = importedActivity;

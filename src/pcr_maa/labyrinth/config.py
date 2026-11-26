@@ -54,9 +54,14 @@ class Strategy:
     special_equipment_battles: tuple[str,...] = ('NORMAL','EX','BOSS')
     response_interval_ms: int = 300
     auto_database_update: bool = True
+    refresh_min_balance: int = 0
 
     def payload(self):
         values={key:getattr(self,key) for key in self.__dataclass_fields__}
+        # Ready checkpoints compare the complete strategy to the saved run settings.
+        # Keep a zero reserve byte-for-byte compatible with runs predating this option.
+        if self.refresh_min_balance == 0:
+            del values['refresh_min_balance']
         values.update(deployment_weights=list(self.deployment_weights),
             scoring_overrides=dict(self.scoring_overrides),personal_scores=dict(self.personal_scores),
             relic_mark_priority=list(self.relic_mark_priority),
@@ -105,7 +110,8 @@ class Strategy:
                 ('mixed_damage_penalty',0,30),('effective_character_system_bonus',0,30),
                 ('single_boss_retry_count_before_multi',0,10),('baseline_last_area',0,5),
                 ('baseline_target',1,4),('debuff_pivot_minimum',5,15),('debuff_pivot_tolerance',0,5),
-                ('refresh_from_area',1,5),('normal_win_rate',0,100),('extreme_win_rate',0,100)):
+                ('refresh_from_area',1,5),('refresh_min_balance',0,2**31-1),
+                ('normal_win_rate',0,100),('extreme_win_rate',0,100)):
             item=value.get(key,getattr(defaults,key))
             if type(item) is not int or not lo<=item<=hi:raise ValueError('invalid_'+key)
             extra[key]=item

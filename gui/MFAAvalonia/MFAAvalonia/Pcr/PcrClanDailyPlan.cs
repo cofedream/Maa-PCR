@@ -28,7 +28,7 @@ public sealed class PcrClanDailyPlanSlot
 public sealed record PcrClanDailyPlanReview(bool Complete, IReadOnlyList<string> Slots, IReadOnlyList<string> Warnings);
 
 // These are references to reviewed jobs. Actual attempts and compensation remain game observations.
-public static class PcrClanDailyPlan
+public static partial class PcrClanDailyPlan
 {
     public const string Policy = "same_boss_if_observed_else_hold";
     public static string StatePath => PathFor(AppPaths.ConfigDirectory);
@@ -151,11 +151,16 @@ public static class PcrClanDailyPlan
             }
         }
         foreach (var pair in own.Where(p => p.Value.Count > 1).OrderBy(p => p.Key))
-            warnings.Add($"自有角色 {pair.Key} 在第 {string.Join("、", pair.Value)} 刀重复。若按主刀执行会占用同一角色，请自行更换已核对作业；程序不会替换角色。");
+        {
+            var firstPlan = plans.First(p => p.Slot == pair.Value[0]).Plan;
+            var catalog = inputs.Catalog(configDirectory, repository, (string)firstPlan["content_version"]!);
+            var unit = catalog.Units.First(u => u.UnitId == pair.Key);
+            warnings.Add($"自有角色 {unit.Name}（{pair.Key}）在第 {string.Join("、", pair.Value)} 刀重复。请更换其中一队作业。");
+        }
         inputs.Verify();
         if (PcrClanGuide.Stamp(guideStatePath) != before) throw new IOException("原作业在核对时发生变化，请重新读取。");
         var complete = document.Slots.Count == 3 && plans.Count == 3 && consistent && !own.Any(p => p.Value.Count > 1);
-        if (requireThree && !complete) throw new InvalidDataException("完整三刀摘要需要恰好 3 队；原件、账号缓存和确认仍须有效，服务器、账号与期次一致，主刀自有角色不能重复。");
+        if (requireThree && !complete) throw new InvalidDataException("完整三刀摘要需要恰好 3 队；原件、账号缓存和确认仍须有效，服务器、账号与期次一致，主刀自有角色不能重复。" + string.Join(" ", warnings));
         return new(complete, lines, warnings);
     }
     public static string Save(PcrClanDailyPlanDocument document, string path, string? expectedHash)

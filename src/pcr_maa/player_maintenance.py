@@ -20,7 +20,8 @@ PRIVATE_ROOTS = {'.runtime', '.venv', '.git', 'config', 'logs', 'backup', 'debug
     'temp', 'native-log', 'pcr-alpha-v1', '.pcr-alpha-v1', 'resource', '__pycache__'}
 PRIVATE_PARTS = {'.runtime', '.venv', '.git', 'pcr-alpha-v1', '.pcr-alpha-v1',
     'ledger', 'ledgers', 'evidence', 'screenshot', 'screenshots'}
-MODULES = ('schedule_onekey', 'event', 'abyss', 'deep', 'rewards', 'very_hard', 'hard', 'normal')
+MODULES = ('schedule_onekey', 'event', 'abyss', 'deep', 'rewards', 'very_hard', 'hard', 'normal',
+           'sanctum_survey', 'temple_survey', 'tower_cloister')
 RUN_ID = re.compile(r'run-[0-9a-f]{32}')
 MAX_JSON = 16 * 1024 * 1024
 MAX_PAYLOAD = 4 * 1024 * 1024 * 1024
@@ -628,6 +629,19 @@ def _error_code(value):
     return match.group() if match else 'business_error_details_retained_locally'
 
 
+def _diagnostic_run_report(path):
+    final = path.with_name('control-final.json')
+    if final.exists() or _plain(path).st_size > MAX_JSON or path.with_name('control.lock').exists():
+        from .supported_daily import _control_lock, _read_control
+        # Older diagnostics can still describe incomplete reports without full
+        # business validation. Close the Windows handle before the writer resumes.
+        with _control_lock(path.parent, existing_only=True):
+            if not final.exists() and _plain(path).st_size <= MAX_JSON:
+                return _read_json(path)
+        return _read_control(path.parent)
+    return _read_json(path)
+
+
 def export_diagnostics(player, repository=None, *, run_id=None, output=None):
     """Export a whitelist summary; no recursive runtime read, ledger or images."""
     player = _root(player)
@@ -646,7 +660,7 @@ def export_diagnostics(player, repository=None, *, run_id=None, output=None):
     report_root = repository / '.runtime/supported-daily-work'
     if run_id is not None:
         _require(type(run_id) is str and RUN_ID.fullmatch(run_id) is not None, 'invalid_run_id')
-        report = _read_json(_path(repository, '.runtime/supported-daily-work/' + run_id + '/report.json'))
+        report = _diagnostic_run_report(_path(repository, '.runtime/supported-daily-work/' + run_id + '/report.json'))
         _require(report.get('run_id') == run_id, 'report_run_mismatch')
     else:
         entry_root = repository / '.runtime/alpha-agent'
@@ -661,7 +675,7 @@ def export_diagnostics(player, repository=None, *, run_id=None, output=None):
                     path = Path(reference).absolute()
                     if path.parent.parent == report_root and path.name == 'report.json' and RUN_ID.fullmatch(path.parent.name):
                         if path.is_file():
-                            report = _read_json(_path(repository, path.relative_to(repository).as_posix()))
+                            report = _diagnostic_run_report(_path(repository, path.relative_to(repository).as_posix()))
                             _require(report.get('run_id') == path.parent.name, 'report_run_mismatch')
         if not entry and report_root.exists():
             _root(report_root)
@@ -669,14 +683,14 @@ def export_diagnostics(player, repository=None, *, run_id=None, output=None):
                 if RUN_ID.fullmatch(path.parent.name)]
             if candidates:
                 path = max(candidates, key=lambda item: _plain(item).st_mtime_ns)
-                report = _read_json(_path(repository, path.relative_to(repository).as_posix()))
+                report = _diagnostic_run_report(_path(repository, path.relative_to(repository).as_posix()))
                 _require(report.get('run_id') == path.parent.name, 'report_run_mismatch')
     combination = entry.get('combination', {})
     selected = report.get('selected_modules', combination.get('selected_modules', []))
     _require(type(selected) is list and all(name in MODULES for name in selected), 'invalid_report_selection')
     steps = []
     for step in report.get('steps', []):
-        _require(type(step) is dict and step.get('name') in (*MODULES, 'rewards_final'), 'invalid_report_step')
+        _require(type(step) is dict and step.get('name') in (*MODULES, 'event_current', 'event_revival', 'rewards_final'), 'invalid_report_step')
         result = step.get('result') if type(step.get('result')) is dict else {}
         state = step.get('status')
         _require(type(state) is str and re.fullmatch('[a-z_]{1,64}', state), 'invalid_report_state')

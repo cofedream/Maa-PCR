@@ -84,31 +84,51 @@ def canonical_id(value):
 
 
 
-def resolve_character_name(value,*,optimizer=None):
-
-    """Exact full catalog name/alias only; variants never fall back to base IDs."""
-
+def _index_character_names(pairs):
     from .rewards import normalized_name
+    index = {}
+    for word, key in pairs:
+        if type(word) is str:
+            index.setdefault(normalized_name(word), set()).add(key)
+    return index
 
-    if type(value) is not str or not value.strip():raise BatchStopped('character_identity_unknown')
 
-    name=normalized_name(value);catalog=json.loads((PACK/'characters.landosolroster.json').read_text(encoding='utf-8'))
+@lru_cache(maxsize=1)
+def _catalog_name_index(path, revision):
+    # The file identity and timestamps in the cache key follow catalog replacement.
+    catalog = json.loads(path.read_text(encoding='utf-8'))
+    return _index_character_names(
+        (word, person['id'])
+        for person in catalog['characters']
+        for word in (person.get('name'), person.get('officialName'), *person.get('aliases', []))
+    )
 
-    keys=set()
 
-    for person in catalog['characters']:
+@lru_cache(maxsize=1)
+def _profile_name_index(names):
+    return _index_character_names(names)
 
-        words=[person.get('name'),person.get('officialName'),*person.get('aliases',[])]
 
-        if any(type(word) is str and normalized_name(word)==name for word in words):keys.add(canonical_id(person['id']))
-
+def resolve_character_name(value, *, optimizer=None):
+    """Match exact names only. Different forms can share an ambiguous alias."""
+    from .rewards import normalized_name
     from .roles import load_optimizer
 
-    for key,person in (optimizer or load_optimizer()).profiles.items():
+    if type(value) is not str or not value.strip():
+        raise BatchStopped('character_identity_unknown')
+    name = normalized_name(value)
+    path = PACK / 'characters.landosolroster.json'
+    stat = path.stat()
+    revision = (stat.st_dev, stat.st_ino, stat.st_mtime_ns, stat.st_size)
+    catalog_ids = _catalog_name_index(path, revision).get(name, ())
 
-        if normalized_name(person.data.get('displayName',''))==name:keys.add(canonical_id(key))
-
-    if len(keys)!=1 or '1000' in keys:raise BatchStopped('character_identity_unknown')
+    # Callers can supply editable profiles. Only the identity fields affect this index.
+    profiles = (optimizer or load_optimizer()).profiles
+    names = tuple((person.data.get('displayName', ''), key) for key, person in profiles.items())
+    profile_ids = _profile_name_index(names).get(name, ())
+    keys = {canonical_id(key) for key in (*catalog_ids, *profile_ids)}
+    if len(keys) != 1 or '1000' in keys:
+        raise BatchStopped('character_identity_unknown')
 
     return next(iter(keys))
 

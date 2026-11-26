@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Avalonia.Controls;
 using MFAAvalonia.Pcr;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -107,6 +108,21 @@ internal static class ClanCalibrationChecks
                     }
                 }
             };
+            if (version == 2)
+            {
+                var formalResult = (JObject)profile["daily"]!["execution"]!["pages"]!["result"]!;
+                formalResult["damage_line"] = new JObject { ["sample_sha256"] = Sample("result")["sha256"]!.DeepClone(),
+                    ["verify_roi"] = new JArray(2, 1, 7, 8) };
+                var frame = Sample("simulation-result");
+                frame["page"] = "result";
+                ((JArray)profile["samples"]!).Add(frame);
+                profile["pages"]!["result"] = new JObject
+                {
+                    ["fields"] = new JObject { ["damage"] = new JArray(80, 45, 332, 42) },
+                    ["damage_line"] = new JObject { ["sample_sha256"] = frame["sha256"]!.DeepClone(),
+                        ["verify_roi"] = new JArray(88, 47, 324, 38) }
+                };
+            }
             if (version == 2) profile["daily"]!["execution"]!["opening"] = new JObject
             {
                 ["battle_speed"] = 2, ["opening_guards"] = new JArray(Enumerable.Range(0, 3).Select(_ => Node())),
@@ -177,10 +193,10 @@ internal static class ClanCalibrationChecks
             if (version == 2) entry["capabilities"] = new JArray(capabilities);
             return new JObject { ["version"] = version, ["entries"] = new JArray(entry) };
         }
-        PcrClanCalibration Load(JObject index)
+        PcrClanCalibration Load(JObject index, string version = contentVersion)
         {
             File.WriteAllText(indexPath, index.ToString(Formatting.None), new UTF8Encoding(false));
-            return Read();
+            return Read(version);
         }
         JObject Entry(JObject index) => (JObject)index["entries"]![0]!;
         JObject Plan(bool auto = true, bool timed = false) => new()
@@ -193,7 +209,7 @@ internal static class ClanCalibrationChecks
 
         var bundledIndex = Path.Combine(sourceRoot, PcrClanCalibration.IndexPath);
         Check(PcrClanGuide.Hash(File.ReadAllBytes(bundledIndex)) == PcrClanCalibration.IndexSha256, "gui_pin_matches_bundled_index");
-        var python = File.ReadAllText(Path.Combine(sourceRoot, "src/pcr_maa/clan_battle_calibration.py"), Encoding.UTF8);
+        var python = File.ReadAllText(Path.Combine(sourceRoot, "src/pcr_maa/_clan_calibration_pin.py"), Encoding.UTF8);
         Check(Regex.Match(python, "INDEX_SHA256 = '([0-9a-f]{64})'").Groups[1].Value == PcrClanCalibration.IndexSha256,
             "python_and_gui_share_index_pin");
         Unavailable(PcrClanCalibration.Read(root, contentVersion), "missing_index_is_unavailable");
@@ -211,6 +227,182 @@ internal static class ClanCalibrationChecks
         Unavailable(Read(digest: new string('0', 64)), "wrong_index_hash");
         Unavailable(Read("202610250002"), "missing_content_version");
         Unavailable(Read(null), "missing_account_content_version");
+
+        JObject SimulationTarget(string phase = "C", int boss = 1, string period = "2026-11") =>
+            new() { ["period"] = period, ["phase"] = phase, ["boss"] = boss };
+        JObject TargetPlan(string phase, int boss, string period = "2026-11")
+        {
+            var plan = Plan();
+            plan.Merge(SimulationTarget(phase, boss, period));
+            return plan;
+        }
+        JObject WithTargets(JToken targets, params string[] choices)
+        {
+            var profile = Profile();
+            var marker = profile["daily"]!["execution"]!["opening"]!["paused_guards"]![0]!;
+            var choice = new JObject { ["label"] = marker.DeepClone(), ["selected"] = marker.DeepClone() };
+            profile["actions"]!["select_difficulty"] = new JObject { ["page"] = "difficulty",
+                ["choices"] = new JObject(choices.Select(phase => new JProperty(phase, choice.DeepClone()))) };
+            profile["simulation_targets"] = targets;
+            return profile;
+        }
+        PcrClanCalibration Scoped(JToken targets, params string[] choices) =>
+            Load(Index(2, WithTargets(targets, choices), "simulation", "formal", "carryover"));
+        var targetFixture = AutoProfile();
+        targetFixture["actions"] = WithTargets(new JArray(), "B", "C", "D")["actions"]!.DeepClone();
+        ClanDailyTargetScopeChecks.Run(targetFixture, (profile, modes) => Load(Index(2, profile, modes)),
+            TargetPlan, Check, Reject);
+        var c1Only = Scoped(new JArray(SimulationTarget()), "C");
+        Check(c1Only.Summary.Contains("2026-11") && c1Only.Summary.Contains("C1"), "summary_names_reviewed_target");
+        c1Only.Require(TargetPlan("C", 1), "simulation"); count++;
+        c1Only.Require(TargetPlan("BC", 1), "simulation"); count++;
+        const string deniedTarget = "clan_battle_simulation_target_uncalibrated";
+        foreach (int boss in Enumerable.Range(2, 4))
+            Reject(() => c1Only.Require(TargetPlan("C", boss), "simulation"), $"unreviewed_c{boss}", deniedTarget);
+        foreach (var phase in new[] { "B", "D", "E" })
+            Reject(() => c1Only.Require(TargetPlan(phase, 1), "simulation"), $"unreviewed_{phase}1", deniedTarget);
+        Reject(() => c1Only.Require(TargetPlan("C", 1, "2026-12"), "simulation"), "different_month_same_version", deniedTarget);
+        Reject(() => c1Only.Require(Plan(), "simulation"), "missing_target_in_scoped_plan", deniedTarget);
+        foreach (string capability in new[] { "formal", "carryover" })
+        { c1Only.Require(TargetPlan("D", 5), capability, 2); count++; }
+        limited.Require(TargetPlan("D", 5), "simulation"); count++;
+        var availableBC = Scoped(new JArray(SimulationTarget()), "B", "C");
+        availableBC.Require(TargetPlan("BC", 1), "simulation"); count++;
+        Reject(() => availableBC.Require(TargetPlan("B", 1), "simulation"), "b_present_only_for_navigation", deniedTarget);
+        var splitTargets = Scoped(new JArray(SimulationTarget("B", 2), SimulationTarget("C", 1)), "B", "C");
+        splitTargets.Require(TargetPlan("BC", 2), "simulation"); count++;
+        Reject(() => splitTargets.Require(TargetPlan("C", 2), "simulation"), "do_not_cross_matching_target_pairs", deniedTarget);
+
+        // Supply a verified synthetic calibration to the editor, then exercise
+        // its text-change events without replacing the installation's pinned index.
+        var targetView = new PcrClanGuideView(sourceRoot, Path.Combine(root, "editor", "guide.json"), Path.Combine(root, "editor"));
+        var viewType = typeof(PcrClanGuideView);
+        FieldInfo Field(string name) => viewType.GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!;
+        Field("displayCalibration").SetValue(targetView, availableBC);
+        var editor = (Dictionary<string, TextBox>)Field("fields").GetValue(targetView)!;
+        var currentTarget = (TextBlock)Field("calibrationSummary").GetValue(targetView)!;
+        editor["period"].Text = "2026-11"; editor["phase"].Text = "BC"; editor["boss"].Text = "1";
+        Check(currentTarget.Text!.Contains("本队目标为 2026-11 C1"), "editor_shared_guide_uses_permitted_c");
+        editor["boss"].Text = "2";
+        Check(currentTarget.Text!.Contains("不可用") && currentTarget.Text.Contains("2026-11 C1"), "editor_boss_edit_shows_permitted_target");
+        editor["boss"].Text = "1"; editor["period"].Text = "2026-12";
+        Check(currentTarget.Text!.Contains("不可用"), "editor_period_change_disables_target");
+        editor["period"].Text = "2026-11"; editor["phase"].Text = "B";
+        Check(currentTarget.Text!.Contains("不可用"), "editor_phase_change_disables_target");
+        var both = Scoped(new JArray(SimulationTarget("C"), SimulationTarget("B")), "C", "B");
+        Field("displayCalibration").SetValue(targetView, both);
+        editor["phase"].Text = "BC";
+        Check(currentTarget.Text!.Contains("本队目标为 2026-11 B1"), "editor_shared_guide_prefers_b_when_both_allowed");
+
+        var extraTargetField = SimulationTarget(); extraTargetField["extra"] = true;
+        var targetWithTemplate = SimulationTarget();
+        targetWithTemplate["extra"] = new JObject { ["recognition"] = "TemplateMatch", ["template"] = "clan-synthetic/missing.png", ["sha256"] = new string('0', 64) };
+        var missingBoss = SimulationTarget(); missingBoss.Remove("boss");
+        var oneHundred = new JArray(Enumerable.Range(2000, 100).Select(year => SimulationTarget(period: $"{year}-11")));
+        Check(Scoped(oneHundred, "C").Supports("simulation"), "scope_accepts_one_hundred_targets");
+        oneHundred.Add(SimulationTarget(period: "2100-11"));
+        foreach (var (name, targets) in new (string, JToken)[] {
+            ("null", JValue.CreateNull()), ("not_array", SimulationTarget()), ("empty", new JArray()),
+            ("over_limit", oneHundred), ("duplicate", new JArray(SimulationTarget(), SimulationTarget())),
+            ("string_row", new JArray("C1")), ("extra_field", new JArray(extraTargetField)),
+            ("embedded_template", new JArray(targetWithTemplate)),
+            ("missing_boss", new JArray(missingBoss)), ("month_00", new JArray(SimulationTarget(period: "2026-00"))),
+            ("month_13", new JArray(SimulationTarget(period: "2026-13"))),
+            ("non_ascii_period", new JArray(SimulationTarget(period: "２０２６-11"))),
+            ("combined_phase", new JArray(SimulationTarget("BC"))), ("missing_difficulty", new JArray(SimulationTarget("D"))),
+            ("boss_0", new JArray(SimulationTarget(boss: 0))), ("boss_6", new JArray(SimulationTarget(boss: 6))),
+            ("float_boss", JArray.Parse("[{\"period\":\"2026-11\",\"phase\":\"C\",\"boss\":1.0}]")),
+            ("bool_boss", JArray.Parse("[{\"period\":\"2026-11\",\"phase\":\"C\",\"boss\":true}]"))
+        })
+        {
+            var malformed = Scoped(targets, "C");
+            Check(!malformed.Supports("simulation") && malformed.Supports("formal") && malformed.Supports("carryover"),
+                "invalid_target_blocks_simulation_only_" + name);
+            Reject(() => malformed.Require(TargetPlan("C", 1), "simulation"), "invalid_scope_at_start_" + name,
+                "clan_battle_simulation_targets_invalid");
+        }
+        var scopedLegacy = WithTargets(new JArray(SimulationTarget()), "C");
+        scopedLegacy["version"] = 1;
+        Check(!Load(Index(2, scopedLegacy, "simulation")).Supports("simulation"), "scoped_targets_require_v2_profile");
+
+        foreach (var (name, change) in new (string, Action<JObject>)[] {
+            ("missing_binding", p => ((JObject)p["pages"]!["result"]!).Remove("damage_line")),
+            ("extra_field", p => p["pages"]!["result"]!["damage_line"]!["extra"] = 1),
+            ("unbound_sample", p => p["pages"]!["result"]!["damage_line"]!["sample_sha256"] = new string('a', 64)),
+            ("other_page", p => p["pages"]!["result"]!["damage_line"]!["sample_sha256"] = p["samples"]![0]!["sha256"]!.DeepClone()),
+            ("formal_result_only", p => p["pages"]!["result"]!["damage_line"]!["sample_sha256"] =
+                ((JArray)p["daily"]!["execution"]!["samples"]!).Single(row => (string?)row["page"] == "result")["sha256"]!.DeepClone()),
+            ("same_region", p => p["pages"]!["result"]!["damage_line"]!["verify_roi"] = p["pages"]!["result"]!["fields"]!["damage"]!.DeepClone()),
+            ("outside_primary", p => p["pages"]!["result"]!["damage_line"]!["verify_roi"] = new JArray(88, 47, 325, 38)),
+            ("fractional_coordinate", p => p["pages"]!["result"]!["damage_line"]!["verify_roi"]![0] = 88.5),
+            ("primary_out_of_frame", p => p["pages"]!["result"]!["fields"]!["damage"] = new JArray(80, 45, 1280, 42)),
+        })
+        {
+            var invalid = Profile();
+            change(invalid);
+            var rejected = Load(Index(2, invalid, "simulation"));
+            Check(!rejected.Supports("simulation"), "damaged_simulation_result_hidden_" + name);
+            Reject(() => rejected.Require(Plan(), "simulation"), "damaged_simulation_result_" + name,
+                "clan_battle_result_damage_uncalibrated");
+        }
+
+        var legacyDamage = Profile();
+        JObject FormalResult(JObject p) => (JObject)p["daily"]!["execution"]!["pages"]!["result"]!;
+        foreach (var (name, change) in new (string, Action<JObject>)[] {
+            ("missing", p => FormalResult(p).Remove("damage_line")),
+            ("extra_property", p => FormalResult(p)["damage_line"]!["unexpected"] = 2),
+            ("outside", p => FormalResult(p)["damage_line"]!["verify_roi"] = new JArray(2, 1, 8, 8)),
+            ("duplicate_area", p => FormalResult(p)["damage_line"]!["verify_roi"] = FormalResult(p)["fields"]!["damage"]!.DeepClone()),
+            ("wrong_sample", p => FormalResult(p)["damage_line"]!["sample_sha256"] = Sample("battle")["sha256"]!.DeepClone()),
+            ("simulation_sample", p => {
+                var simulated = ((JArray)p["samples"]!).Single(row => (string?)row["page"] == "result");
+                FormalResult(p)["damage_line"]!["sample_sha256"] = simulated["sha256"]!.DeepClone();
+                ((JArray)p["daily"]!["execution"]!["samples"]!).Add(simulated.DeepClone());
+            })
+        })
+        {
+            var invalid = Profile(); change(invalid);
+            var checkedProfile = Load(Index(2, invalid, "formal", "carryover", "simulation"));
+            Check(checkedProfile.Supports("simulation") && !checkedProfile.Supports("formal") && !checkedProfile.Supports("carryover"),
+                "invalid_formal_damage_isolated_" + name);
+            Reject(() => checkedProfile.Require(Plan(), "formal", 2), "formal_damage_" + name, "result_damage_uncalibrated");
+        }
+        var formalLegacy = Profile();
+        formalLegacy["calibration_id"] = "cn-bilibili-202610141448-clan-simulation";
+        FormalResult(formalLegacy).Remove("damage_line");
+        FormalResult(formalLegacy)["fields"]!["damage"] = new JArray(88, 47, 162, 38);
+        foreach (var month in new[] { "202610141448", "202611131613" })
+        {
+            var idx = Index(2, formalLegacy, "formal", "carryover");
+            Entry(idx)["calibration_id"] = formalLegacy["calibration_id"]!.DeepClone();
+            Entry(idx)["content_version"] = month;
+            var checkedProfile = Load(idx, month);
+            Check(checkedProfile.Supports("formal") == (month == "202610141448") &&
+                checkedProfile.Supports("carryover") == (month == "202610141448"), "legacy_formal_damage_scope_" + month);
+        }
+        var legacyResult = (JObject)legacyDamage["pages"]!["result"]!;
+        legacyResult.Remove("damage_line");
+        legacyResult["fields"]!["damage"] = new JArray(88, 47, 162, 38);
+        var onlyFormal = Load(Index(2, legacyDamage, "simulation", "formal", "carryover"));
+        Check(!onlyFormal.Supports("simulation") && onlyFormal.Supports("formal") && onlyFormal.Supports("carryover"),
+            "unbound_result_only_disables_simulation");
+        onlyFormal.Require(Plan(), "formal", 2);
+        onlyFormal.Require(Plan(), "carryover", 2);
+        legacyDamage["calibration_id"] = "cn-bilibili-202610141448-clan-simulation";
+        PcrClanCalibration OctoberLayout(string version = "202610141448")
+        {
+            var octoberIndex = Index(2, legacyDamage, "simulation");
+            Entry(octoberIndex)["calibration_id"] = legacyDamage["calibration_id"]!.DeepClone();
+            Entry(octoberIndex)["content_version"] = version;
+            return Load(octoberIndex, version);
+        }
+        Check(OctoberLayout().Supports("simulation"), "reviewed_october_result_layout_compatible");
+        var novemberWithOctoberDamage = OctoberLayout("202611131613");
+        Check(!novemberWithOctoberDamage.Supports("simulation"), "new_month_cannot_borrow_october_damage_layout");
+        Reject(() => novemberWithOctoberDamage.Require(Plan(), "simulation"), "rebound_october_result_refused_at_start",
+            "clan_battle_result_damage_uncalibrated");
+        legacyResult["fields"]!["damage"]![2] = 163;
+        Check(!OctoberLayout().Supports("simulation"), "october_id_with_changed_result_region_is_unreviewed");
 
         var full = Load(Index(2, Profile(), "simulation", "timed", "formal", "carryover"));
         full.Require(Plan(timed: true), "simulation"); count++;
@@ -429,9 +621,16 @@ internal static class ClanCalibrationChecks
         Check(Load(Index(2, AutoProfile(), "simulation")).AutoBattleSpeeds?.SetEquals(new[] { 1, 2 }) == true,
             "dynamic_pause_clock_without_zero_damage_or_empty_tp");
         Check(Load(Index(2, AutoProfile(true), "simulation")).Supports("simulation"), "legacy_pause_clock_and_tp_key_remain_readable");
+        var pausedName = AutoProfile();
+        pausedName["auto_battle"]!["paused_boss_roi"] = new JArray(760, 157, 178, 40);
+        Check(Load(Index(2, pausedName, "simulation")).Supports("simulation"), "simulation_paused_boss_roi_supported");
+        pausedName["auto_battle"]!["paused_clock_alternate_roi"] = new JArray(1077, 18, 44, 32);
+        Check(Load(Index(2, pausedName, "simulation")).Supports("simulation"), "simulation_alternate_paused_clock_supported");
         foreach (var change in new (string Name, Action<JObject> Change)[]
         {
             ("clock_kind", value => value["paused_guards"]![2]!["recognition"] = "Unknown"),
+            ("paused_boss_roi_outside_frame", value => value["paused_boss_roi"] = new JArray(1200, 157, 178, 40)),
+            ("paused_alternate_clock_outside_frame", value => value["paused_clock_alternate_roi"] = new JArray(1279, 18, 44, 32)),
             ("clock_roi", value => value["paused_guards"]![2]!["roi"] = new JArray(-1, 1, 8, 8)),
             ("clock_pattern", value => value["paused_guards"]![2]!["expected"] = "unanchored"),
             ("guard_count", value => ((JArray)value["paused_guards"]!).RemoveAt(2)),
@@ -788,17 +987,14 @@ internal static class ClanCalibrationChecks
         Reject(() => autoCalibration.Require(Plan(), "formal", 4), "formal_four_rejected", "daily_speed_invalid");
         Reject(() => autoCalibration.Require(Plan(), "formal", 2), "simulation_opening_does_not_enable_formal", "daily_opening_calibration_missing");
         Reject(() => new PcrClanCalibration(2, new HashSet<string> { "simulation" }, null).Require(Plan(), "simulation", 4), "old_profile_no_fast_speed", "auto_speed_uncalibrated");
-        var shippedEntry = JObject.Parse(File.ReadAllText(bundledIndex))["entries"]!.OfType<JObject>().FirstOrDefault();
-        if (shippedEntry != null)
-        {
-            var shipped = PcrClanCalibration.Read(sourceRoot, (string?)shippedEntry["content_version"]);
-            Check(shipped.Error == null && shipped.AutoBattleSpeeds?.SetEquals(new[] { 1, 2 }) == true, "shipped_opening_and_speed_dependencies_verified");
-            Check(shipped.ManageInheritance && shipped.AutoBattleSummary.Contains("保留当前战斗继承")
-                && shipped.AutoBattleSummary.Contains("只调整与作业不同的项")
-                && shipped.AutoBattleSummary.Contains("正常流程不例行进入设置页检查继承")
-                && shipped.AutoBattleSummary.Contains("受影响角色首次 UB 前")
-                && !shipped.AutoBattleSummary.Contains("临时关闭"), "shipped_inheritance_preserved_and_first_ub_boundary");
-        }
+        var october = PcrClanCalibration.Read(sourceRoot, "202610141448");
+        Check(october.Supports("simulation"), "shipped_october_simulation_still_available");
+        Check(october.Error == null && october.AutoBattleSpeeds?.SetEquals(new[] { 1, 2 }) == true, "shipped_opening_and_speed_dependencies_verified");
+        Check(october.ManageInheritance && october.AutoBattleSummary.Contains("保留当前战斗继承")
+            && october.AutoBattleSummary.Contains("只调整与作业不同的项")
+            && october.AutoBattleSummary.Contains("正常流程不例行进入设置页检查继承")
+            && october.AutoBattleSummary.Contains("受影响角色首次 UB 前")
+            && !october.AutoBattleSummary.Contains("临时关闭"), "shipped_inheritance_preserved_and_first_ub_boundary");
         Console.WriteLine($"clan_calibration_checks={count}; synthetic fixtures only, game input=0");
     }
 }

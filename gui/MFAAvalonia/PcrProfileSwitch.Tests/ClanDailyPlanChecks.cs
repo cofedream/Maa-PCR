@@ -20,7 +20,7 @@ internal static class ClanDailyPlanChecks
         void Require(bool value, string name) { if (!value) throw new Exception("clan_daily_" + name); count++; }
         void Throws(Action action, string name) { try { action(); } catch { count++; return; } throw new Exception("clan_daily_expected_rejection_" + name); }
         var catalog = new PcrGuideCatalog { Server = "cn-bilibili", ContentVersion = "202610141431", Source = "synthetic offline fixture", Sha256 = new string('a', 64),
-            Units = Enumerable.Range(1, 20).Select(i => new PcrGuideUnit(100001 + i * 100, "合成角色" + i)).ToList() };
+            Units = Enumerable.Range(1, 20).Select(i => new PcrGuideUnit(100001 + i * 100, i == 1 ? "合成角色（夏日）" : "合成角色" + i)).ToList() };
         var legacy = Path.Combine(config, "guide-review.json"); var store = new PcrGuideStore(legacy); store.Load(); store.Save(new() { Input = new() { Catalog = catalog, Title = "保留原模块" } });
         var legacyBytes = File.ReadAllBytes(legacy);
         var snapshot = new JObject { ["schema_version"] = 1, ["server"] = "cn-bilibili", ["account_id"] = "123456", ["content_version"] = catalog.ContentVersion,
@@ -63,12 +63,49 @@ internal static class ClanDailyPlanChecks
         var raw = File.ReadAllText(statePath, Encoding.UTF8);
         Require(!raw.Contains("account_id") && !raw.Contains("unit_ids") && !raw.Contains("Snapshot") && !raw.Contains("damage") && !raw.Contains("attempt"), "references_only_no_account_or_execution_state");
         Require(daily.Slots.Single().MaterialSha256.Length == 64 && daily.Slots.Single().ConfirmedFor == current.ConfirmedFor, "material_and_confirmation_bound");
+        var partialJson = JObject.FromObject(daily);
+        var candidate = PcrClanDailyPlan.Recommend(daily, current, 1, guidePath, config, root, now);
+        Require(JToken.DeepEquals(JObject.FromObject(daily), partialJson) && File.ReadAllText(statePath, Encoding.UTF8) == raw
+            && File.ReadAllBytes(guidePath).SequenceEqual(guideBytes), "recommend_is_preview_only");
+        Require(candidate.Slots.Count == 3 && JToken.DeepEquals(JObject.FromObject(candidate.Slots.Single(s => s.Slot == 1)), partialJson["slots"]![0])
+            && PcrClanDailyPlan.Review(candidate, guidePath, config, root, now, true).Complete, "recommend_preserves_locked_reference_fills_two_disjoint_slots");
+        Throws(() => PcrClanDailyPlan.Recommend(daily, current, 3, guidePath, config, root, now), "recommend_reject_empty_locked_slot");
+        Throws(() => PcrClanDailyPlan.Recommend(daily, current, null, guidePath, config, root, now.AddHours(25)), "recommend_reject_expired_account");
+        var olderGuide = JObject.Parse(Encoding.UTF8.GetString(guideBytes));
+        foreach (var entry in ((JObject)olderGuide["SavedJobs"]!).Properties()) ((JObject)entry.Value).Remove("BundlePath");
+        var olderPath = Path.Combine(config, "old-guide-without-bundle-path.json");
+        File.WriteAllText(olderPath, olderGuide.ToString());
+        var olderCandidate = PcrClanDailyPlan.Recommend(new(), current, null, olderPath, config, root, now);
+        Require(PcrClanDailyPlan.Review(olderCandidate, olderPath, config, root, now, true).Complete, "recommend_reads_original_guide_without_per_job_path");
+        var limitedPath = Path.Combine(config, "three-candidate-guide.json");
+        void SaveFirstThree()
+        {
+            var limited = PcrClanGuide.Read(guidePath);
+            limited.SavedJobs.Remove(current.BundleSha256 + ":other-account");
+            File.WriteAllText(limitedPath, JsonConvert.SerializeObject(limited));
+        }
         Throws(() => PcrClanDailyPlan.Review(daily, guidePath, config, root, now, true), "one_not_complete");
         foreach (var (id, slot) in new[] { ("two", 2), ("three", 3) })
         { PcrClanGuide.Select(current, bundlePath, id); PcrClanDailyPlan.Assign(daily, slot, current, guidePath, config, root, now); }
         savedHash = PcrClanDailyPlan.Save(daily, statePath, savedHash);
         var review = PcrClanDailyPlan.Review(daily, guidePath, config, root, now, true);
         Require(review.Complete && review.Warnings.Count == 0 && review.Slots.All(s => s.Contains("2026-09") && s.Contains("BOSS")), "three_same_account_period_complete");
+        ClanRecommendationViewChecks.Run(root, guidePath, config, statePath, current);
+        var secondBundle = (JObject)bundle.DeepClone();
+        secondBundle["jobs"] = new JArray(Job("other-source", 10, 3));
+        var secondBundlePath = Path.Combine(root, "second-source.json");
+        File.WriteAllText(secondBundlePath, secondBundle.ToString());
+        var multi = PcrClanGuide.Read(guidePath);
+        multi.SavedJobs.Remove(multi.BundleSha256 + ":three");
+        multi.SavedJobs.Remove(multi.BundleSha256 + ":other-account");
+        PcrClanGuide.Select(multi, secondBundlePath, "other-source");
+        var multiGuidePath = Path.Combine(config, "multi-source-guide.json");
+        PcrClanGuide.Save(multi, multiGuidePath, null, config, root, now, true);
+        PcrClanGuide.Select(multi, bundlePath, "one");
+        var multiDraft = PcrClanDailyPlan.Recommend(daily, multi, 2, multiGuidePath, config, root, now);
+        Require(PcrClanDailyPlan.Review(multiDraft, multiGuidePath, config, root, now, true).Complete
+            && multiDraft.Slots.Single(s => s.Slot == 2).JobId == "two"
+            && multiDraft.Slots.Single(s => s.JobId == "other-source").BundlePath == secondBundlePath, "recommend_two_bundles_lock_middle");
         ClanPlanInputChecks.Run(root);
         var request = PcrClanDailyExecution.BuildPlan(statePath, guidePath, config, root, now);
         foreach (var slot in daily.Slots)
@@ -114,10 +151,23 @@ internal static class ClanDailyPlanChecks
         PcrClanDailyPlan.Assign(daily, 2, current, guidePath, config, root, now);
         Require(PcrClanDailyPlan.Review(daily, guidePath, config, root, now).Warnings.Any(s => s.Contains(shared.ToString()) && s.Contains("第 1、2 刀")), "cross_main_own_role_conflict_reported");
         Require(!PcrClanDailyPlan.Review(daily, guidePath, config, root, now).Complete, "own_role_conflict_blocks_complete_summary");
+        SaveFirstThree();
+        try
+        {
+            _ = PcrClanDailyPlan.Recommend(daily, current, 1, limitedPath, config, root, now);
+            throw new Exception("clan_daily_expected_recommend_conflict");
+        }
+        catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException)
+        {
+            Require(ex.Message.Contains("合成角色（夏日）") && ex.Message.Contains("离线队伍 one") && ex.Message.Contains("离线队伍 two"),
+                "recommend_conflict_names_character_form_and_teams");
+        }
         Throws(() => PcrClanDailyPlan.Review(daily, guidePath, config, root, now, true), "own_role_conflict_rejected_as_complete");
         current.Job["support_mode"] = "specified"; current.Job["support_unit_id"] = shared;
         guideStamp = PcrClanGuide.Save(current, guidePath, guideStamp, config, root, now, true); PcrClanDailyPlan.Assign(daily, 2, current, guidePath, config, root, now);
         Require(PcrClanDailyPlan.Review(daily, guidePath, config, root, now).Warnings.Count == 0, "explicit_support_excluded_from_own_conflicts");
+        SaveFirstThree();
+        Throws(() => PcrClanDailyPlan.Recommend(daily, current, null, limitedPath, config, root, now), "recommend_excludes_borrowed_member");
         current.Job["support_mode"] = "qsjs"; current.Job["support_unit_id"] = JValue.CreateNull();
         guideStamp = PcrClanGuide.Save(current, guidePath, guideStamp, config, root, now, true); PcrClanDailyPlan.Assign(daily, 2, current, guidePath, config, root, now);
         Require(PcrClanDailyPlan.Review(daily, guidePath, config, root, now).Warnings.Any(s => s.Contains(shared.ToString())), "qsjs_owned_member_still_own_conflict");
@@ -127,6 +177,7 @@ internal static class ClanDailyPlanChecks
         current.SnapshotSha256 = PcrClanGuide.Hash(snapshotBytes); PcrClanGuide.Select(current, bundlePath, "three"); current.Job["period"] = "2026-10";
         guideStamp = PcrClanGuide.Save(current, guidePath, guideStamp, config, root, now, true); PcrClanDailyPlan.Assign(daily, 3, current, guidePath, config, root, now);
         Require(!PcrClanDailyPlan.Review(daily, guidePath, config, root, now).Complete && PcrClanDailyPlan.Review(daily, guidePath, config, root, now).Warnings.Any(s => s.Contains("期次必须一致")), "mixed_periods_not_complete");
+        Throws(() => PcrClanDailyPlan.Recommend(daily, current, null, guidePath, config, root, now), "recommend_only_selected_period");
         File.WriteAllBytes(guidePath, guideBytes); guideStamp = PcrClanGuide.Hash(guideBytes); current = PcrClanGuide.Read(guidePath);
         PcrClanGuide.Select(current, bundlePath, "three"); PcrClanDailyPlan.Assign(daily, 3, current, guidePath, config, root, now);
         var other = (JObject)snapshot.DeepClone(); other["account_id"] = "654321"; cache.Save(Encoding.UTF8.GetBytes(other.ToString()), catalog, "654321", now, null);
@@ -134,6 +185,13 @@ internal static class ClanDailyPlanChecks
         PcrClanGuide.Select(current, bundlePath, "other-account"); current.SnapshotPath = otherPath; current.SnapshotSha256 = PcrClanGuide.Stamp(otherPath)!;
         guideStamp = PcrClanGuide.Save(current, guidePath, guideStamp, config, root, now, true); PcrClanDailyPlan.Assign(daily, 3, current, guidePath, config, root, now);
         Require(!PcrClanDailyPlan.Review(daily, guidePath, config, root, now).Complete, "mixed_accounts_not_complete");
+        Throws(() => PcrClanDailyPlan.Recommend(daily, current, null, guidePath, config, root, now), "recommend_only_selected_account");
+        File.WriteAllBytes(guidePath, guideBytes); current = PcrClanGuide.Read(guidePath);
+        PcrClanGuide.Select(current, bundlePath, "three");
+        current.Job["switches"] = new JArray(new JObject { ["remaining_seconds"] = 50, ["auto"] = false, ["set_by_unit"] = new JObject() });
+        PcrClanGuide.Save(current, guidePath, PcrClanGuide.Stamp(guidePath), config, root, now, true);
+        SaveFirstThree();
+        Throws(() => PcrClanDailyPlan.Recommend(daily, current, null, limitedPath, config, root, now), "recommend_excludes_timed_switches");
         File.WriteAllBytes(guidePath, guideBytes); current = PcrClanGuide.Read(guidePath); PcrClanGuide.Select(current, bundlePath, "three");
         PcrClanDailyPlan.Assign(daily, 3, current, guidePath, config, root, now); PcrClanGuide.Select(current, bundlePath, "two"); PcrClanDailyPlan.Assign(daily, 2, current, guidePath, config, root, now);
         savedHash = PcrClanDailyPlan.Save(daily, statePath, PcrClanGuide.Stamp(statePath));
