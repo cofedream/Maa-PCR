@@ -27,11 +27,13 @@ if __package__:
     from .prepare_dev_native import copy_maa_native
     from .release_baselines import BASELINE_HASHES, RELEASE_REVISION, RELEASE_VERSION, check_release_baseline
     from .source_delivery import LOCAL_ONLY_FILES
+    from .sync_clan_calibration_index import check_packaged_index, sync as check_clan_calibration_pins
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from prepare_dev_native import copy_maa_native
     from release_baselines import BASELINE_HASHES, RELEASE_REVISION, RELEASE_VERSION, check_release_baseline
     from source_delivery import LOCAL_ONLY_FILES
+    from sync_clan_calibration_index import check_packaged_index, sync as check_clan_calibration_pins
 
 SDK_VERSION = '10.0.101'
 GUI_PROJECT = 'gui/MFAAvalonia/MFAAvalonia.Desktop/MFAAvalonia.Desktop.csproj'
@@ -416,6 +418,7 @@ def build(args):
     output = Path(args.output).resolve()
     if output.exists() or not output.is_relative_to(ROOT / '.runtime'):
         raise ValueError('new_output_must_be_inside_checkout_runtime')
+    clan_index_digest = check_clan_calibration_pins(ROOT)
     dotnet = args.dotnet or shutil.which('dotnet')
     if not dotnet or subprocess.check_output([str(dotnet), '--version'], cwd=ROOT, text=True).strip() != SDK_VERSION:
         raise ValueError('dotnet_sdk_requires_' + SDK_VERSION)
@@ -495,6 +498,7 @@ def build(args):
     require_payload(player, metadata)
     require_boss_payload(player)
     require_relic_payload(player)
+    check_packaged_index(player, workspace, clan_index_digest)
     save(player / 'build-source-manifest.json', {
         'schema_version': 1, 'purpose': 'GUI build input source binding',
         'bit_for_bit_rebuild_claimed': False,

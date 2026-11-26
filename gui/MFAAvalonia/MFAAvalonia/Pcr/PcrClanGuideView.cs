@@ -471,7 +471,7 @@ public sealed partial class PcrClanGuideView : UserControl
         var reason = calibration.UnavailableReason(capability) ?? (!calibration.Supports(capability) ? "缺少对应页面校准。" : null);
         string? simulationTarget = null;
         if (reason == null && !formal)
-            (simulationTarget, reason) = calibration.CheckSimulationTarget(fields["period"].Text?.Trim(), fields["phase"].Text?.Trim(), Numeric(fields["boss"].Text));
+            (simulationTarget, reason) = calibration.CheckTarget("simulation", fields["period"].Text?.Trim(), fields["phase"].Text?.Trim(), Numeric(fields["boss"].Text), execution.BattleSpeed);
         if (reason == null && !formal && calibration.OwnUnitsOnly)
         {
             try

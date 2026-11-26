@@ -197,7 +197,9 @@ def executable(profile):
     from pathlib import Path
     from pcr_maa import native
     index = json.loads((native.ROOT / 'assets/resource/clan-battle-calibrations/index.json').read_text(encoding='utf-8'))
-    shipped = json.loads((native.ROOT / index['entries'][0]['profile_path']).read_text(encoding='utf-8'))
+    october = next(entry for entry in index['entries']
+                   if entry['server'] == 'cn-bilibili' and entry['content_version'] == '202610141448')
+    shipped = json.loads((native.ROOT / october['profile_path']).read_text(encoding='utf-8'))
     inheritance = deepcopy(shipped['auto_battle']['inheritance'])
     for sample in inheritance['samples']:
         sample['path'] = str(native.ROOT / sample['path'])

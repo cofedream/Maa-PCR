@@ -14,7 +14,7 @@ def _one(rows, label):
     return rows[0]
 
 
-def inspect(db, day, lap):
+def inspect(db, day, lap, *, include_levels=False):
     if lap < 1:
         raise ValueError('Lap must be positive')
     db.row_factory = sqlite3.Row
@@ -31,9 +31,9 @@ def inspect(db, day, lap):
                      and (row['lap_num_to'] == -1 or lap <= row['lap_num_to'])], 'map for this lap')
     bosses = []
     for slot in range(1, 6):
-        boss = _one(db.execute("""
+        boss = _one(db.execute(f"""
             SELECT b.order_num AS slot, b.boss_id, w.wave_group_id, e.enemy_id, e.unit_id,
-                   e.name, u.unit_name
+                   e.name, u.unit_name {', e.level' if include_levels else ''}
             FROM clan_battle_2_boss_data b
             JOIN wave_group_data w ON w.wave_group_id = ?
             JOIN enemy_parameter e ON e.enemy_id = w.enemy_id_1
@@ -44,13 +44,42 @@ def inspect(db, day, lap):
               selected['difficulty'], slot)).fetchall(), f'single-enemy Boss in slot {slot}')
         if not boss['name'] or boss['name'] != boss['unit_name']:
             raise ValueError(f'Unconfirmed enemy name for slot {slot}')
-        bosses.append({key: boss[key] for key in ('slot', 'boss_id', 'wave_group_id', 'enemy_id', 'unit_id', 'name')})
+        fields = ('slot', 'boss_id', 'wave_group_id', 'enemy_id', 'unit_id', 'name')
+        bosses.append({key: boss[key] for key in (*fields, 'level') if key in boss.keys()})
     return {
         'cn_calendar_date': day.isoformat(), 'period': dict(period), 'lap': lap, 'phase': selected['phase'],
         'lap_ranges': [{'phase': row['phase'], 'first': row['lap_num_from'],
                         'last': None if row['lap_num_to'] == -1 else row['lap_num_to']} for row in maps],
         'bosses': bosses,
     }
+
+
+def database_identity(path, manifest_path=None):
+    with path.open('rb') as source:
+        identity = {'sha256': hashlib.file_digest(source, 'sha256').hexdigest()}
+    if manifest_path:
+        manifest = json.loads(manifest_path.read_bytes())
+        if (manifest['checksum_sha256'] != identity['sha256'] or manifest['size_bytes'] != path.stat().st_size):
+            raise ValueError('Database does not match the supplied manifest')
+        identity['content_version'] = manifest['db_version']
+    return identity
+
+
+def cached_master_identity(root):
+    """Read the current immutable master of one installation, without updating it."""
+    from pcr_maa.labyrinth.database import DatabaseCache, _json
+
+    cache = DatabaseCache(Path(root).resolve())
+    try:
+        with cache.metadata.open('rb') as stream:
+            pointer = _json(stream.read(65537))
+        # snapshot() also accepts an older, still-valid database during recovery.
+        # A season draft must match the version currently advertised by the cache.
+        snapshot = cache._load(pointer)
+    except (KeyError, OSError, ValueError) as exc:
+        raise ValueError(f'Cannot verify the current CN master cache at {cache.metadata}: {exc}') from exc
+    path = cache.directory / f'master_cn.{snapshot.sha256}.db'
+    return path, {'sha256': snapshot.sha256, 'content_version': snapshot.version}
 
 
 def main():
@@ -61,14 +90,7 @@ def main():
     parser.add_argument('--manifest', type=Path, help='optional release manifest to verify file size and digest')
     args = parser.parse_args()
     try:
-        with args.database.open('rb') as source:
-            digest = hashlib.file_digest(source, 'sha256').hexdigest()
-        identity = {'sha256': digest}
-        if args.manifest:
-            manifest = json.loads(args.manifest.read_bytes())
-            if (manifest['checksum_sha256'] != digest or manifest['size_bytes'] != args.database.stat().st_size):
-                raise ValueError('Database does not match the supplied manifest')
-            identity['content_version'] = manifest['db_version']
+        identity = database_identity(args.database, args.manifest)
         with closing(sqlite3.connect(args.database.resolve().as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
             result = inspect(db, args.date, args.lap)
     except (KeyError, OSError, sqlite3.Error, ValueError) as exc:

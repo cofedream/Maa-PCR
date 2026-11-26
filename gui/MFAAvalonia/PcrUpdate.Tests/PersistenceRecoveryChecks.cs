@@ -206,7 +206,7 @@ internal static class PersistenceRecoveryChecks
         }
         var template = key.ToLocalization().Replace(@"\n", "\n");
         Require(template.Contains('\n'), "global_config_error_resource_lacks_line_break");
-        foreach (var path in new[] { @"C:\Users\tester\appsettings.json", @"C:\temp\new\report.json" })
+        foreach (var path in new[] { @"C:\fixtures\tester\appsettings.json", @"C:\temp\new\report.json" })
         {
             const string detail = @"JSON detail \r\n in source, see \temp.";
             var expected = string.Format(template, path, detail);

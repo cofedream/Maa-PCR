@@ -110,6 +110,9 @@ internal static class ClanCalibrationChecks
             };
             if (version == 2)
             {
+                var formalResult = (JObject)profile["daily"]!["execution"]!["pages"]!["result"]!;
+                formalResult["damage_line"] = new JObject { ["sample_sha256"] = Sample("result")["sha256"]!.DeepClone(),
+                    ["verify_roi"] = new JArray(2, 1, 7, 8) };
                 var frame = Sample("simulation-result");
                 frame["page"] = "result";
                 ((JArray)profile["samples"]!).Add(frame);
@@ -206,7 +209,7 @@ internal static class ClanCalibrationChecks
 
         var bundledIndex = Path.Combine(sourceRoot, PcrClanCalibration.IndexPath);
         Check(PcrClanGuide.Hash(File.ReadAllBytes(bundledIndex)) == PcrClanCalibration.IndexSha256, "gui_pin_matches_bundled_index");
-        var python = File.ReadAllText(Path.Combine(sourceRoot, "src/pcr_maa/clan_battle_calibration.py"), Encoding.UTF8);
+        var python = File.ReadAllText(Path.Combine(sourceRoot, "src/pcr_maa/_clan_calibration_pin.py"), Encoding.UTF8);
         Check(Regex.Match(python, "INDEX_SHA256 = '([0-9a-f]{64})'").Groups[1].Value == PcrClanCalibration.IndexSha256,
             "python_and_gui_share_index_pin");
         Unavailable(PcrClanCalibration.Read(root, contentVersion), "missing_index_is_unavailable");
@@ -245,6 +248,10 @@ internal static class ClanCalibrationChecks
         }
         PcrClanCalibration Scoped(JToken targets, params string[] choices) =>
             Load(Index(2, WithTargets(targets, choices), "simulation", "formal", "carryover"));
+        var targetFixture = AutoProfile();
+        targetFixture["actions"] = WithTargets(new JArray(), "B", "C", "D")["actions"]!.DeepClone();
+        ClanDailyTargetScopeChecks.Run(targetFixture, (profile, modes) => Load(Index(2, profile, modes)),
+            TargetPlan, Check, Reject);
         var c1Only = Scoped(new JArray(SimulationTarget()), "C");
         Check(c1Only.Summary.Contains("2026-11") && c1Only.Summary.Contains("C1"), "summary_names_reviewed_target");
         c1Only.Require(TargetPlan("C", 1), "simulation"); count++;
@@ -340,6 +347,39 @@ internal static class ClanCalibrationChecks
         }
 
         var legacyDamage = Profile();
+        JObject FormalResult(JObject p) => (JObject)p["daily"]!["execution"]!["pages"]!["result"]!;
+        foreach (var (name, change) in new (string, Action<JObject>)[] {
+            ("missing", p => FormalResult(p).Remove("damage_line")),
+            ("extra_property", p => FormalResult(p)["damage_line"]!["unexpected"] = 2),
+            ("outside", p => FormalResult(p)["damage_line"]!["verify_roi"] = new JArray(2, 1, 8, 8)),
+            ("duplicate_area", p => FormalResult(p)["damage_line"]!["verify_roi"] = FormalResult(p)["fields"]!["damage"]!.DeepClone()),
+            ("wrong_sample", p => FormalResult(p)["damage_line"]!["sample_sha256"] = Sample("battle")["sha256"]!.DeepClone()),
+            ("simulation_sample", p => {
+                var simulated = ((JArray)p["samples"]!).Single(row => (string?)row["page"] == "result");
+                FormalResult(p)["damage_line"]!["sample_sha256"] = simulated["sha256"]!.DeepClone();
+                ((JArray)p["daily"]!["execution"]!["samples"]!).Add(simulated.DeepClone());
+            })
+        })
+        {
+            var invalid = Profile(); change(invalid);
+            var checkedProfile = Load(Index(2, invalid, "formal", "carryover", "simulation"));
+            Check(checkedProfile.Supports("simulation") && !checkedProfile.Supports("formal") && !checkedProfile.Supports("carryover"),
+                "invalid_formal_damage_isolated_" + name);
+            Reject(() => checkedProfile.Require(Plan(), "formal", 2), "formal_damage_" + name, "result_damage_uncalibrated");
+        }
+        var formalLegacy = Profile();
+        formalLegacy["calibration_id"] = "cn-bilibili-202610141448-clan-simulation";
+        FormalResult(formalLegacy).Remove("damage_line");
+        FormalResult(formalLegacy)["fields"]!["damage"] = new JArray(88, 47, 162, 38);
+        foreach (var month in new[] { "202610141448", "202611131613" })
+        {
+            var idx = Index(2, formalLegacy, "formal", "carryover");
+            Entry(idx)["calibration_id"] = formalLegacy["calibration_id"]!.DeepClone();
+            Entry(idx)["content_version"] = month;
+            var checkedProfile = Load(idx, month);
+            Check(checkedProfile.Supports("formal") == (month == "202610141448") &&
+                checkedProfile.Supports("carryover") == (month == "202610141448"), "legacy_formal_damage_scope_" + month);
+        }
         var legacyResult = (JObject)legacyDamage["pages"]!["result"]!;
         legacyResult.Remove("damage_line");
         legacyResult["fields"]!["damage"] = new JArray(88, 47, 162, 38);
@@ -947,18 +987,14 @@ internal static class ClanCalibrationChecks
         Reject(() => autoCalibration.Require(Plan(), "formal", 4), "formal_four_rejected", "daily_speed_invalid");
         Reject(() => autoCalibration.Require(Plan(), "formal", 2), "simulation_opening_does_not_enable_formal", "daily_opening_calibration_missing");
         Reject(() => new PcrClanCalibration(2, new HashSet<string> { "simulation" }, null).Require(Plan(), "simulation", 4), "old_profile_no_fast_speed", "auto_speed_uncalibrated");
-        var shippedEntry = JObject.Parse(File.ReadAllText(bundledIndex))["entries"]!.OfType<JObject>().FirstOrDefault();
-        Check(PcrClanCalibration.Read(sourceRoot, "202610141448").Supports("simulation"), "shipped_october_simulation_still_available");
-        if (shippedEntry != null)
-        {
-            var shipped = PcrClanCalibration.Read(sourceRoot, (string?)shippedEntry["content_version"]);
-            Check(shipped.Error == null && shipped.AutoBattleSpeeds?.SetEquals(new[] { 1, 2 }) == true, "shipped_opening_and_speed_dependencies_verified");
-            Check(shipped.ManageInheritance && shipped.AutoBattleSummary.Contains("保留当前战斗继承")
-                && shipped.AutoBattleSummary.Contains("只调整与作业不同的项")
-                && shipped.AutoBattleSummary.Contains("正常流程不例行进入设置页检查继承")
-                && shipped.AutoBattleSummary.Contains("受影响角色首次 UB 前")
-                && !shipped.AutoBattleSummary.Contains("临时关闭"), "shipped_inheritance_preserved_and_first_ub_boundary");
-        }
+        var october = PcrClanCalibration.Read(sourceRoot, "202610141448");
+        Check(october.Supports("simulation"), "shipped_october_simulation_still_available");
+        Check(october.Error == null && october.AutoBattleSpeeds?.SetEquals(new[] { 1, 2 }) == true, "shipped_opening_and_speed_dependencies_verified");
+        Check(october.ManageInheritance && october.AutoBattleSummary.Contains("保留当前战斗继承")
+            && october.AutoBattleSummary.Contains("只调整与作业不同的项")
+            && october.AutoBattleSummary.Contains("正常流程不例行进入设置页检查继承")
+            && october.AutoBattleSummary.Contains("受影响角色首次 UB 前")
+            && !october.AutoBattleSummary.Contains("临时关闭"), "shipped_inheritance_preserved_and_first_ub_boundary");
         Console.WriteLine($"clan_calibration_checks={count}; synthetic fixtures only, game input=0");
     }
 }

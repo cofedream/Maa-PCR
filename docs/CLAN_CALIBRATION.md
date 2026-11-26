@@ -17,7 +17,9 @@
 
 空数组不授予执行能力。实际战斗先检查对应模式；非空秒数轴还要求 `timed`。`timed` 不能单独作为战斗模式。
 
-版本 2 的 profile 可用顶层字段 `simulation_targets` 限定允许开战的模拟目标。每项只含 `period`、`phase` 和 `boss`。期次格式为 `YYYY-MM`，阶段须为难度菜单支持的 B、C、D 或 E，Boss 编号须为 1 至 5 的整数。清单接受 1 至 100 个互异的目标。缺省时沿用旧校准的目标范围，空清单或格式错误时停用模拟。正式和补偿仍按各自的能力和校准检查。
+版本 2 的 profile 可用顶层字段 `simulation_targets` 限定允许开战的模拟目标。每项目标含 `period`、`phase`、`boss`。期次格式为 `YYYY-MM`，阶段须为难度菜单支持的 B、C、D 或 E，Boss 编号为 1 至 5。可选的非空 `speeds` 数组只列该目标已核对的倍速，取值须包含在 `auto_battle.speeds` 中。清单接受 1 至 100 个互异的目标。缺省时沿用兼容规则，空清单不能启动模拟。
+
+`formal_targets` 和 `carryover_targets` 分别限定普通正式挑战和补偿挑战。两份清单的每项都只含 `period`、`phase` 和 `boss`。模拟通过后，正式及补偿各自仍需对应的能力、当期目标和页面证据。
 
 例如，`"simulation_targets": [{"period":"2026-11","phase":"C","boss":1}]` 只允许 2026 年 11 月的 C1 模拟。BC1 作业优先选已登记的 B1，否则选已登记的 C1。这个示例选中 C1。GUI 显示当前作业能用的目标，Python 在准备时复核，并在进入编队前核对画面上的实际阶段和 Boss。导航可从存活的入口进入，识别五个 Boss 的详情页并翻到 C1。
 
@@ -44,13 +46,7 @@ D1 已由正常 GUI 选齐五名 5 星角色，完成 Start、确认及首次暂
 
 程序在同一帧读取两次，只有完整伤害和倍率都相符才接受结果。旧国服 `202610141448` 模拟校准沿用已验的双区域。正式和补偿挑战各自核验对应能力。
 
-换期时，先按国服活动日期和轮次查询已还原的本地主库。下面的命令输出活动开放时间、各阶段的轮次范围，以及所选轮的五个 Boss 名称和编号。再逐个对照当期游戏详情页，确定识别区域。
-
-```powershell
-python scripts/inspect_clan_targets.py master.db --date 2026-11-26 --lap 18
-```
-
-如有对应版本的发布清单，可追加 `--manifest manifest.json` 核对数据库文件大小和 SHA-256。
+单查一轮可运行 `python scripts/inspect_clan_targets.py master.db --date 2026-11-26 --lap 18 --manifest manifest.json`。命令输出开放时间、轮次范围、所选轮的五个 Boss 及其编号。整期换期按下一节生成。
 
 若详情页把名字和等级排在同一行，可在 `pages.boss_detail.nameplate_levels` 按阶段记录五个 Boss 的实测等级，顺序为 1 至 5。详情页和模拟目标页都核对整行名称、该阶段对应等级及原有模式标记。本期 C2「野性狮鹫」单截名字时 OCR 容易混淆，连同等级读取后能与其他四个目标区分。
 
@@ -75,6 +71,57 @@ CP 字段接受明确的 `N / 900` 或同帧满上限文字；后者对应既有
 `prepared_at` 独立记录真实准备时刻，最终 Start 和首次暂停使用这个时刻的 60 秒时效。原库存收据及 `observed_at` 保持不变，不回填观察时间。未来时间、跨日或绑定失效仍拒绝；补偿、非空库存和支援继续沿用原规则。
 
 模拟难度页没有真实轮次时，读取结果使用 `round: null` 和 `round_source: selected_difficulty`，并附 `selected_difficulty` 的实际阶段、Boss 编号和模拟标记。三项均与当前目标匹配时，才接受这项结果。正式战仍核对实际轮次。
+
+## 从国服主库准备新一期
+
+在源码根运行以下命令。`--master-cache` 接受含 `data/labyrinth/master-cn` 的安装根目录。工具读取黎明界已校验的国服主库缓存，复核当前指针、SQLite 文件摘要和表结构。缓存使用项目已有更新器从 `wbero/autopcr-db-builder` 下载的 `{version}.db`。也可以直接给同一发布的 DB 和 `manifest.json`。两种输入产生相同的候选。
+
+```powershell
+# 从已有缓存读取，当天按中国标准时间取日期
+python scripts/prepare_clan_season.py --master-cache C:/Maa-PCR --output .runtime/clan-new/auto
+# 重验历史日期，指定上期登记版和拟试跑目标
+python scripts/prepare_clan_season.py 202611131613.db --manifest manifest.json --date 2026-11-26 --previous-version 202610141448 --target C1 --output .runtime/clan-nov/auto
+```
+
+工具按活动日期查期次、轮次范围和每阶段的五个 Boss，从 `enemy_parameter` 与 `unit_enemy_data` 核对名称，并读取敌人编号和等级。默认选择已登记的最近校准作为页面底稿。`turnover.json` 列出所有主库阶段、轮次、变更字段和未覆盖的阶段。现有难度菜单覆盖 B 至 E。遇到 A 或未来未知阶段时，报告仍保留其主库数据。若同阶段不同轮次的名称或所需等级无法用一套布局表示，或目标阶段与当前五个 Boss 的名称不同，报告写明原因。指定的目标有任何一个无法表示时，命令退出码为 2，保留完整报告和空目标清单。
+
+候选目录还包含 `profile.json`、`index-entry.json` 和保留其他版本的完整 `index.json`。仅有主库时，工具保留可复用的坐标、识别和模板，更新本期 Boss、匹配文字与阶段。新候选清空旧期目标和能力。`--target` 可重复指定拟试跑目标。若一次主库更新包含两个月，或需要在同一版本补录新证据，工具按服务器、内容版本和画面尺寸替换原条目，在报告中记录原条目摘要和源索引摘要。审定替换前须核对仍要开放的本期目标和能力。同一键只保留一项。
+
+### 用本期原帧核对页面
+
+维护者从当期画面挑选正反例，写入 `frames.json`。`file` 相对于清单位置。`expect` 表示该画面应否通过指定页面或动作检查。可加 `boss`、`phase`，结算伤害用 `damage`，大厅五个槽位的轮次用 `slots`，按钮用 `action`。
+
+```json
+{
+  "period": "2026-11",
+  "content_version": "202611131613",
+  "cases": [
+    {"page": "result", "file": "frames/simulation-result.png", "expect": true, "damage": 70000000},
+    {"page": "result", "file": "frames/formation.png", "expect": false}
+  ]
+}
+```
+
+```powershell
+python scripts/replay_clan_season.py --profile .runtime/clan-nov/auto/profile.json --frames frames.json --output .runtime/clan-nov/layout.json
+python scripts/prepare_clan_season.py 202611131613.db --manifest manifest.json --date 2026-11-26 --previous-version 202610141448 --target C1 --frames frames.json --replay-report .runtime/clan-nov/layout.json --output .runtime/clan-nov/replayed
+```
+
+回放使用项目自带识别器读取保存帧，零设备输入。`matched` 表示该页的正反例均符合预期。`positive_only` 只有正例，`missing` 缺少样本，`unverified` 含未评估项或缺少正例，`changed` 至少有一项与预期不同。页面与动作分别汇总。绑定回放时，工具核对候选文件、清单和每张原帧的 SHA-256，复核每条标注和统计。
+
+10 月切到 11 月的回放用了 22 张国服原帧、31 项检查。10 月原档符合 17 项，主库更新后的候选符合 21 项。冒险、难度、编队、支援、战斗和模拟结算这六类页面可以沿用。大厅日期与槽位轮次、Boss 名牌、模拟目标状态需按当期画面调整。将已核对的 11 月布局作为 `--layout-profile` 再运行，31 项全部符合，9 类页面都通过正反例。编队开始按钮仅有正例。正式结算单独绑定 `daily.execution.samples` 的正式结果图。
+
+### 登记通过实机验收的范围
+
+已核对的本期布局可用 `--layout-profile path/to/profile.json` 覆盖草案。工具核对主库、阶段、Boss 和铭牌等级，并保留当期单目标倍速、样本摘要及独立的正式和补偿目标。固定输入只写入新目录，完全相同的结果可以重跑。审定能力时按正常 GUI 分别验模拟、正式、补偿和秒数轴；最后核对结算与账本。实测范围见[分项验收](CLAN_ACCEPTANCE.md)。
+
+实机留存的玩家全帧先在本机核验，发布时用以下命令生成可分发的样本。`review.json` 绑定原 profile 和原图摘要，并记录允许公开的识别区域及新模板摘要。已公开且摘要相符的旧资源可以复用。
+
+```powershell
+python scripts/prepare_clan_public_samples.py --source-root C:/Maa-PCR-verified --base-root . --content-version 202611131613 --review review.json --output .runtime/clan-nov/public
+```
+
+在待发布源码树采用已审定的资源和索引，仅登记通过实机的能力与目标。执行 `python scripts/sync_clan_calibration_index.py --write` 从这一个索引生成 GUI 和 Python 的校验值，再用 `python scripts/sync_clan_calibration_index.py --check` 核对。隔离安装可以加 `--root`。构建和打包也会核对两端校验值，以及索引引用的 profile、样本和模板。
 
 ## 秒数轴与开场
 
