@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions;
 using MFAAvalonia.Helper;
 using Newtonsoft.Json.Linq;
 
@@ -30,6 +31,7 @@ internal static class PersistenceRecoveryChecks
             StartupSettingsChecks();
             CheckConcurrentGlobalReads(root);
             GlobalChecks(root);
+            GlobalErrorFormattingCheck();
             Console.WriteLine("PCR configuration recovery checks passed: locked/malformed reads, reload, atomic failure, retained credentials/settings/records; game inputs=0");
         }
         finally
@@ -186,9 +188,56 @@ internal static class PersistenceRecoveryChecks
             "open_reader_keeps_old_snapshot_while_new_global_value_is_published");
     }
 
+    private static void GlobalErrorFormattingCheck()
+    {
+        const string key = "GlobalConfigFileAccessError";
+        if (key.ToLocalization() == key)
+        {
+            var language = new MFAAvalonia.Localization.MFAResxLangPlugin();
+            var culture = System.Globalization.CultureInfo.GetCultureInfo("zh-CN");
+            Lang.Avalonia.I18nManager.Instance.Register(language, culture, out _);
+            if (!language.IsLoaded) language.Load(culture);
+        }
+        var template = key.ToLocalization().Replace(@"\n", "\n");
+        Require(template.Contains('\n'), "global_config_error_resource_lacks_line_break");
+        foreach (var path in new[] { @"C:\Users\tester\appsettings.json", @"C:\temp\new\report.json" })
+        {
+            const string detail = @"JSON detail \r\n in source, see \temp.";
+            var expected = string.Format(template, path, detail);
+            Require(key.ToLocalizationFormatted(false, [path, detail]) == expected,
+                "global_config_error_must_keep_line_break_and_literal_paths:" + path);
+        }
+    }
+
     internal static void GlobalChecks(string root)
     {
         var file = Path.Combine(root, "appsettings.json");
+        const string mixed = """
+            {"NoAutoStart":true,"revision":12,"keep":"unchanged","nullable":null,
+             "nested":{"variants":[false,3,"03",null]},"remove":"old"}
+            """;
+        File.WriteAllText(file, mixed);
+        Require(bool.TryParse(GlobalConfiguration.GetValue("NoAutoStart"), out var disabled) && disabled,
+            "typed_startup_boolean_could_not_be_read");
+        var expected = JObject.Parse(mixed);
+        GlobalConfiguration.SetValue("new", "value");
+        expected["new"] = "value";
+        Require(JToken.DeepEquals(JObject.Parse(File.ReadAllText(file)), expected)
+            && GlobalConfiguration.GetValue("new") == "value" && !GlobalConfiguration.HasFileAccessError,
+            "saving_over_typed_global_config_failed:" + GlobalConfiguration.LastFileAccessErrorMessage);
+        GlobalConfiguration.SetValue("NEW", "updated");
+        var mutated = JObject.Parse(File.ReadAllText(file));
+        var updated = mutated.Properties().Single(p => p.Name.Equals("new", StringComparison.OrdinalIgnoreCase));
+        Require((string?)updated.Value == "updated" && GlobalConfiguration.GetValue("new") == "updated",
+            "typed_global_config_duplicate_key_after_case_variant_update");
+        expected.Remove("new");
+        expected[updated.Name] = "updated";
+        GlobalConfiguration.RemoveValues(new[] { "REMOVE", "absent" });
+        expected.Remove("remove");
+        Require(JToken.DeepEquals(JObject.Parse(File.ReadAllText(file)), expected)
+            && bool.TryParse(GlobalConfiguration.GetValue("NoAutoStart"), out disabled) && disabled
+            && !GlobalConfiguration.HasFileAccessError, "removing_from_typed_global_config_lost_values");
+
         foreach (var invalid in new[] { "{\"InstanceList\":", "null", "[]", "" })
         {
             File.WriteAllText(file, invalid);

@@ -22,11 +22,25 @@ public static class GlobalConfiguration
     public static bool HasFileAccessError { get; private set; }
     public static string? LastFileAccessErrorMessage { get; private set; }
 
-    private static Dictionary<string, string> ReadValues(string path)
+    private static Dictionary<string, JsonElement> ReadValues(string path)
     {
         using var reader = new StreamReader(JsonHelper.OpenReadSnapshot(path));
-        return JsonSerializer.Deserialize<Dictionary<string, string>>(reader.ReadToEnd())
-            ?? throw new JsonException("全局配置必须是 JSON 对象，原文件已保留。");
+        using var document = JsonDocument.Parse(reader.ReadToEnd(), new JsonDocumentOptions
+        {
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+            AllowDuplicateProperties = false
+        });
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+            throw new JsonException("全局配置必须是 JSON 对象，原文件已保留。");
+
+        // GetValue uses case-insensitive configuration keys. Keep the other
+        // values in their original JSON types when updating just one setting.
+        var values = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in document.RootElement.EnumerateObject())
+            if (!values.TryAdd(property.Name, property.Value.Clone()))
+                throw new JsonException($"全局配置包含重复键 {property.Name}，原文件已保留。");
+        return values;
     }
 
     private static IConfigurationRoot LoadConfiguration()
@@ -66,7 +80,7 @@ public static class GlobalConfiguration
     {
         try
         {
-            var configDict = new Dictionary<string, string>();
+            var configDict = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
             var configPath = ConfigFilePath;
             using var access = new JsonHelper.FileAccessScope(configPath);
             if (File.Exists(configPath))
@@ -74,7 +88,7 @@ public static class GlobalConfiguration
                 configDict = ReadValues(configPath);
             }
 
-            configDict[key] = value;
+            configDict[key] = JsonSerializer.SerializeToElement(value);
 
             Directory.CreateDirectory(Path.GetDirectoryName(configPath));
             JsonHelper.SaveJsonTextAtomicallyOrThrow(configPath,

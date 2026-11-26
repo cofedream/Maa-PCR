@@ -383,12 +383,14 @@ public static class MFAExtensions
 
             try
             {
-                return Regex.Unescape(localizedKey.FormatWith(processedArgs));
+                // Only the translation contains escapes. Arguments can be literal Windows paths.
+                localizedKey = Regex.Unescape(localizedKey);
             }
-            catch
+            catch (ArgumentException)
             {
-                return localizedKey.FormatWith(processedArgs);
+                // Keep the original translation if it contains an unknown escape.
             }
+            return localizedKey.FormatWith(processedArgs);
         }
     }
 
