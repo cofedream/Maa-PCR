@@ -3,5 +3,5 @@ namespace MFAAvalonia.Pcr;
 
 internal static class PcrClanCalibrationPin
 {
-    internal const string IndexSha256 = "6aef172cd5631baefccb4d486057dd932338e47af818e0f4c98e2dbc7dc5a1f8";
+    internal const string IndexSha256 = "54d6a84a7b617b936900e0473b417c59b05bad20d15d89a115e98dff275e6ca4";
 }
