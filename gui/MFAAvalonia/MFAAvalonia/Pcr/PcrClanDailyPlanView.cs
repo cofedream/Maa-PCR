@@ -213,9 +213,10 @@ public sealed class PcrClanDailyPlanView : UserControl
     {
         var proposed = candidate;
         if (proposed == null) { status.Text = "请先点击“帮我配三刀”预览候选。"; return Task.CompletedTask; }
+        var selectedGuide = capture();
         return ChangeAsync(value =>
         {
-            _ = PcrClanDailyPlan.Review(proposed, guideStatePath, configDirectory, repository, DateTimeOffset.Now, true);
+            PcrClanDailyPlan.ReviewRecommendation(proposed, selectedGuide, guideStatePath, configDirectory, repository, DateTimeOffset.Now);
             value.Slots = proposed.Slots;
         }, "已保存三刀推荐草案。正式挑战仍需单独核对和授权。");
     }
@@ -236,13 +237,14 @@ public sealed class PcrClanDailyPlanView : UserControl
                 var result = await Task.Run(() =>
                 {
                     var value = readFile ? PcrClanDailyPlan.Read(statePath, out expected) : state.current;
+                    var exclusions = "";
                     if (guide != null)
                     {
                         if (PcrClanGuide.Stamp(statePath) != expected) throw new IOException("三刀预设已变化，请重新读取。");
-                        value = PcrClanDailyPlan.Recommend(value, guide, lockedSlot, guideStatePath, configDirectory, repository, DateTimeOffset.Now);
+                        value = PcrClanDailyPlan.Recommend(value, guide, lockedSlot, guideStatePath, configDirectory, repository, DateTimeOffset.Now, out exclusions);
                     }
                     var review = PcrClanDailyPlan.Review(value, guideStatePath, configDirectory, repository, DateTimeOffset.Now, requireThree);
-                    return (value, review);
+                    return (value, review, exclusions);
                 }).ConfigureAwait(false);
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -251,6 +253,7 @@ public sealed class PcrClanDailyPlanView : UserControl
                     {
                         candidate = result.value;
                         candidateSummary.Text = "推荐草案（待保存）" + Environment.NewLine + string.Join(Environment.NewLine, result.review.Slots);
+                        if (result.exclusions.Length > 0) candidateSummary.Text += Environment.NewLine + result.exclusions;
                         saveCandidate.IsEnabled = true;
                         status.Text = "已找到三队。核对候选后点击“保存推荐草案”写入三刀预设。";
                         return;

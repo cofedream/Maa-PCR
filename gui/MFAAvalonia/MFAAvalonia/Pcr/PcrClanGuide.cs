@@ -220,6 +220,46 @@ public static class PcrClanGuide
         if (now - at > TimeSpan.FromHours(24)) throw new InvalidDataException("账号缓存已超过 24 小时，请在空闲时通过原账号模块刷新。");
         return value;
     }
+    internal sealed class AccountStars
+    {
+        private readonly Dictionary<int, JObject> units;
+        private readonly string[] unknown;
+        private readonly IReadOnlyDictionary<int, string>? names;
+
+        internal AccountStars(JObject snapshot, IReadOnlyDictionary<int, string>? names = null)
+        {
+            units = ((JArray)snapshot["units"]!).OfType<JObject>().ToDictionary(unit => (int)unit["unit_id"]!);
+            unknown = ((JArray)snapshot["unknown_fields"]!).Values<string>().OfType<string>().ToArray();
+            this.names = names;
+        }
+
+        internal string? Difference(JObject job, bool useAccountForUnspecified = false)
+        {
+            var ids = (JArray)job["unit_ids"]!;
+            if (job["stars"] is not JArray expected || expected.Count != ids.Count)
+                return "请核对五人的战斗星级。";
+            for (var index = 0; index < ids.Count; index++)
+            {
+                var id = (int)ids[index];
+                units.TryGetValue(id, out var unit);
+                var role = names?.GetValueOrDefault(id) ?? (string?)unit?["name"] ?? id.ToString(CultureInfo.InvariantCulture);
+                var key = $"units.{id}.battle_rarity";
+                if (unit?["battle_rarity"] is not JToken actual || actual.Type != JTokenType.Integer
+                    || (int)actual is < 1 or > 6 || unknown.Any(field => key == field || key.StartsWith(field + ".", StringComparison.Ordinal)))
+                    return $"{role}：账号资料缺少出战星级。[clan_battle_account_stars_unknown]";
+                if (useAccountForUnspecified && expected[index].Type == JTokenType.Null) continue;
+                if (!JToken.DeepEquals(actual, expected[index]))
+                    return $"{role}：作业要求 {expected[index]} 星，账号当前出战 {actual} 星。请先在游戏调整后重新同步。[clan_battle_account_stars_mismatch]";
+            }
+            return null;
+        }
+    }
+
+    internal static void RequireAccountStars(JObject plan, JObject snapshot)
+    {
+        if (new AccountStars(snapshot).Difference(plan) is { } reason) throw new InvalidOperationException(reason);
+    }
+
     internal static int? SupportRequirement(JObject job, JObject snapshot)
     {
         var mode = (string?)job["support_mode"];

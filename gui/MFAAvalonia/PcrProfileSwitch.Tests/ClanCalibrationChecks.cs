@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Avalonia.Controls;
 using MFAAvalonia.Pcr;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -223,6 +224,99 @@ internal static class ClanCalibrationChecks
         Unavailable(Read(digest: new string('0', 64)), "wrong_index_hash");
         Unavailable(Read("202610250002"), "missing_content_version");
         Unavailable(Read(null), "missing_account_content_version");
+
+        JObject SimulationTarget(string phase = "C", int boss = 1, string period = "2026-11") =>
+            new() { ["period"] = period, ["phase"] = phase, ["boss"] = boss };
+        JObject TargetPlan(string phase, int boss, string period = "2026-11")
+        {
+            var plan = Plan();
+            plan.Merge(SimulationTarget(phase, boss, period));
+            return plan;
+        }
+        JObject WithTargets(JToken targets, params string[] choices)
+        {
+            var profile = Profile();
+            var marker = profile["daily"]!["execution"]!["opening"]!["paused_guards"]![0]!;
+            var choice = new JObject { ["label"] = marker.DeepClone(), ["selected"] = marker.DeepClone() };
+            profile["actions"]!["select_difficulty"] = new JObject { ["page"] = "difficulty",
+                ["choices"] = new JObject(choices.Select(phase => new JProperty(phase, choice.DeepClone()))) };
+            profile["simulation_targets"] = targets;
+            return profile;
+        }
+        PcrClanCalibration Scoped(JToken targets, params string[] choices) =>
+            Load(Index(2, WithTargets(targets, choices), "simulation", "formal", "carryover"));
+        var c1Only = Scoped(new JArray(SimulationTarget()), "C");
+        Check(c1Only.Summary.Contains("2026-11") && c1Only.Summary.Contains("C1"), "summary_names_reviewed_target");
+        c1Only.Require(TargetPlan("C", 1), "simulation"); count++;
+        c1Only.Require(TargetPlan("BC", 1), "simulation"); count++;
+        const string deniedTarget = "clan_battle_simulation_target_uncalibrated";
+        foreach (int boss in Enumerable.Range(2, 4))
+            Reject(() => c1Only.Require(TargetPlan("C", boss), "simulation"), $"unreviewed_c{boss}", deniedTarget);
+        foreach (var phase in new[] { "B", "D", "E" })
+            Reject(() => c1Only.Require(TargetPlan(phase, 1), "simulation"), $"unreviewed_{phase}1", deniedTarget);
+        Reject(() => c1Only.Require(TargetPlan("C", 1, "2026-12"), "simulation"), "different_month_same_version", deniedTarget);
+        Reject(() => c1Only.Require(Plan(), "simulation"), "missing_target_in_scoped_plan", deniedTarget);
+        foreach (string capability in new[] { "formal", "carryover" })
+        { c1Only.Require(TargetPlan("D", 5), capability, 2); count++; }
+        limited.Require(TargetPlan("D", 5), "simulation"); count++;
+        var availableBC = Scoped(new JArray(SimulationTarget()), "B", "C");
+        availableBC.Require(TargetPlan("BC", 1), "simulation"); count++;
+        Reject(() => availableBC.Require(TargetPlan("B", 1), "simulation"), "b_present_only_for_navigation", deniedTarget);
+        var splitTargets = Scoped(new JArray(SimulationTarget("B", 2), SimulationTarget("C", 1)), "B", "C");
+        splitTargets.Require(TargetPlan("BC", 2), "simulation"); count++;
+        Reject(() => splitTargets.Require(TargetPlan("C", 2), "simulation"), "do_not_cross_matching_target_pairs", deniedTarget);
+
+        // Supply a verified synthetic calibration to the editor, then exercise
+        // its text-change events without replacing the installation's pinned index.
+        var targetView = new PcrClanGuideView(sourceRoot, Path.Combine(root, "editor", "guide.json"), Path.Combine(root, "editor"));
+        var viewType = typeof(PcrClanGuideView);
+        FieldInfo Field(string name) => viewType.GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!;
+        Field("displayCalibration").SetValue(targetView, availableBC);
+        var editor = (Dictionary<string, TextBox>)Field("fields").GetValue(targetView)!;
+        var currentTarget = (TextBlock)Field("calibrationSummary").GetValue(targetView)!;
+        editor["period"].Text = "2026-11"; editor["phase"].Text = "BC"; editor["boss"].Text = "1";
+        Check(currentTarget.Text!.Contains("本队目标为 2026-11 C1"), "editor_shared_guide_uses_permitted_c");
+        editor["boss"].Text = "2";
+        Check(currentTarget.Text!.Contains("不可用") && currentTarget.Text.Contains("2026-11 C1"), "editor_boss_edit_shows_permitted_target");
+        editor["boss"].Text = "1"; editor["period"].Text = "2026-12";
+        Check(currentTarget.Text!.Contains("不可用"), "editor_period_change_disables_target");
+        editor["period"].Text = "2026-11"; editor["phase"].Text = "B";
+        Check(currentTarget.Text!.Contains("不可用"), "editor_phase_change_disables_target");
+        var both = Scoped(new JArray(SimulationTarget("C"), SimulationTarget("B")), "C", "B");
+        Field("displayCalibration").SetValue(targetView, both);
+        editor["phase"].Text = "BC";
+        Check(currentTarget.Text!.Contains("本队目标为 2026-11 B1"), "editor_shared_guide_prefers_b_when_both_allowed");
+
+        var extraTargetField = SimulationTarget(); extraTargetField["extra"] = true;
+        var targetWithTemplate = SimulationTarget();
+        targetWithTemplate["extra"] = new JObject { ["recognition"] = "TemplateMatch", ["template"] = "clan-synthetic/missing.png", ["sha256"] = new string('0', 64) };
+        var missingBoss = SimulationTarget(); missingBoss.Remove("boss");
+        var oneHundred = new JArray(Enumerable.Range(2000, 100).Select(year => SimulationTarget(period: $"{year}-11")));
+        Check(Scoped(oneHundred, "C").Supports("simulation"), "scope_accepts_one_hundred_targets");
+        oneHundred.Add(SimulationTarget(period: "2100-11"));
+        foreach (var (name, targets) in new (string, JToken)[] {
+            ("null", JValue.CreateNull()), ("not_array", SimulationTarget()), ("empty", new JArray()),
+            ("over_limit", oneHundred), ("duplicate", new JArray(SimulationTarget(), SimulationTarget())),
+            ("string_row", new JArray("C1")), ("extra_field", new JArray(extraTargetField)),
+            ("embedded_template", new JArray(targetWithTemplate)),
+            ("missing_boss", new JArray(missingBoss)), ("month_00", new JArray(SimulationTarget(period: "2026-00"))),
+            ("month_13", new JArray(SimulationTarget(period: "2026-13"))),
+            ("non_ascii_period", new JArray(SimulationTarget(period: "２０２６-11"))),
+            ("combined_phase", new JArray(SimulationTarget("BC"))), ("missing_difficulty", new JArray(SimulationTarget("D"))),
+            ("boss_0", new JArray(SimulationTarget(boss: 0))), ("boss_6", new JArray(SimulationTarget(boss: 6))),
+            ("float_boss", JArray.Parse("[{\"period\":\"2026-11\",\"phase\":\"C\",\"boss\":1.0}]")),
+            ("bool_boss", JArray.Parse("[{\"period\":\"2026-11\",\"phase\":\"C\",\"boss\":true}]"))
+        })
+        {
+            var malformed = Scoped(targets, "C");
+            Check(!malformed.Supports("simulation") && malformed.Supports("formal") && malformed.Supports("carryover"),
+                "invalid_target_blocks_simulation_only_" + name);
+            Reject(() => malformed.Require(TargetPlan("C", 1), "simulation"), "invalid_scope_at_start_" + name,
+                "clan_battle_simulation_targets_invalid");
+        }
+        var scopedLegacy = WithTargets(new JArray(SimulationTarget()), "C");
+        scopedLegacy["version"] = 1;
+        Check(!Load(Index(2, scopedLegacy, "simulation")).Supports("simulation"), "scoped_targets_require_v2_profile");
 
         foreach (var (name, change) in new (string, Action<JObject>)[] {
             ("missing_binding", p => ((JObject)p["pages"]!["result"]!).Remove("damage_line")),
@@ -490,10 +584,13 @@ internal static class ClanCalibrationChecks
         var pausedName = AutoProfile();
         pausedName["auto_battle"]!["paused_boss_roi"] = new JArray(760, 157, 178, 40);
         Check(Load(Index(2, pausedName, "simulation")).Supports("simulation"), "simulation_paused_boss_roi_supported");
+        pausedName["auto_battle"]!["paused_clock_alternate_roi"] = new JArray(1077, 18, 44, 32);
+        Check(Load(Index(2, pausedName, "simulation")).Supports("simulation"), "simulation_alternate_paused_clock_supported");
         foreach (var change in new (string Name, Action<JObject> Change)[]
         {
             ("clock_kind", value => value["paused_guards"]![2]!["recognition"] = "Unknown"),
             ("paused_boss_roi_outside_frame", value => value["paused_boss_roi"] = new JArray(1200, 157, 178, 40)),
+            ("paused_alternate_clock_outside_frame", value => value["paused_clock_alternate_roi"] = new JArray(1279, 18, 44, 32)),
             ("clock_roi", value => value["paused_guards"]![2]!["roi"] = new JArray(-1, 1, 8, 8)),
             ("clock_pattern", value => value["paused_guards"]![2]!["expected"] = "unanchored"),
             ("guard_count", value => ((JArray)value["paused_guards"]!).RemoveAt(2)),

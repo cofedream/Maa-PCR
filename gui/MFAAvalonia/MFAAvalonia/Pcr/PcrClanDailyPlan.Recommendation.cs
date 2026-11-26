@@ -26,6 +26,10 @@ public static partial class PcrClanDailyPlan
 
     public static PcrClanDailyPlanDocument Recommend(PcrClanDailyPlanDocument document, PcrClanGuideDocument currentGuide,
         int? lockedSlot, string guideStatePath, string configDirectory, string repository, DateTimeOffset now)
+        => Recommend(document, currentGuide, lockedSlot, guideStatePath, configDirectory, repository, now, out _);
+
+    internal static PcrClanDailyPlanDocument Recommend(PcrClanDailyPlanDocument document, PcrClanGuideDocument currentGuide,
+        int? lockedSlot, string guideStatePath, string configDirectory, string repository, DateTimeOffset now, out string exclusions)
     {
         Validate(document);
         if (lockedSlot is < 1 or > 3) throw new ArgumentOutOfRangeException(nameof(lockedSlot));
@@ -46,6 +50,9 @@ public static partial class PcrClanDailyPlan
 
         var candidates = new List<Candidate>();
         var owned = ((JArray)snapshot["units"]!).Select(u => (int)u["unit_id"]!).ToHashSet();
+        var unitNames = catalog.Units.ToDictionary(u => u.UnitId, u => u.Name);
+        var stars = new PcrClanGuide.AccountStars(snapshot, unitNames);
+        var starExclusions = new List<string>();
         string? skipped = null;
         foreach (var (key, entry) in saved.SavedJobs.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
@@ -58,6 +65,14 @@ public static partial class PcrClanDailyPlan
             var units = ReadOwnedTeam(members, owned);
             if (units == null) continue;
             var bundleHash = key[..64];
+            if (stars.Difference(job, useAccountForUnspecified: true) is { } difference)
+            {
+                var reason = $"“{job["team_label"]}”未入选。{difference}";
+                if (locked != null && locked.BundleSha256 == bundleHash && locked.JobId == key[65..])
+                    throw new InvalidDataException($"第 {locked.Slot} 刀不能锁定。{reason}");
+                starExclusions.Add(reason);
+                continue;
+            }
             if (!knownPaths.TryGetValue(bundleHash, out var bundlePath) || string.IsNullOrEmpty(bundlePath))
             {
                 skipped ??= $"请重新载入“{job["team_label"]}”的原作业包并保存。";
@@ -77,7 +92,7 @@ public static partial class PcrClanDailyPlan
             candidates.RemoveAt(index); candidates.Insert(0, first);
         }
 
-        var unitNames = catalog.Units.ToDictionary(u => u.UnitId, u => u.Name);
+        exclusions = string.Join(Environment.NewLine, starExclusions);
         var validity = new Dictionary<Candidate, bool>();
         bool CanUse(Candidate candidate)
         {
@@ -96,7 +111,7 @@ public static partial class PcrClanDailyPlan
         }
         var chosen = ChooseThree(candidates, locked != null, unitNames, CanUse, out var conflict);
         if (chosen == null)
-            throw new InvalidDataException($"所选账号在 {period} 期没有三支互不占用角色的已核对全自有无轴队伍（候选 {candidates.Count} 队）。{conflict}{skipped}");
+            throw new InvalidDataException($"所选账号在 {period} 期没有三支互不占用角色的已核对全自有无轴队伍（候选 {candidates.Count} 队）。{conflict}{skipped}{exclusions}");
         // Recheck the three originals together. Retain source bytes only for the final trio.
         foreach (var candidate in chosen) _ = Resolve(candidate.Reference, saved, configDirectory, repository, now, inputs);
         inputs.Verify();
@@ -111,6 +126,24 @@ public static partial class PcrClanDailyPlan
         }
         Validate(result);
         return result;
+    }
+
+    internal static void ReviewRecommendation(PcrClanDailyPlanDocument proposed, PcrClanGuideDocument selectedGuide,
+        string guideStatePath, string configDirectory, string repository, DateTimeOffset now)
+    {
+        _ = Review(proposed, guideStatePath, configDirectory, repository, now, true, out var plans);
+        var inputs = new PcrClanGuide.PlanInputs();
+        var snapshot = PcrClanGuide.Snapshot(selectedGuide, configDirectory, repository, now, inputs, out var catalog);
+        var stars = new PcrClanGuide.AccountStars(snapshot, catalog.Units.ToDictionary(unit => unit.UnitId, unit => unit.Name));
+        foreach (var (slot, document, plan) in plans)
+        {
+            if (document.SnapshotSha256 != selectedGuide.SnapshotSha256
+                || !string.Equals(document.SnapshotPath, selectedGuide.SnapshotPath, StringComparison.OrdinalIgnoreCase)
+                || !JToken.DeepEquals(plan["period"], selectedGuide.Job["period"]))
+                throw new InvalidDataException("当前账号资料或期次与预览时不同，请重新配三刀。");
+            if (stars.Difference(plan) is { } reason) throw new InvalidDataException($"第 {slot} 刀未入选。{reason}");
+        }
+        inputs.Verify();
     }
 
     // Each row marks disjoint teams with a larger index. A pair can be completed

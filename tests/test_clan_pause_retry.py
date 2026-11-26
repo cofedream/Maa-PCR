@@ -17,6 +17,24 @@ from test_clan_battle_native import calibration, calibration_v2, plan
 from test_context_backend import sdk, invoke
 
 
+@pytest.mark.parametrize('custom_clock', [None, 'roi', 'expected'])
+def test_simulation_reuses_only_identical_general_hud_clock(custom_clock):
+    plan = sampled_plan()
+    calibration = load_calibration(plan)
+    clock = calibration['auto_battle']['opening_guards'][2]
+    if custom_clock == 'roi':
+        clock['roi'] = [clock['roi'][0] + 1, *clock['roi'][1:]]
+    elif custom_clock == 'expected':
+        clock['expected'] = '^1:29$'
+    nodes = backend.auto_battle_pipeline(calibration, plan)
+    for name in ('CBPauseOpening', 'CBPauseRetry'):
+        guards = nodes[name]['all_of']
+        assert ('CBOpening_opening_guards_2' in guards) == bool(custom_clock)
+        assert guards.count('CBOpeningReadyClock') == 1
+        assert all(guard in guards for guard in ('CBOpeningInputReady', 'CBOpening_opening_guards_0',
+                                                  'CBOpening_opening_guards_1'))
+
+
 SAMPLES = native.ROOT / 'assets/resource/clan-battle-calibrations/cn-bilibili-202610141448/samples'
 LIVE = native.ROOT / '.runtime/clan-open-20261025/live-completion-20261026'
 D4_BATTLE = LIVE / 'opening/live-owner/bbcd69aa348f4bfb8ff018292d129485/anchor-battle.png'

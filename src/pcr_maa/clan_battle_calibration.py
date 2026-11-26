@@ -106,7 +106,7 @@ def load_calibration(plan, *, root=None, capability='simulation'):
     profile_options = {'timing_measurements'}
     profile_keys = PROFILE_KEYS
     if type(calibration) is dict and calibration.get('version') == 2:
-        profile_options |= {'boss_targets', 'phase_labels', 'daily', 'support_modes', 'auto_battle'}
+        profile_options |= {'boss_targets', 'phase_labels', 'daily', 'support_modes', 'auto_battle', 'simulation_targets'}
         if calibration.get('support_modes') == ['none']:
             profile_keys = PROFILE_KEYS - {'support'}
             profile_options.add('support')
@@ -180,7 +180,10 @@ def load_calibration(plan, *, root=None, capability='simulation'):
         elif type(value) is list:
             for item in value:
                 templates(item)
-    templates(calibration)
+    for name, section in calibration.items():
+        # The simulation target list contains data only. Its own schema handles invalid rows.
+        if name != 'simulation_targets':
+            templates(section)
     if 'timed' in capabilities:
         binding = calibration.get('timing_measurements')
         if type(binding) is not dict or set(binding) != {'path', 'sha256'}:

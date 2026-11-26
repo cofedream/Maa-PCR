@@ -150,7 +150,8 @@ public sealed partial class PcrClanGuideView : UserControl
         for (var index = 0; index < targetFields.Length; index++)
         {
             var (key, label) = targetFields[index]; var panel = new StackPanel { Spacing = 3 }; panel.Children.Add(Note(label));
-            var box = new TextBox(); Avalonia.Automation.AutomationProperties.SetName(box, label); fields.Add(key, box); panel.Children.Add(box); Watch(box);
+            var box = new TextBox(); Avalonia.Automation.AutomationProperties.SetName(box, label); fields.Add(key, box); panel.Children.Add(box);
+            Watch(box, targetChanged: key is "period" or "phase" or "boss");
             if (index < 6) { Grid.SetRow(panel, index / 3); Grid.SetColumn(panel, index % 3); target.Children.Add(panel); }
             else reference.Children.Add(panel);
         }
@@ -225,7 +226,12 @@ public sealed partial class PcrClanGuideView : UserControl
     private void SetVideoStatus(string text) { videoStatus.Text = text; status.Text = text; }
     private void Guard(Action action, bool videoChoice = false)
     { try { action(); } catch (Exception ex) { document.ConfirmedFor = null; var message = "作业不可用，尚未确认：" + ex.Message; if (videoChoice) SetVideoStatus(message); else status.Text = message; } }
-    private void Watch(TextBox box) => box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Invalidate(); };
+    private void Watch(TextBox box, bool targetChanged = false) => box.PropertyChanged += (_, e) =>
+    {
+        if (e.Property != TextBox.TextProperty || displaying) return;
+        Invalidate();
+        if (targetChanged) UpdateCalibrationSummary();
+    };
     private void Invalidate()
     { if (displaying) return; CancelPendingLoad(); document.ConfirmedFor = null; execution.ConfirmedFor = null; UpdateSelectionSummary(); status.Text = "内容已修改，请对照原图后一次确认保存。"; }
     private void UpdateSelectionSummary()
@@ -463,6 +469,9 @@ public sealed partial class PcrClanGuideView : UserControl
         var version = (string?)displaySnapshot?["content_version"];
         var prefix = version == null ? "战斗校准" : $"战斗校准（内容版本 {version}）";
         var reason = calibration.UnavailableReason(capability) ?? (!calibration.Supports(capability) ? "缺少对应页面校准。" : null);
+        string? simulationTarget = null;
+        if (reason == null && !formal)
+            (simulationTarget, reason) = calibration.CheckSimulationTarget(fields["period"].Text?.Trim(), fields["phase"].Text?.Trim(), Numeric(fields["boss"].Text));
         if (reason == null && !formal && calibration.OwnUnitsOnly)
         {
             try
@@ -478,7 +487,7 @@ public sealed partial class PcrClanGuideView : UserControl
             reason = $"缺少 {execution.BattleSpeed} 倍速校准。";
         calibrationSummary.Text = !executionLoaded ? prefix + "：待读取执行模式。"
             : reason != null ? $"{prefix}：{label}不可用。{reason}"
-            : $"{prefix}：已登记{label}校准。{(calibration.OwnUnitsOnly ? "支持全自有队伍。" : "")}"
+            : $"{prefix}：已登记{label}校准。{(simulationTarget == null ? "" : $"本队目标为 {simulationTarget}。")}{(calibration.OwnUnitsOnly ? "支持全自有队伍。" : "")}"
                 + (formal ? "预览正式三目标可分别核对每队。" : "开始前会核对所选队伍、操作和当前游戏页面。");
     }
     private void Persist(bool confirm)

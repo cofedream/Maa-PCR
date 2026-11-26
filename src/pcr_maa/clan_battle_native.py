@@ -142,16 +142,40 @@ def _node(spec, *, expected=None, ocr_threshold=.9):
     return value
 
 
-def _difficulty_choice(calibration, plan):
+def _difficulty_phase(calibration, plan):
     choices = calibration['actions']['select_difficulty'].get('choices')
     if (type(choices) is not dict or not choices or not set(choices) <= {'B', 'C', 'D', 'E'}
             or any(type(row) is not dict or set(row) != {'label', 'selected'} for row in choices.values())):
         raise ValueError('clan_battle_calibration_difficulty_invalid')
     allowed = ('B', 'C') if plan['phase'] == 'BC' else (plan['phase'],)
+    if 'simulation_targets' in calibration:
+        rows = calibration['simulation_targets']
+        if calibration['version'] != 2 or type(rows) is not list or not 1 <= len(rows) <= 100:
+            raise ValueError('clan_battle_simulation_targets_invalid')
+        reviewed = set()
+        for row in rows:
+            if (type(row) is not dict or set(row) != {'period', 'phase', 'boss'}
+                    or type(row['period']) is not str or not re.fullmatch(r'[0-9]{4}-(?:0[1-9]|1[0-2])', row['period'])
+                    or type(row['phase']) is not str or row['phase'] not in choices
+                    or type(row['boss']) is not int or not 1 <= row['boss'] <= 5):
+                raise ValueError('clan_battle_simulation_targets_invalid')
+            target = row['period'], row['phase'], row['boss']
+            if target in reviewed:
+                raise ValueError('clan_battle_simulation_targets_invalid')
+            reviewed.add(target)
+        for phase in allowed:
+            if (plan.get('period'), phase, plan.get('boss')) in reviewed:
+                return phase
+        raise RuntimeError('clan_battle_simulation_target_uncalibrated')
     phase = next((phase for phase in allowed if phase in choices), None)
     if phase is None:
         raise RuntimeError('clan_battle_difficulty_unavailable')
-    return choices[phase]
+    return phase
+
+
+def _difficulty_choice(calibration, plan):
+    phase = _difficulty_phase(calibration, plan)
+    return calibration['actions']['select_difficulty']['choices'][phase]
 
 
 def auto_battle_pipeline(calibration, plan):
@@ -159,7 +183,7 @@ def auto_battle_pipeline(calibration, plan):
     if spec is None:
         return {}
     if (calibration.get('version') != 2 or type(spec) is not dict
-            or set(spec) - {'inheritance', 'empty_tp', 'paused_boss_roi'} != {'speeds', 'opening_guards', 'paused_guards', 'auto_on', 'auto_off', 'speed', 'set_badge', 'samples'}
+            or set(spec) - {'inheritance', 'empty_tp', 'paused_boss_roi', 'paused_clock_alternate_roi'} != {'speeds', 'opening_guards', 'paused_guards', 'auto_on', 'auto_off', 'speed', 'set_badge', 'samples'}
             or type(spec['speeds']) is not list or not spec['speeds'] or 1 not in spec['speeds']
             or any(type(n) is not int or n not in (1, 2, 4) for n in spec['speeds'])
             or len(set(spec['speeds'])) != len(spec['speeds'])
@@ -176,6 +200,8 @@ def auto_battle_pipeline(calibration, plan):
     clock = spec['paused_guards'][2]
     nodes['CBOpeningClock'] = _node({'roi': _roi(clock['roi'])}, expected=OPENING_CLOCK_PATTERN)
     nodes['CBOpeningClockScaled'] = _node({'roi': [0, 0, clock['roi'][2]*2, clock['roi'][3]*2]}, expected=OPENING_CLOCK_PATTERN)
+    if 'paused_clock_alternate_roi' in spec:
+        nodes['CBOpeningClockAlternate'] = _node({'roi': spec['paused_clock_alternate_roi']}, expected=OPENING_CLOCK_PATTERN)
     nodes['CBOpeningBoss'] = _node(dict(roi=spec.get('paused_boss_roi', [805, 160, 135, 33])),
         expected='^' + re.escape(calibration['boss_targets'][str(plan['boss'])]['name']) + '$')
     for name in ('auto_on', 'auto_off'):
@@ -206,6 +232,12 @@ def auto_battle_pipeline(calibration, plan):
     # Wait for the clock to start; this does not prove anything about UB timing.
     nodes['CBOpeningReadyClock'] = _node({'roi': calibration['pages']['battle']['fields']['remaining_seconds']},
         expected=r'^(?:1[:：][0-2][0-9]|0[:：](?:0[1-9]|[1-5][0-9]))$')
+    opening_guards = [f'CBOpening_opening_guards_{i}' for i in range(3)]
+    # On the usual HUD the positive running clock implies the general clock reading
+    # on the very same pixels. Keep independent or more restrictive profile guards.
+    if nodes[opening_guards[-1]] == dict(nodes['CBOpeningReadyClock'], expected=FIELDS['remaining_seconds']):
+        opening_guards.pop()
+    opening_guards.append('CBOpeningReadyClock')
     nodes['CBOpeningMatch'] = dict(recognition='Custom', custom_recognition='ClanBattleCharacters',
         custom_recognition_param=dict(mode='opening_match'), action='DoNothing', next=[],
         timeout=1000, pre_delay=0, post_delay=0)
@@ -213,13 +245,12 @@ def auto_battle_pipeline(calibration, plan):
         custom_recognition_param=dict(mode='pause_retry'), action='DoNothing', next=[],
         timeout=1000, pre_delay=0, post_delay=0)
     nodes['CBPauseOpening'] = dict(recognition='And',
-        all_of=['CBOpeningObserve', 'CBOpeningInputReady', *[f'CBOpening_opening_guards_{i}' for i in range(3)], 'CBOpeningReadyClock'], action='Click', target=[1204, 31, 6, 6],
+        all_of=['CBOpeningObserve', 'CBOpeningInputReady', *opening_guards], action='Click', target=[1204, 31, 6, 6],
         max_hit=1, next=['CBOpeningRead', 'CBPauseRetry'], timeout=15000, rate_limit=1, pre_delay=0, post_delay=300,
         on_error=['LabyDisconnect6002Observed'])
     # Only reached after a successful first menu input and an unsuccessful paused read.
     nodes['CBPauseRetry'] = dict(recognition='And',
-        all_of=['CBOpeningInputReady', *[f'CBOpening_opening_guards_{i}' for i in range(3)],
-            'CBOpeningReadyClock', 'CBOpeningRetryGuard'], action='Click', target=[1204, 31, 6, 6],
+        all_of=['CBOpeningInputReady', *opening_guards, 'CBOpeningRetryGuard'], action='Click', target=[1204, 31, 6, 6],
         max_hit=1, next=['CBOpeningRead'], timeout=15000, rate_limit=1, pre_delay=0, post_delay=300,
         on_error=['LabyDisconnect6002Observed'])
     if 'inheritance' in spec:
@@ -373,6 +404,8 @@ def calibration_pipeline(calibration, plan, *, capability='simulation'):
         raise ValueError('clan_battle_calibration_invalid')
     modern = calibration['version'] == 2
     simulation = not modern or capability == 'simulation'
+    if not modern and 'simulation_targets' in calibration:
+        raise ValueError('clan_battle_simulation_targets_invalid')
     support_scope = calibration.get('support_modes')
     if 'support_modes' in calibration and (not modern or support_scope != ['none']):
         raise ValueError('clan_battle_calibration_support_scope_invalid')
@@ -676,6 +709,9 @@ def _current_period(text):
 class ClanBattlePage(CustomRecognition):
     def __init__(self, plan, calibration, support_unit_id=None):
         super().__init__()
+        if 'simulation_targets' in calibration:
+            # Every inherited identity, including a resumed formation, must use the reviewed stage.
+            plan = dict(plan, phase=_difficulty_phase(calibration, plan))
         self.plan, self.calibration, self.support_unit_id = plan, calibration, support_unit_id
         self.modern = calibration.get('version') == 2
         self.reset_context()
@@ -1538,7 +1574,10 @@ class NativeClanBattle(NativeGuideTrial):
                 if detail['boss'] != plan['boss'] or detail['simulation'] is not True:
                     raise RuntimeError('clan_battle_simulation_navigation_changed')
                 detail, _ = self.read_page('boss_detail')
-                phases = ('B', 'C') if plan['phase'] == 'BC' else (plan['phase'],)
+                if 'simulation_targets' in self.calibration:
+                    phases = (_difficulty_phase(self.calibration, plan),)
+                else:
+                    phases = ('B', 'C') if plan['phase'] == 'BC' else (plan['phase'],)
                 if detail['phase'] not in phases:
                     self.run('CBAction_open_difficulty', click=True)
                     wait(['CBPage_difficulty'])

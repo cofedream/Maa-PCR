@@ -203,16 +203,21 @@ class ClanBattleCharacters(GuideTrialCharacters):
             frame_pixel_sha256=hashlib.sha256(image.tobytes()).hexdigest())
         return state
 
-    def read_opening_clock(self, context, image, name, roi):
+    def read_opening_clock(self, context, image, name, roi, alternate_roi=None):
         x, y, width, height = roi
         crop = image[y:y+height, x:x+width]
         scaled = cv2.resize(crop, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
         gray_scaled = cv2.cvtColor(cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR), cv2.COLOR_GRAY2BGR)
         readings, seconds = [], set()
-        for node, frame, transform in ((name, image, 'original'), (name+'Scaled', scaled, 'crop_2x_cubic'),
-                (name+'Scaled', gray_scaled, 'crop_gray_2x_linear')):
+        variants = [(name, image, 'original'), (name+'Scaled', scaled, 'crop_2x_cubic'),
+                    (name+'Scaled', gray_scaled, 'crop_gray_2x_linear')]
+        if alternate_roi is not None:
+            variants.append((name+'Alternate', image, 'alternate_roi_original'))
+        for node, frame, transform in variants:
             evidence = dict(transform=transform, image_pixel_sha256=hashlib.sha256(frame.tobytes()).hexdigest())
+            if transform == 'alternate_roi_original':
+                evidence['roi'] = list(alternate_roi)
             try:
                 text = self.page.word(context, frame, node, evidence=evidence)
                 if re.fullmatch(r'(?:1[:：]?(?:[0-2][0-9]|30)|0[:：]?[0-5][0-9])', text) is None:
@@ -342,13 +347,17 @@ class ClanBattleCharacters(GuideTrialCharacters):
         mode = params['mode']
         if not spec or self.plan.get('switches') or self.page.current_page != 'battle':
             return None
+        # Reject a still-running HUD before running two OCR checks on it.
+        if not self.page.hit(context, argv.image, 'CBOpening_paused_guards_1'):
+            return None
         if self.page.hit(context, argv.image, 'LabyDisconnect6002Observed'):
             return None
-        if not all(self.page.hit(context, argv.image, f'CBOpening_paused_guards_{i}') for i in range(2)):
+        if not self.page.hit(context, argv.image, 'CBOpening_paused_guards_0'):
             return None
         if not self.page.hit(context, argv.image, 'CBOpeningBoss'):
             return None
-        actual, clock_evidence = self.read_opening_clock(context, argv.image, 'CBOpeningClock', spec['paused_guards'][2]['roi'])
+        actual, clock_evidence = self.read_opening_clock(context, argv.image, 'CBOpeningClock', spec['paused_guards'][2]['roi'],
+            spec.get('paused_clock_alternate_roi'))
         if not 1 <= actual <= 90:
             return None
         state = self.read_paused_controls(context, argv.image, prefix='CBOpening', remaining_seconds=actual)

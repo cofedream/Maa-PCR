@@ -18,12 +18,17 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
     private static readonly string[] Names = { "simulation", "timed", "formal", "carryover" };
     private static readonly string[] Labels = { "模拟战", "秒数轴", "正式三刀", "补偿刀" };
     private string? SimulationError { get; init; }
+    private IReadOnlySet<(string Period, string Phase, int Boss)>? SimulationTargets { get; init; }
+    private string SimulationTargetList => string.Join("、", SimulationTargets!
+        .OrderBy(t => t.Period, StringComparer.Ordinal).ThenBy(t => t.Phase, StringComparer.Ordinal).ThenBy(t => t.Boss)
+        .Select(t => $"{t.Period} {t.Phase}{t.Boss}"));
     internal string? UnavailableReason(string capability) => Error ?? (capability == "simulation" ? SimulationError : null);
     public bool Supports(string capability) => Capabilities.Contains(capability) && UnavailableReason(capability) == null;
     public string Summary => (Error != null ? string.Join(" / ", Labels) + "：不可用。" + Error
         : string.Join("；", Names.Select((name, i) => Labels[i] + "：" + (Supports(name)
             ? name == "timed" ? "测量资料齐全，开始前核对时限" : Version == 1 && name == "simulation" ? "校准资料已登记（仅全程 AUTO、无切换）" : "校准资料已登记" : UnavailableReason(name) ?? "缺少校准"))))
         + (Error == null ? "。资料校验通过不代表当前阶段已通过正常 Start 全程验收。" : "")
+        + (SimulationTargets != null && Supports("simulation") ? $" 可模拟目标为 {SimulationTargetList}。" : "")
         + (OwnUnitsOnly ? "仅全自有队伍可用；借人身份尚未校准。" : "")
         + (AccountStars ? " 出战星级使用24小时内的已确认账号资料，调整后须重新同步。" : "");
     public string AutoBattleSummary => AutoBattleSpeeds == null ? "开场设置与倍速：缺少校准。"
@@ -85,13 +90,17 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
             var starSource = profile["formation"]?["star_source"];
             if (starSource != null && ((int?)profile["version"] != 2 || !ownUnitsOnly || (string?)starSource != "account_snapshot"))
                 throw new InvalidDataException("星级资料来源无效。[clan_battle_calibration_star_source_invalid]");
+            var (targets, targetError) = ReadSimulationTargets(profile);
+            // Target entries contain only data. Malformed entries cannot declare resource dependencies.
+            profile.Remove("simulation_targets");
             VerifyDependencies(root, profile, capabilities, ownUnitsOnly);
             return new(version == 1 ? 1 : (int)profile["version"]!, capabilities, null, ownUnitsOnly, starSource != null,
                 profile["auto_battle"] is JObject autoBattle ? autoBattle["speeds"]!.Values<int>().ToHashSet() : null,
                 profile["auto_battle"]?["inheritance"] is JObject, profile["daily"]?["execution"]?["opening"] is JObject)
             {
-                SimulationError = capabilities.Contains("simulation") && (int)profile["version"]! == 2 && !HasSimulationDamageLine(profile, contentVersion)
-                    ? "模拟战结算伤害行缺少已核验的截图或识别范围。[clan_battle_result_damage_uncalibrated]" : null
+                SimulationTargets = targets,
+                SimulationError = targetError ?? (capabilities.Contains("simulation") && (int)profile["version"]! == 2 && !HasSimulationDamageLine(profile, contentVersion)
+                    ? "模拟战结算伤害行缺少已核验的截图或识别范围。[clan_battle_result_damage_uncalibrated]" : null)
             };
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException
@@ -99,11 +108,52 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
         { return new(0, new HashSet<string>(StringComparer.Ordinal), ex.Message); }
     }
 
+    private static (IReadOnlySet<(string Period, string Phase, int Boss)>? Targets, string? Error) ReadSimulationTargets(JObject profile)
+    {
+        if (!profile.TryGetValue("simulation_targets", out var value)) return (null, null);
+        const string invalid = "模拟目标清单格式无效。[clan_battle_simulation_targets_invalid]";
+        if ((int?)profile["version"] != 2 || value is not JArray { Count: >= 1 and <= 100 } rows
+            || profile["actions"] is not JObject actions || actions["select_difficulty"] is not JObject action
+            || action["choices"] is not JObject choices) return (null, invalid);
+        var targets = new HashSet<(string, string, int)>();
+        foreach (var token in rows)
+        {
+            if (token is not JObject row || !Keys(row, "period", "phase", "boss")
+                || row["period"] is not JValue { Value: string period } || !Regex.IsMatch(period, @"\A[0-9]{4}-(?:0[1-9]|1[0-2])\z")
+                || row["phase"] is not JValue { Value: string phase } || phase is not ("B" or "C" or "D" or "E")
+                || !choices.ContainsKey(phase) || !TryBoss(row["boss"], out var boss) || !targets.Add((period, phase, boss)))
+                return (null, invalid);
+        }
+        return (targets, null);
+    }
+
+    private static bool TryBoss(JToken? token, out int boss)
+    {
+        boss = 0;
+        return token?.Type == JTokenType.Integer && int.TryParse(token.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out boss)
+            && boss is >= 1 and <= 5;
+    }
+
+    internal (string? Target, string? Error) CheckSimulationTarget(JToken? periodValue, JToken? phaseValue, JToken? bossValue)
+    {
+        if (SimulationTargets == null) return (null, null);
+        if (periodValue is JValue { Value: string period } && phaseValue is JValue { Value: string phase }
+            && TryBoss(bossValue, out var boss))
+        {
+            // Shared B/C guides use the first calibrated phase in B, C order.
+            foreach (var candidate in phase == "BC" ? new[] { "B", "C" } : new[] { phase })
+                if (SimulationTargets.Contains((period, candidate, boss))) return ($"{period} {candidate}{boss}", null);
+        }
+        return (null, $"当前作业的期次、阶段或 BOSS 超出可模拟范围。可选目标为 {SimulationTargetList}。[clan_battle_simulation_target_uncalibrated]");
+    }
+
     public void Require(JObject plan, string capability, int battleSpeed = 1)
     {
         if (!Names.Contains(capability)) throw new InvalidDataException("未知会战校准能力。");
         if (!Supports(capability)) throw new InvalidOperationException((UnavailableReason(capability) ?? "缺少" + Labels[Array.IndexOf(Names, capability)] + "校准")
             + " [clan_battle_calibration_capability_missing:" + capability + "]");
+        if (capability == "simulation" && CheckSimulationTarget(plan["period"], plan["phase"], plan["boss"]).Error is string targetError)
+            throw new InvalidOperationException(targetError);
         if (Version == 1 && ((bool?)plan["auto"] != true || plan["switches"] is not JArray { Count: 0 }))
             throw new InvalidOperationException("此校准只支持全程 AUTO、无战中切换。[clan_battle_calibration_auto_only]");
         JObject? supportSnapshot = null;
@@ -176,19 +226,7 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
         snapshot ??= ReadAccountSnapshot(plan);
         if ((string?)plan["support_mode"] != "none" && ((string?)plan["support_mode"] != "qsjs" || PcrClanGuide.SupportRequirement(plan, snapshot).HasValue))
             throw new InvalidOperationException("账号星级资料不包含支援校验。[clan_battle_account_stars_support_uncalibrated]");
-        var unknown = snapshot["unknown_fields"]!.Values<string>().ToArray();
-        var units = snapshot["units"]!.OfType<JObject>().ToDictionary(unit => (int)unit["unit_id"]!);
-        var ids = plan["unit_ids"]!.Values<int>().ToArray();
-        for (var index = 0; index < ids.Length; index++)
-        {
-            var key = $"units.{ids[index]}.battle_rarity";
-            if (!units.TryGetValue(ids[index], out var unit) || unit["battle_rarity"]?.Type != JTokenType.Integer
-                || (int)unit["battle_rarity"]! is < 1 or > 6
-                || unknown.Any(field => key == field || key.StartsWith(field + ".", StringComparison.Ordinal)))
-                throw new InvalidOperationException("账号资料缺少出战星级。[clan_battle_account_stars_unknown]");
-            if (!JToken.DeepEquals(unit["battle_rarity"], plan["stars"]![index]))
-                throw new InvalidOperationException("当前出战星级与作业不符，请先在游戏调整后重新同步。[clan_battle_account_stars_mismatch]");
-        }
+        PcrClanGuide.RequireAccountStars(plan, snapshot);
     }
 
     private static IEnumerable<JToken> SetResetMarkers(JObject inheritance)
@@ -239,8 +277,10 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
                 || !Keys(autoBattle, new[] { "speeds", "opening_guards", "paused_guards", "auto_on", "auto_off", "speed", "set_badge", "samples" }
                     .Concat(autoBattle.ContainsKey("empty_tp") ? new[] { "empty_tp" } : Array.Empty<string>())
                     .Concat(autoBattle.ContainsKey("paused_boss_roi") ? new[] { "paused_boss_roi" } : Array.Empty<string>())
+                    .Concat(autoBattle.ContainsKey("paused_clock_alternate_roi") ? new[] { "paused_clock_alternate_roi" } : Array.Empty<string>())
                     .Concat(autoBattle.ContainsKey("inheritance") ? new[] { "inheritance" } : Array.Empty<string>()).ToArray())
                 || autoBattle.ContainsKey("paused_boss_roi") && !Roi(autoBattle["paused_boss_roi"])
+                || autoBattle.ContainsKey("paused_clock_alternate_roi") && !Roi(autoBattle["paused_clock_alternate_roi"])
                 || autoBattle["speeds"] is not JArray { Count: > 0 } speeds || !speeds.Any(v => v.Type == JTokenType.Integer && (int)v == 1)
                 || speeds.Any(v => v.Type != JTokenType.Integer || (int)v is not (1 or 2 or 4)) || speeds.Values<int>().Distinct().Count() != speeds.Count
                 || autoBattle["opening_guards"] is not JArray { Count: 3 } || autoBattle["paused_guards"] is not JArray { Count: 3 or 4 }
