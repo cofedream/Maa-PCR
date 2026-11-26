@@ -295,18 +295,20 @@ def test_only_carry_after_start_omits_opening_age_while_start_stays_fresh(formal
 
 
 @pytest.fixture
-def current_carry_profile(plan):
+def october_carry_scenario(plan):
     from pcr_maa.clan_battle_calibration import load_calibration
-    value = load_calibration(dict(plan,content_version='202610141448'),capability='carryover')
+    plan = dict(plan, period='2026-10', content_version='202610141448')
+    value = load_calibration(plan, capability='carryover')
     assert value['daily']['execution']['formation_mode']['carryover'] is None
     assert 'carry_selection' in value['daily']['execution']
-    return value
+    return plan, value
 
 
-def test_current_profile_nonempty_observe_does_not_require_empty_inventory(current_carry_profile,plan):
+def test_current_profile_nonempty_observe_does_not_require_empty_inventory(october_carry_scenario):
     from datetime import datetime,timezone
     from pcr_maa.game_day import current_game_day
     from test_clan_battle_native import receipt
+    plan, current_carry_profile = october_carry_scenario
     port=object.__new__(daily.NativeClanDailyAdapter)
     now=datetime(2026,10,28,6,tzinfo=timezone.utc)
     port.now=lambda:now
@@ -347,12 +349,14 @@ def test_current_profile_nonempty_observe_does_not_require_empty_inventory(curre
 
 
 @pytest.mark.parametrize('fault',[None,'expired','owner','wrong_team'])
-def test_current_profile_carry_start_reuses_selection_and_keeps_start_guards(current_carry_profile,plan,selected_carry_binding,fault):
+def test_current_profile_carry_start_reuses_selection_and_keeps_start_guards(october_carry_scenario,selected_carry_binding,fault):
     import numpy as np
     from datetime import timedelta
     from pcr_maa.game_day import current_game_day
     from test_clan_battle_native import context_for
     port,stock,bound=selected_carry_binding
+    plan, current_carry_profile = october_carry_scenario
+    port.plan = plan
     nodes=daily.require_daily_execution(current_carry_profile,plan,capability='carryover')
     labels=current_carry_profile['daily']['execution']['pages']['formation']['labels']
     hits={f'CBDaily_formation_labels_{i}' for i in range(len(labels))}|{'CBDailyFormationRegular','CBDailyActionLabel_start'}

@@ -186,15 +186,18 @@ def test_formal_caller_passes_actual_action_kind_and_seconds(plan, tmp_path, mon
     from datetime import datetime, timezone
     from pcr_maa import clan_battle_daily_native as daily, clan_battle_calibration
     from pcr_maa.game_day import current_game_day
+    from test_clan_formal_observed_scope import scoped_owner
     now = datetime.now(timezone.utc)
-    port = object.__new__(daily.NativeClanDailyAdapter)
-    port.action = dict(kind=kind, start_seconds=seconds)
+    port, target = scoped_owner()
+    plan = dict(plan, **target)
+    port.action = dict(kind=kind, start_seconds=seconds, boss=plan['boss'],
+        phase='C' if kind == 'regular' else 'B')
     port.pending, port.plan, port.now = None, plan, lambda: now
     team = dict(unit_ids=plan['unit_ids'], stars=plan['stars'], support_unit_id=None, support_owner_viewer_id=None)
     port.read_team = lambda: deepcopy(team)
     port.page = NS(require_team=lambda _: None)
     monkeypatch.setattr(battle, 'require_timing', lambda *_: None)
-    monkeypatch.setattr(clan_battle_calibration, 'load_calibration', lambda *_a, **_k: {})
+    monkeypatch.setattr(clan_battle_calibration, 'load_calibration', lambda *_a, **_k: port.calibration)
     monkeypatch.setattr(daily, 'require_daily_execution', lambda *_, **__: None)
     class ArmReached(Exception): pass
     calls = []

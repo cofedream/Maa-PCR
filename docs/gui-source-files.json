@@ -314,6 +314,7 @@
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrCapturePerformance.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrChannelCatalog.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrClanCalibration.cs",
+    "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrClanCalibrationPin.g.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrClanConsumptionConsent.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrClanDailyExecution.cs",
     "gui/MFAAvalonia/MFAAvalonia/Pcr/PcrClanDailyPlan.Recommendation.cs",
