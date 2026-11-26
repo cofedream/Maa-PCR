@@ -210,6 +210,34 @@ def test_release_preflight_rejects_version_mismatch_before_output(case, monkeypa
     assert not output.exists()
 
 
+@pytest.mark.parametrize('tag,include_patch', [('v0.3.0', False), ('v0.3.1', True),
+                                              ('v0.3.0', True)])
+def test_release_checks_offline_bridge_before_sealing(case, monkeypatch, tag, include_patch):
+    _, player, patch, _, _ = case
+    manifest = builder.maintenance._read_json(player / builder.maintenance.MANIFEST)
+    manifest['update']['version'] = tag
+    save_manifest(player, manifest)
+    check = player.parent / 'acceptance.json'
+    builder.save(check, dict(accepted(), revision=manifest['update']['revision'],
+                             expected_version=tag, accepted_owned_payload_sha256=owned_payload_sha256(manifest)))
+    output = player.parent / 'release-output'
+    argv = ['release_ci.py', '--player', str(player), '--acceptance', str(check),
+            '--tag', tag, '--output', str(output)]
+    if include_patch:
+        patch.write_bytes(b'wrong historical patch')
+        argv.extend(['--v027-bridge-patch', str(patch)])
+    monkeypatch.setattr(sys, 'argv', argv)
+    if tag == 'v0.3.0' and include_patch:
+        with pytest.raises(ValueError, match='SHA-256'):
+            release_ci.main()
+        assert not list(output.iterdir())
+    else:
+        with pytest.raises(SystemExit) as error:
+            release_ci.main()
+        assert error.value.code == 2 and not output.exists()
+    assert not (player / (builder.maintenance.MANIFEST + '.sealed')).exists()
+
+
 def test_update_index_uses_business_revision_and_exact_runtime_asset(tmp_path):
     manifest = {'update': {'schema_version': 1, 'product': builder.maintenance.PRODUCT,
                           'revision': 39, 'version': 'v0.1.0'}}
