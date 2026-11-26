@@ -8,7 +8,7 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE_REVISION = 97
-RELEASE_VERSION = 'v0.3.0'
+RELEASE_VERSION = 'v0.2.9'
 
 PATCH_BASES = {
     39: (38, '59fa329ba5ac76de8e51ee10765573a7be737b81228137aa2aaf0cac55726668'),

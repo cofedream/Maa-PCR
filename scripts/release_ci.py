@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--tag', required=True, help='release tag bound by the reviewed acceptance record')
     parser.add_argument('--v027-bridge-patch', type=Path,
-                        help='official R95 to R96 patch for the v0.3.0 offline companion')
+                        help='official R95 to R96 patch for the v0.2.9 offline companion')
     baseline = parser.add_mutually_exclusive_group()
     baseline.add_argument('--base', type=Path)
     baseline.add_argument('--base-manifest', type=Path)
@@ -38,8 +38,8 @@ def main():
         args.base_manifest = check_release_baseline(revision=revision, version=args.tag)
     baseline_path = args.base / 'package-manifest.json' if args.base else args.base_manifest
     require_patch_base(revision, baseline_path)
-    if (args.tag == 'v0.3.0') != (args.v027_bridge_patch is not None):
-        parser.error('--v027-bridge-patch is required for v0.3.0 and only accepted for that release')
+    if (args.tag == 'v0.2.9') != (args.v027_bridge_patch is not None):
+        parser.error('--v027-bridge-patch is required for v0.2.9 and only accepted for that release')
     args.output.mkdir(parents=True, exist_ok=False)
     if args.v027_bridge_patch is not None:
         bridge = args.output / 'Maa-PCR-v0.2.7-to-v0.2.8-offline.zip'

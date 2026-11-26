@@ -75,7 +75,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $bridgeArgs = @()
-          if ($env:PCR_RELEASE_TAG -eq 'v0.3.0') {
+          if ($env:PCR_RELEASE_TAG -eq 'v0.2.9') {
             $patch = 'Maa-PCR-v0.2.7-to-v0.2.8.patch.zip'
             gh release download v0.2.8 --repo shiwandehongbai/Maa-PCR --pattern $patch --dir .runtime/release
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
