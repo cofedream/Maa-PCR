@@ -17,10 +17,12 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
     public const string IndexSha256 = "b006c5b9810d9ff9a0ebe378e7107611f632d790e9d7f2e1a014b3a4bd48a214";
     private static readonly string[] Names = { "simulation", "timed", "formal", "carryover" };
     private static readonly string[] Labels = { "模拟战", "秒数轴", "正式三刀", "补偿刀" };
-    public bool Supports(string capability) => Error == null && Capabilities.Contains(capability);
+    private string? SimulationError { get; init; }
+    internal string? UnavailableReason(string capability) => Error ?? (capability == "simulation" ? SimulationError : null);
+    public bool Supports(string capability) => Capabilities.Contains(capability) && UnavailableReason(capability) == null;
     public string Summary => (Error != null ? string.Join(" / ", Labels) + "：不可用。" + Error
         : string.Join("；", Names.Select((name, i) => Labels[i] + "：" + (Supports(name)
-            ? name == "timed" ? "测量资料齐全，开始前核对时限" : Version == 1 && name == "simulation" ? "校准资料已登记（仅全程 AUTO、无切换）" : "校准资料已登记" : "缺少校准"))))
+            ? name == "timed" ? "测量资料齐全，开始前核对时限" : Version == 1 && name == "simulation" ? "校准资料已登记（仅全程 AUTO、无切换）" : "校准资料已登记" : UnavailableReason(name) ?? "缺少校准"))))
         + (Error == null ? "。资料校验通过不代表当前阶段已通过正常 Start 全程验收。" : "")
         + (OwnUnitsOnly ? "仅全自有队伍可用；借人身份尚未校准。" : "")
         + (AccountStars ? " 出战星级使用24小时内的已确认账号资料，调整后须重新同步。" : "");
@@ -86,7 +88,11 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
             VerifyDependencies(root, profile, capabilities, ownUnitsOnly);
             return new(version == 1 ? 1 : (int)profile["version"]!, capabilities, null, ownUnitsOnly, starSource != null,
                 profile["auto_battle"] is JObject autoBattle ? autoBattle["speeds"]!.Values<int>().ToHashSet() : null,
-                profile["auto_battle"]?["inheritance"] is JObject, profile["daily"]?["execution"]?["opening"] is JObject);
+                profile["auto_battle"]?["inheritance"] is JObject, profile["daily"]?["execution"]?["opening"] is JObject)
+            {
+                SimulationError = capabilities.Contains("simulation") && (int)profile["version"]! == 2 && !HasSimulationDamageLine(profile, contentVersion)
+                    ? "模拟战结算伤害行缺少已核验的截图或识别范围。[clan_battle_result_damage_uncalibrated]" : null
+            };
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException
             or InvalidCastException or FormatException or OverflowException or Newtonsoft.Json.JsonException)
@@ -96,7 +102,7 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
     public void Require(JObject plan, string capability, int battleSpeed = 1)
     {
         if (!Names.Contains(capability)) throw new InvalidDataException("未知会战校准能力。");
-        if (!Supports(capability)) throw new InvalidOperationException((Error ?? "缺少" + Labels[Array.IndexOf(Names, capability)] + "校准")
+        if (!Supports(capability)) throw new InvalidOperationException((UnavailableReason(capability) ?? "缺少" + Labels[Array.IndexOf(Names, capability)] + "校准")
             + " [clan_battle_calibration_capability_missing:" + capability + "]");
         if (Version == 1 && ((bool?)plan["auto"] != true || plan["switches"] is not JArray { Count: 0 }))
             throw new InvalidOperationException("此校准只支持全程 AUTO、无战中切换。[clan_battle_calibration_auto_only]");
@@ -196,6 +202,22 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
     }
 
     private static bool Keys(JObject value, params string[] names) => value.Properties().Select(p => p.Name).ToHashSet(StringComparer.Ordinal).SetEquals(names);
+    private static bool HasSimulationDamageLine(JObject profile, string? contentVersion)
+    {
+        if (profile["pages"] is not JObject pages || pages["result"] is not JObject result
+            || result["fields"] is not JObject fields || fields["damage"] is not JArray main || !Roi(main)) return false;
+        if (!result.ContainsKey("damage_line"))
+            return contentVersion == "202610141448" && (string?)profile["calibration_id"] == "cn-bilibili-202610141448-clan-simulation"
+                && JToken.DeepEquals(main, new JArray(88, 47, 162, 38));
+        if (result["damage_line"] is not JObject line || !Keys(line, "sample_sha256", "verify_roi")
+            || line["sample_sha256"]?.Type != JTokenType.String || line["verify_roi"] is not JArray verify
+            || !Roi(verify) || JToken.DeepEquals(main, verify)) return false;
+        return (int)verify[0] >= (int)main[0] && (int)verify[1] >= (int)main[1]
+            && (int)verify[0] + (int)verify[2] <= (int)main[0] + (int)main[2]
+            && (int)verify[1] + (int)verify[3] <= (int)main[1] + (int)main[3]
+            && profile["samples"] is JArray samples && samples.OfType<JObject>().Any(sample =>
+                (string?)sample["page"] == "result" && JToken.DeepEquals(sample["sha256"], line["sample_sha256"]));
+    }
     private static bool Digest(string value) => Regex.IsMatch(value, "\\A[0-9a-f]{64}\\z");
     private static JObject Json(byte[] bytes)
     {
@@ -216,7 +238,9 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
             if ((int?)profile["version"] != 2 || profile["auto_battle"] is not JObject autoBattle
                 || !Keys(autoBattle, new[] { "speeds", "opening_guards", "paused_guards", "auto_on", "auto_off", "speed", "set_badge", "samples" }
                     .Concat(autoBattle.ContainsKey("empty_tp") ? new[] { "empty_tp" } : Array.Empty<string>())
+                    .Concat(autoBattle.ContainsKey("paused_boss_roi") ? new[] { "paused_boss_roi" } : Array.Empty<string>())
                     .Concat(autoBattle.ContainsKey("inheritance") ? new[] { "inheritance" } : Array.Empty<string>()).ToArray())
+                || autoBattle.ContainsKey("paused_boss_roi") && !Roi(autoBattle["paused_boss_roi"])
                 || autoBattle["speeds"] is not JArray { Count: > 0 } speeds || !speeds.Any(v => v.Type == JTokenType.Integer && (int)v == 1)
                 || speeds.Any(v => v.Type != JTokenType.Integer || (int)v is not (1 or 2 or 4)) || speeds.Values<int>().Distinct().Count() != speeds.Count
                 || autoBattle["opening_guards"] is not JArray { Count: 3 } || autoBattle["paused_guards"] is not JArray { Count: 3 or 4 }
@@ -478,7 +502,8 @@ public sealed record PcrClanCalibration(int Version, IReadOnlySet<string> Capabi
         && ((string?)(node.ContainsKey("recognition") ? node["recognition"] : new JValue("OCR")) == "TemplateMatch"
             || (string?)(node.ContainsKey("recognition") ? node["recognition"] : new JValue("OCR")) == "OCR"
                 && node["expected"]?.Type == JTokenType.String && ((string)node["expected"]!).StartsWith('^') && ((string)node["expected"]!).EndsWith('$'));
-    private static bool Roi(JToken? value) => value is JArray { Count: 4 } roi && roi.All(item => item.Type == JTokenType.Integer)
+    private static bool Roi(JToken? value) => value is JArray { Count: 4 } roi
+        && roi.All(item => item is JValue { Type: JTokenType.Integer, Value: not System.Numerics.BigInteger })
         && (long)roi[0] is >= 0 and < 1280 && (long)roi[1] is >= 0 and < 720
         && (long)roi[2] is > 0 and <= 1280 && (long)roi[3] is > 0 and <= 720
         && (long)roi[0] + (long)roi[2] <= 1280 && (long)roi[1] + (long)roi[3] <= 720;

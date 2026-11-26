@@ -96,6 +96,21 @@ def sampled_plan():
         support_mode='none', support_unit_id=None, auto=True, set_by_unit={}, switches=[])
 
 
+def test_optional_paused_boss_roi_preserves_legacy_and_exact_boss_match():
+    plan = sampled_plan()
+    profile = load_calibration(plan)
+    assert backend.auto_battle_pipeline(profile, plan)['CBOpeningBoss']['roi'] == [805, 160, 135, 33]
+    profile['auto_battle']['paused_boss_roi'] = [760, 157, 178, 40]
+    profile['boss_targets'][str(plan['boss'])]['name'] = '厄勒克特拉夫人'
+    node = backend.auto_battle_pipeline(profile, plan)['CBOpeningBoss']
+    assert node['roi'] == [760, 157, 178, 40]
+    assert node['expected'] == '^厄勒克特拉夫人$'
+    assert node['threshold'] == .9
+    profile['auto_battle']['paused_boss_roi'] = [1200, 157, 178, 40]
+    with pytest.raises(ValueError, match='calibration_roi_invalid'):
+        backend.auto_battle_pipeline(profile, plan)
+
+
 @pytest.mark.parametrize('sample,auto,sets,speed,second', [
     ('paused-all-on.png', False, [True]*5, 4, 90), ('paused-all-off.png', False, [False]*5, 4, 90),
     ('paused-mixed-1.png', True, [False, True, True, True, True], 1, 90),

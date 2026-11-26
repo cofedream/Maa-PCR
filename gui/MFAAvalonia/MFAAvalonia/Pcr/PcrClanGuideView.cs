@@ -462,7 +462,7 @@ public sealed partial class PcrClanGuideView : UserControl
         var label = formal ? "正式三刀" : "模拟战";
         var version = (string?)displaySnapshot?["content_version"];
         var prefix = version == null ? "战斗校准" : $"战斗校准（内容版本 {version}）";
-        var reason = calibration.Error ?? (!calibration.Supports(capability) ? "缺少对应页面校准。" : null);
+        var reason = calibration.UnavailableReason(capability) ?? (!calibration.Supports(capability) ? "缺少对应页面校准。" : null);
         if (reason == null && !formal && calibration.OwnUnitsOnly)
         {
             try
