@@ -214,6 +214,14 @@ def _item_identity(observation,name,kind=None,*,expected_catalog_id=None):
     raise BatchStopped('shop_quote_changed')
 
 
+def _identity_satisfies_quote(identity, expected):
+    if expected == 'native_observed_catalog':
+        return identity == expected
+    if expected == 'native_observed_icon':
+        return identity in ('native_observed_icon', 'native_observed_catalog')
+    return True
+
+
 def calibrated_stacks(stacks,items):
     actual={}
     for item in items:
@@ -391,7 +399,8 @@ class ShopRecognition(CustomRecognition):
                     expected=param.get('identity_method')
                     try:identity=_item_identity(payload,param['name'],kind,expected_catalog_id=param.get('catalog_id'))
                     except BatchStopped:return self.AnalyzeResult(None,payload)
-                    if expected in ('native_observed_icon','native_observed_catalog') and identity!=expected:return self.AnalyzeResult(None,payload)
+                    if not _identity_satisfies_quote(identity, expected):
+                        return self.AnalyzeResult(None, payload)
             if state=='shop' and param.get('state')=='shop' and self.icon_capture is not None:
                 # A new proposal/refresh cannot inherit a previous item's template.
                 self.icon_capture.icon=None
@@ -526,7 +535,8 @@ class MaaShop:
                 if current['state']!='confirmation' or price!=quote['price']:raise BatchStopped('shop_quote_changed')
                 identity=_item_identity(current,quote['name'],quote['kind'],expected_catalog_id=quote.get('catalog_id'))
                 expected_method=quote.get('identity_method')
-                if expected_method in ('native_observed_icon','native_observed_catalog') and identity!=expected_method:raise BatchStopped('shop_quote_changed')
+                if not _identity_satisfies_quote(identity, expected_method):
+                    raise BatchStopped('shop_quote_changed')
                 confirms=current['words']['Confirm']
                 if len(confirms)!=1:raise BatchStopped('shop_quote_changed')
             except BatchStopped as error:
