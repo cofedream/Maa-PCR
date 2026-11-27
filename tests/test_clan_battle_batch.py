@@ -14,7 +14,8 @@ from pcr_maa.clan_battle import plan_hash
 from pcr_maa.clan_battle_daily import POLICY
 from pcr_maa.preset_execution import Journal
 
-NOW = datetime.now(timezone.utc)
+# Keep synthetic snapshots fresh and leave room for elapsed time before the 21:00 UTC reset.
+NOW = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
 
 
 def bind(value):
