@@ -1,4 +1,4 @@
-"""HOME guards keep exact words and reject missing words or large panels."""
+"""HOME guards require a complete anchor layout and reject large panels."""
 import os
 from pathlib import Path
 import socket
@@ -68,7 +68,7 @@ def test_saved_home_across_all_endpoints_and_input_guard(offline, shift):
 
 @pytest.mark.private_replay
 @pytest.mark.parametrize('case', ['adventure_missing', 'schedule_missing', 'gift_missing', 'known_panel', 'blank'])
-def test_missing_words_or_overlay_cannot_pass_home_or_click(offline, case):
+def test_incomplete_home_anchors_or_overlay_cannot_pass_home_or_click(offline, case):
     image = saved_home()
     if case == 'blank': image[:] = 0
     elif case == 'known_panel':
@@ -79,8 +79,10 @@ def test_missing_words_or_overlay_cannot_pass_home_or_click(offline, case):
         names = {'adventure_missing':['HomeAdventureText'],
                  'schedule_missing':['HomeScheduleText','HomeEdgeScheduleText'],
                  'gift_missing':['HomeGiftText','HomeEdgeGiftText']}[case]
-        for name in names:
-            x, y, w, h = game_session_pipeline(123)[name]['roi']
+        nodes = game_session_pipeline(123)
+        # Remove one icon as well so neither complete HOME layout remains.
+        for name in [*names, 'HomeIconShopPixels']:
+            x, y, w, h = nodes[name]['roi']
             image[y:y+h, x:x+w] = 0
     tasker, controller = setup(image)
     try:
