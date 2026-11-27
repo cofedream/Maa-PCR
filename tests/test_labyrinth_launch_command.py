@@ -48,7 +48,9 @@ def test_the_package_itself_must_be_a_name(package):
 
 
 def test_the_command_asks_am_to_report_the_launch_outcome():
-    assert launch_command(PACKAGE + '/.Main') == 'am start -W -n ' + PACKAGE + '/.Main'
+    assert launch_command(PACKAGE + '/.Main') == (
+        'am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER '
+        '-f 0x10200000 -n ' + PACKAGE + '/.Main')
 
 
 @pytest.mark.parametrize('output,expected', [

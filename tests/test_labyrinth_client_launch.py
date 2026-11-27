@@ -7,6 +7,7 @@ from pcr_maa import native, recognition_metadata
 from pcr_maa.labyrinth import app_version
 from pcr_maa.labyrinth.batch import Batch, BatchStopped
 from pcr_maa.labyrinth.game_port import MaaGamePort
+from pcr_maa.labyrinth.game_session import MaaGameSession
 from pcr_maa.labyrinth.snapshots import OpeningSnapshot
 from pcr_maa.preset_execution import Journal
 from test_labyrinth_restart_policy import Port, request as sample_request
@@ -23,6 +24,12 @@ REFUSED = ('Starting: Intent { cmp=' + COMPONENT + ' }\nError type 3\n'
            'Error: Activity class {' + COMPONENT + '} does not exist.\n')
 STOP_NODE = 'LabyGamePortStopClientOnce'
 START_NODE = 'LabyGamePortStartClientOnce'
+RECOVERY_NODE = 'LabyGameSessionRecoveryObserved'
+LAUNCH_COMMAND = ('am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER '
+                  '-f 0x10200000 -n ' + COMPONENT)
+RESOLVE_COMMAND = ('cmd package resolve-activity --brief -a android.intent.action.MAIN '
+                   '-c android.intent.category.LAUNCHER -p ' + PACKAGE)
+DESKTOP_RETURN = STARTED.replace('Activity: ' + COMPONENT, 'Activity: com.android.launcher3/.Launcher')
 
 
 def drive(monkeypatch, tmp_path, *, brief=BRIEF, output=STARTED):
@@ -49,7 +56,7 @@ def drive(monkeypatch, tmp_path, *, brief=BRIEF, output=STARTED):
                     raw=dict(package=PACKAGE)))])
         return dict(tasker_inited=True, task_id=2, native_ok=True, nodes=[dict(
             name=node, completed=True, action=dict(name=node, success=True,
-                raw=dict(cmd='am start -W -n ' + COMPONENT, shell_timeout=20000,
+                raw=dict(cmd=nodes[START_NODE]['cmd'], shell_timeout=20000,
                          success=True, output=output)))])
 
     monkeypatch.setattr(native, 'run', run)
@@ -61,11 +68,18 @@ def drive(monkeypatch, tmp_path, *, brief=BRIEF, output=STARTED):
 
 def test_start_launches_the_resolved_component_instead_of_monkey(monkeypatch, tmp_path):
     game, batch, journal, nodes, calls, snapshot = drive(monkeypatch, tmp_path)
+    resolved = []
+    def shell(controller, command, **kwargs):
+        resolved.append(command)
+        return BRIEF
+    monkeypatch.setattr(app_version, 'controller_shell', shell)
     with journal.locked():
         result = game._restart_client(batch, snapshot)
     # Maa's default StartApp runs `monkey -p`, absent on recent emulator images.
+    assert resolved == [RESOLVE_COMMAND]
     assert nodes[START_NODE]['action'] == 'Shell'
-    assert nodes[START_NODE]['cmd'] == 'am start -W -n ' + COMPONENT
+    assert nodes[START_NODE]['cmd'] == LAUNCH_COMMAND
+    assert nodes[START_NODE]['pre_delay'] == 250
     assert 'package' not in nodes[START_NODE]
     assert nodes[STOP_NODE]['action'] == 'StopApp'
     assert calls == [STOP_NODE, START_NODE]
@@ -98,6 +112,29 @@ def test_an_unresolvable_launcher_stops_before_any_input(monkeypatch, tmp_path):
     assert calls == [] and nodes == {} and journal.events() == []
 
 
+@pytest.mark.parametrize('native_timeout', [False, True], ids=['completed-miss', 'host-deadline'])
+def test_desktop_return_stops_at_readback_without_repeating_launch(monkeypatch, tmp_path, native_timeout):
+    game, batch, journal, nodes, calls, snapshot = drive(monkeypatch, tmp_path, output=DESKTOP_RETURN)
+    game.session = MaaGameSession(game.tasker, game.stamp)
+    run_launch = native.run
+
+    def run(tasker, node, **kwargs):
+        if node != RECOVERY_NODE:
+            return run_launch(tasker, node, **kwargs)
+        calls.append(node)
+        if native_timeout:
+            raise RuntimeError('Native task exceeded 90 seconds or inspection deadline')
+        return dict(tasker_inited=True, task_id=3, native_ok=False, nodes=[])
+
+    monkeypatch.setattr(native, 'run', run)
+    with journal.locked(), pytest.raises(BatchStopped, match='^game_session_readback_unknown$'):
+        game._restart_client(batch, snapshot)
+    assert calls == [STOP_NODE, START_NODE, RECOVERY_NODE]
+    last = journal.events()[-1]
+    assert last['operation'] == 'client_start_after_protocol' and last['state'] == 'settled'
+    assert last['result']['client_ready_verified'] is False
+
+
 @pytest.fixture(params=[(), ('5.13.0', '5.16.1')], ids=['missing', 'conflicting'])
 def restart_with_sdk(monkeypatch, tmp_path, request):
     import numpy as np
@@ -112,7 +149,7 @@ def restart_with_sdk(monkeypatch, tmp_path, request):
             if command.startswith('cmd package resolve-activity'):
                 return BRIEF
             calls.append(('start', command))
-            return STARTED if command == 'am start -W -n ' + COMPONENT else None
+            return STARTED if command == LAUNCH_COMMAND else None
 
     monkeypatch.setattr(recognition_metadata, 'distributions',
         lambda *, name: [NS(version=version) for version in request.param])
@@ -138,7 +175,7 @@ def test_restart_reads_real_sdk_receipts_with_unusable_package_metadata(restart_
     game, batch, journal, snapshot, calls = restart_with_sdk
     with journal.locked():
         result = game._restart_client(batch, snapshot)
-    assert calls == [('stop', PACKAGE), ('start', 'am start -W -n ' + COMPONENT)]
+    assert calls == [('stop', PACKAGE), ('start', LAUNCH_COMMAND)]
     assert result['client_ready_verified'] is True
     assert [event['operation'] for event in journal.events() if event['state'] == 'settled'] == [
         'client_stop_after_protocol', 'client_start_after_protocol']

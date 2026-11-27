@@ -11,7 +11,7 @@ from .. import native, player_log
 from .batch import BatchStopped
 from .config import valid_guild_id
 from .game_session import MaaGameSession, game_session_pipeline, _root, _box
-from .launch_command import launch_accepted, launch_command, launch_component
+from .launch_command import launch_accepted, launch_command, launch_component, resolve_launcher_command
 from .opening import MaaOpening
 from .session import resume_home_pipeline
 from .interruptions import date_changed_pipeline
@@ -177,7 +177,7 @@ class MaaGamePort:
         from .app_version import controller_shell
         try:
             output=controller_shell(self.tasker.controller,
-                'cmd package resolve-activity --brief '+self.server.package,stopped=self.stopped)
+                resolve_launcher_command(self.server.package),stopped=self.stopped)
         except BatchStopped:raise
         except Exception as error:
             raise BatchStopped('game_port_launch_component_unknown') from error
@@ -212,8 +212,10 @@ class MaaGamePort:
         nodes.update({
             'LabyGamePortStopClientOnce':dict(recognition='DirectHit',action='StopApp',
                 package=self.server.package,max_hit=1,next=[],pre_delay=0,post_delay=0),
+            # Android's `am start -S` gives force-stop 250 ms before starting.
+            # Keep the same interval with our separately journaled stop action.
             'LabyGamePortStartClientOnce':dict(recognition='DirectHit',action='Shell',
-                cmd=command,shell_timeout=20000,max_hit=1,next=[],pre_delay=0,post_delay=0),
+                cmd=command,shell_timeout=20000,max_hit=1,next=[],pre_delay=250,post_delay=0),
         })
         if not self.tasker.resource.override_pipeline(nodes):
             raise BatchStopped('game_port_restart_unavailable')
