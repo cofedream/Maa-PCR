@@ -532,6 +532,10 @@ class MaaGameSession:
                 if hit=='LabyDisconnect6002Observed':raise BatchStopped('channel_client_close_failed')
                 survived+=1
                 if survived>=2:raise BatchStopped('channel_client_close_failed')
+        except RuntimeError as error:
+            if not recovery or len(error.args)!=1 or error.args[0] not in _DEADLINE_ERRORS:raise
+            self._checkpoint(batch)
+            raise BatchStopped('game_session_readback_unknown') from error
         finally:
             if token is not None:native.RUN_DEADLINE.reset(token)
 

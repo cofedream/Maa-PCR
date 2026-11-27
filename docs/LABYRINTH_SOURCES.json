@@ -402,7 +402,7 @@
           "sha256": "e42c109c56a990a33cfac421517044c9c157c2cda7e46f70043e44ea899f9e2d"
         }
       ],
-      "local_sha256": "ec935597b25940a97595f1758ed3428f8249b51ae18db31c5ff23f3fb4822b47",
+      "local_sha256": "2c67dfe76f8b83b1f966f1f7397692773541e2c10ac65b144260408d82235064",
       "combined_distribution_compatibility": "not-established",
       "production_runtime": true,
       "upstream_updates": [
@@ -829,7 +829,7 @@
       "license": "CC-BY-NC-SA-4.0",
       "author": "wbero and project contributors; MAA PCR adaptation contributors",
       "upstream": [],
-      "local_sha256": "021edcc84970864ac1c7b674b2792d378d175d54b9cd9f6b243e3b26aea9cdff",
+      "local_sha256": "8d98c9e2293738d881d5e68b35272b896015c0be8b9616056e3323c9abd31efc",
       "production_runtime": true,
       "upstream_updates": [
         {
@@ -8674,13 +8674,13 @@
     },
     {
       "local": "src/pcr_maa/labyrinth/game_port.py",
-      "local_sha256": "ec935597b25940a97595f1758ed3428f8249b51ae18db31c5ff23f3fb4822b47",
+      "local_sha256": "2c67dfe76f8b83b1f966f1f7397692773541e2c10ac65b144260408d82235064",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
     {
       "local": "src/pcr_maa/labyrinth/game_session.py",
-      "local_sha256": "021edcc84970864ac1c7b674b2792d378d175d54b9cd9f6b243e3b26aea9cdff",
+      "local_sha256": "8d98c9e2293738d881d5e68b35272b896015c0be8b9616056e3323c9abd31efc",
       "kind": "frozen-labyrinth-source-file",
       "production_runtime": true
     },
