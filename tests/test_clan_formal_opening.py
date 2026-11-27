@@ -1,6 +1,6 @@
 """Formal opening contracts use synthetic evidence and never grant device qualification."""
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 import json
 from types import SimpleNamespace as NS
 
@@ -13,7 +13,7 @@ from pcr_maa.clan_battle_inheritance import BattleInheritance
 from pcr_maa.game_day import current_game_day
 from pcr_maa.preset_execution import Journal
 from test_clan_battle import Controls
-from test_clan_battle_batch import daily_request, Port
+from test_clan_battle_batch import daily_request, NOW, Port
 from test_clan_battle_daily_native import executable, profile
 from test_clan_battle_native import calibration, calibration_v2, plan, Registry
 from test_clan_inheritance import SettingsPort
@@ -55,7 +55,7 @@ def formal_reader(executable, plan, monkeypatch, tmp_path):
     plan = dict(plan, confirmed_for='reviewed')
     action = dict(kind='regular', boss=plan['boss'], phase='B', round=5, instance_id='next-instance',
         start_seconds=34, stock_index=2, slot=1)
-    now = datetime.now(timezone.utc)
+    now = NOW
     port = daily.NativeClanDailyAdapter.__new__(daily.NativeClanDailyAdapter)
     daily.NativeClanBattle.__init__(port, NS(resource=Registry()), tmp_path)
     port.plan, port.action, port.start_seconds = plan, action, 34
@@ -135,7 +135,7 @@ def test_formal_unknown_binding_never_returns_a_control_target(formal_reader, ch
     if change == 'clock': clock[0]='1:30'
     elif change == 'stock': port.action=dict(port.action,stock_index=3)
     elif change == 'target': port.page.bound['instance_id']='old-instance'
-    elif change == 'day': port.now=lambda:datetime.now(timezone.utc)+timedelta(days=1)
+    elif change == 'day': port.now=lambda:NOW+timedelta(days=1)
     elif change == 'unknown_start': port.battle_start='not_sent'
     elif change == 'stop': context.tasker.stopping=True
     elif change == 'speed_bool': params['battle_speed']=True
