@@ -36,6 +36,8 @@ R67 整合半截卡片、开局衔接修复和全部 11 组上游功能。新包
 
 本次发行验证使用离线夹具和隔离安装，不覆盖现用 R63 测试版或操作游戏。真实校准清单仍为空，单次模拟在执行前停止，正式出刀和补偿生产入口继续关闭。当前操作流程与待验范围见[公会战作业](PCR_AGENT_CLAN.md)。
 
+2026-11-28 公开回归支持按测试文件分片并行（`scripts/verify.py public --jobs N`）：`--jobs` 只对 `public` 生效，按 `tests/` 下的 `test_*.py`／`*_test.py` 贪心分片，每个分片有独立的 `--basetemp`、TEMP／LOCALAPPDATA 和 JUnit，仍使用同一 `public_test_policy` 与 `not private_replay` 过滤；全部分片退出码为 0 才记 `passed`，分片日志与 JUnit 合并回 `public-tests.log`／`public-tests.xml`，`result.json` 增加 `public_jobs` 和各分片步骤；默认串行入口不变。分片权重优先取 `.runtime/verification/` 下最新 JUnit 的模块耗时，记录未覆盖的新模块或被 `private_replay` 全过滤的模块按该记录的“秒/字节”速率估算，完全没有记录时退回文件大小；4 分片时最大的单个测试文件仍是墙钟下限。并行第一次运行暴露 `tests/test_source_delivery.py` 依赖其他测试先把 `scripts/` 放进 `sys.path`（单跑即 `ModuleNotFoundError: release_baselines`），已改为自己加入。检查：`tests/test_verify.py` 覆盖分片覆盖全部测试文件、耗时权重、部分记录、并发执行与合并记录、`--jobs` 仅用于 public；`python -X utf8 -B scripts/verify.py public --jobs 4` 通过（记录 `20261128T143246.472996Z`：8411 passed、404 skipped、233 deselected，4 分片墙钟约 10 分 25 秒）。
+
 ## 日常核销证据的保留
 
 深渊和深域的维护核销会在写入终态前，将步骤报告、关联截图和原生日志一起保存到对应账本的 `result-evidence` 目录。文件按内容摘要命名，写入后刷盘；读取副本时继续核对摘要。普通 `debug` 日志和截图可以过期清理，账本及其证据目录应随私有数据保留。
@@ -52,6 +54,7 @@ R67 整合半截卡片、开局衔接修复和全部 11 组上游功能。新包
 
 ```powershell
 python -X utf8 -B scripts/verify.py public
+python -X utf8 -B scripts/verify.py public --jobs 4
 python -X utf8 -B scripts/verify.py gui
 python -X utf8 -B scripts/verify.py all
 ```
@@ -59,6 +62,8 @@ python -X utf8 -B scripts/verify.py all
 - `public` 使用 `scripts.public_test_policy`，明确排除 `private_replay`，不要求 .NET。
 - `gui` 校验 SDK 精确版本，依次离线锁定恢复、Release 构建桌面程序，运行 `PcrUpdate.Tests`、`PcrProfileSwitch.Tests`（包括 owner 契约）、`PcrLabyrinthCredentials.Tests`、`PcrLabyrinthAccounts.Tests` 和 `PcrLabyrinthRatings.Tests`。后两组覆盖账号迁移、隔离保存及评分窗口。每组检查使用的 Core 哈希必须与桌面构建一致。
 - `all` 执行上述两组；前置条件或任一步失败就停止并返回非零退出码。`passed` 只表示所选范围的命令成功，不把跳过、未选中或缺失的私有回放计作通过。
+
+公开回归也支持按测试文件分片并行，用于缩短本地全量等待：`python -X utf8 -B scripts/verify.py public --jobs 4`。`--jobs N` 只对 `public` 生效：按 `tests/` 下的 `test_*.py`／`*_test.py` 做贪心分片（单个文件不会拆到两个进程），每个分片有独立的 `--basetemp`、TEMP／LOCALAPPDATA 和 JUnit，仍使用同一 `public_test_policy` 与 `not private_replay` 过滤；全部分片退出码为 0 才记 `passed`，分片日志与 JUnit 合并回 `public-tests.log`／`public-tests.xml`，`result.json` 记录 `public_jobs` 和各分片步骤。分片权重优先使用 `.runtime/verification/` 下最新 JUnit 的模块耗时，记录未覆盖的新模块或被 `private_replay` 全过滤的模块按该记录的“秒/字节”速率估算，完全没有记录时才退回文件大小。墙钟下限是最大的单个测试文件。默认 `--jobs 1` 仍是串行全量，发布记录以完整通过为准；并行不改变测试集合与过滤，只改变执行方式。
 
 入口固定使用所在 checkout 作为源码根目录，不依赖调用方当前目录。通过 `--dotnet` 指定 SDK 可执行文件，通过 `--nuget-cache` 指定已有包缓存；不指定时分别使用 PATH 和 `NUGET_PACKAGES`（未设置则为用户 `.nuget/packages`）。入口不安装依赖、不联网恢复、不打包、不连接设备、不复制到玩家安装。缺依赖时先按锁文件单独准备环境，再重新运行。
 

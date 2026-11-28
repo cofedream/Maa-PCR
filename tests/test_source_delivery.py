@@ -3,18 +3,24 @@ import importlib.util
 import json
 from pathlib import Path
 import re
+import sys
 import tempfile
 import unittest
 import zipfile
 
+SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
+# scripts/*.py import each other by bare name, so this module must not depend on
+# another test having added the scripts directory first.
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
 helper = Path(__file__).with_name('build_r24_source_delivery.py')
 if not helper.exists():
-    helper = Path(__file__).resolve().parents[1] / 'scripts' / 'build_r24_source_delivery.py'
+    helper = SCRIPTS / 'build_r24_source_delivery.py'
 spec = importlib.util.spec_from_file_location('source_delivery', helper)
 delivery = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(delivery)
 gate_spec = importlib.util.spec_from_file_location('source_gate',
-    Path(__file__).resolve().parents[1] / 'scripts' / 'source_gate.py')
+    SCRIPTS / 'source_gate.py')
 source_gate = importlib.util.module_from_spec(gate_spec)
 gate_spec.loader.exec_module(source_gate)
 

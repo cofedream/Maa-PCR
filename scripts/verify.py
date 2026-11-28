@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -11,6 +12,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from xml.sax.saxutils import quoteattr
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,11 +32,116 @@ def check_python() -> None:
         raise RuntimeError("Use non-isolated development Python; subprocess tests require PYTHONPATH.")
 
 
-def public_command(output: Path) -> list[str]:
+def public_command(output: Path, *, paths=(), basetemp: Path | None = None,
+                   junit: Path | None = None) -> list[str]:
+    """Run the full public selection, or the listed files of one parallel shard."""
     return [sys.executable, "-X", "utf8", "-B", "-u", "-m", "pytest",
             "-p", "scripts.public_test_policy", "-m", "not private_replay",
-            "--basetemp", str(output / "test-temp"),
-            "--junitxml", str(output / "public-tests.xml")]
+            "--basetemp", str(basetemp or output / "test-temp"),
+            "--junitxml", str(junit or output / "public-tests.xml"), *paths]
+
+
+def public_test_files(root: Path) -> list[Path]:
+    """Every file pytest's default `test_*.py` / `*_test.py` patterns collect."""
+    tests = root / "tests"
+    files = {path for pattern in ("test_*.py", "*_test.py")
+             for path in tests.rglob(pattern) if path.is_file()}
+    return sorted(files)
+
+
+def recorded_test_seconds(root: Path) -> dict[str, float]:
+    """Per test module seconds from the newest local public JUnit record."""
+    candidates = sorted((root / ".runtime/verification").glob("*/public-tests.xml"),
+                        key=lambda path: path.stat().st_mtime, reverse=True)
+    for path in candidates:
+        try:
+            tree = ET.parse(path)
+        except (OSError, ET.ParseError):
+            continue
+        seconds = {}
+        for case in tree.iter("testcase"):
+            parts = (case.get("classname") or "").split(".")
+            if len(parts) < 2 or parts[0] != "tests":
+                continue
+            try:
+                duration = float(case.get("time") or 0)
+            except ValueError:
+                continue
+            seconds[parts[1]] = seconds.get(parts[1], 0.0) + duration
+        if seconds:
+            return seconds
+    return {}
+
+
+def public_shards(root: Path, output: Path, jobs: int) -> list[tuple[str, list[str], Path]]:
+    """Pack public test files into `jobs` shards; a file is never split.
+
+    The shards run the same selection and policy as the serial command, so the
+    merged record covers every collected test file exactly once. Greedy packing
+    keeps the shards roughly level. The newest local JUnit record provides the
+    per-module durations; files it does not cover (new or fully filtered
+    modules) are estimated from its seconds-per-byte rate, and file size is the
+    fallback when there is no record at all. One large module remains the lower
+    bound of the wall time and is deliberately not split across processes.
+    """
+    files = public_test_files(root)
+    if not files:
+        raise RuntimeError("no public test files found under tests/")
+    seconds = recorded_test_seconds(root)
+    if seconds:
+        # Files without a record (new or fully filtered modules) are estimated
+        # from the recorded seconds-per-byte rate instead of a fixed weight.
+        recorded = [path for path in files if path.stem in seconds]
+        recorded_bytes = sum(path.stat().st_size for path in recorded)
+        recorded_seconds = sum(seconds[path.stem] for path in recorded)
+        rate = recorded_seconds / recorded_bytes if recorded_bytes else 1.0
+        weighted = sorted(((max(seconds[path.stem], 1.0) if path.stem in seconds
+                            else max(path.stat().st_size * rate, 1.0), path)
+                           for path in files), reverse=True)
+    else:
+        weighted = sorted(((max(path.stat().st_size, 1), path) for path in files), reverse=True)
+    bins = [[] for _ in range(jobs)]
+    loads = [0.0] * jobs
+    for weight, path in weighted:
+        index = loads.index(min(loads))
+        bins[index].append(path)
+        loads[index] += weight
+    commands = []
+    for index, paths in enumerate(bins):
+        base = output / f"public-tests-{index}"
+        base.mkdir(parents=True, exist_ok=True)
+        commands.append((f"public-tests-{index}", public_command(output,
+            paths=[str(path.relative_to(root)) for path in paths],
+            basetemp=base / "test-temp", junit=base / "public-tests.xml"), root))
+    return commands
+
+
+def merge_public_results(output: Path, jobs: int) -> None:
+    """Merge the shard logs and JUnit files into the serial record's names."""
+    suites = ET.Element("testsuites")
+    totals = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+    elapsed = 0.0
+    logs = []
+    for index in range(jobs):
+        log = output / f"public-tests-{index}.log"
+        if log.is_file():
+            logs.append((index, log.read_text(encoding="utf-8", errors="replace")))
+        xml = output / f"public-tests-{index}" / "public-tests.xml"
+        if not xml.is_file():
+            continue
+        for suite in ET.parse(xml).getroot().findall("testsuite"):
+            suites.append(suite)
+            for key in totals:
+                totals[key] += int(float(suite.get(key) or 0))
+            elapsed += float(suite.get("time") or 0)
+    for key, value in totals.items():
+        suites.set(key, str(value))
+    suites.set("time", f"{elapsed:.3f}")
+    ET.ElementTree(suites).write(output / "public-tests.xml", encoding="utf-8",
+                                 xml_declaration=True)
+    (output / "public-tests.log").write_text(
+        "".join(f"===== public-tests-{index} =====\n{text}\n" for index, text in logs),
+        encoding="utf-8")
 
 
 def gui_commands(dotnet: str, gui: Path, output: Path) -> list[tuple[str, list[str], Path]]:
@@ -107,6 +214,8 @@ def run_step(name: str, command: list[str], cwd: Path, output: Path,
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("scope", choices=("public", "gui", "all"), nargs="?", default="public")
+    parser.add_argument("--jobs", type=int, default=1,
+                        help="public test files run in N concurrent processes; default 1 (serial)")
     parser.add_argument("--dotnet", default="dotnet", help="SDK executable; defaults to PATH")
     parser.add_argument("--nuget-cache", type=Path, default=Path(os.environ.get("NUGET_PACKAGES", Path.home() / ".nuget/packages")),
                         help="Existing offline NuGet package cache; never downloads packages")
@@ -123,9 +232,16 @@ def main(argv: list[str] | None = None) -> int:
         env[variable] = str(output / folder)
     try:
         check_python()
+        if args.jobs < 1:
+            raise RuntimeError("--jobs must be a positive integer")
+        if args.scope != "public" and args.jobs != 1:
+            raise RuntimeError("--jobs is only supported with the public scope")
         commands = []
         if args.scope in ("public", "all"):
-            commands.append(("public-tests", public_command(output), ROOT))
+            if args.jobs > 1:
+                commands.extend(public_shards(ROOT, output, args.jobs))
+            else:
+                commands.append(("public-tests", public_command(output), ROOT))
         if args.scope in ("gui", "all"):
             if os.name != "nt":
                 raise RuntimeError("GUI checks require Windows (including current-user DPAPI).")
@@ -154,9 +270,21 @@ def main(argv: list[str] | None = None) -> int:
                 '</packageSources></configuration>', encoding="utf-8")
             gui = ROOT / "gui/MFAAvalonia"
             commands.extend(gui_commands(dotnet, gui, output))
-        for name, command, cwd in commands:
-            run_step(name, command, cwd, output, env, receipt,
-                     timeout=3600 if name == "public-tests" else 600)
+        if args.jobs > 1:
+            with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+                futures = [pool.submit(run_step, name, command, cwd, output, env,
+                                       receipt, timeout=3600)
+                           for name, command, cwd in commands]
+                for future in futures:
+                    future.result()
+            merge_public_results(output, args.jobs)
+            receipt["steps"] = sorted(receipt["steps"],
+                                      key=lambda step: int(step["name"].rsplit("-", 1)[1]))
+            receipt["public_jobs"] = args.jobs
+        else:
+            for name, command, cwd in commands:
+                run_step(name, command, cwd, output, env, receipt,
+                         timeout=3600 if name == "public-tests" else 600)
         receipt["status"] = "passed"
         return 0
     except (OSError, RuntimeError, KeyboardInterrupt) as exc:
